@@ -25,17 +25,17 @@ import { h } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
 const images = [
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=1' } },
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=2' } },
+  { type: 'image_url', image_url: { url: 'https://picsum.photos/seed/tiny-robot-bubble-1/400/300' } },
+  { type: 'image_url', image_url: { url: 'https://picsum.photos/seed/tiny-robot-bubble-2/400/300' } },
 ]
 
 const imageFirst = [
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=3' } },
+  { type: 'image_url', image_url: { url: 'https://picsum.photos/seed/tiny-robot-bubble-3/400/300' } },
   { type: 'text', text: '图片后的文本与图片显示在同一个气泡中。' },
 ]
 
 const textFirst = [
   { type: 'text', text: '文本后的图片也显示在同一个气泡中。' },
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=4' } },
+  { type: 'image_url', image_url: { url: 'https://picsum.photos/seed/tiny-robot-bubble-4/400/300' } },
 ]
 </script>

@@ -1,27 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import { Switch as TinySwitch } from '@opentiny/vue'
 
 const content = ref('')
 const loading = ref(false)
 const isDisabled = ref(false)
+const status = ref('等待提交')
+let loadingTimer: ReturnType<typeof setTimeout> | undefined
+
+const clearLoadingTimer = () => {
+  if (loadingTimer) clearTimeout(loadingTimer)
+  loadingTimer = undefined
+}
 
 const handleSubmit = (value: string) => {
-  console.log('提交内容:', value)
+  clearLoadingTimer()
   loading.value = true
+  status.value = `正在处理：${value}`
 
   // 模拟 3 秒后完成
-  setTimeout(() => {
+  loadingTimer = setTimeout(() => {
     loading.value = false
     content.value = ''
+    status.value = `处理完成：${value}`
+    loadingTimer = undefined
   }, 3000)
 }
 
 const handleCancel = () => {
-  console.log('取消生成')
+  clearLoadingTimer()
   loading.value = false
+  status.value = '已取消处理'
 }
+
+onBeforeUnmount(clearLoadingTimer)
 </script>
 
 <template>
@@ -46,7 +59,7 @@ const handleCancel = () => {
       @submit="handleSubmit"
       @cancel="handleCancel"
     />
-    <p v-if="loading" class="loading-tip">正在生成回复...</p>
+    <p class="loading-tip" :class="{ loading }" aria-live="polite">{{ status }}</p>
   </div>
 </template>
 
@@ -71,6 +84,9 @@ const handleCancel = () => {
   margin-top: 10px;
   color: #1476ff;
   font-size: 14px;
+}
+
+.loading-tip.loading {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
