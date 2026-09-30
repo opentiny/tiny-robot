@@ -298,17 +298,7 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 错误渲染器默认关闭。需要根据 `message.state.error` 渲染内置错误视图时，通过 `BubbleProvider` 显式启用：
 
-```vue
-<script setup lang="ts">
-import { BubbleRenderers } from '@opentiny/tiny-robot'
-</script>
-
-<template>
-  <tr-bubble-provider :error-renderer="BubbleRenderers.Error">
-    <tr-bubble role="assistant" content="部分回答" :state="{ error: { message: '请求失败' } }" />
-  </tr-bubble-provider>
-</template>
-```
+<demo vue="../../demos/bubble/error.vue" title="错误消息" description="显式启用内置 Error 渲染器，并重复切换消息级错误状态。" />
 
 自定义错误渲染器接收 `{ message }`，不接收 `contentIndex`。省略 `errorRenderer` 或传入 `null` 时，不渲染独立的消息级错误视图。
 
@@ -453,9 +443,9 @@ emitBubbleEvent({
 | --------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------ | ---- |
 | `role`                      | 气泡角色标识；在 BubbleList 中用于分组并关联 `role-configs`           | `string`                                                      | —                              | 否   |
 | `content`                   | 气泡内容                                                              | `ChatMessageContent`                                          | —                              | 否   |
-| `reasoning-content`         | 推理内容，供内置 Reasoning 渲染器读取                                 | `string`                                                      | —                              | 否   |
-| `tool-calls`                | 工具调用列表，供内置 Tool 渲染器读取                                  | `ToolCall[]`                                                  | —                              | 否   |
-| `tool-call-id`              | 当前工具结果关联的工具调用 ID                                         | `string`                                                      | —                              | 否   |
+| `reasoning_content`         | 推理内容，供内置 Reasoning 渲染器读取                                 | `string`                                                      | —                              | 否   |
+| `tool_calls`                | 工具调用列表，供内置 Tool 渲染器读取                                  | `ToolCall[]`                                                  | —                              | 否   |
+| `tool_call_id`              | 当前工具结果关联的工具调用 ID                                         | `string`                                                      | —                              | 否   |
 | `name`                      | 消息名称                                                              | `string`                                                      | —                              | 否   |
 | `id`                        | 消息标识                                                              | `string`                                                      | —                              | 否   |
 | `loading`                   | 显示加载状态                                                          | `boolean`                                                     | `false`                        | 否   |
@@ -558,51 +548,61 @@ emitBubbleEvent({
 
 以下类型均从 `@opentiny/tiny-robot` 导出。
 
-| 类型名                                | 类型或签名  | 说明                                      |
-| ------------------------------------- | ----------- | ----------------------------------------- |
-| `BubbleProps`                         | `type`      | 单个 Bubble 的属性                        |
-| `BubbleListProps`                     | `interface` | BubbleList 的属性                         |
-| `BubbleProviderProps`                 | `interface` | BubbleProvider 的属性                     |
-| `BubbleSlots`                         | `interface` | Bubble 插槽                               |
-| `BubbleListSlots`                     | `interface` | BubbleList 插槽                           |
-| `BubbleMessage`                       | `type`      | 消息基础类型                              |
-| `BubbleErrorInfo`                     | `interface` | 消息错误信息                              |
-| `BubbleErrorRendererProps`            | `interface` | 消息级错误渲染器接收的属性                |
-| `BubbleMessageGroup`                  | `type`      | BubbleList 分组结果                       |
-| `ChatMessageContent`                  | `type`      | 字符串或内容项数组                        |
-| `ChatMessageContentItem`              | `type`      | 带 `type` 的可扩展内容项                  |
-| `ToolCall`                            | `interface` | OpenAI 风格工具调用                       |
-| `BubbleRoleConfig`                    | `type`      | BubbleList 的角色默认配置                 |
-| `BubbleAttributes`                    | `type`      | 渲染器 attributes 基础映射                |
-| `BubbleBoxRendererContext`            | `type`      | Box 渲染器匹配时的完整内容上下文          |
-| `BubbleBoxRendererAttributeMap`       | `type`      | Box 渲染器 attributes 映射                |
-| `BubbleBoxRendererAttributesResolver` | `type`      | 动态 Box 匹配规则 attributes 解析函数     |
-| `BubbleBoxAttributesResolver`         | `type`      | 动态 Provider Box attributes 解析函数     |
-| `BubbleContentAttributesResolver`     | `type`      | 动态 Provider Content attributes 解析函数 |
-| `BubbleBoxAttributesConfig`           | `type`      | 静态或动态 Box attributes 配置            |
-| `BubbleContentAttributesConfig`       | `type`      | 静态或动态 Content attributes 配置        |
-| `BubbleBoxRendererMatch`              | `type`      | Box 渲染器匹配规则                        |
-| `BubbleContentRendererMatch`          | `type`      | Content 渲染器匹配规则                    |
-| `BubbleBoxRendererProps`              | `type`      | 自定义 Box 渲染器接收的属性               |
-| `BubbleContentRendererProps`          | `type`      | 自定义 Content 渲染器接收的属性           |
-| `BubbleEvent`                         | `type`      | 渲染器向 Bubble 发出的事件                |
-| `UseAutoScrollOptions`                | `interface` | 推荐的自动滚动对象参数                    |
-| `LegacyUseAutoScrollOptions`          | `interface` | 已弃用的位置参数配置                      |
-| `UseAutoScrollReturn`                 | `interface` | 自动滚动的动作与边界状态                  |
+#### 推荐类型
 
-以下为 `BubbleMessage` 的完整定义：
+| 类型名                                | 类别 / 用途      | 说明                                      |
+| ------------------------------------- | ---------------- | ----------------------------------------- |
+| `BubbleProps`                         | 组件属性         | 单个 Bubble 的属性                        |
+| `BubbleListProps`                     | 组件属性         | BubbleList 的属性                         |
+| `BubbleProviderProps`                 | Provider 属性    | BubbleProvider 的属性                     |
+| `BubbleSlots`                         | 组件插槽         | Bubble 插槽                               |
+| `BubbleListSlots`                     | 组件插槽         | BubbleList 插槽                           |
+| `BubbleMessage`                       | 消息数据         | 消息基础类型                              |
+| `BubbleErrorInfo`                     | 错误数据         | 消息错误信息                              |
+| `BubbleErrorRendererProps`            | 渲染器属性       | 消息级错误渲染器接收的属性                |
+| `BubbleMessageGroup`                  | 分组数据         | BubbleList 分组结果                       |
+| `ChatMessageContent`                  | 内容数据         | 字符串或内容项数组                        |
+| `ChatMessageContentItem`              | 内容数据         | 带 `type` 的可扩展内容项                  |
+| `ToolCall`                            | 工具调用数据     | OpenAI 风格工具调用                       |
+| `BubbleRoleConfig`                    | 角色配置         | BubbleList 的角色默认配置                 |
+| `BubbleAttributes`                    | 渲染器属性映射   | 渲染器 attributes 基础映射                |
+| `BubbleBoxRendererContext`            | 渲染器上下文     | Box 渲染器匹配时的完整内容上下文          |
+| `BubbleBoxRendererAttributeMap`       | 渲染器属性映射   | Box 渲染器 attributes 映射                |
+| `BubbleBoxRendererAttributesResolver` | 渲染器回调       | 动态 Box 匹配规则 attributes 解析函数     |
+| `BubbleBoxAttributesResolver`         | Provider 回调    | 动态 Provider Box attributes 解析函数     |
+| `BubbleContentAttributesResolver`     | Provider 回调    | 动态 Provider Content attributes 解析函数 |
+| `BubbleBoxAttributesConfig`           | Provider 配置    | 静态或动态 Box attributes 配置            |
+| `BubbleContentAttributesConfig`       | Provider 配置    | 静态或动态 Content attributes 配置        |
+| `BubbleBoxRendererMatch`              | 渲染器配置       | Box 渲染器匹配规则                        |
+| `BubbleContentRendererMatch`          | 渲染器配置       | Content 渲染器匹配规则                    |
+| `BubbleBoxRendererProps`              | 渲染器属性       | 自定义 Box 渲染器接收的属性               |
+| `BubbleContentRendererProps`          | 渲染器属性       | 自定义 Content 渲染器接收的属性           |
+| `BubbleEvent`                         | 事件数据         | 渲染器向 Bubble 发出的事件                |
+| `UseAutoScrollOptions`                | 组合式函数参数   | 自动滚动对象参数                          |
+| `UseAutoScrollReturn`                 | 组合式函数返回值 | 自动滚动的动作与边界状态                  |
+
+#### 已弃用类型
+
+| 类型名                       | 类别 / 用途    | 说明                         |
+| ---------------------------- | -------------- | ---------------------------- |
+| `LegacyUseAutoScrollOptions` | 组合式函数参数 | 已弃用的自动滚动位置参数配置 |
+
+#### 类型定义
+
+以下为 `BubbleMessage` 公开结构的完整等价展开：
 
 ```typescript
-interface BubbleMessage<
+type BubbleMessage<
   T extends ChatMessageContent = ChatMessageContent,
   S extends Record<string, unknown> = Record<string, unknown>,
-> {
+> = {
   role?: string
   content?: T
   reasoning_content?: string
   tool_calls?: ToolCall[]
   tool_call_id?: string
   name?: string
+} & {
   id?: string
   loading?: boolean
   state?: S
