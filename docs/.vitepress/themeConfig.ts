@@ -31,9 +31,9 @@ const sharedSidebarItems = [
       { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
       { text: 'MCP 扩展添加与详情', link: 'mcp-extension' },
       { text: 'Skill 扩展导入与详情', link: 'skill-extension' },
-      { text: 'McpServerPicker 插件选择器（已弃用）', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
       { text: 'Container 容器', link: 'container' },
+      { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
     ],
   },
   {

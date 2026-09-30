@@ -46,7 +46,8 @@
 </template>
 
 <script setup lang="ts">
-import { BubbleListProps, BubbleRoleConfig, TrBubbleList } from '@opentiny/tiny-robot'
+import { TrBubbleList } from '@opentiny/tiny-robot'
+import type { BubbleListProps, BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { computed, h, onBeforeUnmount, ref } from 'vue'
 
@@ -63,7 +64,7 @@ const earthriseImageUrl =
 const isImageLoading = computed(() => Object.values(imageStatuses.value).some((status) => status === 'loading'))
 
 const messages = ref<BubbleListProps['messages']>([
-  { id: 'message-1', role: 'user', content: '请展示一张经典的太空照片' },
+  { id: 'message-1', role: 'user', content: '请展示一张经典的太空照片。' },
   { id: 'message-2', role: 'ai', content: '当然，这是 Apollo 8 拍摄的 Earthrise：' },
 ])
 

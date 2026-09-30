@@ -8,7 +8,6 @@ const submitType = ref<SubmitTrigger>('enter')
 
 const handleSubmit = (value: string) => {
   submittedContent.value = value
-  console.log('提交内容:', value)
 }
 </script>
 

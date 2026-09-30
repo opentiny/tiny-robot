@@ -173,11 +173,10 @@ div:has(h1[id='chat-运行时']) table {
   border-radius: 12px;
 }
 .main-content .items .item .link {
-  padding: 0;
   margin: 0;
-  padding-left: 16px;
-  height: 36px;
-  line-height: 36px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 6px 0 6px 16px;
 }
 .main-content .items .item .text {
   padding: 0;
