@@ -1,0 +1,1 @@
+class n{start(t){this.stop(),t.onStart();let e=0;const r=["正在","正在识别","正在识别语音","正在识别语音内容"];this.timer=setInterval(()=>{const i=r[e];if(i){t.onInterim(i),e+=1;return}t.onFinal("这是一个模拟的语音识别结果"),t.onEnd(),this.stop()},500)}stop(){this.timer&&(clearInterval(this.timer),this.timer=void 0)}isSupported(){return!0}}export{n as M};
