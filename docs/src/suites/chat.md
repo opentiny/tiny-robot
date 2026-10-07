@@ -418,6 +418,8 @@ const disabledErrorUI: ChatUIOptions = {
 
 `ChatMcpServerView` 要求 `id`、`name`、`installed` 和 `enabled`；可选 `description`、`icon`、`category`、`loading`、`error` 与 `metadata`。`ChatMcpToolView` 要求 `id`、`name` 和 `enabled`，可选 `description` 与 `loading`。只有 `ui.mcp` 与 `ui.layout.rightAside` 都未设为 `false` 时，MCP 入口和内置面板才可见。
 
+内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP Server 按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source }`；`config` 是规范化的单个 Server 连接配置，`source` 为 `'form'` 或 `'code'`。Chat 不保存自定义 Server，应用收到事件后负责持久化并更新 `mcp.servers`。服务器的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
+
 ##### `request`
 
 | 字段              | 类型                                                                        | 必填 | 说明                   |
@@ -475,7 +477,7 @@ const disabledErrorUI: ChatUIOptions = {
 | `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                  | [ModelSelector](../components/model-selector) |
 | `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                               | —                                             |
 
-`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
+`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
 ### 类型索引
 
@@ -568,14 +570,14 @@ const disabledErrorUI: ChatUIOptions = {
 | `ChatModelFeatureChangePayload`                          | `featureId: 'thinking' \| 'search'`；`enabled: boolean`                                                 |
 | `ChatModelReasoningEffortChangePayload`                  | `effort: string \| null`                                                                                |
 | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload` | `serverId: string`                                                                                      |
-| `ChatMcpCreateServerPayload`                             | `type: 'form' \| 'code'`；`data: PluginCreationData`                                                    |
+| `ChatMcpCreateServerPayload`                             | `config: McpExtensionFormValue`；`source: McpExtensionFormMode`                                         |
 | `ChatMcpServerEnabledChangePayload`                      | `serverId: string`；`enabled: boolean`                                                                  |
 | `ChatMcpToolEnabledChangePayload`                        | `serverId: string`；`toolId: string`；`enabled: boolean`                                                |
 | `ChatAsideOpenChangePayload`                             | `open: boolean`；`source: 'user' \| 'viewport'`                                                         |
 | `ChatBubbleStateChangePayload`                           | `key`；`value`；`messageIndex`；`contentIndex`                                                          |
 | `ChatBubbleEventPayload`                                 | `name`；`payload?`；`messageIndex`；`contentIndex`                                                      |
 
-`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorReasoningEffortOption` 和 `PluginCreationData` 来自 `@opentiny/tiny-robot`。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
+`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorReasoningEffortOption`、`McpExtensionFormValue` 和 `McpExtensionFormMode` 来自 `@opentiny/tiny-robot`。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
 
 ## 常见问题
 

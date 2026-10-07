@@ -40,9 +40,20 @@ export default defineConfig({
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
     },
     resolve: {
-      alias: {
-        ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
-      },
+      alias: [
+        ...(process.env.VP_MODE === 'development'
+          ? [
+              {
+                find: /^@opentiny\/tiny-robot-chat$/,
+                replacement: fileURLToPath(new URL('../../packages/chat/src/index.ts', import.meta.url)),
+              },
+            ]
+          : []),
+        ...Object.entries(process.env.VP_MODE === 'development' ? devAlias : prodAlias).map(([find, replacement]) => ({
+          find,
+          replacement,
+        })),
+      ],
     },
   },
   markdown: {
