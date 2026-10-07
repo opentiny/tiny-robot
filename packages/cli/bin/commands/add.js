@@ -1,11 +1,11 @@
-import { checkbox, select } from '@inquirer/prompts'
-import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc'
+import { confirm, select } from '@inquirer/prompts'
 import { Argument } from 'commander'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import semver from 'semver'
 
+import { createRuntimeDependencies, resolveRuntimeVersion } from '../runtime-version.js'
 import {
   findProjectRoot,
   findSubPackageRoot,
@@ -19,28 +19,7 @@ import {
   mergeEnvContent,
 } from '../utils.js'
 
-const TARGET_VERSION = '0.5.2-rc.2'
 const CHAT_ADD_FEATURE_DIR = 'src/tiny-robot-chat'
-const DEPENDENCIES = {
-  '@opentiny/tiny-robot': TARGET_VERSION,
-  '@opentiny/tiny-robot-chat': TARGET_VERSION,
-  '@opentiny/tiny-robot-kit': TARGET_VERSION,
-  '@opentiny/tiny-robot-svgs': TARGET_VERSION,
-  '@vueuse/core': '13.9.0',
-}
-const PACKAGE_STYLE_IMPORTS = [
-  "import '@opentiny/tiny-robot/dist/style.css'",
-  "import '@opentiny/tiny-robot-chat/dist/style.css'",
-]
-
-function logUnavailable(label) {
-  logSkip(`${label} could not be applied`)
-}
-
-function logSkippedSelection(label) {
-  logSkip(`${label} change was not selected`)
-}
-
 async function resolveTargetPackage(cwd, nonInteractive) {
   const workspaceRoot = findWorkspaceRoot(cwd)
 
@@ -117,61 +96,6 @@ function readPackageJson(pkgPath) {
   return pkg
 }
 
-function findMainEntry(targetDir) {
-  for (const file of ['src/main.ts', 'src/main.js']) {
-    const fullPath = path.join(targetDir, file)
-    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) return fullPath
-  }
-  return null
-}
-
-function importedModule(line) {
-  const match = /^\s*import(?:\s+[\s\S]*?\sfrom\s+)?\s*['"]([^'"]+)['"]\s*;?\s*$/.exec(line)
-  return match?.[1] ?? null
-}
-
-function insertImport(content, importStatement) {
-  const eol = content.includes('\r\n') ? '\r\n' : '\n'
-  const lines = content.replaceAll('\r\n', '\n').split('\n')
-  const moduleName = importedModule(importStatement)
-  if (moduleName && lines.some((line) => importedModule(line) === moduleName)) return content
-
-  let lastImportIndex = -1
-  let inImport = false
-  for (let i = 0; i < lines.length; i++) {
-    if (inImport) {
-      lastImportIndex = i
-      if (/\bfrom\s+['"][^'"]+['"]\s*;?\s*$/.test(lines[i])) inImport = false
-      continue
-    }
-    if (/^\s*import(?:\s|['"{*])/.test(lines[i])) {
-      lastImportIndex = i
-      inImport = !/['"][^'"]+['"]\s*;?\s*$/.test(lines[i])
-      continue
-    }
-    if (lastImportIndex !== -1) break
-  }
-
-  if (lastImportIndex === -1) lines.unshift(importStatement)
-  else lines.splice(lastImportIndex + 1, 0, importStatement)
-  return lines.join(eol)
-}
-
-function ensureStyleImportsContent(before, featureStyleImport) {
-  let after = before
-  for (const styleImport of [...PACKAGE_STYLE_IMPORTS, featureStyleImport]) {
-    after = insertImport(after, styleImport)
-  }
-  return { type: after === before ? 'skipped' : 'inserted', content: after }
-}
-
-function ensureStyleImports(mainFile, featureStyleImport) {
-  const before = fs.readFileSync(mainFile, 'utf-8')
-  const result = ensureStyleImportsContent(before, featureStyleImport)
-  if (result.type === 'inserted') fs.writeFileSync(mainFile, result.content)
-  return { type: result.type }
-}
-
 function findDependency(pkg, name) {
   const matches = []
   for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
@@ -196,7 +120,20 @@ function insertDependencyOrdered(dependencies, name, version) {
   return next
 }
 
-function ensureDependency(pkg, name, targetVersion) {
+function hasStableBranchAtOrAbove(range, targetVersion) {
+  if (semver.prerelease(targetVersion) !== null) return false
+
+  return new semver.Range(range).set.some((comparators) => {
+    const minimum = semver.minVersion(comparators.map((comparator) => comparator.value).join(' '))
+    return minimum !== null && semver.gte(minimum, targetVersion)
+  })
+}
+
+function ensureDependency(pkg, name, targetSpecifier) {
+  const targetMinimum = semver.minVersion(targetSpecifier)
+  invariant(targetMinimum, `${name} has an invalid target version specifier (${targetSpecifier})`)
+  const targetVersion = targetMinimum.version
+
   for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
     const value = pkg[section]
     if (value !== undefined && (value === null || typeof value !== 'object' || Array.isArray(value))) {
@@ -217,8 +154,8 @@ function ensureDependency(pkg, name, targetVersion) {
       return { type: 'conflict', reason: 'dependencies must be a JSON object' }
     }
     pkg.dependencies ??= {}
-    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetVersion)
-    return { type: 'added', to: targetVersion, section: 'dependencies' }
+    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetSpecifier)
+    return { type: 'added', to: targetSpecifier, section: 'dependencies' }
   }
 
   const dependency = existing[0]
@@ -233,32 +170,47 @@ function ensureDependency(pkg, name, targetVersion) {
     }
   }
 
-  const satisfies = semver.satisfies(targetVersion, dependency.version, { includePrerelease: true })
+  if (semver.prerelease(targetVersion) !== null) {
+    if (dependency.version === targetSpecifier)
+      return { type: 'skipped', section: dependency.section, version: dependency.version }
+
+    if (dependency.section !== 'dependencies') {
+      return {
+        type: 'conflict',
+        reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetSpecifier}`,
+      }
+    }
+
+    pkg.dependencies[name] = targetSpecifier
+    return {
+      type: 'updated',
+      section: dependency.section,
+      from: dependency.version,
+      to: targetSpecifier,
+    }
+  }
+
+  const satisfies = semver.satisfies(targetVersion, dependency.version)
 
   if (satisfies) return { type: 'skipped', section: dependency.section, version: dependency.version }
 
-  const minimum = typeof dependency.version === 'string' ? semver.minVersion(dependency.version) : null
-  if (
-    typeof dependency.version === 'string' &&
-    ((semver.valid(dependency.version) && semver.gte(dependency.version, targetVersion)) ||
-      (minimum && semver.gte(minimum, targetVersion)))
-  ) {
+  if (hasStableBranchAtOrAbove(dependency.version, targetVersion)) {
     return { type: 'skipped', section: dependency.section, version: dependency.version }
   }
 
   if (dependency.section !== 'dependencies') {
     return {
       type: 'conflict',
-      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetVersion}`,
+      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetSpecifier}`,
     }
   }
 
-  pkg.dependencies[name] = targetVersion
+  pkg.dependencies[name] = targetSpecifier
   return {
     type: 'updated',
     section: dependency.section,
     from: dependency.version,
-    to: targetVersion,
+    to: targetSpecifier,
   }
 }
 
@@ -299,92 +251,6 @@ function getChatFeatureFiles(targetDir) {
   return featureFiles
 }
 
-function parseMountTemplate(source, filename) {
-  const parsed = parse(source, { filename })
-  if (parsed.errors.length > 0 || !parsed.descriptor.template) {
-    return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
-  }
-  if (parsed.descriptor.template.src) {
-    return { type: 'manual', reason: 'App.vue uses an external template file' }
-  }
-
-  const compiled = compileTemplate({
-    source: parsed.descriptor.template.content,
-    filename,
-    id: 'tiny-robot-cli-mount',
-  })
-  if (compiled.errors.length > 0 || !compiled.ast) {
-    return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
-  }
-
-  return { type: 'parsed', descriptor: parsed.descriptor, block: parsed.descriptor.template, components: compiled.ast.components ?? [] }
-}
-
-function findTemplateClose(block) {
-  return block.loc.end.offset
-}
-
-function planMount(targetDir) {
-  const appFile = path.join(targetDir, 'src/App.vue')
-  if (!fs.existsSync(appFile)) return { type: 'manual', reason: 'src/App.vue was not found' }
-  if (!fs.statSync(appFile).isFile()) return { type: 'manual', reason: 'src/App.vue is not a file' }
-  const before = fs.readFileSync(appFile, 'utf-8')
-
-  const templatePlan = parseMountTemplate(before, appFile)
-  if (templatePlan.type === 'manual') return templatePlan
-  if (templatePlan.components.includes('TinyRobotChat')) return { type: 'skipped', content: before }
-
-  const importStatement = "import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'"
-  let after = before
-  const scriptSetup = templatePlan.descriptor.scriptSetup
-  if (scriptSetup) {
-    const setupContent = scriptSetup.content
-    const defaultImport = /^\s*import\s+TinyRobotChat\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/m.exec(setupContent)
-    const featureImport =
-      /^\s*import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]\.\/tiny-robot-chat\/TinyRobotChat\.vue['"]\s*;?\s*$/m.exec(
-        setupContent,
-      )
-    const namedImport = /^\s*import\s*\{[^}]*\bTinyRobotChat\b[^}]*\}\s*from\s+['"][^'"]+['"]\s*;?\s*$/m.test(
-      setupContent,
-    )
-    let bindings
-    try {
-      bindings = compileScript(templatePlan.descriptor, { id: 'tiny-robot-cli-mount' }).bindings
-    } catch {
-      return { type: 'manual', reason: 'App.vue script could not be parsed safely' }
-    }
-    const localBinding = Object.prototype.hasOwnProperty.call(bindings, 'TinyRobotChat') && !defaultImport
-
-    if (
-      namedImport ||
-      localBinding ||
-      (defaultImport && defaultImport[1] !== './tiny-robot-chat/TinyRobotChat.vue') ||
-      (featureImport && featureImport[1] !== 'TinyRobotChat')
-    ) {
-      return { type: 'manual', reason: 'App.vue already declares TinyRobotChat with a different binding' }
-    }
-
-    if (!defaultImport) {
-      const insertionIndex = scriptSetup.loc.start.offset
-      after = `${before.slice(0, insertionIndex)}\n${importStatement}${before.slice(insertionIndex)}`
-    }
-  } else if (templatePlan.descriptor.script) {
-    return { type: 'manual', reason: 'App.vue has a non-setup script block' }
-  } else {
-    after = `<script setup lang="ts">\n${importStatement}\n</script>\n\n${before}`
-  }
-
-  const updatedTemplate = parseMountTemplate(after, appFile)
-  if (updatedTemplate.type === 'manual') return updatedTemplate
-  const templateClose = findTemplateClose(updatedTemplate.block)
-  if (templateClose === -1) return { type: 'manual', reason: 'App.vue template closing tag was not found' }
-  const beforeClose = after.slice(0, templateClose).trimEnd()
-  const lineIndent = /^\s*/.exec(beforeClose.slice(beforeClose.lastIndexOf('\n') + 1))?.[0] ?? ''
-  const indent = lineIndent || '  '
-  after = `${beforeClose}\n${indent}<TinyRobotChat />\n${after.slice(templateClose)}`
-  return { type: 'merge', content: after }
-}
-
 function inspectFeatureFiles(files) {
   return files.map((file) => {
     if (!fs.existsSync(file.target)) return { ...file, type: 'create' }
@@ -396,45 +262,6 @@ function inspectFeatureFiles(files) {
 
 function formatRelative(file, targetDir) {
   return path.relative(targetDir, file).replaceAll('\\', '/')
-}
-
-function getChatFeatureChoices(targetDir, options) {
-  const mainEntry = findMainEntry(targetDir)
-  return [
-    { label: 'Chat feature files', enabled: true },
-    { label: 'main entry style imports', enabled: Boolean(mainEntry) },
-    { label: '.env.example', enabled: true },
-    { label: 'package.json', enabled: true },
-    ...(options.mount ? [{ label: 'App.vue mount', enabled: fs.existsSync(path.join(targetDir, 'src/App.vue')) }] : []),
-  ].map((item) => ({ ...item, mainEntry }))
-}
-
-async function selectFileChanges(targetDir, options) {
-  const files = getChatFeatureChoices(targetDir, options)
-  if (options.yes || options.dryRun || options.nonInteractive)
-    return files.filter((file) => file.enabled).map((file) => file.label)
-  return checkbox({
-    message: 'Select which file changes to apply (all selected by default):',
-    choices: files.map((file) => ({
-      name: file.enabled ? file.label : `${file.label} (not available)`,
-      value: file.label,
-      checked: file.enabled,
-      disabled: !file.enabled,
-    })),
-  })
-}
-
-function isSelected(selectedFiles, label) {
-  return selectedFiles.includes(label)
-}
-
-function getDependencyPlan(pkg) {
-  const preview = JSON.parse(JSON.stringify(pkg))
-
-  return Object.entries(DEPENDENCIES).map(([name, version]) => ({
-    name,
-    result: ensureDependency(preview, name, version),
-  }))
 }
 
 function getEnvPlan(targetDir) {
@@ -451,7 +278,7 @@ function getEnvPlan(targetDir) {
 
 function formatPlanStatus(type) {
   if (type === 'create') return '+'
-  if (type === 'merge') return '~'
+  if (type === 'merge' || type === 'merged') return '~'
   if (type === 'unavailable' || type === 'conflict') return '!'
   return '○'
 }
@@ -464,23 +291,39 @@ function fileContent(content) {
   return Buffer.isBuffer(content) ? content : Buffer.from(content)
 }
 
+function readTargetState(target) {
+  if (!fs.existsSync(target)) return { existed: false, content: null }
+  invariant(fs.statSync(target).isFile(), `${target} exists and is not a file.`)
+  return { existed: true, content: fs.readFileSync(target) }
+}
+
 function addFileChange(changes, target, content, message) {
-  if (fs.existsSync(target)) invariant(fs.statSync(target).isFile(), `${target} exists and is not a file.`)
-
+  const expected = readTargetState(target)
   const next = fileContent(content)
-  if (fs.existsSync(target) && fs.readFileSync(target).equals(next)) return false
+  if (expected.existed && expected.content.equals(next)) return false
 
-  changes.push({ target, content, message })
+  changes.push({ target, content: next, message, expected })
   return true
+}
+
+function assertTargetUnchanged(change) {
+  const current = readTargetState(change.target)
+  if (current.existed !== change.expected.existed) {
+    throw new Error(`planned target changed after planning: ${change.target}`)
+  }
+  if (current.existed && !current.content.equals(change.expected.content)) {
+    throw new Error(`planned target changed after planning: ${change.target}`)
+  }
 }
 
 function applyChanges(changes) {
   const snapshots = changes.map(({ target }) => ({
     target,
-    existed: fs.existsSync(target),
-    content: fs.existsSync(target) ? fs.readFileSync(target) : null,
+    ...readTargetState(target),
   }))
   const createdDirectories = new Set()
+
+  for (const change of changes) assertTargetUnchanged(change)
 
   try {
     for (const change of changes) {
@@ -495,12 +338,31 @@ function applyChanges(changes) {
       fs.writeFileSync(change.target, change.content)
     }
   } catch (error) {
+    const rollbackErrors = []
     for (const snapshot of snapshots.reverse()) {
-      if (snapshot.existed) fs.writeFileSync(snapshot.target, snapshot.content)
-      else if (fs.existsSync(snapshot.target)) fs.rmSync(snapshot.target, { force: true })
+      try {
+        if (snapshot.existed) fs.writeFileSync(snapshot.target, snapshot.content)
+        else if (fs.existsSync(snapshot.target)) fs.rmSync(snapshot.target, { force: true })
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `${snapshot.target}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+        )
+      }
     }
     for (const directory of [...createdDirectories].sort((left, right) => right.length - left.length)) {
-      if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory)
+      try {
+        if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory)
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `${directory}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+        )
+      }
+    }
+
+    if (rollbackErrors.length > 0) {
+      throw new Error(
+        `Failed to apply changes; rollback was incomplete: ${error instanceof Error ? error.message : String(error)}. Residual paths: ${rollbackErrors.join('; ')}`,
+      )
     }
 
     throw new Error(
@@ -509,230 +371,142 @@ function applyChanges(changes) {
   }
 }
 
-function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, allowManualMount) {
-  const featureFilesSelected = isSelected(selectedFiles, 'Chat feature files')
-  const featureFilesMissing = featureInspection.some((file) => file.type === 'create')
+function prepareChanges(targetDir, context) {
+  const { featureInspection, pkgPath, pkg, allowConflicts, dependencies } = context
+  const changes = []
+  const results = { featureInspection, env: null, dependencies: [], dependencyChanged: false }
+  const conflicts = featureInspection.filter((file) => file.type === 'conflict')
 
-  if (!featureFilesSelected && featureFilesMissing && isSelected(selectedFiles, 'main entry style imports')) {
-    throw new Error('Select Chat feature files before adding the local feature style import.')
-  }
-
-  if (!featureFilesSelected && featureFilesMissing && isSelected(selectedFiles, 'App.vue mount')) {
-    throw new Error('Select Chat feature files before mounting TinyRobotChat in App.vue.')
-  }
-
-  if (isSelected(selectedFiles, 'App.vue mount') && mountPlan?.type === 'manual' && !allowManualMount) {
-    throw new Error(`cannot safely mount TinyRobotChat: ${mountPlan.reason}`)
-  }
-
-  if (isSelected(selectedFiles, 'package.json')) return
-
-  const dependencyChanges = getDependencyPlan(pkg).filter(({ result }) => result.type !== 'skipped')
-  if (dependencyChanges.length > 0 && (featureFilesSelected || isSelected(selectedFiles, 'main entry style imports'))) {
+  if (conflicts.length > 0 && !allowConflicts) {
     throw new Error(
-      'Select package.json when adding the chat feature or its style imports so required dependencies can be checked.',
+      `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nResolve the conflicts and run add chat again.`,
     )
   }
-}
 
-function prepareChanges(targetDir, selectedFiles, context) {
-  const { featureInspection, mainFile, mountPlan, pkgPath, pkg, allowConflicts } = context
-  const changes = []
-  const results = { featureInspection, style: null, env: null, dependencies: [], mount: null, dependencyChanged: false }
-
-  if (isSelected(selectedFiles, 'Chat feature files')) {
-    const conflicts = featureInspection.filter((file) => file.type === 'conflict')
-    if (conflicts.length > 0 && !allowConflicts) {
-      throw new Error(
-        `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nResolve the conflicts and run add chat again.`,
-      )
-    }
-    for (const file of featureInspection) {
-      if (file.type === 'create')
-        addFileChange(
-          changes,
-          file.target,
-          fs.readFileSync(file.source),
-          `Created ${formatRelative(file.target, targetDir)}`,
-        )
-    }
-  }
-
-  if (isSelected(selectedFiles, 'main entry style imports')) {
-    if (!mainFile) results.style = { type: 'unavailable' }
-    else {
-      const styleResult = ensureStyleImportsContent(
-        fs.readFileSync(mainFile, 'utf-8'),
-        "import './tiny-robot-chat/index.css'",
-      )
-      results.style = styleResult
-      if (styleResult.type === 'inserted')
-        addFileChange(changes, mainFile, styleResult.content, 'Inserted TinyRobot and Chat feature style imports')
-    }
-  }
-
-  if (isSelected(selectedFiles, '.env.example')) {
-    results.env = getEnvPlan(targetDir)
-    if (results.env.type === 'create')
-      addFileChange(changes, results.env.targetFile, results.env.content, 'Created .env.example')
-    if (results.env.type === 'merged')
-      addFileChange(changes, results.env.targetFile, results.env.content, `Added ${results.env.added} env variables`)
-  }
-
-  if (isSelected(selectedFiles, 'package.json')) {
-    for (const [name, version] of Object.entries(DEPENDENCIES)) {
-      const result = ensureDependency(pkg, name, version)
-      if (result.type === 'conflict' && !allowConflicts) throw new Error(`${name}: ${result.reason}`)
-      results.dependencies.push({ name, result })
-      results.dependencyChanged ||= result.type !== 'skipped'
-    }
-    if (results.dependencyChanged)
-      addFileChange(changes, pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'Updated package.json')
-  }
-
-  if (isSelected(selectedFiles, 'App.vue mount')) {
-    results.mount = mountPlan
-    if (mountPlan.type === 'merge')
+  for (const file of featureInspection) {
+    if (file.type === 'create')
       addFileChange(
         changes,
-        path.join(targetDir, 'src/App.vue'),
-        mountPlan.content,
-        'Mounted TinyRobotChat in src/App.vue',
+        file.target,
+        fs.readFileSync(file.source),
+        `Created ${formatRelative(file.target, targetDir)}`,
       )
   }
+
+  results.env = getEnvPlan(targetDir)
+  if (results.env.type === 'create')
+    addFileChange(changes, results.env.targetFile, results.env.content, 'Created .env.example')
+  if (results.env.type === 'merged')
+    addFileChange(changes, results.env.targetFile, results.env.content, `Added ${results.env.added} env variables`)
+
+  for (const [name, version] of Object.entries(dependencies)) {
+    const result = ensureDependency(pkg, name, version)
+    if (result.type === 'conflict' && !allowConflicts) throw new Error(`${name}: ${result.reason}`)
+    results.dependencies.push({ name, result })
+    results.dependencyChanged ||= result.type !== 'skipped'
+  }
+
+  if (results.dependencyChanged)
+    addFileChange(changes, pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'Updated package.json')
 
   return { changes, results }
 }
 
-function printChangeResults(targetDir, selectedFiles, results) {
-  if (isSelected(selectedFiles, 'Chat feature files')) {
-    for (const file of results.featureInspection) {
-      if (file.type === 'create') logSuccess(`Created ${formatRelative(file.target, targetDir)}`)
-      else if (file.type === 'skipped') logSkip(`${formatRelative(file.target, targetDir)} already exists`)
-    }
-  } else logSkippedSelection('Chat feature files')
-
-  if (isSelected(selectedFiles, 'main entry style imports')) {
-    if (results.style?.type === 'unavailable') logUnavailable('main entry style imports (main.ts/js not found)')
-    else if (results.style?.type === 'inserted') logSuccess('Inserted TinyRobot and Chat feature style imports')
-    else logSkip('TinyRobot and Chat feature style imports already exist')
-  } else logSkippedSelection('main entry style imports')
-
-  if (isSelected(selectedFiles, '.env.example')) {
-    if (results.env?.type === 'unavailable') logUnavailable('.env.example (template .env.example not found)')
-    else if (results.env?.type === 'create') logSuccess('Created .env.example')
-    else if (results.env?.type === 'merged') logSuccess(`Added ${results.env.added} env variables`)
-    else logSkip('.env.example already contains required variables')
-  } else logSkippedSelection('.env.example')
-
-  if (isSelected(selectedFiles, 'package.json')) {
-    for (const { name, result } of results.dependencies) printDependencyResult(result, name)
-    if (!results.dependencyChanged) logSkip('package.json already contains required dependencies')
-  } else logSkippedSelection('package.json')
-
-  if (isSelected(selectedFiles, 'App.vue mount')) {
-    if (results.mount?.type === 'merge') logSuccess('Mounted TinyRobotChat in src/App.vue')
-    else logSkip('App.vue already mounts TinyRobotChat')
+function printChangePlan(targetDir, results) {
+  console.log('\nChange Plan\n')
+  for (const file of results.featureInspection) {
+    console.log(`  ${formatPlanStatus(file.type)} ${formatRelative(file.target, targetDir)}`)
   }
+  console.log(
+    `  ${formatPlanStatus(results.env?.type ?? 'unavailable')} .env.example (${results.env?.type ?? 'unavailable'})`,
+  )
+  for (const { name, result } of results.dependencies) {
+    const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
+    console.log(`  ${status} package.json (${result.type}: ${name})`)
+  }
+  console.log('  ○ src/main.ts / src/main.js (unchanged)')
+  console.log('  ○ src/App.vue (unchanged)')
+  console.log('  ○ vite.config.* (unchanged)')
+  printManualMcpSetup()
+}
+
+function printChangeResults(targetDir, results) {
+  for (const file of results.featureInspection) {
+    if (file.type === 'create') logSuccess(`Created ${formatRelative(file.target, targetDir)}`)
+    else if (file.type === 'skipped') logSkip(`${formatRelative(file.target, targetDir)} already exists`)
+  }
+
+  if (results.env?.type === 'create') logSuccess('Created .env.example')
+  else if (results.env?.type === 'merged') logSuccess(`Added ${results.env.added} env variables`)
+  else if (results.env?.type === 'unavailable') logSkip('.env.example template is unavailable; no environment variables were added')
+  else logSkip('.env.example already contains required variables')
+
+  for (const { name, result } of results.dependencies) printDependencyResult(result, name)
+  if (!results.dependencyChanged) logSkip('package.json already contains required dependencies')
 }
 
 async function addFeature(targetDir, type, options) {
   invariant(type === 'chat', `unsupported feature: ${type}`)
-  const mountRequested = options.mount !== false
   const featureFiles = getChatFeatureFiles(targetDir)
-  const mainFile = findMainEntry(targetDir)
-  const mountPlan = mountRequested ? planMount(targetDir) : null
   const pkgPath = path.join(targetDir, 'package.json')
   invariant(fs.existsSync(pkgPath), 'package.json not found.')
   invariant(fs.statSync(pkgPath).isFile(), 'package.json is not a file.')
   const pkg = readPackageJson(pkgPath)
   const featureInspection = inspectFeatureFiles(featureFiles)
-  const selectedFiles = await selectFileChanges(targetDir, {
-    ...options,
-    mount: mountRequested,
-    nonInteractive: options.nonInteractive,
-  })
-
-  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun)
-  const prepared = prepareChanges(targetDir, selectedFiles, {
+  const prepared = prepareChanges(targetDir, {
     featureInspection,
-    mainFile,
-    mountPlan,
     pkgPath,
     pkg,
     allowConflicts: options.dryRun,
+    dependencies: options.dependencies,
   })
 
   if (options.dryRun) {
-    console.log('\nChange Plan\n')
-    for (const file of featureInspection)
-      console.log(
-        `  ${file.type === 'create' ? '+' : file.type === 'conflict' ? '!' : '○'} ${formatRelative(file.target, targetDir)}`,
-      )
-    console.log(
-      `  ${mainFile ? formatPlanStatus(prepared.results.style?.type) : '!'} ${mainFile ? formatRelative(mainFile, targetDir) : 'src/main.ts or src/main.js'} (style imports)`,
-    )
-    console.log(
-      `  ${formatPlanStatus(prepared.results.env?.type ?? 'unavailable')} .env.example (${prepared.results.env?.type ?? 'not selected'})`,
-    )
-    const dependencyPlan =
-      prepared.results.dependencies.length > 0 ? prepared.results.dependencies : getDependencyPlan(pkg)
-    for (const { name, result } of dependencyPlan) {
-      const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
-      console.log(`  ${status} package.json (${result.type}: ${name})`)
-    }
-    if (mountPlan)
-      console.log(
-        `  ${mountPlan.type === 'merge' ? '~' : mountPlan.type === 'manual' ? '!' : '○'} src/App.vue (mount: ${mountPlan.type})`,
-      )
-    printManualMcpSetup()
+    printChangePlan(targetDir, prepared.results)
     return
   }
 
-  if (selectedFiles.length === 0) {
-    logSkip('No changes selected.')
+  if (prepared.changes.length === 0) {
+    logSkip('No changes were necessary.')
     return
   }
+
+  if (!options.yes && !options.nonInteractive) {
+    printChangePlan(targetDir, prepared.results)
+    const accepted = await confirm({ message: `Apply these changes to ${targetDir}?`, default: true })
+    if (!accepted) {
+      logSkip('Operation cancelled.')
+      return
+    }
+  }
+
   console.log('\nChange Results\n')
   applyChanges(prepared.changes)
-  printChangeResults(targetDir, selectedFiles, prepared.results)
-  if (prepared.changes.length > 0) console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
-  else logSkip('No changes were necessary.')
-  printNextSteps({
-    mainFile,
-    dependencyChanged: prepared.results.dependencyChanged,
-    mounted: isSelected(selectedFiles, 'App.vue mount') && mountPlan?.type !== 'manual',
-    selectedFiles,
-    featureFilesSelected: isSelected(selectedFiles, 'Chat feature files'),
-  })
+  printChangeResults(targetDir, prepared.results)
+  console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
+  printNextSteps({ dependencyChanged: prepared.results.dependencyChanged })
 }
 
-function printNextSteps({ mainFile, dependencyChanged, mounted, selectedFiles, featureFilesSelected }) {
+function printNextSteps({ dependencyChanged }) {
   const steps = []
-  if (featureFilesSelected && !mainFile)
-    steps.push("Import the package styles and './tiny-robot-chat/index.css' in your application entry file.")
-  if (featureFilesSelected && !mounted) {
-    steps.push(
-      [
-        'Render <TinyRobotChat /> near your main application component.',
-        '',
-        "Example ('src/App.vue'):",
-        '',
-        '  <script setup lang="ts">',
-        "  import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'",
-        '  </script>',
-        '',
-        '  <template>',
-        '    <YourAppComponent />',
-        '    <TinyRobotChat />',
-        '  </template>',
-      ].join('\n'),
-    )
-  }
-  if (isSelected(selectedFiles, '.env.example'))
-    steps.push('Copy .env.example to .env.local and configure your AI provider API keys.')
-  if (featureFilesSelected)
-    steps.push('Add the Model Context MCP proxy to vite.config.* under server.proxy, then restart Vite.')
+  steps.push(
+    [
+      'Render <TinyRobotChat /> near your main application component.',
+      '',
+      "Example ('src/App.vue'):",
+      '',
+      '  <script setup lang="ts">',
+      "  import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'",
+      '  </script>',
+      '',
+      '  <template>',
+      '    <YourAppComponent />',
+      '    <TinyRobotChat />',
+      '  </template>',
+    ].join('\n'),
+  )
+  steps.push('Copy .env.example to .env.local and configure your AI provider API keys.')
+  steps.push('Add the Model Context MCP proxy to vite.config.* under server.proxy, then restart Vite.')
   if (dependencyChanged) steps.push('Install or update project dependencies: pnpm install')
   if (steps.length > 0) {
     console.log('\nNext Steps\n')
@@ -745,15 +519,19 @@ export function registerAddCommand(program) {
     .command('add')
     .description('Add a feature to the project')
     .addArgument(new Argument('<type>', 'type of feature to add').choices(['chat']))
-    .option('--yes', 'apply all safe changes without prompts')
+    .option('--yes', 'apply the complete chat feature without prompts')
     .option('--dry-run', 'print the change plan without modifying files')
-    .option('--mount', 'safely mount TinyRobotChat in src/App.vue (default)')
-    .option('--no-mount', 'keep App.vue unchanged and print the mount snippet')
+    .option('--runtime-version <version>', 'override the TinyRobot runtime version')
     .action(async (type, options) => {
       try {
+        const runtime = resolveRuntimeVersion(options.runtimeVersion)
         const nonInteractive = Boolean(options.yes || options.dryRun || !process.stdout.isTTY)
         const targetDir = await resolveTargetPackage(process.cwd(), nonInteractive)
-        await addFeature(targetDir, type, { ...options, nonInteractive })
+        await addFeature(targetDir, type, {
+          ...options,
+          dependencies: createRuntimeDependencies(runtime.specifier),
+          nonInteractive,
+        })
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') {
           console.error('\nOperation cancelled.')
@@ -765,4 +543,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export { DEPENDENCIES, ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, resolveTargetPackage }
+export { addFileChange, applyChanges, ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage }

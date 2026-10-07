@@ -16,7 +16,7 @@
         :options="options"
         @change="switchConversation($event)"
       ></tiny-select>
-      <tiny-button type="info" @click="createConversation()">创建新对话</tiny-button>
+      <tiny-button type="info" @click="createNewConversation">创建新对话</tiny-button>
       <tiny-button type="danger" :disabled="!activeConversationId" @click="handleDeleteConversation">
         删除当前会话
       </tiny-button>
@@ -52,15 +52,24 @@ const {
 
 const messages = computed(() => activeConversation.value?.engine?.messages.value || [])
 const isProcessing = computed(() => activeConversation.value?.engine?.isProcessing.value ?? false)
-const options = computed(() => conversations.value.map((c) => ({ label: c.title, value: c.id })))
+const options = computed(() =>
+  conversations.value.map((conversation) => ({
+    label: conversation.title || `会话 ${conversation.id.slice(0, 8)}`,
+    value: conversation.id,
+  })),
+)
 
 const inputMessage = ref('')
 
 function handleSubmit(content: string) {
   // Auto-create conversation if none exists
-  const conversation = activeConversation.value ?? createConversation()
+  const conversation = activeConversation.value ?? createNewConversation()
   conversation?.engine?.sendMessage(content)
   inputMessage.value = ''
+}
+
+function createNewConversation() {
+  return createConversation({ title: `新会话 ${conversations.value.length + 1}` })
 }
 
 async function handleDeleteConversation() {

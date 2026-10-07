@@ -1,6 +1,12 @@
 # TinyRobot Chat Add
 
-这是一个独立的 Chat 扩展模板，提供通用工作助手场景的最小工程结构。
+这是一个独立的 Chat 项目模板，也可以通过 `add chat` 注入到现有 Vue 项目。
+
+创建独立 Chat 项目：
+
+```bash
+npx @opentiny/tiny-robot-cli create my-chat --template chat
+```
 
 ## 启动
 
@@ -17,7 +23,7 @@ pnpm build
 
 ## 接入真实模型
 
-复制项目根目录的 `.env.example` 为 `.env.local`，配置 `VITE_QWEN_API_URL`、`VITE_ALIYUN_DASHSCOPE_KEY`、`VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。模板只提供 `.env.example`，不会自动创建 `.env`。配置读取逻辑位于 `src/config/chat-runtime.ts`；使用 `add chat` 注入后，对应文件位于 `src/tiny-robot-chat/config/chat-runtime.ts`。
+复制项目根目录的 `.env.example` 为 `.env.local`，配置 `VITE_ALIYUN_DASHSCOPE_KEY` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。使用自定义 Provider 代理时，可配置 `VITE_QWEN_API_URL` 和 `VITE_DEEPSEEK_API_URL`；自定义 MCP 地址使用 `VITE_AMAP_MCP_URL`。模板只提供 `.env.example`，不会自动创建 `.env`。配置读取逻辑位于 `src/config/chat-runtime.ts`；使用 `add chat` 注入后，对应文件位于 `src/tiny-robot-chat/config/chat-runtime.ts`。
 
 `VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。
 
@@ -35,6 +41,7 @@ DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认�
 
 - `src/config/chat-ui.ts`: Chat UI、提示词、模板和菜单配置。
 - `src/config/chat-runtime.ts`: MCP 示例和模型配置。
+- `src/TinyRobotChat.vue`: Chat 入口组件及其样式依赖。
 - `src/components`: 窗口头部和输入区工具。
 - `src/composables/useWindow.ts`: floating、fullscreen 窗口状态。
 - `src/index.css`: 仅作用于 Chat 容器的组件样式和 Surface 样式变量，不重置宿主页面的全局样式。
