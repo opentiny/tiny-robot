@@ -82,6 +82,8 @@ export interface ChatLabels {
   searchModel: string
   modelEmptyText: string
   mcp: string
+  mcpInstallServer: string
+  mcpRemoveServer: string
   thinkingFeature: string
   searchFeature: string
   welcomeTitle: string
