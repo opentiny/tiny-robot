@@ -192,7 +192,7 @@ const runtime = useChatRuntimeFromConversation({ conversation })
 
 ### 公开函数
 
-| 导出                             | 签名                                                                                                         | 任务                                             |
+| 函数                             | 签名                                                                                                         | 说明                                             |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。           |
 | `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                  |
@@ -203,7 +203,7 @@ const runtime = useChatRuntimeFromConversation({ conversation })
 
 ### `useChatRuntime` 配置
 
-| 字段             | 类型                                                                                                     | 必填 / 默认值                       | 行为                                                                                  |
+| 字段             | 类型                                                                                                     | 必填 / 默认值                       | 说明                                                                                  |
 | ---------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------- |
 | `conversation`   | `Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseMessageOptions> }` | 否；`{}`                            | 配置会话与消息处理；`autoSaveMessages` 默认为 `true`，可设置为 `false` 关闭自动保存。 |
 | `titleGenerator` | `(text: string) => string`                                                                               | 否；取 trim 后前 20 个 Unicode 字符 | 生成首次默认发送时的会话标题；结果为空时默认标题为 `新对话`。                         |
@@ -217,7 +217,7 @@ const runtime = useChatRuntimeFromConversation({ conversation })
 
 ### `useChatRuntimeFromConversation` 配置
 
-| 字段             | 类型                                                                                                                  | 必填 / 默认值                | 行为                                                                                         |
+| 字段             | 类型                                                                                                                  | 必填 / 默认值                | 说明                                                                                         |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------- |
 | `conversation`   | `UseConversationReturn`                                                                                               | 是                           | 提供应用已有的 Kit 会话。                                                                    |
 | `titleGenerator` | `(text: string) => string`                                                                                            | 否；与 `useChatRuntime` 相同 | 为默认发送新建的会话生成标题。                                                               |
@@ -227,7 +227,7 @@ const runtime = useChatRuntimeFromConversation({ conversation })
 
 ### 错误记录配置
 
-| 导出                      | 类型或签名                                                                                                                   | 说明                                                             |
+| 名称                      | 定义                                                                                                                         | 说明                                                             |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `ERROR_STATE_PLUGIN_NAME` | `'error-state'`                                                                                                              | 默认插件名；同名用户插件可替换默认 Runtime 的内置实现。          |
 | `ErrorStatePluginOptions` | `{ disabled?: UseMessagePlugin['disabled']; normalizeError?: (error: unknown, context: ChatErrorPluginContext) => unknown }` | 控制是否启用，以及写入 `state.error` 前的错误格式。              |
@@ -282,7 +282,7 @@ const replacement: UseMessagePlugin = {
 
 #### 状态
 
-| 字段                             | 类型                                            | 含义与更新方式                                            |
+| 字段                             | 类型                                            | 说明                                                      |
 | -------------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
 | `conversations`                  | `ChatReadable<readonly ChatConversationInfo[]>` | 当前会话管理工具提供的只读列表。                          |
 | `activeConversation`             | `ChatReadable<ChatConversation \| null>`        | 当前会话、消息和请求状态；未选中会话时为 `null`。         |
@@ -293,7 +293,7 @@ const replacement: UseMessagePlugin = {
 
 以下方法位于 `runtime.actions`：
 
-| 操作                            | 返回值                  | 行为与失败条件                                                                                  |
+| 操作                            | 返回值                  | 说明                                                                                            |
 | ------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
 | `send(payload)`                 | `Promise<boolean>`      | 发送消息。未发送时返回 `false`，发送完成或应用已自行处理时返回 `true`，失败时抛出错误。         |
 | `abort?.()`                     | `void \| Promise<void>` | 默认实现中止活动会话的当前请求；Runtime 可不提供该操作。                                        |
@@ -307,7 +307,7 @@ const replacement: UseMessagePlugin = {
 
 `ChatModelRuntime` 通过 `options`、`selectedId`、`features` 和可选 `reasoning` 提供当前模型的只读状态。
 
-| 操作                         | 返回值                  | 状态变化与失败条件                                                                                               |
+| 操作                         | 返回值                  | 说明                                                                                                             |
 | ---------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `select(id)`                 | `void \| Promise<void>` | 选择 ID 或用 `null` 清空选择，同时重置新模型不支持的能力和 思考强度。内建 Runtime 在 ID 未知或模型已禁用时抛错。 |
 | `setFeature(id, enabled)`    | `void \| Promise<void>` | 更新 `thinking` 或 `search`。启用未声明或不支持的能力时抛错；当模型要求 thinking 时，禁用 thinking 也会抛错。    |
@@ -317,7 +317,7 @@ const replacement: UseMessagePlugin = {
 
 从 `servers.value` 读取服务列表，从 `tools.value` 读取各服务的工具。加载中状态由 `loading` 表示，连接失败信息可从 `error` 读取。
 
-| 操作                                        | 返回值                  | 状态变化与失败条件                                                                                                           |
+| 操作                                        | 返回值                  | 说明                                                                                                                         |
 | ------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `addServer(id)`                             | `void \| Promise<void>` | 把 MCP 服务标记为已安装且启用，加载并启用工具。未知 ID 或加载失败时抛错。                                                    |
 | `removeServer(id)`                          | `void \| Promise<void>` | 将 MCP 服务设为未安装、禁用，并清除其工具、错误和加载状态；未知 ID 时抛错。                                                  |
@@ -328,14 +328,14 @@ const replacement: UseMessagePlugin = {
 
 `UseChatRuntimeAdapterOptions` 接受响应式输入；`runtime`、`title` 和 `historyData` 均可以是普通值、Ref 或 Getter，适配器会持续读取其最新值。
 
-| 字段            | 类型                                               | 必填 | 行为                                                         |
+| 字段            | 类型                                               | 必填 | 说明                                                         |
 | --------------- | -------------------------------------------------- | ---- | ------------------------------------------------------------ |
 | `runtime`       | `MaybeRefOrGetter<ChatRuntime>`                    | 是   | 提供当前 Runtime。                                           |
 | `title`         | `MaybeRefOrGetter<string \| undefined>`            | 否   | 提供界面标题；空值回退到活动会话标题。                       |
 | `historyData`   | `MaybeRefOrGetter<ChatHistoryData \| undefined>`   | 否   | 把应用提供的会话排序或分组传入 `data.conversation.history`。 |
 | `onActionError` | `(payload: ChatRuntimeActionErrorPayload) => void` | 是   | 接收发送、会话和模型等操作的错误。                           |
 
-| 返回字段                  | 形态                                                                    | 用途                                                   |
+| 返回字段                  | 类型                                                                    | 说明                                                   |
 | ------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
 | `data`                    | `ComputedRef<ChatUIData>`                                               | 用于显示的会话、消息、输入区、模型和 MCP 数据。        |
 | `inputValue`              | `ChatReadable<string>`                                                  | 当前输入内容，通过 `setInputValue` 更新。              |
@@ -361,7 +361,7 @@ const replacement: UseMessagePlugin = {
 
 `useChatHistoryItems` 整理普通会话列表，`useChatHistoryData` 还支持分组。两者均接受普通值、Ref 或 Getter，会随输入变化更新。
 
-| 函数                  | 返回值                                             | 输入与处理方式                                                                           |
+| 函数                  | 返回值                                             | 说明                                                                                     |
 | --------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `useChatHistoryItems` | `Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 读取 `conversations` 与必填 `defaultTitle`，按输入顺序生成平铺列表。                     |
 | `useChatHistoryData`  | `Readonly<ShallowRef<ChatHistoryDisplayData>>`     | 在相同输入之上接受可选 `history`；传入分组时保留调用方的分组和项目顺序，不按时间戳重排。 |
@@ -384,7 +384,7 @@ const replacement: UseMessagePlugin = {
 
 #### 会话、消息与发送
 
-| 类型                                         | 字段                                                                                                                                                                                                                                                                         |
+| 类型                                         | 定义                                                                                                                                                                                                                                                                         |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；允许额外自定义字段 `[key: string]: unknown`。                                                                                                               |
 | `ChatConversation`                           | 继承 `ChatConversationInfo`；`messages: readonly ChatMessageItem[]`；`requestState: 'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`；`processingState?: 'requesting' \| 'completing' \| string`                                                   |
@@ -399,7 +399,7 @@ const replacement: UseMessagePlugin = {
 
 #### 模型与 MCP
 
-| 类型                       | 字段                                                                                                                                                                                                                                                                                                                                         |
+| 类型                       | 定义                                                                                                                                                                                                                                                                                                                                         |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`efforts?: readonly ModelSelectorReasoningEffortOption[]`；`defaultEffort?: string`；`thinkingRequired?: boolean`；`capabilities?: Partial<Record<'thinking' \| 'search', boolean>>`；`metadata?: Record<string, unknown>` |
 | `ChatMcpServerInfo`        | `id: string`；`name: string`；`description?: string`；`icon?: string`；`category?: string`；`installed: boolean`；`enabled: boolean`；`loading?: boolean`；`error?: unknown`；`metadata?: Record<string, unknown>`                                                                                                                           |
@@ -419,7 +419,7 @@ const replacement: UseMessagePlugin = {
 
 #### 发送参数
 
-| 类型                            | 字段                                                                                                                                                                                                                                                                                                                                                                            |
+| 类型                            | 定义                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatRunConfig`                 | `modelId?: string`；`features?: Partial<Record<'thinking' \| 'search', boolean>>`；`reasoning?: ChatRunConfigReasoning`；`mcp?: ChatMcpRunConfig`                                                                                                                                                                                                                               |
 | `ChatRunConfigReasoning`        | `enabled: boolean`；`effort?: string`                                                                                                                                                                                                                                                                                                                                           |
@@ -431,7 +431,7 @@ const replacement: UseMessagePlugin = {
 
 #### 函数配置类型
 
-| 类型                                    | 字段                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 类型                                    | 定义                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `UseChatRuntimeOptions`                 | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
 | `UseChatRuntimeFromConversationOptions` | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { conversationId: string \| null; runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                        |
