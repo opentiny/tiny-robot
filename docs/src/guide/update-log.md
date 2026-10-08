@@ -4,6 +4,52 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v1.0.0
+
+`2026-10-08`
+
+> [!IMPORTANT]
+> **升级提示**：
+> - `McpServerPicker` 已弃用，现有代码仍可使用；新功能建议采用 `ExtensionManager`。两者的职责和 API 并非一一对应，迁移前请阅读 [McpServerPicker 迁移说明](../components/mcp-server-picker.md#迁移到-extensionmanager)。
+> - `Container` 已弃用并保留兼容；新布局建议使用 `Layout`（`TrLayout`），迁移时需按区域插槽和布局模式重新配置。参见 [Container 文档](../components/container.md)。
+> - CLI 的 `add chat` 现在将聊天代码生成到 `src/tiny-robot-chat/`，不再修改应用入口；应用需自行挂载生成的 `TinyRobotChat`，组件样式由生成代码导入。参见 [CLI 接入指南](./cli-integration.md)。
+
+### ✨ 新特性
+
+**聊天界面与运行时**
+
+- **Chat**：新增 `@opentiny/tiny-robot-chat`，提供由 Runtime 驱动的 `TrChat` 和由应用数据驱动的 `TrChatUI`；可组合会话、消息、输入区、模型选择与页面布局。详见 [Chat 聊天界面](../suites/chat.md)。 by @SonyLeo in [#411](https://github.com/opentiny/tiny-robot/pull/411)
+- **Chat Runtime**：新增 `useChatRuntime`、`useChatRuntimeFromConversation` 等入口，支持模型服务配置、复用 Kit 会话和接入 MCP 工具；应用也可通过适配器连接自定义界面。详见 [Chat 运行时](../suites/chat-runtime.md)。 by @SonyLeo in [#412](https://github.com/opentiny/tiny-robot/pull/412) [#425](https://github.com/opentiny/tiny-robot/pull/425)
+
+**组件与扩展**
+
+- **ExtensionManager**：新增通用扩展管理组件，支持按标签页浏览、搜索筛选、已安装与可安装分区及操作事件；`ExtensionCard` 和 `ExtensionCardGrid` 也可单独使用。同时提供 MCP 添加与详情、Skill 导入与详情组件，由应用负责持久化和后续操作。 by @gene9831 in [#389](https://github.com/opentiny/tiny-robot/pull/389) [#390](https://github.com/opentiny/tiny-robot/pull/390) [#428](https://github.com/opentiny/tiny-robot/pull/428) [#429](https://github.com/opentiny/tiny-robot/pull/429)
+- **ModelSelector**：新增模型选择器，支持搜索、分组、思考强度和自定义触发器；SVG 包新增常见模型提供商图标。 by @SonyLeo in [#392](https://github.com/opentiny/tiny-robot/pull/392) [#393](https://github.com/opentiny/tiny-robot/pull/393)
+- **Sender**：多行模式新增 `input-prefix` 插槽，可在首行输入前放置自定义内容；Template Select 新增 `appendTo` 配置，可指定下拉菜单的挂载位置。 by @SonyLeo in [#394](https://github.com/opentiny/tiny-robot/pull/394) [#408](https://github.com/opentiny/tiny-robot/pull/408)
+
+**工具与开发工具**
+
+- **工具调用**：Kit 支持暂停、恢复或拒绝待确认的工具调用，暂停回合可持久化并在重建引擎后恢复，还可限制单轮工具调用次数；Bubble 提供相应的允许、拒绝交互，由应用将操作转发给 Kit。 by @xuanlid in [#395](https://github.com/opentiny/tiny-robot/pull/395) [#418](https://github.com/opentiny/tiny-robot/pull/418) and by @gene9831 in [#406](https://github.com/opentiny/tiny-robot/pull/406)
+- **CLI**：新增独立 Chat 项目模板；`add chat` 可向现有 Vue 项目注入聊天功能，并提供变更预览与失败回滚；`create` 和 `add chat` 支持通过 `--runtime-version` 指定 TinyRobot 依赖版本。 by @SonyLeo in [#441](https://github.com/opentiny/tiny-robot/pull/441) [#442](https://github.com/opentiny/tiny-robot/pull/442)
+
+### 🔨 优化改进
+
+- **BubbleList**：异步渲染内容增高时继续跟随底部；用户向上滚动后暂停自动跟随，返回底部后恢复。 by @gene9831 in [#421](https://github.com/opentiny/tiny-robot/pull/421)
+- **Reasoning**：批量处理思考内容的渲染更新，减少流式输出时的重复刷新。 by @gene9831 in [#387](https://github.com/opentiny/tiny-robot/pull/387)
+- **ModelSelector**：面板宽度随内容自适应，至少与触发器同宽并受视口限制；打开期间保持已展开宽度，避免搜索筛选导致面板收缩。 by @gene9831 in [#401](https://github.com/opentiny/tiny-robot/pull/401)
+
+### 🐛 问题修复
+
+- **Bubble**：修复消息正文为空时思考内容、加载状态、工具调用及自定义消息内容无法显示的问题；同时修复错误渲染器兼容性及图文混合内容的渲染异常。 by @gene9831 in [#424](https://github.com/opentiny/tiny-robot/pull/424) [#438](https://github.com/opentiny/tiny-robot/pull/438) [#443](https://github.com/opentiny/tiny-robot/pull/443)
+- **History**：修复不可变数据更新后的条目状态丢失，以及操作菜单定位异常。 by @gene9831 in [#410](https://github.com/opentiny/tiny-robot/pull/410) [#419](https://github.com/opentiny/tiny-robot/pull/419)
+- **Anchor**：修复展开状态下标记位置偏移，并调整条目的点击区域。 by @SonyLeo in [#409](https://github.com/opentiny/tiny-robot/pull/409)
+- **useConversation**：修复异步存储加载返回空列表时，`onLoad` 未包含加载期间新建会话的问题。 by @gene9831 in [#450](https://github.com/opentiny/tiny-robot/pull/450)
+
+### 📝 文档
+
+- 新增 Chat 与 Runtime 使用指南、MCP/Skill 扩展管理实践，以及多种聊天产品界面示例；同步完善 Bubble、Sender 等组件文档。 by @SonyLeo in [#435](https://github.com/opentiny/tiny-robot/pull/435) [#439](https://github.com/opentiny/tiny-robot/pull/439) [#440](https://github.com/opentiny/tiny-robot/pull/440) and by @gene9831 in [#436](https://github.com/opentiny/tiny-robot/pull/436) [#445](https://github.com/opentiny/tiny-robot/pull/445)
+- 优化文档页宽屏布局、页头和移动端导航。 by @xuanlid in [#385](https://github.com/opentiny/tiny-robot/pull/385)
+
 ## v0.5.1
 
 `2026-08-10`
