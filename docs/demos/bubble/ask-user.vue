@@ -18,7 +18,6 @@ const content: AskUserContent = {
       id: 'framework',
       title: '选择框架',
       type: 'single',
-      required: true,
       options: [
         { label: 'Vue', value: 'vue', description: '适合构建响应式 Web 界面。' },
         { label: 'React', value: 'react', description: '适合构建组件化应用。' },
@@ -28,7 +27,6 @@ const content: AskUserContent = {
       id: 'features',
       title: '选择功能',
       type: 'multiple',
-      required: true,
       options: [
         { label: 'TypeScript', value: 'typescript' },
         { label: '自动化测试', value: 'test' },
@@ -45,7 +43,6 @@ const content: AskUserContent = {
       id: 'confirm',
       title: '确认配置',
       type: 'confirm',
-      required: true,
     },
   ],
 }

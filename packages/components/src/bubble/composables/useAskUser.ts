@@ -32,6 +32,41 @@ const cloneAnswers = (answers: Record<string, unknown> = {}) => {
   return result
 }
 
+const answersEqual = (left: Record<string, unknown>, right: Record<string, unknown>): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false
+  }
+
+  return leftKeys.every((key) => {
+    const leftValue = left[key]
+    const rightValue = right[key]
+
+    if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
+      return (
+        Array.isArray(leftValue) &&
+        Array.isArray(rightValue) &&
+        leftValue.length === rightValue.length &&
+        leftValue.every((item, index) => Object.is(item, rightValue[index]))
+      )
+    }
+
+    if (isChoiceAnswer(leftValue) || isChoiceAnswer(rightValue)) {
+      return (
+        isChoiceAnswer(leftValue) &&
+        isChoiceAnswer(rightValue) &&
+        answersEqual({ selected: leftValue.selected }, { selected: rightValue.selected }) &&
+        leftValue.other?.selected === rightValue.other?.selected &&
+        leftValue.other?.text === rightValue.other?.text
+      )
+    }
+
+    return Object.is(leftValue, rightValue)
+  })
+}
+
 const isFilled = (value: unknown) => {
   if (isChoiceAnswer(value)) {
     return value.selected.length > 0 || Boolean(value.other?.selected && value.other.text.trim())
@@ -81,15 +116,26 @@ export const useAskUser = (
   const content = computed(() => toValue(contentSource))
   const state = computed(() => normalizeState(content.value, toValue(stateSource)))
   const draftAnswers = ref<Record<string, unknown>>({})
+  const syncedAnswers = ref<Record<string, unknown>>({})
+  const contentSignature = computed(() => JSON.stringify(content.value) ?? '')
+  const syncedContentSignature = ref('')
   const validationError = ref('')
   const expanded = ref(true)
 
   watch(
-    state,
-    (nextState) => {
-      draftAnswers.value = cloneAnswers(nextState.answers)
-      validationError.value = ''
+    [state, contentSignature],
+    ([nextState, nextContentSignature]) => {
+      const answersChanged = !answersEqual(nextState.answers, syncedAnswers.value)
+      const contentChanged = nextContentSignature !== syncedContentSignature.value
+
+      if (answersChanged || contentChanged) {
+        draftAnswers.value = cloneAnswers(nextState.answers)
+        syncedAnswers.value = cloneAnswers(nextState.answers)
+        validationError.value = ''
+      }
+
       expanded.value = nextState.expanded ?? true
+      syncedContentSignature.value = nextContentSignature
     },
     { immediate: true, deep: true },
   )

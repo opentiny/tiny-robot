@@ -39,10 +39,9 @@ export interface AskUserChoiceAnswer {
 export interface AskUserStep {
   id: string
   title: string
-  summary: string
+  summary?: string
   description?: string
   type: AskUserStepType
-  required?: boolean
   options?: AskUserOption[]
   placeholder?: string
 }

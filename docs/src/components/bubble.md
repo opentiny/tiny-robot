@@ -393,7 +393,7 @@ defineProps<BubbleBoxRendererProps>()
 | `text`     | 使用文本域填写内容                                                   |
 | `confirm`  | 使用内置的“确认”和“不确认”选项                                       |
 
-`AskUserStep.required` 当前不会阻止跳过或提交。需要强制校验时，应用应在收到 `ask-user:submit` 后自行校验，并根据结果更新外部状态。
+`summary` 为可选字段，省略时使用 `title` 作为步骤进度标签。每个步骤都可以跳过；跳过后会将当前步骤答案记为 `null`，再进入下一步。
 
 <demo
   vue="../../demos/bubble/ask-user.vue"
@@ -781,10 +781,9 @@ interface AskUserChoiceAnswer {
 interface AskUserStep {
   id: string
   title: string
-  summary: string
+  summary?: string
   description?: string
   type: AskUserStepType
-  required?: boolean
   options?: AskUserOption[]
   placeholder?: string
 }

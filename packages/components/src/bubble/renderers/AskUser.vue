@@ -37,7 +37,7 @@ const stepAnswer = (step: AskUserContent['steps'][number]) => {
   const value = askUser.draftAnswers[step.id]
 
   if (value === 'ignored') {
-    return '已忽略'
+    return '已跳过'
   }
 
   if (Array.isArray(value)) {
@@ -54,7 +54,7 @@ const stepAnswer = (step: AskUserContent['steps'][number]) => {
       labels.push(`其他：${answer.other.text}`)
     }
 
-    return labels.length ? labels.join('、') : '已忽略'
+    return labels.length ? labels.join('、') : '已跳过'
   }
 
   if (typeof value === 'boolean') {
@@ -65,7 +65,7 @@ const stepAnswer = (step: AskUserContent['steps'][number]) => {
     return step.options.find((option) => option.value === value)?.label ?? value
   }
 
-  return value === undefined || value === null || value === '' ? '已忽略' : String(value)
+  return value === undefined || value === null || value === '' ? '已跳过' : String(value)
 }
 
 const currentOptions = computed<SelectableOption[]>(() => {
