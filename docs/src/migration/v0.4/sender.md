@@ -476,7 +476,7 @@ import { ThemeProvider } from '@opentiny/tiny-robot'
 
 以下列表集中记录 v0.4 已移除的入口及替代方案。
 
-#### Props
+### Props
 
 | 属性名               | 原说明           | 替代方案                                                         |
 | -------------------- | ---------------- | ---------------------------------------------------------------- |
@@ -490,7 +490,7 @@ import { ThemeProvider } from '@opentiny/tiny-robot'
 | activeSuggestionKeys | 激活建议项的按键 | [使用 Suggestion 扩展配置](./sender#联想迁移)          |
 | templateData         | 模板数据         | [使用 Template 扩展](./sender#模板迁移)                |
 
-#### Slots
+### Slots
 
 | 插槽名称          | 替代方案                    |
 | ----------------- | --------------------------- |
@@ -498,7 +498,7 @@ import { ThemeProvider } from '@opentiny/tiny-robot'
 | footer-left       | 改用 `footer`               |
 | decorativeContent | 改用 `disabled` + `content` |
 
-#### Events
+### Events
 
 | 事件名            | 替代方案                                    |
 | ----------------- | ------------------------------------------- |
@@ -510,7 +510,7 @@ import { ThemeProvider } from '@opentiny/tiny-robot'
 | speech-error      | 使用 `VoiceButton` 的 `speech-error` 事件   |
 | suggestion-select | 使用 `Suggestion` 扩展的 `onSelect` 回调    |
 
-#### Methods
+### Methods
 
 | 方法名                     | 替代方案                   |
 | -------------------------- | -------------------------- |

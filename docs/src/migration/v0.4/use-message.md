@@ -55,6 +55,7 @@ const responseProvider = async (requestBody: MessageRequestBody, abortSignal: Ab
     body: JSON.stringify(requestBody),
     signal: abortSignal,
   })
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
   return await resp.json()
 }
 

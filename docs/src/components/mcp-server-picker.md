@@ -63,6 +63,8 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | marketPlugins              | `PluginInfo[]`            | `[]`                                                              | 市场插件列表                                 |
 | enableSearch               | `boolean`                 | `true`                                                            | 是否启用搜索功能                             |
 | searchPlaceholder          | `string`                  | `'搜索插件'`                                                      | 搜索框占位符                                 |
+| installedSearchFn          | `(query: string, item: PluginInfo) => boolean` | - | 已安装插件搜索函数 |
+| marketSearchFn             | `(query: string, item: PluginInfo) => boolean` | - | 市场插件搜索函数 |
 | enableMarketCategoryFilter | `boolean`                 | `true`                                                            | 是否启用市场分类筛选功能                     |
 | marketCategoryOptions      | `MarketCategoryOption[]`  | `[]`                                                              | 市场分类选项列表                             |
 | marketCategoryPlaceholder  | `string`                  | `'按照分类筛选'`                                                  | 分类筛选下拉框占位符                         |
@@ -96,8 +98,6 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | 事件名                   | 说明                   | 回调参数                                                |
 | ------------------------ | ---------------------- | ------------------------------------------------------- |
 | market-category-change   | 市场分类筛选变化       | `(category: string)`                                    |
-| installedSearchFn        | 已添加插件搜索函数     | `(query: string, item: PluginInfo) => boolean`          |
-| marketSearchFn           | 市场插件搜索函数       | `(query: string, item: PluginInfo) => boolean`          |
 | update:visible           | 面板显示状态变化       | `(visible: boolean)`                                    |
 | update:activeCount       | 激活插件数量变化       | `(count: number)`                                       |
 | tab-change               | 标签页切换             | `(activeTab: 'installed' \| 'market')`                  |
