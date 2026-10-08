@@ -36,16 +36,19 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 - **BubbleList**：异步渲染内容增高时继续跟随底部；用户向上滚动后暂停自动跟随，返回底部后恢复。 by @gene9831 in [#421](https://github.com/opentiny/tiny-robot/pull/421)
 - **Reasoning**：批量处理思考内容的渲染更新，减少流式输出时的重复刷新。 by @gene9831 in [#387](https://github.com/opentiny/tiny-robot/pull/387)
+- **ModelSelector**：面板宽度随内容自适应，至少与触发器同宽并受视口限制；打开期间保持已展开宽度，避免搜索筛选导致面板收缩。 by @gene9831 in [#401](https://github.com/opentiny/tiny-robot/pull/401)
 
 ### 🐛 问题修复
 
 - **Bubble**：修复消息正文为空时思考内容、加载状态、工具调用及自定义消息内容无法显示的问题；同时修复错误渲染器兼容性及图文混合内容的渲染异常。 by @gene9831 in [#424](https://github.com/opentiny/tiny-robot/pull/424) [#438](https://github.com/opentiny/tiny-robot/pull/438) [#443](https://github.com/opentiny/tiny-robot/pull/443)
 - **History**：修复不可变数据更新后的条目状态丢失，以及操作菜单定位异常。 by @gene9831 in [#410](https://github.com/opentiny/tiny-robot/pull/410) [#419](https://github.com/opentiny/tiny-robot/pull/419)
+- **Anchor**：修复展开状态下标记位置偏移，并调整条目的点击区域。 by @SonyLeo in [#409](https://github.com/opentiny/tiny-robot/pull/409)
 - **useConversation**：修复异步存储加载返回空列表时，`onLoad` 未包含加载期间新建会话的问题。 by @gene9831 in [#450](https://github.com/opentiny/tiny-robot/pull/450)
 
 ### 📝 文档
 
 - 新增 Chat 与 Runtime 使用指南、MCP/Skill 扩展管理实践，以及多种聊天产品界面示例；同步完善 Bubble、Sender 等组件文档。 by @SonyLeo in [#435](https://github.com/opentiny/tiny-robot/pull/435) [#439](https://github.com/opentiny/tiny-robot/pull/439) [#440](https://github.com/opentiny/tiny-robot/pull/440) and by @gene9831 in [#436](https://github.com/opentiny/tiny-robot/pull/436) [#445](https://github.com/opentiny/tiny-robot/pull/445)
+- 优化文档页宽屏布局、页头和移动端导航。 by @xuanlid in [#385](https://github.com/opentiny/tiny-robot/pull/385)
 
 ## v0.5.1
 
