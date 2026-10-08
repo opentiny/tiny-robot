@@ -29,9 +29,21 @@ TinyRobot 提供官方 CLI 工具，可快速创建示例项目或向现有 Vue 
 
 构建完整 AI 聊天页面时，优先使用 `TrChat`。它基于 Chat Runtime 提供会话、消息、输入区、模型选择和 MCP 面板；已有数据层且需自定义界面时使用 `TrChatUI`。
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add @opentiny/tiny-robot-chat
 ```
+
+```bash [yarn]
+yarn add @opentiny/tiny-robot-chat
+```
+
+```bash [npm]
+npm install @opentiny/tiny-robot-chat
+```
+
+:::
 
 完整接入示例、样式引入和模型服务配置见 [Chat 聊天界面](/suites/chat)。
 
