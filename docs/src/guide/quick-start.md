@@ -25,6 +25,16 @@ TinyRobot 提供官方 CLI 工具，可快速创建示例项目或向现有 Vue 
 如果你是首次体验 TinyRobot，推荐优先使用 CLI。
 :::
 
+### 使用 TrChat（推荐）
+
+构建完整 AI 聊天页面时，优先使用 `TrChat`。它基于 Chat Runtime 提供会话、消息、输入区、模型选择和 MCP 面板；已有数据层且需自定义界面时使用 `TrChatUI`。
+
+```bash
+pnpm add @opentiny/tiny-robot-chat
+```
+
+完整接入示例、样式引入和模型服务配置见 [Chat 聊天界面](/suites/chat)。
+
 ### 依赖说明
 
 TinyRobot 由以下几个核心包组成：
@@ -59,7 +69,7 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-s
 
 TinyRobot 支持两种引入方式：按需引入和全局引入。推荐使用按需引入方式，可以有效减小打包体积。
 
-### 按需引入（推荐）
+### 基础组件按需引入
 
 按需引入可以只打包使用到的组件，有效减小项目体积，提升加载性能。
 
