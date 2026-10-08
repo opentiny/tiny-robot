@@ -69,7 +69,7 @@ const sharedSidebarItems = [
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
   { text: '演示', link: '/examples/chat-tiny-robot', activeMatch: '/examples/' },
-  { text: '迁移指南', link: '/migration/bubble-migration', activeMatch: '/migration/' },
+  { text: '迁移指南', link: '/migration/', activeMatch: '/migration/' },
 ]
 
 const sidebar = {
@@ -95,12 +95,21 @@ const sidebar = {
   ],
   '/migration/': [
     {
-      text: '迁移指南',
-      base: '/migration/',
+      text: 'v1.0（从 v0.5.1 升级）',
+      base: '/migration/v1.0/',
       items: [
-        { text: 'Bubble 气泡', link: 'bubble-migration' },
-        { text: 'useMessage 迁移', link: 'use-message-migration' },
-        { text: 'useConversation 迁移', link: 'use-conversation-migration' },
+        { text: 'Container 容器', link: 'container' },
+        { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      ],
+    },
+    {
+      text: 'v0.4（从 v0.3.x 升级）',
+      base: '/migration/v0.4/',
+      items: [
+        { text: 'Bubble 气泡', link: 'bubble' },
+        { text: 'Sender 消息输入框', link: 'sender' },
+        { text: 'useMessage 消息数据管理', link: 'use-message' },
+        { text: 'useConversation 会话数据管理', link: 'use-conversation' },
       ],
     },
   ],
