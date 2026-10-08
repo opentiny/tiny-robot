@@ -15,7 +15,7 @@ const sharedSidebarItems = [
     base: '/suites/',
     items: [
       { text: 'Chat 聊天界面', link: 'chat' },
-      { text: 'Chat 运行时', link: 'chat-runtime' },
+      { text: 'Chat 配置与操作', link: 'chat-runtime' },
     ],
   },
   {
