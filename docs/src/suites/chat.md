@@ -27,9 +27,21 @@ outline: [1, 3]
 
 安装并在应用入口引入样式：
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add @opentiny/tiny-robot-chat
 ```
+
+```bash [yarn]
+yarn add @opentiny/tiny-robot-chat
+```
+
+```bash [npm]
+npm install @opentiny/tiny-robot-chat
+```
+
+:::
 
 ```ts
 import '@opentiny/tiny-robot/dist/style.css'
