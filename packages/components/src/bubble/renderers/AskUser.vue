@@ -2,12 +2,14 @@
 import { IconArrowDown, IconCheckedSur } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 import { computed, reactive } from 'vue'
-import { isAskUserContent, useAskUser, useBubbleEventFn, useMessageContent } from '../composables'
+import { isAskUserContent, useAskUser, useBubbleEventFn, useContentResolver, useMessageContent } from '../composables'
 import type {
   AskUserChoiceAnswer,
   AskUserContent,
   AskUserOption,
   AskUserState,
+  AskUserStateMap,
+  AskUserStateValue,
   BubbleContentRendererProps,
 } from '../index.type'
 
@@ -17,11 +19,85 @@ defineOptions({
 
 const props = defineProps<BubbleContentRendererProps>()
 const { content } = useMessageContent(props)
+const resolveContent = useContentResolver()
 const emitEvent = useBubbleEventFn()
 
 const askUserContent = computed(() => (isAskUserContent(content.value) ? (content.value as AskUserContent) : undefined))
-const askUserState = computed(() => props.message.state?.askUser as AskUserState | undefined)
-const askUser = reactive(useAskUser(askUserContent, askUserState, emitEvent))
+
+const isAskUserState = (value: unknown): value is AskUserState => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const state = value as Partial<AskUserState>
+  return (
+    typeof state.status === 'string' &&
+    typeof state.currentStep === 'number' &&
+    !!state.answers &&
+    typeof state.answers === 'object' &&
+    Array.isArray(state.completedStepIds)
+  )
+}
+
+const askUserIds = computed(() => {
+  const messageContent = resolveContent(props.message)
+  if (!Array.isArray(messageContent)) {
+    return askUserContent.value ? [askUserContent.value.id] : []
+  }
+
+  return messageContent.filter(isAskUserContent).map((item) => item.id)
+})
+
+const hasMultipleAskUsers = computed(() => askUserIds.value.length > 1)
+
+const askUserState = computed(() => {
+  const storedState = props.message.state?.askUser as AskUserStateValue | undefined
+
+  if (isAskUserState(storedState)) {
+    return storedState
+  }
+
+  const interactionId = askUserContent.value?.id
+  return interactionId && storedState ? (storedState as AskUserStateMap)[interactionId] : undefined
+})
+
+const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
+  const payload = event.payload
+  const storedState = props.message.state?.askUser as AskUserStateValue | undefined
+  const hasStoredStateMap = Boolean(storedState && typeof storedState === 'object' && !isAskUserState(storedState))
+
+  if (
+    event.name !== 'state:update' ||
+    !payload ||
+    typeof payload !== 'object' ||
+    !('key' in payload) ||
+    !('value' in payload) ||
+    payload.key !== 'askUser' ||
+    (!hasMultipleAskUsers.value && !hasStoredStateMap) ||
+    !askUserContent.value
+  ) {
+    emitEvent(event)
+    return
+  }
+
+  const stateUpdatePayload = payload as { key: string; value: unknown }
+  const stateMap: AskUserStateMap = isAskUserState(storedState)
+    ? Object.fromEntries(askUserIds.value.map((id) => [id, storedState]))
+    : ((storedState ?? {}) as AskUserStateMap)
+
+  emitEvent({
+    ...event,
+    payload: {
+      ...stateUpdatePayload,
+      value: {
+        ...stateMap,
+        [askUserContent.value.id]: stateUpdatePayload.value as AskUserState,
+      },
+    },
+  })
+}
+
+const askUser = reactive(useAskUser(askUserContent, askUserState, emitAskUserEvent))
 
 const stepLabel = (step: AskUserContent['steps'][number]) => step.summary || step.title
 
@@ -147,7 +223,12 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       class="tr-bubble__ask-user-header"
       :class="{ 'is-collapsed': askUser.status === 'submitted' && !answersExpanded }"
     >
-      <h3 class="tr-bubble__ask-user-prompt">{{ askUserContent.title || '提供详细的问题' }}</h3>
+      <div class="tr-bubble__ask-user-heading">
+        <h3 class="tr-bubble__ask-user-prompt">{{ askUserContent.title || '提供详细的问题' }}</h3>
+        <p v-if="askUserContent.description" class="tr-bubble__ask-user-description">
+          {{ askUserContent.description }}
+        </p>
+      </div>
       <tiny-button
         v-if="askUser.status === 'submitted' && askUser.steps.length"
         type="text"
@@ -378,7 +459,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
 
 .tr-bubble__ask-user-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   gap: var(--tr-spacing-xs);
   margin-bottom: var(--tr-spacing-md);
@@ -392,6 +473,15 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
   font-size: var(--tr-font-size-md);
   font-weight: var(--tr-font-weight-semibold);
   line-height: 24px;
+}
+.tr-bubble__ask-user-heading {
+  flex: 1;
+  min-width: 0;
+}
+.tr-bubble__ask-user-description {
+  margin: var(--tr-spacing-2xs) 0 0;
+  color: var(--tr-text-secondary);
+  word-break: break-word;
 }
 .tr-bubble__ask-user-expand {
   display: inline-flex;

@@ -293,10 +293,11 @@ export const useAskUser = (
     if (isLastStep) {
       emitState({ status: 'submitted', completedStepIds }, 'ask-user:submit', { stepId: step.id })
     } else {
+      const nextStep = steps.value[currentStepIndex.value + 1]
       emitState(
         { status: 'active', currentStep: currentStepIndex.value + 1, completedStepIds, error: undefined },
         'ask-user:step-change',
-        { stepId: step.id },
+        { stepId: nextStep.id },
       )
     }
 
@@ -351,10 +352,11 @@ export const useAskUser = (
         stepId: step.id,
       })
     } else {
+      const nextStep = steps.value[currentStepIndex.value + 1]
       emitState(
         { status: 'active', currentStep: currentStepIndex.value + 1, completedStepIds, error: undefined },
         'ask-user:step-change',
-        { stepId: step.id },
+        { stepId: nextStep.id },
       )
     }
 

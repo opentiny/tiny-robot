@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
+import AskUserInvalidFixture from './AskUserInvalid.fixture.vue'
 import AskUserFixture from './AskUser.fixture.vue'
+import AskUserMultipleFixture from './AskUserMultiple.fixture.vue'
 
 test.describe('AskUser renderer', () => {
   test('preserves an unsubmitted draft when equivalent state is replaced', async ({ mount }) => {
@@ -17,11 +19,13 @@ test.describe('AskUser renderer', () => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
 
+    await expect(bubble.getByText('请填写项目配置，完成后提交。')).toBeVisible()
     await expect(bubble.getByRole('button', { name: '跳过' })).toBeVisible()
     await bubble.getByRole('button', { name: '跳过' }).click()
 
     await expect(bubble.getByRole('heading', { name: '框架' })).toBeVisible()
     await expect(component.getByTestId('last-event')).toHaveText('ask-user:step-change')
+    await expect(component.getByTestId('last-step-id')).toHaveText('framework')
   })
 
   test('can submit after skipping a step', async ({ mount }) => {
@@ -33,5 +37,34 @@ test.describe('AskUser renderer', () => {
 
     await expect(component.getByTestId('last-event')).toHaveText('ask-user:submit')
     await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('项目名称：已跳过')
+  })
+
+  test('isolates state between multiple AskUser contents', async ({ mount }) => {
+    const component = await mount(AskUserMultipleFixture)
+    const askUsers = component.locator('[data-type="ask-user"]')
+
+    await expect(askUsers).toHaveCount(2)
+    await askUsers.nth(0).getByRole('button', { name: '跳过' }).click()
+
+    await expect(askUsers.nth(1).getByRole('heading', { name: '第二个问题' })).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+  })
+
+  test('isolates state between AskUser contents resolved by contentResolver', async ({ mount }) => {
+    const component = await mount(AskUserMultipleFixture, { props: { useResolver: true } })
+    const askUsers = component.locator('[data-type="ask-user"]')
+
+    await expect(askUsers).toHaveCount(2)
+    await askUsers.nth(0).getByRole('button', { name: '跳过' }).click()
+
+    await expect(askUsers.nth(1).getByRole('heading', { name: '第二个问题' })).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+  })
+
+  test('falls back for invalid AskUser content', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture)
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
   })
 })

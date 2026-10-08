@@ -67,6 +67,10 @@ export interface AskUserState {
   updatedAt?: number
 }
 
+export type AskUserStateMap = Record<string, AskUserState>
+
+export type AskUserStateValue = AskUserState | AskUserStateMap
+
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */

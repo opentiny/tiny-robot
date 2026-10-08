@@ -382,7 +382,7 @@ defineProps<BubbleBoxRendererProps>()
 
 当 `content` 数组包含 `type: 'ask_user'` 的内容项时，Bubble 会自动匹配内置的 `AskUser` 渲染器。它在气泡内展示分步收集流程，支持单选、多选、文本输入和确认步骤。
 
-应用通过 `AskUserContent` 提供问题和步骤，通过消息的 `state.askUser` 保存交互状态。初次渲染时可以省略 `state.askUser`，渲染器会从第一个步骤开始；用户操作后，应用需要监听 `state-change`，将 `key` 为 `askUser` 的新值同步回消息的 `state`。Bubble 只负责展示和发出事件，不会自行持久化状态，也不会提交外部请求。
+应用通过 `AskUserContent` 提供问题和步骤，通过消息的 `state.askUser` 保存交互状态。初次渲染时可以省略 `state.askUser`，渲染器会从第一个步骤开始；用户操作后，应用需要监听 `state-change`，将 `key` 为 `askUser` 的新值同步回消息的 `state`。单个 AskUser 的值为 `AskUserState`；同一条消息包含多个 AskUser 时，值为以交互 ID 为键的 `AskUserStateMap`。Bubble 只负责展示和发出事件，不会自行持久化状态，也不会提交外部请求。
 
 各步骤类型的行为如下：
 
@@ -599,7 +599,7 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 
 `bubble-event` 的回调参数还包含 `messageIndex` 和 `contentIndex`。工具审批事件只负责通知应用，Bubble 不会执行工具、拒绝调用或修改工具状态；请由 `toolPlugin` / `useMessage`（或会话引擎）处理对应命令。
 
-AskUser 的每次交互都会先通过 `state:update` 请求更新状态，再发出对应的 `ask-user:*` 事件。对于 AskUser，`state:update` 的 payload 为 `{ key: 'askUser'; value: AskUserState }`；应用应同步该值，否则组件重新渲染后会回到旧状态。
+AskUser 的每次交互都会先通过 `state:update` 请求更新状态，再发出对应的 `ask-user:*` 事件。对于 AskUser，`state:update` 的 payload 为 `{ key: 'askUser'; value: AskUserStateValue }`；应用应同步该值，否则组件重新渲染后会回到旧状态。
 
 ### Slots
 
@@ -668,6 +668,8 @@ AskUser 的每次交互都会先通过 `state:update` 请求更新状态，再�
 | `AskUserContent`                      | AskUser 内容     | `type: 'ask_user'` 内容项                 |
 | `AskUserStatus`                       | AskUser 状态     | AskUser 的交互状态                        |
 | `AskUserState`                        | AskUser 状态     | AskUser 在消息 `state.askUser` 中保存的状态 |
+| `AskUserStateMap`                     | AskUser 状态     | 多个 AskUser 按交互 ID 保存的状态集合       |
+| `AskUserStateValue`                   | AskUser 状态     | 单个状态或多个状态集合                     |
 | `BubbleErrorInfo`                     | 错误数据         | 消息错误信息                              |
 | `BubbleErrorRendererProps`            | 渲染器属性       | 消息级错误渲染器接收的属性                |
 | `BubbleMessageGroup`                  | 分组数据         | BubbleList 分组结果                       |
@@ -808,6 +810,10 @@ interface AskUserState {
   error?: string
   updatedAt?: number
 }
+
+type AskUserStateMap = Record<string, AskUserState>
+
+type AskUserStateValue = AskUserState | AskUserStateMap
 ```
 
 以下为 `ToolCall` 的完整定义：
