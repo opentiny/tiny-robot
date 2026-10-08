@@ -6,12 +6,13 @@ import type { Attachment, SenderSubmitExtra } from '@opentiny/tiny-robot'
 const content = ref('')
 const message = ref('')
 const attachments = ref<Attachment[]>([])
+let nextAttachmentId = 0
 
 const createAttachment = (file: File, index: number): Attachment => {
   const isImage = file.type.startsWith('image/')
 
   return {
-    id: `${file.name}-${file.lastModified}-${Date.now()}-${index}`,
+    id: `${file.name}-${file.lastModified}-${nextAttachmentId++}-${index}`,
     name: file.name,
     rawFile: file,
     size: file.size,

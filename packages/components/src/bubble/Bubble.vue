@@ -121,7 +121,11 @@ if (!isInBubbleList) {
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
-          <component v-if="hasMessageError(messages.at(0)!)" :is="errorRenderer" :message="messages.at(0)!"></component>
+          <component
+            v-if="errorRenderer && hasMessageError(messages.at(0)!)"
+            :is="errorRenderer"
+            :message="messages.at(0)!"
+          ></component>
         </template>
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
@@ -134,7 +138,11 @@ if (!isInBubbleList) {
                 @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
                 @bubble-event="emit('bubble-event', { ...$event, messageIndex: msgIndex })"
               ></BubbleContentWrapper>
-              <component v-if="hasMessageError(message)" :is="errorRenderer" :message="message"></component>
+              <component
+                v-if="errorRenderer && hasMessageError(message)"
+                :is="errorRenderer"
+                :message="message"
+              ></component>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>

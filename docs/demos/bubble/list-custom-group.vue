@@ -32,13 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  BubbleListProps,
-  BubbleMessage,
-  BubbleMessageGroup,
-  BubbleRoleConfig,
-  TrBubbleList,
-} from '@opentiny/tiny-robot'
+import { TrBubbleList } from '@opentiny/tiny-robot'
+import type { BubbleListProps, BubbleMessage, BubbleMessageGroup, BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
 

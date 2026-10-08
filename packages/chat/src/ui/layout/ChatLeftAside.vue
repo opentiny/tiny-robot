@@ -389,8 +389,6 @@ function toggleAside() {
 
 .chat-left-aside-history {
   min-height: 100%;
-  --tr-history-item-selected-bg: var(--tr-history-item-hover-bg);
-  --tr-history-item-space-y: 4px;
 }
 
 .chat-left-aside-footer {

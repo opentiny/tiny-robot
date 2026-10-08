@@ -6,7 +6,8 @@ import type {
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
-  PluginCreationData,
+  McpExtensionFormMode,
+  McpExtensionFormValue,
   HistoryMenuItem,
   PromptProps,
 } from '@opentiny/tiny-robot'
@@ -55,8 +56,8 @@ export interface ChatMcpAddServerPayload {
 }
 
 export interface ChatMcpCreateServerPayload {
-  readonly type: 'form' | 'code'
-  readonly data: PluginCreationData
+  readonly source: McpExtensionFormMode
+  readonly config: McpExtensionFormValue
 }
 
 export interface ChatMcpRemoveServerPayload {

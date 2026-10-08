@@ -7,6 +7,7 @@ async function* mockStream(_requestBody: MessageRequestBody, abortSignal: AbortS
   const id = 'mock-' + Date.now()
   for (let i = 0; i < reply.length && !abortSignal.aborted; i++) {
     await new Promise((r) => setTimeout(r, 30))
+    if (abortSignal.aborted) return
     const deltaContent = reply[i]
     yield {
       id,

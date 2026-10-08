@@ -166,8 +166,7 @@ export class AliyunSpeechHandler implements SpeechHandler {
     }
 
     this.recorder.stop(
-      (blob: Blob, duration: number) => {
-        console.log(`录音成功，格式: ${blob.type}，时长: ${duration}ms`, blob)
+      (blob: Blob) => {
         this.processWithAliyunAPI(blob)
         this.closeRecorder()
       },

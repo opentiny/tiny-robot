@@ -1,0 +1,15 @@
+.chat-case-shell {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--tr-text-primary);
+}
+
+.chat-case-shell *,
+.chat-case-shell *::before,
+.chat-case-shell *::after {
+  box-sizing: border-box;
+}
