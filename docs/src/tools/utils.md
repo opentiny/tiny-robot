@@ -5,7 +5,7 @@ outline: [1, 3]
 # 工具函数 Utils
 
 :::danger 重大版本升级 v0.4
-useMessage 在 v0.4 有重大变更。**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/use-message-migration)。
+useMessage 在 v0.4 有重大变更。**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/v0.4/use-message)。
 :::
 
 工具函数模块提供了一些实用的辅助函数，用于处理流式响应。

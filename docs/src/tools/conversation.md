@@ -195,4 +195,4 @@ indexedDBStorageStrategyFactory(config?: IndexedDBConfig): ConversationStorageSt
 
 ## 迁移与弃用
 
-本页描述当前公开 API。仍在使用 `client`、`state` 或单一 `messageManager` 的项目，可参考 [useConversation 迁移](../migration/use-conversation-migration) 进入以 `useMessageOptions`、独立会话引擎和存储策略为核心的当前架构；迁移后请以本页 API 为准。
+本页描述当前公开 API。仍在使用 `client`、`state` 或单一 `messageManager` 的项目，可参考 [useConversation 迁移](../migration/v0.4/use-conversation) 进入以 `useMessageOptions`、独立会话引擎和存储策略为核心的当前架构；迁移后请以本页 API 为准。
