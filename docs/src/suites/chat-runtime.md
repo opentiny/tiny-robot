@@ -142,7 +142,7 @@ try {
 }
 ```
 
-返回 `false` 的情况见 [常见问题](#runtime-actions-send-返回-false)。
+返回 `false` 的情况见 [常见问题](#runtime-actions-send-false)。
 
 回答还在生成时，可调用 `abort()` 停止当前请求：
 
@@ -677,7 +677,7 @@ const history = useChatHistoryData({
 
 ## 常见问题
 
-### `runtime.actions.send()` 返回 `false`
+### `runtime.actions.send()` 返回 `false` {#runtime-actions-send-false}
 
 检查以下条件：
 

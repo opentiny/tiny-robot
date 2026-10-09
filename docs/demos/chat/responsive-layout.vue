@@ -37,7 +37,7 @@ const ui = computed<ChatUIOptions>(() => ({
     leftAside: {
       mode: mode.value,
       defaultOpen: mode.value === 'dock',
-      resizable: true,
+      resizable: mode.value === 'dock',
       minWidth: 240,
       maxWidth: 420,
     },
