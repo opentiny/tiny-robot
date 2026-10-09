@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import { TrChatUI, type ChatUIData, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
-type LayoutPreset = 'default' | 'compact' | 'focus'
+type LayoutPreset = 'default' | 'compact' | 'focus' | 'welcome-footer' | 'welcome-center'
 
 const preset = shallowRef<LayoutPreset>('default')
 const inputValue = shallowRef('')
@@ -30,6 +30,12 @@ const data: ChatUIData = {
   sender: { submitDisabled: true },
 }
 
+const emptyData: ChatUIData = {
+  conversation: { items: data.conversation?.items, activeId: null, title: '新对话' },
+  bubble: { messages: [] },
+  sender: { submitDisabled: true },
+}
+
 const presets: Record<LayoutPreset, { label: string; description: string; ui: ChatUIOptions }> = {
   default: {
     label: '默认布局',
@@ -38,7 +44,7 @@ const presets: Record<LayoutPreset, { label: string; description: string; ui: Ch
   },
   compact: {
     label: '紧凑内容',
-    description: '收窄消息和输入区，并让会话列表默认展开。',
+    description: '内容最大宽度为 640px；左侧栏默认展开，展开宽度为 240px，收起宽度为 48px。',
     ui: {
       layout: {
         contentMaxWidth: 640,
@@ -60,10 +66,31 @@ const presets: Record<LayoutPreset, { label: string; description: string; ui: Ch
       },
     },
   },
+  'welcome-footer': {
+    label: '空会话：底部输入',
+    description: '没有消息时，输入区位于页面底部。',
+    ui: {
+      layout: {
+        composer: { welcome: 'footer' },
+      },
+    },
+  },
+  'welcome-center': {
+    label: '空会话：居中输入',
+    description: '没有消息时，输入区位于欢迎区中央；已有消息时仍位于页面底部。',
+    ui: {
+      layout: {
+        composer: { welcome: 'center' },
+      },
+    },
+  },
 }
 
-const presetOptions: LayoutPreset[] = ['default', 'compact', 'focus']
+const presetOptions: LayoutPreset[] = ['default', 'compact', 'focus', 'welcome-footer', 'welcome-center']
 const activePreset = computed(() => presets[preset.value])
+const activeData = computed(() =>
+  preset.value === 'welcome-footer' || preset.value === 'welcome-center' ? emptyData : data,
+)
 </script>
 
 <template>
@@ -82,7 +109,13 @@ const activePreset = computed(() => presets[preset.value])
       <span>{{ activePreset.description }}</span>
     </div>
 
-    <TrChatUI :data="data" :ui="activePreset.ui" :input-value="inputValue" @update:input-value="inputValue = $event" />
+    <TrChatUI
+      :key="preset"
+      :data="activeData"
+      :ui="activePreset.ui"
+      :input-value="inputValue"
+      @update:input-value="inputValue = $event"
+    />
   </section>
 </template>
 
@@ -136,5 +169,11 @@ const activePreset = computed(() => presets[preset.value])
 .chat-layout-demo :deep(.tr-chat-ui) {
   flex: 1;
   min-height: 0;
+}
+
+.chat-layout-demo :deep(.tr-welcome__title-wrapper) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

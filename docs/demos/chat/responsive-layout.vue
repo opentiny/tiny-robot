@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import {
-  TrChatUI,
-  type ChatAsideOpenChangePayload,
-  type ChatUIData,
-  type ChatUIOptions,
-} from '@opentiny/tiny-robot-chat'
+import { TrChatUI, type ChatUIData, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
 type PreviewMode = 'dock' | 'drawer'
 
 const mode = shallowRef<PreviewMode>('dock')
 const inputValue = shallowRef('')
-const lastAsideEvent = shallowRef('尚未触发侧栏事件')
 const modeOptions: PreviewMode[] = ['dock', 'drawer']
 
 const data: ChatUIData = {
@@ -43,14 +37,13 @@ const ui = computed<ChatUIOptions>(() => ({
     leftAside: {
       mode: mode.value,
       defaultOpen: mode.value === 'dock',
+      resizable: true,
+      minWidth: 240,
+      maxWidth: 420,
     },
     rightAside: false,
   },
 }))
-
-function handleLeftAsideChange(payload: ChatAsideOpenChangePayload) {
-  lastAsideEvent.value = `open: ${payload.open}，source: ${payload.source}`
-}
 </script>
 
 <template>
@@ -66,18 +59,12 @@ function handleLeftAsideChange(payload: ChatAsideOpenChangePayload) {
       >
         {{ item === 'dock' ? '桌面 Dock' : '移动端 Drawer' }}
       </button>
-      <span aria-live="polite">最近事件：{{ lastAsideEvent }}</span>
     </div>
 
+    <p>桌面布局下，拖动左侧栏右边缘可在 240px 到 420px 之间调整宽度；抽屉布局不支持调整宽度。</p>
+
     <div class="chat-responsive-demo__stage" :class="`is-${mode}`">
-      <TrChatUI
-        :key="mode"
-        :data="data"
-        :ui="ui"
-        :input-value="inputValue"
-        @update:input-value="inputValue = $event"
-        @left-aside-open-change="handleLeftAsideChange"
-      />
+      <TrChatUI :key="mode" :data="data" :ui="ui" :input-value="inputValue" @update:input-value="inputValue = $event" />
     </div>
   </section>
 </template>
@@ -117,11 +104,6 @@ function handleLeftAsideChange(payload: ChatAsideOpenChangePayload) {
   border-color: var(--tr-color-primary, #1476ff);
   color: #fff;
   background: var(--tr-color-primary, #1476ff);
-}
-
-.chat-responsive-demo__toolbar span {
-  color: var(--tr-text-secondary, #575d6c);
-  font-size: 13px;
 }
 
 .chat-responsive-demo__stage {

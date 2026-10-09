@@ -8,10 +8,9 @@ const messages = shallowRef<ChatMessageItem[]>([])
 const sending = shallowRef(false)
 
 const data = computed<ChatUIData>(() => ({
-  conversation: { activeId: 'controlled-demo', title: '受控数据' },
+  conversation: { activeId: 'controlled-demo', title: '应用助手' },
   bubble: { messages: messages.value },
   sender: { loading: sending.value },
-  request: { state: sending.value ? 'processing' : 'idle' },
 }))
 
 async function handleSubmit(payload: ChatSendPayload) {
@@ -28,7 +27,7 @@ async function handleSubmit(payload: ChatSendPayload) {
 
 <template>
   <div class="controlled-ui-demo">
-    <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" @submit="handleSubmit" />
+    <TrChatUI :data="data" v-model:input-value="inputValue" @submit="handleSubmit" />
   </div>
 </template>
 

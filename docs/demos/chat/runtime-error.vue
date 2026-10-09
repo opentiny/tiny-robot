@@ -20,9 +20,7 @@ const responseProvider: ResponseProvider = async (requestBody: MessageRequestBod
   const text = String(requestBody.messages.filter((message) => message.role === 'user').at(-1)?.content ?? '')
 
   if (text.includes('失败')) {
-    const error = new Error(
-      '模拟模型服务不可用。错误详情属于这条 assistant 消息；包含较长标识 demo-request-abcdefghijklmnopqrstuvwxyz-0123456789 以便检查窄容器换行。',
-    )
+    const error = new Error('模拟请求失败：模型服务暂时不可用。')
     Object.assign(error, { code: 'DEMO_UNAVAILABLE' })
     throw error
   }
@@ -37,7 +35,7 @@ const responseProvider: ResponseProvider = async (requestBody: MessageRequestBod
     choices: [
       {
         index: 0,
-        message: { role: 'assistant', content: `请求已恢复：${text || '成功消息'}` },
+        message: { role: 'assistant', content: `正常回复：${text || '成功消息'}` },
         delta: undefined,
         logprobs: null,
         finish_reason: 'stop',
@@ -49,18 +47,16 @@ const responseProvider: ResponseProvider = async (requestBody: MessageRequestBod
 const runtime = useChatRuntime({
   conversation: { storage: memoryStorage, useMessageOptions: { responseProvider } },
 })
-const actionStatus = shallowRef('尚未收到动作失败通知')
+const actionStatus = shallowRef('尚未收到操作失败通知')
 
 function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionStatus.value = `已收到 ${payload.action} 动作失败通知；错误详情仍由所属消息气泡展示。`
+  actionStatus.value = payload.action === 'send' ? '已收到发送失败通知' : '已收到操作失败通知'
 }
 </script>
 
 <template>
   <section class="runtime-error-demo">
-    <p class="runtime-error-demo__hint">
-      输入包含“失败”的内容会触发确定性错误；随后输入其他内容即可继续发送并观察恢复结果。
-    </p>
+    <p class="runtime-error-demo__hint">发送包含“失败”的内容可查看错误提示，发送其他内容可查看正常回复。</p>
     <p class="runtime-error-demo__status" aria-live="polite">{{ actionStatus }}</p>
     <div class="runtime-error-demo__chat">
       <tr-chat :runtime="runtime" @runtime-action-error="handleRuntimeActionError" />

@@ -39,6 +39,7 @@ const emit = defineEmits<{
 
 defineSlots<{
   'composer-before'?: (props: ChatSenderSlotProps) => unknown
+  'composer-after'?: (props: ChatSenderSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'sender-header'?: () => unknown
   'sender-footer'?: () => unknown
@@ -101,6 +102,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         </template>
       </ChatSender>
     </slot>
+    <slot name="composer-after" v-bind="layoutFooterProps" />
   </div>
 </template>
 

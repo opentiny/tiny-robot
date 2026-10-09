@@ -286,6 +286,9 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['composer-before']" #composer-before="slotProps">
       <slot name="composer-before" v-bind="slotProps" />
     </template>
+    <template v-if="slots['composer-after']" #composer-after="slotProps">
+      <slot name="composer-after" v-bind="slotProps" />
+    </template>
     <template v-if="slots['header-notice']" #header-notice>
       <slot name="header-notice" />
     </template>
