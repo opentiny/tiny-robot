@@ -50,6 +50,25 @@ test.describe('AskUser renderer', () => {
     await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
   })
 
+  test('assigns a legacy single state to only the first AskUser', async ({ mount }) => {
+    const component = await mount(AskUserMultipleFixture, {
+      props: {
+        initialState: {
+          askUser: {
+            status: 'submitted',
+            currentStep: 0,
+            answers: { 'first-step': 'legacy answer' },
+            completedStepIds: ['first-step'],
+          },
+        },
+      },
+    })
+    const askUsers = component.locator('[data-type="ask-user"]')
+
+    await expect(askUsers.nth(0).locator('[aria-label="提交结果"]')).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+  })
+
   test('isolates state between AskUser contents resolved by contentResolver', async ({ mount }) => {
     const component = await mount(AskUserMultipleFixture, { props: { useResolver: true } })
     const askUsers = component.locator('[data-type="ask-user"]')
@@ -63,6 +82,20 @@ test.describe('AskUser renderer', () => {
 
   test('falls back for invalid AskUser content', async ({ mount }) => {
     const component = await mount(AskUserInvalidFixture)
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser content with malformed steps', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { malformed: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser content with malformed options', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { malformedOptions: true } })
 
     await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
     await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)

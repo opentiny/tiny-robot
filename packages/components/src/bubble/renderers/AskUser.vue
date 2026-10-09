@@ -49,12 +49,13 @@ const askUserIds = computed(() => {
 })
 
 const hasMultipleAskUsers = computed(() => askUserIds.value.length > 1)
+const legacyStateOwnerId = computed(() => askUserIds.value[0])
 
 const askUserState = computed(() => {
   const storedState = props.message.state?.askUser as AskUserStateValue | undefined
 
   if (isAskUserState(storedState)) {
-    return storedState
+    return askUserContent.value?.id === legacyStateOwnerId.value ? storedState : undefined
   }
 
   const interactionId = askUserContent.value?.id
@@ -82,7 +83,9 @@ const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
 
   const stateUpdatePayload = payload as { key: string; value: unknown }
   const stateMap: AskUserStateMap = isAskUserState(storedState)
-    ? Object.fromEntries(askUserIds.value.map((id) => [id, storedState]))
+    ? legacyStateOwnerId.value
+      ? { [legacyStateOwnerId.value]: storedState }
+      : {}
     : ((storedState ?? {}) as AskUserStateMap)
 
   emitEvent({

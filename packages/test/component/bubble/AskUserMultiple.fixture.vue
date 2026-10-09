@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import type { AskUserContent } from '../../../components/src/bubble/index.type'
 
-const props = defineProps<{ useResolver?: boolean }>()
+const props = defineProps<{ useResolver?: boolean; initialState?: Record<string, unknown> }>()
 
 const firstContent: AskUserContent = {
   type: 'ask_user',
@@ -19,7 +19,7 @@ const secondContent: AskUserContent = {
   steps: [{ id: 'second-step', title: '第二个步骤', type: 'text' }],
 }
 
-const state = ref<Record<string, unknown>>({})
+const state = ref<Record<string, unknown>>(props.initialState ?? {})
 
 const resolveContent = () => [firstContent, secondContent]
 

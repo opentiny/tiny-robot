@@ -1,5 +1,13 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import type { AskUserChoiceAnswer, AskUserContent, AskUserState, AskUserStep, BubbleEvent } from '../index.type'
+import type {
+  AskUserChoiceAnswer,
+  AskUserContent,
+  AskUserOption,
+  AskUserState,
+  AskUserStep,
+  AskUserStepType,
+  BubbleEvent,
+} from '../index.type'
 
 type AskUserEventEmitter = (event: BubbleEvent) => void
 
@@ -99,13 +107,49 @@ const normalizeState = (content: AskUserContent | undefined, state: AskUserState
   }
 }
 
+const askUserStepTypes = new Set<AskUserStepType>(['single', 'multiple', 'text', 'confirm'])
+
+const isAskUserOption = (value: unknown): value is AskUserOption => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const option = value as Partial<AskUserOption>
+  return (
+    typeof option.label === 'string' &&
+    typeof option.value === 'string' &&
+    (option.description === undefined || typeof option.description === 'string') &&
+    (option.disabled === undefined || typeof option.disabled === 'boolean')
+  )
+}
+
+const isAskUserStep = (value: unknown): value is AskUserStep => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const step = value as Partial<AskUserStep>
+  return (
+    typeof step.id === 'string' &&
+    typeof step.title === 'string' &&
+    typeof step.type === 'string' &&
+    askUserStepTypes.has(step.type as AskUserStepType) &&
+    (step.options === undefined || (Array.isArray(step.options) && step.options.every(isAskUserOption)))
+  )
+}
+
 export const isAskUserContent = (value: unknown): value is AskUserContent => {
   if (!value || typeof value !== 'object') {
     return false
   }
 
   const content = value as Partial<AskUserContent>
-  return content.type === 'ask_user' && typeof content.id === 'string' && Array.isArray(content.steps)
+  return (
+    content.type === 'ask_user' &&
+    typeof content.id === 'string' &&
+    Array.isArray(content.steps) &&
+    content.steps.every(isAskUserStep)
+  )
 }
 
 export const useAskUser = (
