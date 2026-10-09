@@ -10,19 +10,21 @@ outline: [1, 3]
 
 ## 模型服务
 
-`modelProviders` 是传给 `useChatRuntime` 的模型服务配置数组，每项通过 `models` 数组列出该服务下的模型。基础接入见 [Chat 快速开始](./chat#快速开始)。配置结构和主要字段如下：
+通过 `modelProviders` 配置模型服务地址和可选模型。`TrChat` 使用这些配置发送请求，并在输入区提供模型选择。
 
-| 字段                    | 用途和可选值                                                                  | 必填 | 默认值或未配置行为                     |
-| ----------------------- | ----------------------------------------------------------------------------- | ---- | -------------------------------------- |
-| `type`                  | 服务类型，可选 `'openai'`、`'deepseek'`、`'qwen'`                             | 是   | 无默认值                               |
-| `apiUrl`                | 服务地址；填写时使用完整 URL，可为服务根地址或 `/chat/completions` 地址       | 否   | 使用对应服务的预设地址                 |
-| `timeout`               | 从请求开始到回答接收结束的超时时间，单位为毫秒                                | 否   | 不额外设置超时计时器                   |
-| `models`                | 该服务下的模型配置数组                                                        | 是   | 无默认值；内置请求需要至少一个可用模型 |
-| `models[].id`           | 服务实际支持的模型 ID，所有服务配置中的 ID 不可重复                           | 是   | 无默认值                               |
-| `models[].label`        | 模型在界面中显示的名称                                                        | 是   | 无默认值                               |
-| `models[].capabilities` | 声明模型是否支持 `thinking`（深度思考）、`search`（联网搜索），并显示对应开关 | 否   | 未声明的功能不显示开关                 |
+### 基本配置
 
-`'openai'` 也适用于兼容 OpenAI `/chat/completions` 接口的服务。省略 `apiUrl` 时，三个服务类型分别使用以下地址：
+`modelProviders` 是传给 `useChatRuntime` 的配置数组，每项配置一个服务，通过 `models` 列出该服务下的模型。
+
+| 字段             | 用途                                                                    | 必填 | 默认值或未配置行为                     |
+| ---------------- | ----------------------------------------------------------------------- | ---- | -------------------------------------- |
+| `type`           | 选择服务的默认地址和请求参数，可选 `'openai'`、`'deepseek'`、`'qwen'`      | 是   | 无默认值                               |
+| `apiUrl`         | 服务的完整 URL，可填写服务根地址或 `/chat/completions` 地址               | 否   | 使用对应服务的预设地址                 |
+| `models`         | 该服务下的模型配置数组                                                  | 是   | 无默认值；内置请求需要至少一个可用模型 |
+| `models[].id`    | 服务支持的模型 ID，所有服务配置中的模型 ID 不可重复                     | 是   | 无默认值                               |
+| `models[].label` | 模型在界面中显示的名称                                                  | 是   | 无默认值                               |
+
+`type` 不是模型 ID。兼容 OpenAI `/chat/completions` 接口的服务可使用 `'openai'`。省略 `apiUrl` 时，使用以下预设地址；通过项目服务端转发请求时，应填写转发服务的地址。
 
 | `type`       | 预设服务地址                                                         |
 | ------------ | -------------------------------------------------------------------- |
@@ -30,92 +32,106 @@ outline: [1, 3]
 | `'deepseek'` | `https://api.deepseek.com/chat/completions`                          |
 | `'qwen'`     | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
 
-通过项目自己的服务转发请求时，应设置 `apiUrl`。例如，配置 60 秒超时，并声明模型支持深度思考和联网搜索：
+例如，配置一个兼容 OpenAI 接口的服务：
 
 ```ts
-import { useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
+import type { ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 
 const modelProviders: ChatProviderConfig[] = [
   {
-    type: 'qwen',
+    type: 'openai',
     apiUrl: 'https://your-service.example.com/v1',
-    timeout: 60_000,
-    models: [
-      {
-        id: 'qwen-plus',
-        label: '通义千问',
-        capabilities: { thinking: true, search: true },
-      },
-    ],
+    models: [{ id: 'your-model-id', label: '项目助手' }],
   },
 ]
-
-const runtime = useChatRuntime({ modelProviders })
 ```
 
-将示例中的服务地址和模型 ID 替换为实际值。配置多个模型时，可在输入区选择模型，默认选择第一个未禁用的模型；`models[].disabled` 默认不禁用，设为 `true` 可禁止选择该模型。
+::: info 示例配置
+示例地址不能直接使用，`models[].id` 中的 `'your-model-id'` 也是占位值，请替换为实际服务地址和模型 ID。接入组件的方式见 [Chat 快速开始](./chat#快速开始)。
+:::
 
-`capabilities` 声明的是模型支持的功能，不表示每次请求都开启这些功能。用户通过输入区开关选择是否开启；深度思考默认关闭，`models[].thinkingRequired: true` 表示必须开启。联网搜索默认关闭。功能需要模型服务支持，配置开关不会为模型增加这些能力。
+配置多个模型时，默认选择第一个未禁用的模型。下面的片段在上述配置中补充可选字段，均应在调用 `useChatRuntime({ modelProviders })` 前设置。
 
-其他可选字段如下：
+### 模型功能
+
+在 `models` 中配置模型支持的功能，输入区会显示对应开关。所有字段均为可选：
+
+| 字段                        | 用途                                                               | 默认值或未配置行为                  |
+| --------------------------- | ------------------------------------------------------------------ | ----------------------------------- |
+| `models[].capabilities`      | 设置是否支持 `thinking`（深度思考）、`search`（联网搜索）            | 未声明的功能不显示开关              |
+| `models[].thinkingRequired` | 设为 `true` 时，支持深度思考的模型必须开启该功能，用户不能关闭      | `false`，深度思考默认关闭            |
+
+例如，为上面的模型显示深度思考和联网搜索开关：
+
+```ts
+modelProviders[0].models[0].capabilities = {
+  thinking: true,
+  search: true,
+}
+```
+
+`capabilities` 表示模型支持哪些功能，不表示默认开启；用户通过开关选择是否使用，联网搜索默认关闭。模型服务必须实际支持这些功能，添加配置不会为模型增加能力。
+
+### 其他配置
+
+以下字段均为可选，按需设置。
+
+服务配置，与 `models` 同级：
+
+| 字段      | 用途                                                        | 默认值或未配置行为                                    |
+| --------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| `label`   | 服务的显示名称；`models[].label` 则是单个模型的显示名称      | 根据 `type` 使用 `OpenAI`、`DeepSeek` 或 `DashScope`   |
+| `timeout` | 请求开始到回答接收结束的超时时间，单位为毫秒                  | 不额外设置超时计时器                                  |
+| `apiKey`  | 通过 `Authorization: Bearer ...` 请求头提供服务认证          | 不添加认证头，除非通过 `headers` 提供                  |
+| `headers` | 添加请求头，如业务标识；其中的 `Authorization` 优先于 `apiKey` | 不添加额外请求头                                      |
+
+::: warning 密钥安全
+生产环境应由服务端保管模型密钥并转发请求，不要将长期密钥写入前端代码。
+:::
+
+模型配置，放在 `models` 数组中的对应模型上：
 
 | 字段                     | 用途                                          | 默认值或未配置行为                                                   |
 | ------------------------ | --------------------------------------------- | -------------------------------------------------------------------- |
-| `label`                  | 模型服务的显示名称，与 `models[].label` 区分  | 根据服务类型使用 `OpenAI`、`DeepSeek` 或 `DashScope`                 |
-| `apiKey`                 | 用于 Bearer 认证                              | 不添加由该字段生成的认证头；生产密钥应由服务端保管                   |
-| `headers`                | 额外请求头，如项目要求的业务标识              | 不添加额外请求头；其中的 `Authorization` 优先于 `apiKey`             |
-| `models[].featureBody`   | 指定开启或关闭功能时发送的请求参数            | `deepseek`、`qwen` 使用内置参数；`openai` 没有内置功能参数           |
-| `models[].efforts`       | 思考强度选项数组，每项包含 `value` 和 `label` | `deepseek` 预设 `low`、`high`、`max`；其他类型不提供预设选项         |
-| `models[].defaultEffort` | 初始思考强度，需对应一个 `efforts[].value`    | `deepseek` 预设 `'high'`；未设置或值不在选项中时选第一项             |
+| `models[].disabled`      | 设为 `true` 时禁止选择该模型                  | `false`，允许选择                                                   |
+| `models[].featureBody`   | 指定功能开启、关闭时发送的请求参数            | `deepseek`、`qwen` 使用内置参数；`openai` 没有内置功能参数           |
+| `models[].efforts`       | 思考强度选项，每项包含 `value` 和 `label`     | `deepseek` 预设 `low`、`high`、`max`；其他类型不提供预设选项         |
+| `models[].defaultEffort` | 初始思考强度，对应一个 `efforts[].value`     | `deepseek` 预设 `'high'`；未设置有效值时选第一项                     |
 | `models[].effortParam`   | 思考强度在请求参数中的字段名                  | `deepseek` 预设 `'reasoning_effort'`；其他类型未设置时不发送强度参数 |
 
-`featureBody` 中的 `enabled`、`disabled` 分别表示功能开启、关闭时需要添加的请求参数。例如，下面是 `models` 数组中的一个模型配置：
+DeepSeek 已内置深度思考参数，Qwen 已内置深度思考和联网搜索参数，通常无需设置 `featureBody`。兼容服务要求不同参数时，可通过 `enabled`、`disabled` 分别指定功能开启、关闭时发送的参数。例如，服务要求使用 `enable_thinking` 控制深度思考时：
 
 ```ts
-import type { ChatProviderModelConfig } from '@opentiny/tiny-robot-chat'
-
-const model: ChatProviderModelConfig = {
-  id: 'qwen-plus',
-  label: '通义千问',
-  capabilities: { thinking: true },
-  featureBody: {
-    thinking: {
-      enabled: { enable_thinking: true },
-      disabled: { enable_thinking: false },
-    },
+modelProviders[0].models[0].featureBody = {
+  thinking: {
+    enabled: { enable_thinking: true },
+    disabled: { enable_thinking: false },
   },
 }
 ```
 
-`qwen` 已内置上面的深度思考参数，一般无需重复设置；需要匹配其他服务的参数时，可参考该结构修改。
-
-服务支持思考强度时，可参考下面这个独立示例，在 `models` 数组的模型配置中设置选项和请求字段：
+服务支持思考强度时，配置选项、初始值和请求字段：
 
 ```ts
-const model: ChatProviderModelConfig = {
-  id: 'your-model-id',
-  label: '项目助手',
-  capabilities: { thinking: true },
-  efforts: [
-    { value: 'low', label: '低' },
-    { value: 'high', label: '高' },
-  ],
-  defaultEffort: 'high',
-  effortParam: 'reasoning_effort',
-}
+modelProviders[0].models[0].efforts = [
+  { value: 'low', label: '低' },
+  { value: 'high', label: '高' },
+]
+modelProviders[0].models[0].defaultEffort = 'high'
+modelProviders[0].models[0].effortParam = 'reasoning_effort'
 ```
 
-模型 ID、强度选项和请求字段名需与实际服务一致。选择思考强度后，只有开启深度思考时才发送对应参数。
+以上功能参数、强度选项和请求字段名需与实际服务一致；思考强度参数仅在开启深度思考时发送。
 
-生产环境应由服务端保管密钥并转发请求。使用自定义请求实现时，不要同时配置 `modelProviders`，见 [自定义请求与发送](#自定义请求与发送)。
+使用项目自己的请求方法时，不要同时配置 `modelProviders`，见 [自定义模型请求](#自定义模型请求)。
 
 ## 常用操作
 
-使用 `TrChat` 时，发送、取消、切换会话和模型选择已连接到 Runtime，不需要额外绑定事件。需要由其他按钮或业务逻辑触发操作时，再调用下面的方法。代码中的 `runtime` 指应用中创建的实例，各操作按需调用，不必依次执行。
+`TrChat` 已提供发送、取消、会话切换和模型选择操作。需要通过其他按钮或业务逻辑触发这些操作时，可调用以下方法。代码中的 `runtime` 是 `useChatRuntime` 返回的对象，各操作按需使用。
 
 ### 发送与取消
 
-`runtime.actions.send()` 用于发送一条消息，`text` 是必填的文本字段。发送完成后返回 `true`；空文本、输入被禁用或发送前检查未通过时返回 `false`。请求失败会抛出错误，直接调用时需处理异常：
+`runtime.actions.send()` 用于发送一条消息，`text` 是必填的文本字段。发送完成或发送前检查返回 `'handled'`（项目已自行处理）时返回 `true`；未发送时返回 `false`；失败时抛出错误。直接调用时需处理异常：
 
 ```ts
 try {
@@ -126,7 +142,7 @@ try {
 }
 ```
 
-全部检查条件见 [常见问题](#runtime-actions-send-返回-false)。
+返回 `false` 的情况见 [常见问题](#runtime-actions-send-返回-false)。
 
 回答还在生成时，可调用 `abort()` 停止当前请求：
 
@@ -136,7 +152,9 @@ await runtime.actions.abort?.()
 
 ### 会话管理
 
-返回新会话页面，在发送首条非空消息时创建会话：
+开始新会话有两种方式：`clearActiveConversation()` 返回新会话页面，默认在发送首条非空消息时创建会话；`createConversation()` 则立即创建并选中会话。
+
+返回新会话页面：
 
 ```ts
 await runtime.actions.clearActiveConversation()
@@ -148,14 +166,14 @@ await runtime.actions.clearActiveConversation()
 await runtime.actions.createConversation({ title: '项目问答' })
 ```
 
-两种方式按需选择。`clearActiveConversation()` 不会删除会话或停止当前请求。
+> `clearActiveConversation()` 不会删除会话或停止当前请求。需要停止当前请求时，先调用 `abort()`。
 
 切换、重命名或删除已有会话时，传入该会话的 ID。下面三种操作独立使用，其中 `conversationId` 替换为实际 ID：
 
 ```ts
 await runtime.actions.switchConversation(conversationId)
 await runtime.actions.renameConversation(conversationId, '新的会话标题')
-await runtime.actions.deleteConversation?.(conversationId)
+await runtime.actions.deleteConversation(conversationId)
 ```
 
 新建会话未指定 `title` 时，界面显示 `'新对话'`。默认发送自动创建会话时，标题取首条消息去除首尾空格后的前 20 个字符；通过 `useChatRuntime` 的 `titleGenerator` 可自定义：
@@ -166,8 +184,6 @@ const runtime = useChatRuntime({
   titleGenerator: (text) => text.trim().slice(0, 10) || '新对话',
 })
 ```
-
-需要先停止当前请求再开始新会话时，调用 `abort()`，再调用 `clearActiveConversation()`。
 
 ### 发送前检查
 
@@ -192,7 +208,16 @@ const runtime = useChatRuntime({
 
 检查函数抛出错误时，`send()` 也会抛出该错误。
 
-需要直接禁用输入或提交时，通过 `composer.disabled`、`composer.submitDisabled` 传入 Vue Ref；未设置时不额外禁用。例如，禁用整个输入区：
+### 禁用输入与提交
+
+通过 `useChatRuntime` 的 `composer` 配置输入区是否可用。以下字段均为可选，可随业务状态更新：
+
+| 字段                      | 用途                               | 类型                                                   | 未配置行为             |
+| ------------------------- | ---------------------------------- | ------------------------------------------------------ | ---------------------- |
+| `composer.disabled`       | 禁用整个输入区                     | [`ChatReadable<boolean>`](#runtime-与状态类型)          | 不额外禁用输入区       |
+| `composer.submitDisabled` | 只禁止提交，输入内容仍可编辑       | [`ChatReadable<boolean>`](#runtime-与状态类型)          | 不额外限制提交         |
+
+例如，禁用整个输入区：
 
 ```ts
 import { shallowRef } from 'vue'
@@ -204,19 +229,23 @@ const runtime = useChatRuntime({
 })
 ```
 
-`disabled` 禁用整个输入区；`submitDisabled` 只禁止提交，输入仍可编辑。将 Ref 更新为 `false` 可解除对应限制。
+请求进行中或工具加载中时，组件仍会根据状态限制提交。
 
 ### 请求失败时的提示
 
-默认接入时，`TrChat` 会在消息中显示请求失败提示，界面效果见 [请求失败提示](./chat#请求失败提示)。需要记录日志或显示操作失败通知时，监听 `runtime-action-error`，事件参数见 [TrChat 事件](./chat#事件)。
+使用 `useChatRuntime` 接入时，`TrChat` 默认在消息中显示请求失败提示，界面效果见 [请求失败提示](./chat#请求失败提示)。需要记录日志或显示操作失败通知时，监听 `runtime-action-error`：
 
-直接调用 `runtime.actions.send()` 时，需要通过 `try...catch` 处理异常。默认错误记录与可选配置见 [错误记录配置](#错误记录配置)。
+```vue
+<TrChat :runtime="runtime" @runtime-action-error="handleRuntimeError" />
+```
+
+`handleRuntimeError` 是项目中记录日志或显示通知的处理函数，事件参数见 [TrChat 事件](./chat#事件)。错误记录的可选配置见 [错误记录配置](#错误记录配置)。直接调用 `runtime.actions.send()` 时，参考 [发送与取消](#发送与取消) 中的异常处理示例。
 
 ### 接入 MCP 工具
 
-MCP 是连接工具服务的协议。例如，模型可以通过工具查询项目资料，而不只生成文本回答。不需要外部工具时，可以跳过此配置。
+MCP 用于连接外部工具服务，让模型调用工具，例如查询项目资料。需要使用工具时，再配置此项。
 
-`useChatRuntime` 的 `mcpServers` 是工具服务配置数组，连接浏览器可访问的 Streamable HTTP MCP 服务。未配置时，不创建内置工具连接。
+通过 `useChatRuntime` 的 `mcpServers` 数组配置工具服务。服务需支持 Streamable HTTP 连接方式，并能从浏览器访问；未配置时不连接工具服务。
 
 | 字段        | 用途                                       | 必填 | 默认值或未配置行为        |
 | ----------- | ------------------------------------------ | ---- | ------------------------- |
@@ -236,26 +265,29 @@ const runtime = useChatRuntime({
       id: 'project-tools',
       name: '项目工具',
       baseUrl: 'https://your-service.example.com/mcp/project-tools',
-      installed: false,
-      timeout: 30_000,
     },
   ],
 })
 ```
 
-将 `baseUrl` 替换为实际工具服务地址。`installed: false` 时，服务显示在可安装列表，点击安装后会加载并启用工具。设为 `true` 时，初始化会加载工具，但服务仍默认关闭，需要在界面启用后才能使用。已启用服务的工具仍在加载时，会暂时禁止发送。
+将 `baseUrl` 替换为实际工具服务地址。`installed` 决定服务的初始状态：
 
-内置连接方式与自定义 `mcp` 不能同时配置。需要登录授权、权限过滤或复用已有连接时，使用自定义 `mcp`；生产环境由服务端处理凭证、权限、访问限制和跨域问题，不要将凭证写入浏览器配置。
+| 设置                    | 界面与使用效果                                                       |
+| ----------------------- | -------------------------------------------------------------------- |
+| `false`（默认）         | 显示在可安装列表；点击安装后加载并启用工具                           |
+| `true`                  | 显示为已安装并在初始化时加载工具；仍需在界面启用后才能使用           |
+
+> 已启用服务的工具仍在加载时，会暂时禁止发送消息。
+
+复用已有工具连接时，可使用自定义 `mcp`，与 `mcpServers` 二选一，字段见 [`useChatRuntime` 配置](#usechatruntime-配置)。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
 
 ## 高级用法
 
-需要复用已有 Kit 会话、自定义请求或单独连接 `TrChatUI` 时，可参考以下用法。
+通常使用 `useChatRuntime` 配置聊天功能。需要复用已有会话、自定义模型请求或发送流程时，参考以下用法。单独使用 `TrChatUI` 的接入方式见本节最后一部分。
 
-### 使用已有会话
+### 复用已有会话
 
-项目已使用 `@opentiny/tiny-robot-kit` 的 `useConversation` 管理会话时，可通过 `useChatRuntimeFromConversation` 接入 `TrChat`，保留已有的请求和插件配置。必填的 `conversation` 接收已有的会话实例，没有默认值。
-
-> `useChatRuntimeFromConversation` 不会自动安装错误记录插件，配置方式见 [错误记录配置](#错误记录配置)。
+项目已通过 `@opentiny/tiny-robot-kit` 的 `useConversation` 管理会话时，可将已有的 `conversation` 传给 `useChatRuntimeFromConversation`，再把返回的 `runtime` 传给 `TrChat`。请求方法和插件继续在 `useConversation` 中配置：
 
 ```ts
 import { useConversation } from '@opentiny/tiny-robot-kit'
@@ -268,11 +300,13 @@ const conversation = useConversation({
 const runtime = useChatRuntimeFromConversation({ conversation })
 ```
 
-`myResponseProvider` 表示应用已有的请求实现。将返回的 `runtime` 传给 `TrChat`，即可使用聊天界面。
+`myResponseProvider` 是项目已有的请求方法，其参数和返回格式见 [ResponseProvider](../tools/message#responseprovider)。
 
-### 自定义请求与发送
+> `useChatRuntimeFromConversation` 不会自动安装错误记录插件，配置方式见 [错误记录配置](#错误记录配置)。
 
-服务不使用内置模型接口时，可以在 `useChatRuntime` 的 `conversation.useMessageOptions.responseProvider` 中提供项目已有的请求实现。它接收请求内容和取消信号，返回模型回答；具体返回结构见 [useMessage 请求与响应](../tools/message#responseprovider)。
+### 自定义模型请求
+
+需要使用项目自己的请求方法时，通过 `useChatRuntime` 的 `conversation.useMessageOptions.responseProvider` 配置。会话创建和消息更新仍由 Kit 处理，无需自定义整个发送流程：
 
 ```ts
 const runtime = useChatRuntime({
@@ -282,9 +316,11 @@ const runtime = useChatRuntime({
 })
 ```
 
-`myResponseProvider` 是项目已有的请求方法。使用此配置时不再提供 `modelProviders`；未提供自定义请求时需要配置模型服务，具体限制见 [常见问题](#模型配置与自定义请求冲突)。
+`myResponseProvider` 接收请求内容和取消信号，返回完整或流式响应，格式见 [ResponseProvider](../tools/message#responseprovider)。使用此方式时，不要同时配置 `modelProviders`，具体限制见 [常见问题](#模型配置与自定义请求冲突)。
 
-需要自行处理会话创建、消息保存和请求时，在 `useChatRuntimeFromConversation` 中传入 `send`，替换默认发送方法。未设置时使用已有 Kit 会话发送；设置后，项目负责执行实际操作。
+### 自定义发送流程
+
+需要自行处理会话创建、消息保存和请求时，通过 `useChatRuntimeFromConversation` 的 `send` 替换默认发送方法。未设置时使用已有 Kit 会话发送；仅替换模型请求时，使用上一节的 `responseProvider` 即可：
 
 ```ts
 const runtime = useChatRuntimeFromConversation({
@@ -295,22 +331,24 @@ const runtime = useChatRuntimeFromConversation({
 })
 ```
 
-`conversation` 是上节创建的会话实例，`sendMessage` 是项目自己的发送方法。`text` 是提交内容，`conversationId` 是当前会话 ID，未选择会话时为 `null`；还可通过参数中的 `runConfig` 读取本次发送的模型和工具配置。默认发送不接受空文本，自定义发送可以处理空文本，下面的演示可比较两者：
+`conversation` 是已有的 Kit 会话实例，`sendMessage` 是项目自己的发送方法，需要负责创建或选择会话、更新和保存消息、执行请求；失败时抛出错误，供调用方处理。`text` 是提交内容，`conversationId` 是当前会话 ID，未选择会话时为 `null`。
+
+默认发送不接受空文本，自定义发送可以处理空文本。下面的演示仅比较这一差异：
 
 <demo
   vue="../../demos/chat/runtime-send.vue"
   :vueFiles="['../../demos/chat/runtime-send.vue']"
-  title="自定义发送"
-  description="比较默认发送和自定义发送的处理结果。"
+  title="默认发送与自定义发送"
+  description="比较两种发送方式对空文本的处理。示例仅展示这一差异，不包含实际请求和消息保存。"
 />
 
-自定义发送的参数见 [`useChatRuntimeFromConversation` 配置](#usechatruntimefromconversation-配置)。附件上传需要由应用实现。
+自定义发送的参数见 [`useChatRuntimeFromConversation` 配置](#usechatruntimefromconversation-配置)。
 
-### 连接 TrChatUI
+### 在 TrChatUI 中复用 Runtime
 
-`TrChat` 已自动连接聊天数据和相关操作，无需手动绑定。单独使用 `TrChatUI`，但仍希望使用已有 `runtime` 时，可通过 `useChatRuntimeAdapter` 获取界面数据和操作方法，再绑定到组件：
+`TrChat` 已自动绑定聊天数据和操作，通常无需使用此方法。单独使用 `TrChatUI`，并希望复用已有 `runtime` 时，可通过 `useChatRuntimeAdapter` 获取显示数据和操作方法。
 
-`runtime` 是必填的已有实例；`onActionError` 是必填的操作失败回调，接收 `action`（操作名称）和 `error`（错误详情）：
+`runtime` 和 `onActionError` 均为必填项。操作失败时，适配器调用 `onActionError`，不再继续抛出原操作错误；回调可通过 `action` 和 `error` 获取操作名称和错误详情：
 
 ```ts
 import { useChatRuntimeAdapter } from '@opentiny/tiny-robot-chat'
@@ -335,16 +373,16 @@ const adapter = useChatRuntimeAdapter({
 />
 ```
 
-`adapter` 是普通对象，模板访问其中的 Ref 时需要使用 `.value`。会话切换、重命名和删除等操作的完整绑定见下面的演示。
+会话切换、重命名和删除等操作的完整绑定见下面的演示。
 
 <demo
   vue="../../demos/chat/runtime-adapter.vue"
   :vueFiles="['../../demos/chat/runtime-adapter.vue']"
-  title="连接 Runtime 与 TrChatUI"
-  description="使用 Runtime 提供的数据展示聊天界面，并绑定输入、提交和会话事件。"
+  title="在 TrChatUI 中复用 Runtime"
+  description="使用内存存储和模拟回复，展示输入、发送及会话切换、重命名、删除的绑定方式，无需连接真实服务。"
 />
 
-将适配器的 `data` 传给组件，将输入和提交等事件绑定到对应方法，完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入应用数据的用法，见 [使用 TrChatUI](./chat#使用-trchatui)。
+完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [使用 TrChatUI](./chat#使用-trchatui)。
 
 ## API
 
@@ -354,7 +392,7 @@ const adapter = useChatRuntimeAdapter({
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。           |
 | `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                  |
-| `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions): /* 源码推断的普通返回对象 */`                 | 提供 `TrChatUI` 所需的数据、输入内容和操作方法。 |
+| `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions)`                                             | 提供 `TrChatUI` 所需的数据、输入内容和操作方法，见[返回字段](#usechatruntimeadapter)。 |
 | `useChatHistoryItems`            | `useChatHistoryItems(options: UseChatHistoryItemsOptions): Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 整理未分组的会话列表。                           |
 | `useChatHistoryData`             | `useChatHistoryData(options: UseChatHistoryDataOptions): Readonly<ShallowRef<ChatHistoryDisplayData>>`       | 整理未分组或已分组的会话列表。                   |
 | `errorStatePlugin`               | `errorStatePlugin(options?: ErrorStatePluginOptions): UseMessagePlugin`                                      | 把请求错误写入所属 assistant 消息。              |

@@ -97,7 +97,7 @@ const runtime = useChatRuntime({ modelProviders })
 
 生产环境应通过服务端转发请求并保管模型密钥，不要将长期密钥写入前端代码。更多配置见 [模型服务](./chat-runtime#模型服务)。
 
-项目已使用 Kit 的 `useConversation` 管理会话时，可通过 `useChatRuntimeFromConversation` 接入 `TrChat`，复用已有会话和请求配置，详见 [使用已有会话](./chat-runtime#使用已有会话)。
+项目已使用 Kit 的 `useConversation` 管理会话时，可通过 `useChatRuntimeFromConversation` 接入 `TrChat`，复用已有会话和请求配置，详见 [复用已有会话](./chat-runtime#复用已有会话)。
 
 ## 常用功能
 
@@ -314,15 +314,25 @@ const ui: ChatUIOptions = {
 
 使用 `TrChat` 接入模型服务后，请求失败时会在对应的 AI 消息下显示错误提示，默认不提供重试按钮。
 
-`ui.bubble.bubbleProvider.errorRenderer` 用于自定义消息错误提示，默认使用内置提示；设为 `null` 可隐藏提示：
+#### 消息错误提示配置
+
+通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
 
 ```ts
-const ui: ChatUIOptions = {
-  bubble: { bubbleProvider: { errorRenderer: null } },
+const customErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: CustomErrorRenderer },
+  },
+}
+
+const disabledErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: null },
+  },
 }
 ```
 
-该配置只控制提示的显示，不会改变请求的失败状态。
+该配置只控制提示的显示，不会改变请求的失败状态。默认提示的样式变量为 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width`。单独使用 `Bubble` 或 `BubbleProvider` 时，错误提示默认关闭。
 
 <demo
   vue="../../demos/chat/runtime-error.vue"
@@ -331,8 +341,7 @@ const ui: ChatUIOptions = {
   description="使用本地模拟请求，查看错误提示和正常回复。"
 />
 
-
-自定义或关闭提示见 [消息错误提示配置](#消息错误提示配置)，操作失败通知见 [TrChat 事件](#事件)。
+操作失败通知见 [TrChat 事件](#事件)。
 
 ## 使用 TrChatUI
 
@@ -604,32 +613,12 @@ const data = shallowRef<ChatUIData>({
 | `history` | 默认菜单为重命名和删除；Chat 固定管理 `data`、`selected` 与事件。                                                         | [History](../components/history)              |
 | `welcome` | 默认标题与描述来自 `labels.welcomeTitle`、`labels.welcomeDescription`。                                                   | [Welcome](../components/welcome)              |
 | `prompts` | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                                       | [Prompts](../components/prompts)              |
-| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；`bubbleProvider.errorRenderer` 可替换默认消息错误视图，传入 `null` 可关闭。 | [Bubble](../components/bubble)                |
+| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；消息错误提示配置见[消息错误提示配置](#消息错误提示配置)。     | [Bubble](../components/bubble)                |
 | `sender`  | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。          | [Sender](../components/sender)                |
 | `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                  | [ModelSelector](../components/model-selector) |
 | `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                               | —                                             |
 
 `ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
-
-#### 消息错误提示配置
-
-通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
-
-```ts
-const customErrorUI: ChatUIOptions = {
-  bubble: {
-    bubbleProvider: { errorRenderer: CustomErrorRenderer },
-  },
-}
-
-const disabledErrorUI: ChatUIOptions = {
-  bubble: {
-    bubbleProvider: { errorRenderer: null },
-  },
-}
-```
-
-默认提示的样式变量为 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width`。单独使用 `Bubble` 或 `BubbleProvider` 时，错误提示默认关闭。
 
 ### 插槽
 
