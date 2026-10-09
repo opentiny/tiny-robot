@@ -1,6 +1,6 @@
 import { markRaw } from 'vue'
 import { BubbleRendererMatchPriority } from '../constants'
-import { isAskUserContent } from '../composables/useAskUser'
+import { hasUniqueAskUserIds, isAskUserContent } from '../composables/useAskUser'
 import type { BubbleBoxRendererMatch, BubbleContentRendererMatch } from '../index.type'
 import AskUser from './AskUser.vue'
 import Box from './Box.vue'
@@ -43,7 +43,8 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (_, content) => isAskUserContent(content),
+    find: (_, content, _contentIndex, context) =>
+      isAskUserContent(content) && hasUniqueAskUserIds(context?.resolvedMessageContent),
     renderer: markRaw(AskUser),
     priority: BubbleRendererMatchPriority.CONTENT,
   },

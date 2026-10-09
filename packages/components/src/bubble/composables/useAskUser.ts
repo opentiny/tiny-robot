@@ -131,6 +131,7 @@ const isAskUserStep = (value: unknown): value is AskUserStep => {
   const step = value as Partial<AskUserStep>
   return (
     typeof step.id === 'string' &&
+    step.id.trim().length > 0 &&
     typeof step.title === 'string' &&
     typeof step.type === 'string' &&
     askUserStepTypes.has(step.type as AskUserStepType) &&
@@ -144,12 +145,27 @@ export const isAskUserContent = (value: unknown): value is AskUserContent => {
   }
 
   const content = value as Partial<AskUserContent>
-  return (
+  if (
     content.type === 'ask_user' &&
     typeof content.id === 'string' &&
+    content.id.trim().length > 0 &&
     Array.isArray(content.steps) &&
     content.steps.every(isAskUserStep)
-  )
+  ) {
+    const stepIds = content.steps.map((step) => step.id)
+    return new Set(stepIds).size === stepIds.length
+  }
+
+  return false
+}
+
+export const hasUniqueAskUserIds = (value: unknown): boolean => {
+  if (!Array.isArray(value)) {
+    return true
+  }
+
+  const askUserIds = value.filter(isAskUserContent).map((content) => content.id)
+  return new Set(askUserIds).size === askUserIds.length
 }
 
 export const useAskUser = (

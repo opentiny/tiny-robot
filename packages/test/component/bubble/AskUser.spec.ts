@@ -100,4 +100,32 @@ test.describe('AskUser renderer', () => {
     await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
     await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
   })
+
+  test('falls back for AskUser content with an empty step id', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { emptyStepId: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser content with duplicate step ids', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { duplicateStepIds: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser content with an empty content id', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { emptyContentId: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser contents with duplicate content ids', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { duplicateContentIds: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toHaveCount(2)
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
 })
