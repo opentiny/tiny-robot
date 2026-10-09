@@ -19,6 +19,58 @@ export type ChatMessageContentItem = { type: string; [key: string]: any }
 
 export type ChatMessageContent = string | ChatMessageContentItem[]
 
+export type AskUserStepType = 'single' | 'multiple' | 'text' | 'confirm'
+
+export interface AskUserOption {
+  label: string
+  value: string
+  description?: string
+  disabled?: boolean
+}
+
+export interface AskUserChoiceAnswer {
+  selected: string[]
+  other?: {
+    selected: boolean
+    text: string
+  }
+}
+
+export interface AskUserStep {
+  id: string
+  title: string
+  summary?: string
+  description?: string
+  type: AskUserStepType
+  options?: AskUserOption[]
+  placeholder?: string
+}
+
+export interface AskUserContent {
+  type: 'ask_user'
+  id: string
+  title?: string
+  description?: string
+  steps: AskUserStep[]
+  submitLabel?: string
+}
+
+export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'error'
+
+export interface AskUserState {
+  status: AskUserStatus
+  currentStep: number
+  answers: Record<string, unknown>
+  completedStepIds: string[]
+  expanded?: boolean
+  error?: string
+  updatedAt?: number
+}
+
+export type AskUserStateMap = Record<string, AskUserState>
+
+export type AskUserStateValue = AskUserState | AskUserStateMap
+
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */
@@ -107,6 +159,10 @@ export type BubbleContentAttributesResolver = (
 export type BubbleBoxAttributesConfig = BubbleAttributes | BubbleBoxAttributesResolver
 export type BubbleContentAttributesConfig = BubbleAttributes | BubbleContentAttributesResolver
 
+export type BubbleContentRendererContext = {
+  resolvedMessageContent: ChatMessageContent | undefined
+}
+
 export type BubbleBoxRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
@@ -135,7 +191,12 @@ export type BubbleContentRendererMatch = {
    * @param contentIndex - 内容索引。由 contentResolver 的解析结果为数组时使用。若 contentResolver 解析结果为字符串，content 会转换为对象，此时 contentIndex 为 0
    * @returns 如果匹配则返回 true，否则返回 false
    */
-  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number) => boolean
+  find: (
+    message: BubbleMessage,
+    content: ChatMessageContentItem,
+    contentIndex: number,
+    context?: BubbleContentRendererContext,
+  ) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: BubbleAttributes

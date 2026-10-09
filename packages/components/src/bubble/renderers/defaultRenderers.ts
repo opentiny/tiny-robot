@@ -1,6 +1,8 @@
 import { markRaw } from 'vue'
 import { BubbleRendererMatchPriority } from '../constants'
+import { hasUniqueAskUserIds, isAskUserContent } from '../composables/useAskUser'
 import type { BubbleBoxRendererMatch, BubbleContentRendererMatch } from '../index.type'
+import AskUser from './AskUser.vue'
 import Box from './Box.vue'
 import Image from './Image.vue'
 import Loading from './Loading.vue'
@@ -39,6 +41,12 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     find: (message) => Array.isArray(message.tool_calls) && message.tool_calls.length > 0,
     renderer: markRaw(Tools),
     priority: BubbleRendererMatchPriority.NORMAL,
+  },
+  {
+    find: (_, content, _contentIndex, context) =>
+      isAskUserContent(content) && hasUniqueAskUserIds(context?.resolvedMessageContent),
+    renderer: markRaw(AskUser),
+    priority: BubbleRendererMatchPriority.CONTENT,
   },
   {
     find: (_, content) => content.type === 'image_url',

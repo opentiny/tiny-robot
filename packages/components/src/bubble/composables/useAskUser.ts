@@ -1,0 +1,490 @@
+import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import type {
+  AskUserChoiceAnswer,
+  AskUserContent,
+  AskUserOption,
+  AskUserState,
+  AskUserStep,
+  AskUserStepType,
+  BubbleEvent,
+} from '../index.type'
+
+type AskUserEventEmitter = (event: BubbleEvent) => void
+
+const isChoiceAnswer = (value: unknown): value is AskUserChoiceAnswer => {
+  return Boolean(value && typeof value === 'object' && Array.isArray((value as AskUserChoiceAnswer).selected))
+}
+
+const cloneAnswer = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return [...value]
+  }
+
+  if (isChoiceAnswer(value)) {
+    return {
+      selected: [...value.selected],
+      ...(value.other ? { other: { ...value.other } } : {}),
+    }
+  }
+
+  return value
+}
+
+const cloneAnswers = (answers: Record<string, unknown> = {}) => {
+  const result: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(answers)) {
+    result[key] = cloneAnswer(value)
+  }
+
+  return result
+}
+
+const answersEqual = (left: Record<string, unknown>, right: Record<string, unknown>): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false
+  }
+
+  return leftKeys.every((key) => {
+    const leftValue = left[key]
+    const rightValue = right[key]
+
+    if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
+      return (
+        Array.isArray(leftValue) &&
+        Array.isArray(rightValue) &&
+        leftValue.length === rightValue.length &&
+        leftValue.every((item, index) => Object.is(item, rightValue[index]))
+      )
+    }
+
+    if (isChoiceAnswer(leftValue) || isChoiceAnswer(rightValue)) {
+      return (
+        isChoiceAnswer(leftValue) &&
+        isChoiceAnswer(rightValue) &&
+        answersEqual({ selected: leftValue.selected }, { selected: rightValue.selected }) &&
+        leftValue.other?.selected === rightValue.other?.selected &&
+        leftValue.other?.text === rightValue.other?.text
+      )
+    }
+
+    return Object.is(leftValue, rightValue)
+  })
+}
+
+const isFilled = (value: unknown) => {
+  if (isChoiceAnswer(value)) {
+    return value.selected.length > 0 || Boolean(value.other?.selected && value.other.text.trim())
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0
+  }
+
+  return value !== undefined && value !== null
+}
+
+const normalizeState = (content: AskUserContent | undefined, state: AskUserState | undefined): AskUserState => {
+  const stepCount = content?.steps.length ?? 0
+  const currentStep = Math.min(Math.max(state?.currentStep ?? 0, 0), Math.max(stepCount - 1, 0))
+  const stepIds = new Set(content?.steps.map((step) => step.id) ?? [])
+
+  return {
+    status: state?.status ?? 'active',
+    currentStep,
+    answers: cloneAnswers(state?.answers),
+    completedStepIds: (state?.completedStepIds ?? []).filter((stepId) => stepIds.has(stepId)),
+    ...(typeof state?.expanded === 'boolean' ? { expanded: state.expanded } : {}),
+    ...(state?.error ? { error: state.error } : {}),
+    ...(state?.updatedAt ? { updatedAt: state.updatedAt } : {}),
+  }
+}
+
+const askUserStepTypes = new Set<AskUserStepType>(['single', 'multiple', 'text', 'confirm'])
+
+const isAskUserOption = (value: unknown): value is AskUserOption => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const option = value as Partial<AskUserOption>
+  return (
+    typeof option.label === 'string' &&
+    typeof option.value === 'string' &&
+    (option.description === undefined || typeof option.description === 'string') &&
+    (option.disabled === undefined || typeof option.disabled === 'boolean')
+  )
+}
+
+const isAskUserStep = (value: unknown): value is AskUserStep => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const step = value as Partial<AskUserStep>
+  return (
+    typeof step.id === 'string' &&
+    step.id.trim().length > 0 &&
+    typeof step.title === 'string' &&
+    typeof step.type === 'string' &&
+    askUserStepTypes.has(step.type as AskUserStepType) &&
+    (step.options === undefined || (Array.isArray(step.options) && step.options.every(isAskUserOption)))
+  )
+}
+
+export const isAskUserContent = (value: unknown): value is AskUserContent => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const content = value as Partial<AskUserContent>
+  if (
+    content.type === 'ask_user' &&
+    typeof content.id === 'string' &&
+    content.id.trim().length > 0 &&
+    Array.isArray(content.steps) &&
+    content.steps.length > 0 &&
+    content.steps.every(isAskUserStep)
+  ) {
+    const stepIds = content.steps.map((step) => step.id)
+    return new Set(stepIds).size === stepIds.length
+  }
+
+  return false
+}
+
+export const hasUniqueAskUserIds = (value: unknown): boolean => {
+  if (!Array.isArray(value)) {
+    return true
+  }
+
+  const askUserIds = value.filter(isAskUserContent).map((content) => content.id)
+  return new Set(askUserIds).size === askUserIds.length
+}
+
+export const useAskUser = (
+  contentSource: MaybeRefOrGetter<AskUserContent | undefined>,
+  stateSource: MaybeRefOrGetter<AskUserState | undefined>,
+  emitEvent: AskUserEventEmitter,
+) => {
+  const content = computed(() => toValue(contentSource))
+  const state = computed(() => normalizeState(content.value, toValue(stateSource)))
+  const draftAnswers = ref<Record<string, unknown>>({})
+  const syncedAnswers = ref<Record<string, unknown>>({})
+  const contentSignature = computed(() => JSON.stringify(content.value) ?? '')
+  const syncedContentSignature = ref('')
+  const validationError = ref('')
+  const expanded = ref(true)
+
+  watch(
+    [state, contentSignature],
+    ([nextState, nextContentSignature]) => {
+      const answersChanged = !answersEqual(nextState.answers, syncedAnswers.value)
+      const contentChanged = nextContentSignature !== syncedContentSignature.value
+
+      if (answersChanged || contentChanged) {
+        draftAnswers.value = cloneAnswers(nextState.answers)
+        syncedAnswers.value = cloneAnswers(nextState.answers)
+        validationError.value = ''
+      }
+
+      expanded.value = nextState.expanded ?? true
+      syncedContentSignature.value = nextContentSignature
+    },
+    { immediate: true, deep: true },
+  )
+
+  const steps = computed(() => content.value?.steps ?? [])
+  const currentStepIndex = computed(() => state.value.currentStep)
+  const currentStep = computed<AskUserStep | undefined>(() => steps.value[currentStepIndex.value])
+  const status = computed(() => state.value.status)
+  const isLocked = computed(() => status.value === 'submitting' || status.value === 'submitted')
+  const canGoBack = computed(() => !isLocked.value && currentStepIndex.value > 0)
+  const currentAnswer = computed(() => {
+    const stepId = currentStep.value?.id
+    return stepId ? draftAnswers.value[stepId] : undefined
+  })
+  const supportsOther = computed(() => {
+    const type = currentStep.value?.type
+    return type === 'single' || type === 'multiple'
+  })
+
+  const currentChoiceAnswer = () => {
+    const step = currentStep.value
+    const value = currentAnswer.value
+
+    if (isChoiceAnswer(value)) {
+      return cloneAnswer(value) as AskUserChoiceAnswer
+    }
+
+    if (step?.type === 'multiple') {
+      return { selected: Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [] }
+    }
+
+    return { selected: typeof value === 'string' ? [value] : [] }
+  }
+
+  const emitState = (patch: Partial<AskUserState>, eventName: string, eventPayload: Record<string, unknown> = {}) => {
+    const nextState: AskUserState = {
+      ...state.value,
+      ...patch,
+      answers: cloneAnswers(draftAnswers.value),
+      updatedAt: Date.now(),
+    }
+
+    emitEvent({
+      name: 'state:update',
+      payload: { key: 'askUser', value: nextState },
+    })
+    emitEvent({
+      name: eventName,
+      payload: {
+        interactionId: content.value?.id,
+        currentStep: nextState.currentStep,
+        answers: cloneAnswers(nextState.answers),
+        status: nextState.status,
+        ...eventPayload,
+      },
+    })
+  }
+
+  const setAnswer = (value: unknown) => {
+    const stepId = currentStep.value?.id
+    if (!stepId || isLocked.value) {
+      return
+    }
+
+    draftAnswers.value = {
+      ...draftAnswers.value,
+      [stepId]: Array.isArray(value) ? [...value] : value,
+    }
+    validationError.value = ''
+  }
+
+  const toggleOption = (value: string) => {
+    const current = Array.isArray(currentAnswer.value) ? [...currentAnswer.value] : []
+    const index = current.indexOf(value)
+
+    if (index === -1) {
+      current.push(value)
+    } else {
+      current.splice(index, 1)
+    }
+
+    setAnswer(current)
+  }
+
+  const isOptionSelected = (value: string) => {
+    if (supportsOther.value) {
+      return currentChoiceAnswer().selected.includes(value)
+    }
+
+    if (currentStep.value?.type === 'multiple') {
+      return Array.isArray(currentAnswer.value) && currentAnswer.value.includes(value)
+    }
+
+    return currentAnswer.value === value
+  }
+
+  const selectOption = (value: string) => {
+    const answer = currentChoiceAnswer()
+
+    if (currentStep.value?.type === 'multiple') {
+      const index = answer.selected.indexOf(value)
+      if (index === -1) {
+        answer.selected.push(value)
+      } else {
+        answer.selected.splice(index, 1)
+      }
+    } else {
+      answer.selected = [value]
+      if (answer.other?.selected) {
+        answer.other.selected = false
+      }
+    }
+
+    setAnswer(answer)
+  }
+
+  const isOtherSelected = computed(() => supportsOther.value && Boolean(currentChoiceAnswer().other?.selected))
+  const otherText = computed(() => currentChoiceAnswer().other?.text ?? '')
+
+  const setOtherSelected = (selected: boolean) => {
+    if (!supportsOther.value) {
+      return
+    }
+
+    const answer = currentChoiceAnswer()
+    if (selected && currentStep.value?.type === 'single') {
+      answer.selected = []
+    }
+    answer.other = { selected, text: answer.other?.text ?? '' }
+    setAnswer(answer)
+  }
+
+  const setOtherText = (text: string) => {
+    if (!supportsOther.value) {
+      return
+    }
+
+    const answer = currentChoiceAnswer()
+    if (currentStep.value?.type === 'single') {
+      answer.selected = []
+    }
+    answer.other = { selected: true, text }
+    setAnswer(answer)
+  }
+
+  const next = () => {
+    if (isLocked.value || !currentStep.value) {
+      return false
+    }
+
+    const step = currentStep.value
+    const completedStepIds = Array.from(new Set([...state.value.completedStepIds, step.id]))
+    const isLastStep = currentStepIndex.value >= steps.value.length - 1
+
+    if (isLastStep) {
+      emitState({ status: 'submitted', completedStepIds }, 'ask-user:submit', { stepId: step.id })
+    } else {
+      const nextStep = steps.value[currentStepIndex.value + 1]
+      emitState(
+        { status: 'active', currentStep: currentStepIndex.value + 1, completedStepIds, error: undefined },
+        'ask-user:step-change',
+        { stepId: nextStep.id },
+      )
+    }
+
+    return true
+  }
+
+  const submit = () => {
+    if (isLocked.value || !steps.value.length) {
+      return false
+    }
+
+    const answers = cloneAnswers(draftAnswers.value)
+    const completedStepIds = steps.value.reduce<string[]>((completed, step) => {
+      if (isFilled(answers[step.id])) {
+        completed.push(step.id)
+      } else {
+        answers[step.id] = null
+      }
+      return completed
+    }, [])
+
+    draftAnswers.value = answers
+    emitState({ status: 'submitted', completedStepIds, error: undefined }, 'ask-user:submit', {
+      stepId: currentStep.value?.id,
+    })
+    return true
+  }
+
+  const back = () => {
+    if (!canGoBack.value) {
+      return false
+    }
+
+    return goToStep(currentStepIndex.value - 1)
+  }
+
+  const skip = () => {
+    if (isLocked.value || !currentStep.value) {
+      return false
+    }
+
+    const step = currentStep.value
+    const answers = cloneAnswers(draftAnswers.value)
+    answers[step.id] = null
+    draftAnswers.value = answers
+
+    const completedStepIds = state.value.completedStepIds.filter((stepId) => stepId !== step.id)
+    const isLastStep = currentStepIndex.value >= steps.value.length - 1
+
+    if (isLastStep) {
+      emitState({ status: 'submitted', completedStepIds, error: undefined }, 'ask-user:submit', {
+        stepId: step.id,
+      })
+    } else {
+      const nextStep = steps.value[currentStepIndex.value + 1]
+      emitState(
+        { status: 'active', currentStep: currentStepIndex.value + 1, completedStepIds, error: undefined },
+        'ask-user:step-change',
+        { stepId: nextStep.id },
+      )
+    }
+
+    return true
+  }
+
+  const goToStep = (targetStep: number) => {
+    const target = steps.value[targetStep]
+
+    if (
+      isLocked.value ||
+      targetStep < 0 ||
+      targetStep >= steps.value.length ||
+      targetStep === currentStepIndex.value ||
+      !target
+    ) {
+      return false
+    }
+
+    emitState({ status: 'active', currentStep: targetStep, error: undefined }, 'ask-user:step-change', {
+      stepId: target.id,
+    })
+    return true
+  }
+
+  const retry = () => {
+    if (status.value !== 'error') {
+      return false
+    }
+
+    emitState({ status: 'active', error: undefined }, 'ask-user:retry', { stepId: currentStep.value?.id })
+    return true
+  }
+
+  const setExpanded = (value: boolean) => {
+    expanded.value = value
+    emitState({ expanded: value }, 'ask-user:toggle', { expanded: value })
+  }
+
+  return {
+    content,
+    state,
+    steps,
+    currentStep,
+    currentStepIndex,
+    currentAnswer,
+    draftAnswers,
+    validationError,
+    expanded,
+    supportsOther,
+    isOtherSelected,
+    otherText,
+    status,
+    isLocked,
+    canGoBack,
+    setAnswer,
+    toggleOption,
+    isOptionSelected,
+    selectOption,
+    setOtherSelected,
+    setOtherText,
+    next,
+    submit,
+    back,
+    skip,
+    goToStep,
+    retry,
+    setExpanded,
+  }
+}
