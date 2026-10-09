@@ -10,6 +10,7 @@ const props = defineProps<{
   duplicateStepIds?: boolean
   emptyContentId?: boolean
   duplicateContentIds?: boolean
+  emptySteps?: boolean
 }>()
 const invalidContent: BubbleMessage['content'] = [{ type: 'ask_user' }]
 const malformedContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'malformed-ask-user', steps: [null] }]
@@ -40,6 +41,7 @@ const duplicateContentIdsContent: BubbleMessage['content'] = [
   { type: 'ask_user', id: 'duplicate-ask-user', steps: [{ id: 'first-step', title: '第一个问题', type: 'text' }] },
   { type: 'ask_user', id: 'duplicate-ask-user', steps: [{ id: 'second-step', title: '第二个问题', type: 'text' }] },
 ]
+const emptyStepsContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'empty-steps-ask-user', steps: [] }]
 </script>
 
 <template>
@@ -58,7 +60,9 @@ const duplicateContentIdsContent: BubbleMessage['content'] = [
                 ? emptyContentIdContent
                 : props.duplicateContentIds
                   ? duplicateContentIdsContent
-                  : invalidContent
+                  : props.emptySteps
+                    ? emptyStepsContent
+                    : invalidContent
     "
     :fallback-content-renderer="FallbackContentRenderer"
   />

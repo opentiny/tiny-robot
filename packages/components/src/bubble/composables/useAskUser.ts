@@ -150,6 +150,7 @@ export const isAskUserContent = (value: unknown): value is AskUserContent => {
     typeof content.id === 'string' &&
     content.id.trim().length > 0 &&
     Array.isArray(content.steps) &&
+    content.steps.length > 0 &&
     content.steps.every(isAskUserStep)
   ) {
     const stepIds = content.steps.map((step) => step.id)

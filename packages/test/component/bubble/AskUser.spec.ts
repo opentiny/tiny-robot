@@ -128,4 +128,11 @@ test.describe('AskUser renderer', () => {
     await expect(component.getByTestId('fallback-content-renderer')).toHaveCount(2)
     await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
   })
+
+  test('falls back for AskUser content without steps', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { emptySteps: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
 })
