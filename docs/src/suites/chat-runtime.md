@@ -4,9 +4,11 @@ outline: [1, 3]
 
 # Chat 配置与操作
 
-本文介绍如何为 `TrChat` 配置模型服务，以及如何发送消息、取消请求、管理会话和接入 MCP 工具。
+本文介绍如何为 `TrChat` 配置模型服务、发送消息、取消请求、管理会话和接入 MCP 工具。
 
-通常使用 `useChatRuntime` 配置这些功能，再将返回的 `runtime` 对象传给 `TrChat`。首次接入请先阅读 [Chat 快速开始](./chat#快速开始)；复用已有 Kit 会话或自定义请求时，见 [高级用法](#高级用法)。
+推荐使用 [`useChatRuntime`](#usechatruntime-配置) 配置模型服务和会话功能；项目已通过 Kit 的 `useConversation` 管理会话时，可使用 [`useChatRuntimeFromConversation`](#usechatruntimefromconversation-配置) 复用已有会话和请求配置。两种方式都将返回的 `runtime` 对象传给 `TrChat`。
+
+> 首次接入见 [Chat 快速开始](./chat#快速开始)；复用已有会话、自定义模型请求或发送流程见 [高级用法](#高级用法)。
 
 ## 模型服务
 
@@ -333,6 +335,8 @@ const runtime = useChatRuntimeFromConversation({
 
 `conversation` 是已有的 Kit 会话实例，`sendMessage` 是项目自己的发送方法，需要负责创建或选择会话、更新和保存消息、执行请求；失败时抛出错误，供调用方处理。`text` 是提交内容，`conversationId` 是当前会话 ID，未选择会话时为 `null`。
 
+> 组件不会在调用自定义 `send` 前自动创建会话；未选择会话时，需由回调自行创建或选择会话。
+
 默认发送不接受空文本，自定义发送可以处理空文本。下面的演示仅比较这一差异：
 
 <demo
@@ -382,7 +386,7 @@ const adapter = useChatRuntimeAdapter({
   description="使用内存存储和模拟回复，展示输入、发送及会话切换、重命名、删除的绑定方式，无需连接真实服务。"
 />
 
-完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [使用 TrChatUI](./chat#使用-trchatui)。
+完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [单独使用 TrChatUI](./chat#单独使用-trchatui)。
 
 ## API
 
@@ -605,22 +609,23 @@ const history = useChatHistoryData({
 | 类型                  | 类别        | 说明                                              |
 | --------------------- | ----------- | ------------------------------------------------- |
 | `ChatReadable<T>`     | `interface` | 只读 `{ readonly value: T }` 结构。               |
-| `ChatWritable<T>`     | `interface` | 可写 `{ value: T }` 结构；供兼容适配层使用。      |
+| `ChatWritable<T>`     | `interface` | 可写 `{ value: T }` 结构，通过 `.value` 读取或更新。 |
 | `ChatRuntime`         | `interface` | 包含会话状态、输入区状态和 `ChatRuntimeActions`。 |
 | `ChatRuntimeActions`  | `interface` | Runtime 的发送、取消和会话操作。                  |
 | `ChatComposerRuntime` | `interface` | 输入区禁用状态及模型、MCP 工具的状态与方法。      |
-| `ChatModelRuntime`    | `interface` | 模型列表、选择、能力和 思考强度 状态与操作。      |
+| `ChatModelRuntime`    | `interface` | 模型列表、选择、功能开关和思考强度的状态与操作。 |
 | `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作。        |
 
 #### 会话、消息与发送
 
 | 类型                                         | 定义                                                                                                                                                                                                                                                                         |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；允许额外自定义字段 `[key: string]: unknown`。                                                                                                               |
-| `ChatConversation`                           | 继承 `ChatConversationInfo`；`messages: readonly ChatMessageItem[]`；`requestState: 'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`；`processingState?: 'requesting' \| 'completing' \| string`                                                   |
+| `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；可添加项目所需的额外字段，字段值类型为 `unknown`。 |
+| `ChatConversation`                           | 包含 `ChatConversationInfo` 的全部字段，另有消息列表 `messages: readonly ChatMessageItem[]`、请求状态 `requestState: ChatRequestState` 和处理状态 `processingState?: ChatProcessingState`。 |
 | `ChatMessageItem`                            | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
 | `ChatMessageContent`                         | `string \| ChatMessagePart[]`                                                                                                                                                                                                                                                |
-| `ChatMessagePart` / `ChatStructuredDataItem` | `type: string`，可追加自定义字段。                                                                                                                                                                                                                                           |
+| `ChatMessagePart` | 消息内容的一部分；`type: string` 标识内容种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
+| `ChatStructuredDataItem` | 提交的结构化数据项；`type: string` 标识数据种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
 | `ChatStructuredData`                         | `ChatStructuredDataItem[]`                                                                                                                                                                                                                                                   |
 | `ChatToolCall`                               | `id: string`；`type: 'function' \| string`；`function: { name: string; arguments: string }`                                                                                                                                                                                  |
 | `ChatSendPayload`                            | `text: string`；`structuredData?: ChatStructuredData`                                                                                                                                                                                                                        |
@@ -637,13 +642,23 @@ const history = useChatHistoryData({
 | `ChatMcpToolState`         | `Partial<Record<string, readonly ChatMcpToolInfo[]>>`，键为 MCP 服务 ID。                                                                                                                                                                                                                                                                    |
 | `ChatProviderConfig`       | `type: 'openai' \| 'deepseek' \| 'qwen'`；`label?: string`；`apiUrl?: string`；`apiKey?: string`；`headers?: Record<string, string>`；`timeout?: number`；`models: ChatProviderModelConfig[]`                                                                                                                                                |
 | `ChatProviderType`         | `'openai' \| 'deepseek' \| 'qwen'`                                                                                                                                                                                                                                                                                                           |
-| `ChatProviderModelConfig`  | 继承 `ChatModelOption`，不含 `metadata`；`featureBody?: Partial<Record<'thinking' \| 'search', ChatProviderFeatureBody>>`；`effortParam?: string`                                                                                                                                                                                            |
+| `ChatProviderModelConfig`  | 支持 `ChatModelOption` 中除 `metadata` 外的字段，另有 `featureBody?: Partial<Record<'thinking' \| 'search', ChatProviderFeatureBody>>` 和 `effortParam?: string`。 |
 | `ChatProviderFeatureBody`  | `enabled?: Record<string, unknown>`；`disabled?: Record<string, unknown>`                                                                                                                                                                                                                                                                    |
 | `ChatBuiltInModelFeature`  | `'thinking' \| 'search'`                                                                                                                                                                                                                                                                                                                     |
 | `ChatIcon`                 | `ModelSelectorOption['icon']`                                                                                                                                                                                                                                                                                                                |
 | `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void`                                                                                                             |
 | `ChatMcpServers`           | `readonly ChatMcpServerConfig[]`                                                                                                                                                                                                                                                                                                             |
-| `UseChatRuntimeMcpAdapter` | `runtime: ChatMcpRuntime`；`listTools`；`callTool`。后两项来自 Chat 的 MCP Tool 插件协议。                                                                                                                                                                                                                                                   |
+| `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。 |
+
+`UseChatRuntimeMcpAdapter` 的三个字段均为必填：
+
+| 字段 | 类型或参数 | 用途与返回值 |
+| --- | --- | --- |
+| `runtime` | `ChatMcpRuntime` | 提供 MCP 服务、工具的状态与操作方法。 |
+| `listTools` | `(serverIds: readonly string[], toolIds: Readonly<Record<string, readonly string[]>>)` | 根据服务 ID 和每个服务选中的工具 ID 获取工具定义，返回工具定义只读数组的 Promise。 |
+| `callTool` | `(serverId: string, toolName: string, args: Record<string, unknown>)` | 使用服务 ID、工具原始名称和调用参数执行工具，返回 `Promise<unknown>`。 |
+
+`listTools` 返回的每项包含 `serverId: string`、`id: string`、`name: string`、`originalName: string`，以及可选的 `description?: string`、`inputSchema?: Record<string, unknown>`。`name` 是提供给模型的工具名称，`originalName` 是服务中的原始名称。
 
 内建 `mcpServers` 适配器会把所有 MCP 服务的初始 `enabled` 设为 `false`。`installed: true` 会在初始化时加载工具定义，但 MCP 服务启用前这些工具仍为禁用状态。
 
@@ -667,8 +682,8 @@ const history = useChatHistoryData({
 | `UseChatRuntimeFromConversationOptions` | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { conversationId: string \| null; runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                        |
 | `UseChatRuntimeAdapterOptions`          | `runtime: MaybeRefOrGetter<ChatRuntime>`；`title?: MaybeRefOrGetter<string \| undefined>`；`historyData?: MaybeRefOrGetter<ChatHistoryData \| undefined>`；`onActionError(payload)`                                                                                                                                                                                                                                      |
 | `UseChatHistoryItemsOptions`            | `conversations: MaybeRefOrGetter<readonly ChatConversationInfo[] \| undefined>`；`defaultTitle: MaybeRefOrGetter<string>`                                                                                                                                                                                                                                                                                                |
-| `UseChatHistoryDataOptions`             | 继承 `UseChatHistoryItemsOptions`；`history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`                                                                                                                                                                                                                                                                                                                            |
-| `ChatHistoryItem`                       | 继承 `ChatConversationInfo`；`raw: ChatConversationInfo`                                                                                                                                                                                                                                                                                                                                                                 |
+| `UseChatHistoryDataOptions`             | 包含 `UseChatHistoryItemsOptions` 的 `conversations` 和 `defaultTitle`，另有 `history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`，用于提供历史会话列表或分组。 |
+| `ChatHistoryItem`                       | 包含 `ChatConversationInfo` 的全部字段；`raw: ChatConversationInfo` 保存原始会话对象。 |
 | `ChatHistoryDisplayData`                | `ChatHistoryItem[] \| HistoryGroup<ChatHistoryItem>[]`                                                                                                                                                                                                                                                                                                                                                                   |
 | `ChatHistoryData`                       | `readonly ChatConversationInfo[] \| readonly ChatHistoryGroup[]`                                                                                                                                                                                                                                                                                                                                                         |
 | `ChatUIData`                            | `TrChatUI` 的会话、消息、输入区、请求、模型和 MCP 显示数据；详见 [Chat API](./chat#chatuidata)。                                                                                                                                                                                                                                                                                                                         |
