@@ -11,6 +11,14 @@ const sharedSidebarItems = [
     ],
   },
   {
+    text: '套件',
+    base: '/suites/',
+    items: [
+      { text: 'Chat 聊天界面', link: 'chat' },
+      { text: 'Chat 配置与操作', link: 'chat-runtime' },
+    ],
+  },
+  {
     text: '组件',
     base: '/components/',
     items: [
@@ -55,14 +63,6 @@ const sharedSidebarItems = [
   {
     text: '图标',
     items: [{ text: 'SVG 图标', link: '/icons/' }],
-  },
-  {
-    text: '套件',
-    base: '/suites/',
-    items: [
-      { text: 'Chat 聊天界面', link: 'chat' },
-      { text: 'Chat 运行时', link: 'chat-runtime' },
-    ],
   },
 ]
 

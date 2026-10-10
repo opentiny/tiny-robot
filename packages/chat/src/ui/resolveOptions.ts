@@ -47,7 +47,8 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
   logo: unknown
 }
 
-export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open'>> & Pick<ChatAsideOptions, 'open'>
+export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open' | 'minWidth' | 'maxWidth'>> &
+  Pick<ChatAsideOptions, 'open' | 'minWidth' | 'maxWidth'>
 export type ResolvedChatRightAsideOptions = Required<
   Omit<ChatRightAsideOptions, 'panels' | 'minWidth' | 'maxWidth'>
 > & {
@@ -147,10 +148,16 @@ function resolveLeftAside(
     return false
   }
 
+  const minWidth = resolveAsideWidth(options?.minWidth)
+  const maxWidth = resolveAsideWidth(options?.maxWidth)
+
   return {
     mode: options?.mode ?? defaults.mode,
     width: options?.width ?? defaults.width,
     collapsedWidth: options?.collapsedWidth ?? defaults.collapsedWidth,
+    resizable: options?.resizable ?? false,
+    minWidth,
+    maxWidth: maxWidth === undefined || minWidth === undefined ? maxWidth : Math.max(minWidth, maxWidth),
     open: options?.open,
     defaultOpen: options?.defaultOpen ?? defaults.defaultOpen,
   }
