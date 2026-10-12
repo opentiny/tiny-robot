@@ -1219,7 +1219,7 @@ export const toolPlugin = (
         }
 
         const shouldPause =
-          (askUserIntegration?.shouldPauseToolCall(toolCall) ?? false) ||
+          (askUserIntegration?.shouldPauseToolCall(toolCall, contextWithToolMessage) ?? false) ||
           (shouldPauseToolCall ? await shouldPauseToolCall(toolCall, contextWithToolMessage) : false)
 
         if (shouldPause) {

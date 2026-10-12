@@ -369,6 +369,83 @@ describe('ask_user tool integration', () => {
     expect(engine.getState().messages.at(-1)).toMatchObject({ role: 'assistant', content: '配置已提交。' })
   })
 
+  it('returns malformed ask_user calls as failed tool results', async () => {
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const toolMessages = requestBody.messages.filter((message) => message.role === 'tool')
+
+      if (toolMessages.length === 0) {
+        return {
+          id: 'malformed-ask-user-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call-malformed-ask-user',
+                    type: 'function',
+                    function: {
+                      name: ASK_USER_TOOL_NAME,
+                      arguments: '{',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(toolMessages).toMatchObject([
+        {
+          role: 'tool',
+          tool_call_id: 'call-malformed-ask-user',
+          content: 'Tool call failed.',
+        },
+      ])
+
+      return {
+        id: 'malformed-ask-user-final',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '已处理无效工具调用。' },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          askUser: true,
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('触发无效表单')
+
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: '已处理无效工具调用。',
+    })
+  })
+
   it.each(['denied', 'cancelled', 'failed'] as const)('marks the form as error when ask_user ends as %s', (status) => {
     const integration = createAskUserToolIntegration()
     const assistantMessage = {

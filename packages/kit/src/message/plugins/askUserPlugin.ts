@@ -5,10 +5,12 @@ import {
   ASK_USER_SYSTEM_PROMPT,
   ASK_USER_SYSTEM_PROMPT_END,
   ASK_USER_SYSTEM_PROMPT_START,
+  AskUserProtocolError,
   createAskUserRuntimeTool,
   parseAskUserToolCallArguments,
   stripAskUserContent,
   toAskUserContent,
+  type AskUserToolArguments,
   type AskUserMessageState,
   type AskUserRuntimeMeta,
 } from '../tools/askUser'
@@ -24,7 +26,7 @@ export interface AskUserToolIntegration {
   runtimeTool: RuntimeTool
   getTools: () => [RuntimeTool]
   beforeCallTools: (toolCalls: ChatCompletionMessageToolCall[], context: ToolCallPreparationContext) => Promise<void>
-  shouldPauseToolCall: (toolCall: ChatCompletionMessageToolCall) => boolean
+  shouldPauseToolCall: (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => boolean
   onBeforeRequest: (context: BeforeRequestContext) => void
   onToolCallEnd: (
     toolCall: ChatCompletionMessageToolCall,
@@ -145,7 +147,16 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
       }
 
       const toolCall = askUserCalls[0]
-      const args = parseAskUserToolCallArguments(toolCall)
+      let args: AskUserToolArguments
+      try {
+        args = parseAskUserToolCallArguments(toolCall)
+      } catch (error) {
+        if (error instanceof AskUserProtocolError) {
+          return
+        }
+        throw error
+      }
+
       if (hasPendingInteraction(context, args.id)) {
         throw new Error(`An unfinished ask_user interaction already uses id "${args.id}"`)
       }
@@ -172,7 +183,14 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         }
       })
     },
-    shouldPauseToolCall: isAskUserToolCall,
+    shouldPauseToolCall: (toolCall, context) => {
+      if (!isAskUserToolCall(toolCall)) {
+        return false
+      }
+
+      const state = getAskUserMessageState(context.assistantMessage)
+      return state.askUserRuntime?.toolCallId === toolCall.id && Boolean(state.askUser)
+    },
     onBeforeRequest: (context) => {
       const messages = context.requestBody.messages.map((message) => {
         return {
