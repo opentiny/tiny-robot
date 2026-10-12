@@ -235,7 +235,7 @@ const runtime = useChatRuntime({
 
 ### 请求失败时的提示
 
-使用 `useChatRuntime` 接入时，`TrChat` 默认在消息中显示请求失败提示，界面效果见 [请求失败提示](./chat#请求失败提示)。需要记录日志或显示操作失败通知时，监听 `runtime-action-error`：
+使用 `useChatRuntime` 接入时，`TrChat` 默认在消息中显示请求失败提示，界面配置和效果见 [消息错误提示配置](./chat#消息错误提示配置)。需要记录日志或显示操作失败通知时，监听 `runtime-action-error`：
 
 ```vue
 <TrChat :runtime="runtime" @runtime-action-error="handleRuntimeError" />

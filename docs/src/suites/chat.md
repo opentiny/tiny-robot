@@ -334,7 +334,19 @@ function fillReportTemplate() {
 
 ### 配置消息展示
 
-通过 `ui.bubble.bubbleList.roleConfigs` 为用户消息（`user`）和 AI 回答（`assistant`）分别设置头像、对齐位置和气泡形状。
+`ui.bubble` 用于配置消息区域，可调整消息外观、内容渲染、错误提示和自动滚动。常用字段如下，未配置时使用默认展示方式：
+
+| 字段 | 用途 |
+| --- | --- |
+| `autoScroll` | 新消息和回答更新时自动滚动，默认 `true` |
+| `bubbleList` | 配置消息列表，例如按角色设置头像、位置和气泡形状 |
+| `bubbleProvider` | 配置消息内容的展示组件，例如自定义内容渲染和错误提示 |
+
+下面以消息外观和错误提示为例介绍配置方式。
+
+#### 消息外观
+
+通过 `ui.bubble.bubbleList.roleConfigs` 按消息角色设置外观。例如，分别配置用户消息（`user`）和 AI 回答（`assistant`）的头像、位置和气泡形状。
 
 | 配置        | 用途和可选值                                                           | 默认值                                      |
 | ----------- | ---------------------------------------------------------------------- | ------------------------------------------- |
@@ -373,7 +385,40 @@ const ui: ChatUIOptions = {
   description="切换默认和自定义外观，比较用户与 AI 消息的头像和气泡形状；预设回答包含 Markdown 内容。"
 />
 
-更多配置见 [头像和位置](../components/bubble#头像和位置)、[气泡形状](../components/bubble#气泡形状) 和 [BubbleList 属性](../components/bubble#bubblelist)，错误提示见 [请求失败提示](#请求失败提示)。
+更多配置见 [头像和位置](../components/bubble#头像和位置)、[气泡形状](../components/bubble#气泡形状) 和 [BubbleList 属性](../components/bubble#bubblelist)。
+
+#### 消息错误提示配置
+
+使用 `useChatRuntime` 接入时，请求失败会在对应的 AI 消息下显示错误提示，默认不提供重试按钮。
+
+通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
+
+```ts
+const customErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: CustomErrorRenderer },
+  },
+}
+
+const disabledErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: null },
+  },
+}
+```
+
+该配置只控制提示的显示，不会改变请求的失败状态。下面的演示展示默认错误提示，不包含自定义提示组件：
+
+<demo
+  vue="../../demos/chat/runtime-error.vue"
+  :vueFiles="['../../demos/chat/runtime-error.vue']"
+  title="请求失败提示"
+  description="使用本地模拟请求，查看默认错误提示和正常回复。"
+/>
+
+> 默认提示的样式变量为 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width`。单独使用 `Bubble` 或 `BubbleProvider` 时，错误提示默认关闭。
+
+请求异常处理和操作失败通知见 [请求失败时的提示](./chat-runtime#请求失败时的提示)。
 
 ### 管理历史会话
 
@@ -600,39 +645,6 @@ const ui: ChatUIOptions = {
 />
 
 完整侧栏配置及默认值见 [布局配置](#layout)。
-
-### 请求失败提示
-
-使用 `TrChat` 接入模型服务后，请求失败时会在对应的 AI 消息下显示错误提示，默认不提供重试按钮。
-
-#### 消息错误提示配置
-
-通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
-
-```ts
-const customErrorUI: ChatUIOptions = {
-  bubble: {
-    bubbleProvider: { errorRenderer: CustomErrorRenderer },
-  },
-}
-
-const disabledErrorUI: ChatUIOptions = {
-  bubble: {
-    bubbleProvider: { errorRenderer: null },
-  },
-}
-```
-
-该配置只控制提示的显示，不会改变请求的失败状态。默认提示的样式变量为 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width`。单独使用 `Bubble` 或 `BubbleProvider` 时，错误提示默认关闭。
-
-<demo
-  vue="../../demos/chat/runtime-error.vue"
-  :vueFiles="['../../demos/chat/runtime-error.vue']"
-  title="请求失败提示"
-  description="使用本地模拟请求，查看错误提示和正常回复。"
-/>
-
-操作失败通知见 [TrChat 事件](#事件)。
 
 ## 单独使用 TrChatUI
 
