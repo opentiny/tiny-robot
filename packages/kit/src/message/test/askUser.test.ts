@@ -8,6 +8,7 @@ import {
   ASK_USER_SYSTEM_PROMPT_START,
   appendAskUserSystemPrompt,
   createAskUserToolIntegration,
+  askUserTool,
   lengthPlugin,
   parseAskUserArguments,
   thinkingPlugin,
@@ -106,6 +107,25 @@ describe('ask_user protocol', () => {
     ).toThrow('at most 80 characters')
   })
 
+  it('publishes a schema that requires enabled options for choice steps', () => {
+    const parameters = askUserTool.function.parameters as {
+      properties: {
+        steps: {
+          items: {
+            oneOf: Array<{ properties: { type: { enum: string[] }; options?: { contains?: unknown } } }>
+          }
+        }
+      }
+    }
+    const singleStep = parameters.properties.steps.items.oneOf.find((step) => step.properties.type.enum[0] === 'single')
+    const multipleStep = parameters.properties.steps.items.oneOf.find(
+      (step) => step.properties.type.enum[0] === 'multiple',
+    )
+
+    expect(singleStep?.properties.options?.contains).toBeDefined()
+    expect(multipleStep?.properties.options?.contains).toBeDefined()
+  })
+
   it('rejects malformed definitions before rendering', () => {
     expect(() => parseAskUserArguments('{')).toThrow('valid JSON')
     expect(() =>
@@ -128,6 +148,18 @@ describe('ask_user protocol', () => {
         ],
       }),
     ).toThrow('duplicate value')
+    expect(() =>
+      parseAskUserArguments({
+        ...args,
+        steps: [{ ...args.steps[0], options: [] }],
+      }),
+    ).toThrow('at least one enabled option')
+    expect(() =>
+      parseAskUserArguments({
+        ...args,
+        steps: [{ ...args.steps[0], options: [{ label: 'Unavailable', value: 'unavailable', disabled: true }] }],
+      }),
+    ).toThrow('at least one enabled option')
   })
 
   it('normalizes valid answers and preserves false', () => {
@@ -185,6 +217,29 @@ describe('ask_user protocol', () => {
         confirm: true,
       }),
     ).toThrow('unknown option')
+
+    const frameworkWithOther = {
+      ...args.steps[0],
+      options: [...(args.steps[0].options ?? []), { label: '其他', value: 'other' }],
+    }
+    expect(() =>
+      validateAndNormalizeAnswers([frameworkWithOther], {
+        framework: {
+          selected: ['vue'],
+          other: { selected: true, text: 'React' },
+        },
+      }),
+    ).toThrow('at most one selected value')
+
+    const frameworkWithDisabledOther = {
+      ...args.steps[0],
+      options: [...(args.steps[0].options ?? []), { label: '其他', value: 'other', disabled: true }],
+    }
+    expect(() =>
+      validateAndNormalizeAnswers([frameworkWithDisabledOther], {
+        framework: { selected: [], other: { selected: true, text: 'React' } },
+      }),
+    ).toThrow('unavailable other option')
   })
 })
 
@@ -312,6 +367,44 @@ describe('ask_user tool integration', () => {
 
     expect(responseProvider).toHaveBeenCalledTimes(2)
     expect(engine.getState().messages.at(-1)).toMatchObject({ role: 'assistant', content: '配置已提交。' })
+  })
+
+  it.each(['denied', 'cancelled', 'failed'] as const)('marks the form as error when ask_user ends as %s', (status) => {
+    const integration = createAskUserToolIntegration()
+    const assistantMessage = {
+      role: 'assistant' as const,
+      content: '',
+      state: {
+        askUser: {
+          status: 'active' as const,
+          currentStep: 0,
+          answers: {},
+          completedStepIds: [],
+        },
+        askUserRuntime: {
+          interactionId: args.id,
+          toolCallId: 'call-ask-user',
+        },
+      },
+    }
+    const toolCall = {
+      id: 'call-ask-user',
+      type: 'function' as const,
+      function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
+    }
+
+    integration.onToolCallEnd(toolCall, {
+      assistantMessage,
+      status,
+      error: new Error(`ask_user ${status}`),
+      mutate: (_key: string, mutate: () => void) => mutate(),
+    } as never)
+
+    expect(assistantMessage.state.askUser).toMatchObject({
+      status: 'error',
+      retryable: false,
+      error: `ask_user ${status}`,
+    })
   })
 
   it('rejects more than one ask_user call in one assistant response', async () => {

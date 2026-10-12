@@ -50,11 +50,15 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
   const resumePromises = new Map<string, Promise<ToolCallCommandResult>>()
 
   const setAskUserError = (target: AskUserMessage, state: AskUserState, error: unknown) => {
+    const runtime = getAskUserMessageState(target).askUserRuntime
+    const retryable = runtime ? getToolCallStatus(target, runtime.toolCallId) === 'awaiting-approval' : false
+
     target.state = {
       ...target.state,
       askUser: {
         ...state,
         status: 'error',
+        retryable,
         error: error instanceof Error ? error.message : String(error),
         updatedAt: Date.now(),
       },
@@ -110,10 +114,6 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
   }
 
   const handleBubbleEvent = async (event: AskUserBubbleEvent) => {
-    if (event.name !== 'ask-user:submit') {
-      return
-    }
-
     const target = message.messages.value[event.messageIndex] as AskUserMessage | undefined
     if (!target) {
       return
@@ -122,6 +122,34 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
     const messageState = getAskUserMessageState(target)
     const state = messageState.askUser
     const runtime = messageState.askUserRuntime as AskUserRuntimeMeta | undefined
+
+    if (event.name === 'ask-user:retry') {
+      if (!state || !runtime?.toolCallId) {
+        return
+      }
+
+      if (getToolCallStatus(target, runtime.toolCallId) !== 'awaiting-approval') {
+        setAskUserError(target, state, new Error('ask_user tool call cannot be retried'))
+        return
+      }
+
+      target.state = {
+        ...target.state,
+        askUser: {
+          ...state,
+          status: 'active',
+          retryable: undefined,
+          error: undefined,
+          updatedAt: Date.now(),
+        },
+      }
+      return
+    }
+
+    if (event.name !== 'ask-user:submit') {
+      return
+    }
+
     if (!state || state.status !== 'submitted' || !runtime?.toolCallId) {
       return
     }
@@ -130,6 +158,11 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
       const toolCall = target.tool_calls?.find((call) => call.id === runtime.toolCallId)
       if (!toolCall || toolCall.type !== 'function') {
         throw new Error('ask_user tool call not found')
+      }
+
+      const toolCallStatus = getToolCallStatus(target, runtime.toolCallId)
+      if (toolCallStatus === 'denied' || toolCallStatus === 'cancelled' || toolCallStatus === 'failed') {
+        throw new Error('ask_user tool call cannot be resumed')
       }
 
       const args = parseAskUserToolCallArguments(toolCall as unknown as ChatCompletionMessageFunctionToolCall)

@@ -4,7 +4,11 @@ import { TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/p
 import type { ChatMessage } from '../../types'
 import { useAskUserRuntime } from './useAskUserRuntime'
 
-const createMessage = (answers: Record<string, unknown>, toolCallStatus = 'awaiting-approval') => {
+const createMessage = (
+  answers: Record<string, unknown>,
+  toolCallStatus = 'awaiting-approval',
+  askUserStatus: 'active' | 'submitted' = 'submitted',
+) => {
   return {
     role: 'assistant',
     content: '',
@@ -32,7 +36,7 @@ const createMessage = (answers: Record<string, unknown>, toolCallStatus = 'await
     ],
     state: {
       askUser: {
-        status: 'submitted' as const,
+        status: askUserStatus,
         currentStep: 0,
         answers,
         completedStepIds: ['name'],
@@ -88,6 +92,74 @@ describe('useAskUserRuntime', () => {
     expect(messages.value[0]?.state?.askUser).toMatchObject({
       status: 'submitted',
       answers: { name: '' },
+    })
+  })
+
+  it('does not resume a denied ask_user call after a stale submit event', async () => {
+    const messages = ref<ChatMessage[]>([createMessage({ name: 'Ada' }, 'denied', 'active')])
+    const dispatchCommand = vi.fn().mockResolvedValue({ status: 'missing', toolCallId: 'call-ask-user' })
+    const runtime = useAskUserRuntime({ messages, dispatchCommand })
+
+    runtime.handleStateChange({
+      key: 'askUser',
+      value: {
+        status: 'submitted',
+        currentStep: 0,
+        answers: { name: 'Ada' },
+        completedStepIds: ['name'],
+      },
+      messageIndex: 0,
+      contentIndex: 0,
+    })
+    await runtime.handleBubbleEvent({ name: 'ask-user:submit', messageIndex: 0, contentIndex: 0 })
+
+    expect(dispatchCommand).not.toHaveBeenCalled()
+    expect(messages.value[0]?.state?.askUser).toMatchObject({
+      status: 'error',
+      retryable: false,
+      error: 'ask_user tool call cannot be resumed',
+    })
+  })
+
+  it('reopens a retryable ask_user error while the tool call is still pending', async () => {
+    const messages = ref<ChatMessage[]>([createMessage({ name: 'Ada' }, 'awaiting-approval', 'active')])
+    messages.value[0]!.state!.askUser = {
+      ...messages.value[0]!.state!.askUser,
+      status: 'error',
+      retryable: true,
+      error: 'invalid answer',
+    }
+    const dispatchCommand = vi.fn()
+    const runtime = useAskUserRuntime({ messages, dispatchCommand })
+
+    await runtime.handleBubbleEvent({ name: 'ask-user:retry', messageIndex: 0, contentIndex: 0 })
+
+    expect(dispatchCommand).not.toHaveBeenCalled()
+    expect(messages.value[0]?.state?.askUser).toMatchObject({
+      status: 'active',
+      retryable: undefined,
+      error: undefined,
+    })
+  })
+
+  it('keeps a terminal ask_user error non-retryable', async () => {
+    const messages = ref<ChatMessage[]>([createMessage({ name: 'Ada' }, 'denied', 'active')])
+    messages.value[0]!.state!.askUser = {
+      ...messages.value[0]!.state!.askUser,
+      status: 'error',
+      retryable: true,
+      error: 'rejected',
+    }
+    const dispatchCommand = vi.fn()
+    const runtime = useAskUserRuntime({ messages, dispatchCommand })
+
+    await runtime.handleBubbleEvent({ name: 'ask-user:retry', messageIndex: 0, contentIndex: 0 })
+
+    expect(dispatchCommand).not.toHaveBeenCalled()
+    expect(messages.value[0]?.state?.askUser).toMatchObject({
+      status: 'error',
+      retryable: false,
+      error: 'ask_user tool call cannot be retried',
     })
   })
 

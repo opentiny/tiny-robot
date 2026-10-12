@@ -8,7 +8,7 @@ export const ASK_USER_SYSTEM_PROMPT = [
   'When you need information from the user before continuing, use the `ask_user` tool instead of asking a plain-text question.',
   'Put all related questions in one complete form and provide stable, unique step ids.',
   'Every step must include `summary`. `summary` and `title` should express the same meaning at different levels of detail: make `summary` a concise label for the step, preferably no more than 20 characters, and use `title` for the full natural-language question. Never omit `summary`, copy the full question into it, or make `summary` identical to `title`.',
-  'For single and multiple steps, a free-text "Other" choice is supported. If you include it in the options, use value `other`.',
+  'For single and multiple steps, a free-text "Other" choice may be included. If included, it must be an enabled option with value `other`.',
   'When the user skips a step, interpret an empty selection as skipped, an empty string as skipped, and null confirmation as skipped.',
   'Call `ask_user` at most once in a single assistant response. After the tool returns the submitted answers, continue the task using those answers.',
 ].join('\n')
@@ -57,6 +57,8 @@ export interface AskUserState {
   currentStep: number
   answers: Record<string, unknown>
   completedStepIds: string[]
+  /** Whether the current error can be retried with the existing pending tool call. */
+  retryable?: boolean
   expanded?: boolean
   error?: string
   updatedAt?: number
@@ -247,10 +249,16 @@ const normalizeStep = (value: unknown, index: number): AskUserToolStep => {
     if (type !== 'single' && type !== 'multiple') {
       invalidArguments(`${path}.options is only supported for single and multiple steps`)
     }
+  }
+
+  if (type === 'single' || type === 'multiple') {
     if (!Array.isArray(stepValue.options)) {
-      invalidArguments(`${path}.options must be an array`)
+      invalidArguments(`${path}.options must be an array with at least one enabled option`)
     }
     const rawOptions = stepValue.options as unknown[]
+    if (rawOptions.length === 0) {
+      invalidArguments(`${path}.options must contain at least one enabled option`)
+    }
     if (rawOptions.length > MAX_OPTION_COUNT) {
       invalidArguments(`${path}.options must contain at most ${MAX_OPTION_COUNT} items`)
     }
@@ -262,6 +270,9 @@ const normalizeStep = (value: unknown, index: number): AskUserToolStep => {
         invalidArguments(`${path}.options contains duplicate value "${option.value}"`)
       }
       optionValues.add(option.value)
+    }
+    if (!options.some((option) => option.disabled !== true)) {
+      invalidArguments(`${path}.options must contain at least one enabled option`)
     }
     step.options = options
   }
@@ -415,6 +426,19 @@ const normalizeChoiceAnswer = (step: AskUserToolStep, value: unknown): AskUserCh
     }
   }
 
+  if (other) {
+    const otherOption = options.get('other')
+    if (!otherOption || otherOption.disabled) {
+      invalidAnswer(`Answer for step "${step.id}" contains an unavailable other option`)
+    }
+    if (selected.includes('other')) {
+      invalidAnswer(`Answer for step "${step.id}" contains duplicate other selections`)
+    }
+    if (step.type === 'single' && selected.length > 0) {
+      invalidAnswer(`Answer for single step "${step.id}" may contain at most one selected value`)
+    }
+  }
+
   if (selected.length === 0 && !other) {
     return { selected: [] }
   }
@@ -477,6 +501,60 @@ export const validateAndNormalizeAnswers = (
   return normalized
 }
 
+const askUserOptionSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['label', 'value'],
+  properties: {
+    label: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
+    value: { type: 'string', minLength: 1, maxLength: MAX_OPTION_VALUE_LENGTH },
+    description: { type: 'string', maxLength: MAX_OPTION_DESCRIPTION_LENGTH },
+    disabled: { type: 'boolean' },
+  },
+}
+
+const askUserStepProperties = {
+  id: { type: 'string', minLength: 1, maxLength: MAX_ID_LENGTH },
+  title: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
+  summary: {
+    type: 'string',
+    minLength: 1,
+    maxLength: MAX_SUMMARY_LENGTH,
+    description: 'A concise label for this step, preferably no more than 20 characters.',
+  },
+  description: { type: 'string', maxLength: MAX_DESCRIPTION_LENGTH },
+  required: { type: 'boolean' },
+  placeholder: { type: 'string', maxLength: MAX_PLACEHOLDER_LENGTH },
+}
+
+const createAskUserStepSchema = (type: AskUserStepType, withOptions: boolean) => ({
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'title', 'summary', 'type', ...(withOptions ? ['options'] : [])],
+  properties: {
+    ...askUserStepProperties,
+    type: { type: 'string', enum: [type] },
+    ...(withOptions
+      ? {
+          options: {
+            type: 'array',
+            minItems: 1,
+            maxItems: MAX_OPTION_COUNT,
+            description: 'Must contain at least one enabled option.',
+            contains: {
+              type: 'object',
+              anyOf: [
+                { not: { required: ['disabled'] } },
+                { required: ['disabled'], properties: { disabled: { enum: [false] } } },
+              ],
+            },
+            items: askUserOptionSchema,
+          },
+        }
+      : {}),
+  },
+})
+
 export const askUserTool: ChatCompletionFunctionTool = {
   type: 'function',
   function: {
@@ -496,38 +574,12 @@ export const askUserTool: ChatCompletionFunctionTool = {
           minItems: 1,
           maxItems: MAX_STEP_COUNT,
           items: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['id', 'title', 'summary', 'type'],
-            properties: {
-              id: { type: 'string', minLength: 1, maxLength: MAX_ID_LENGTH },
-              title: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
-              summary: {
-                type: 'string',
-                minLength: 1,
-                maxLength: MAX_SUMMARY_LENGTH,
-                description: 'A concise label for this step, preferably no more than 20 characters.',
-              },
-              description: { type: 'string', maxLength: MAX_DESCRIPTION_LENGTH },
-              type: { type: 'string', enum: ['single', 'multiple', 'text', 'confirm'] },
-              required: { type: 'boolean' },
-              options: {
-                type: 'array',
-                maxItems: MAX_OPTION_COUNT,
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['label', 'value'],
-                  properties: {
-                    label: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
-                    value: { type: 'string', minLength: 1, maxLength: MAX_OPTION_VALUE_LENGTH },
-                    description: { type: 'string', maxLength: MAX_OPTION_DESCRIPTION_LENGTH },
-                    disabled: { type: 'boolean' },
-                  },
-                },
-              },
-              placeholder: { type: 'string', maxLength: MAX_PLACEHOLDER_LENGTH },
-            },
+            oneOf: [
+              createAskUserStepSchema('single', true),
+              createAskUserStepSchema('multiple', true),
+              createAskUserStepSchema('text', false),
+              createAskUserStepSchema('confirm', false),
+            ],
           },
         },
       },

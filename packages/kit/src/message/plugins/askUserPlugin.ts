@@ -120,6 +120,7 @@ const setAskUserError = (context: ToolCallContext, error: string) => {
       askUser: {
         ...state.askUser,
         status: 'error',
+        retryable: false,
         error,
         updatedAt: Date.now(),
       },
@@ -182,11 +183,11 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
       context.requestBody.messages = appendAskUserSystemPrompt(messages, options.prompt)
     },
     onToolCallEnd: (toolCall, context) => {
-      if (!isAskUserToolCall(toolCall) || context.status !== 'failed') {
+      if (!isAskUserToolCall(toolCall) || context.status === 'success') {
         return
       }
 
-      setAskUserError(context, context.error?.message ?? 'ask_user tool failed')
+      setAskUserError(context, context.error?.message ?? `ask_user tool ${context.status}`)
     },
   }
 }
