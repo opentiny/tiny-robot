@@ -106,8 +106,8 @@ test.describe('AskUser renderer', () => {
     const component = await mount(AskUserRadioIsolationFixture)
     const askUsers = component.locator('[data-type="ask-user"]')
 
-    await askUsers.nth(0).getByRole('radio', { name: 'Vue' }).check()
-    await askUsers.nth(1).getByRole('radio', { name: 'React' }).check()
+    await askUsers.nth(0).getByText('Vue', { exact: true }).click()
+    await askUsers.nth(1).getByText('React', { exact: true }).click()
 
     await expect(askUsers.nth(0).getByRole('radio', { name: 'Vue' })).toBeChecked()
     await expect(askUsers.nth(1).getByRole('radio', { name: 'React' })).toBeChecked()
