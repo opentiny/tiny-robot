@@ -64,6 +64,7 @@ export interface AskUserState {
   completedStepIds: string[]
   expanded?: boolean
   error?: string
+  retryable?: boolean
   updatedAt?: number
 }
 

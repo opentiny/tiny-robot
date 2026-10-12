@@ -103,6 +103,7 @@ const normalizeState = (content: AskUserContent | undefined, state: AskUserState
     completedStepIds: (state?.completedStepIds ?? []).filter((stepId) => stepIds.has(stepId)),
     ...(typeof state?.expanded === 'boolean' ? { expanded: state.expanded } : {}),
     ...(state?.error ? { error: state.error } : {}),
+    retryable: state?.retryable !== false,
     ...(state?.updatedAt ? { updatedAt: state.updatedAt } : {}),
   }
 }
@@ -205,6 +206,7 @@ export const useAskUser = (
   const currentStepIndex = computed(() => state.value.currentStep)
   const currentStep = computed<AskUserStep | undefined>(() => steps.value[currentStepIndex.value])
   const status = computed(() => state.value.status)
+  const retryable = computed(() => state.value.retryable !== false)
   const isLocked = computed(() => status.value === 'submitting' || status.value === 'submitted')
   const canGoBack = computed(() => !isLocked.value && currentStepIndex.value > 0)
   const currentAnswer = computed(() => {
@@ -444,7 +446,7 @@ export const useAskUser = (
   }
 
   const retry = () => {
-    if (status.value !== 'error') {
+    if (status.value !== 'error' || !retryable.value) {
       return false
     }
 
@@ -471,6 +473,7 @@ export const useAskUser = (
     isOtherSelected,
     otherText,
     status,
+    retryable,
     isLocked,
     canGoBack,
     setAnswer,

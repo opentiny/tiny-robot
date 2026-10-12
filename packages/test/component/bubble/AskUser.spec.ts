@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/experimental-ct-vue'
 import AskUserInvalidFixture from './AskUserInvalid.fixture.vue'
 import AskUserFixture from './AskUser.fixture.vue'
 import AskUserMultipleFixture from './AskUserMultiple.fixture.vue'
+import AskUserRadioIsolationFixture from './AskUserRadioIsolation.fixture.vue'
 
 test.describe('AskUser renderer', () => {
   test('preserves an unsubmitted draft when equivalent state is replaced', async ({ mount }) => {
@@ -24,6 +25,7 @@ test.describe('AskUser renderer', () => {
     await bubble.getByRole('button', { name: '跳过' }).click()
 
     await expect(bubble.getByRole('heading', { name: '框架' })).toBeVisible()
+    await expect(bubble.getByText('其他', { exact: true })).toHaveCount(0)
     await expect(component.getByTestId('last-event')).toHaveText('ask-user:step-change')
     await expect(component.getByTestId('last-step-id')).toHaveText('framework')
   })
@@ -37,6 +39,26 @@ test.describe('AskUser renderer', () => {
 
     await expect(component.getByTestId('last-event')).toHaveText('ask-user:submit')
     await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('项目名称：已跳过')
+  })
+
+  test('hides retry for non-retryable errors', async ({ mount }) => {
+    const component = await mount(AskUserFixture, {
+      props: {
+        initialState: {
+          askUser: {
+            status: 'error',
+            currentStep: 0,
+            answers: {},
+            completedStepIds: [],
+            error: '请求已取消',
+            retryable: false,
+          },
+        },
+      },
+    })
+
+    await expect(component.getByRole('alert')).toContainText('请求已取消')
+    await expect(component.getByRole('button', { name: '重试' })).toHaveCount(0)
   })
 
   test('isolates state between multiple AskUser contents', async ({ mount }) => {
@@ -78,6 +100,17 @@ test.describe('AskUser renderer', () => {
 
     await expect(askUsers.nth(1).getByRole('heading', { name: '第二个问题' })).toBeVisible()
     await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+  })
+
+  test('isolates radio groups between AskUser renderer instances', async ({ mount }) => {
+    const component = await mount(AskUserRadioIsolationFixture)
+    const askUsers = component.locator('[data-type="ask-user"]')
+
+    await askUsers.nth(0).getByRole('radio', { name: 'Vue' }).check()
+    await askUsers.nth(1).getByRole('radio', { name: 'React' }).check()
+
+    await expect(askUsers.nth(0).getByRole('radio', { name: 'Vue' })).toBeChecked()
+    await expect(askUsers.nth(1).getByRole('radio', { name: 'React' })).toBeChecked()
   })
 
   test('falls back for invalid AskUser content', async ({ mount }) => {

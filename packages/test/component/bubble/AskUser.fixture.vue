@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import type { AskUserContent, AskUserState, BubbleEvent } from '../../../components/src/bubble/index.type'
 
+const props = defineProps<{ initialState?: Record<string, unknown> }>()
+
 const content: AskUserContent = {
   type: 'ask_user',
   id: 'ask-user-test',
@@ -22,12 +24,13 @@ const content: AskUserContent = {
       options: [
         { label: 'Vue', value: 'vue' },
         { label: 'React', value: 'react' },
+        { label: '其他', value: 'other', disabled: true },
       ],
     },
   ],
 }
 
-const state = ref<Record<string, unknown>>({})
+const state = ref<Record<string, unknown>>(props.initialState ?? {})
 const lastEvent = ref('')
 const lastStepId = ref('')
 

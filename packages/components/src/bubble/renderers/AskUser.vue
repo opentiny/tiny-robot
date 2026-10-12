@@ -3,6 +3,7 @@ import { IconArrowDown, IconCheckedSur } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 import { computed, reactive } from 'vue'
 import { isAskUserContent, useAskUser, useBubbleEventFn, useContentResolver, useMessageContent } from '../composables'
+import { useStableId } from '../../shared/composables'
 import type {
   AskUserChoiceAnswer,
   AskUserContent,
@@ -18,6 +19,7 @@ defineOptions({
 })
 
 const props = defineProps<BubbleContentRendererProps>()
+const askUserInstanceId = useStableId()
 const { content } = useMessageContent(props)
 const resolveContent = useContentResolver()
 const emitEvent = useBubbleEventFn()
@@ -331,7 +333,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           <label class="tr-bubble__ask-user-option-trigger">
             <input
               :type="askUser.currentStep.type === 'multiple' ? 'checkbox' : 'radio'"
-              :name="`ask-user-${askUserContent.id}-${askUser.currentStep.id}`"
+              :name="`ask-user-${askUserInstanceId}-${askUser.currentStep.id}`"
               :value="String(option.value)"
               :checked="isOptionSelected(option.value)"
               :disabled="askUser.isLocked || option.disabled"
@@ -349,7 +351,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           </label>
         </div>
         <div
-          v-if="askUser.supportsOther"
+          v-if="askUser.supportsOther && otherOption && !otherOption.disabled"
           class="tr-bubble__ask-user-option tr-bubble__ask-user-other-option"
           :class="{ 'is-selected': askUser.isOtherSelected }"
           @click="handleOtherOptionClick"
@@ -357,7 +359,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           <label class="tr-bubble__ask-user-option-trigger" @click.stop>
             <input
               :type="askUser.currentStep.type === 'multiple' ? 'checkbox' : 'radio'"
-              :name="`ask-user-${askUserContent.id}-${askUser.currentStep.id}`"
+              :name="`ask-user-${askUserInstanceId}-${askUser.currentStep.id}`"
               :checked="askUser.isOtherSelected"
               :disabled="askUser.isLocked || otherOption?.disabled"
               @change="askUser.setOtherSelected(!askUser.isOtherSelected)"
@@ -400,7 +402,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       </tiny-button>
       <div class="tr-bubble__ask-user-actions-right">
         <tiny-button
-          v-if="askUser.status === 'error'"
+          v-if="askUser.status === 'error' && askUser.retryable"
           size="mini"
           :reset-time="0"
           round
