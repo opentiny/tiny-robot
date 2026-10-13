@@ -59,6 +59,11 @@ async function open(page: Page, selector = '#term') {
   await expect(page.locator(popover)).toBeVisible()
 }
 
+async function pauseClock(page: Page) {
+  await page.clock.install()
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000))
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/quick-assist/index.html')
   await page.waitForFunction(() => typeof window.resetQuickAssist === 'function')
@@ -173,6 +178,22 @@ test('default validation rejects invalid and excluded selections', async ({ page
   await expect(page.locator(trigger)).toBeVisible()
 })
 
+test('read-only contenteditable permits selection and nearby context while editable ancestors remain excluded', async ({
+  page,
+}) => {
+  await open(page, '#readonly-term')
+  await page.locator(`${popover} textarea`).press('Enter')
+  const request = await page.evaluate(() => window.qaRequests[0])
+  expect(request.context.text).toBe('只读术语')
+  expect(request.context.nearbyText).toBe('只读上下文 只读术语')
+  await select(page, '#readonly-uppercase')
+  await expect(page.locator(trigger)).toBeVisible()
+  for (const selector of ['#readonly-in-editor', '#plaintext-editor', '#empty-editor', '#contenteditable']) {
+    await select(page, selector)
+    await expect(page.locator(trigger), selector).toHaveCount(0)
+  }
+})
+
 test('extending a valid selection beyond the configured limit removes the trigger', async ({ page }) => {
   await page.evaluate(() => window.resetQuickAssist({ selection: { maxTextLength: 12 } }))
   await page.locator('#long').scrollIntoViewIfNeeded()
@@ -224,33 +245,42 @@ test('default trigger appears only after mouse selection ends', async ({ page })
 })
 
 test('showDelay waits after selection settles and emits trigger_show only when visible', async ({ page }) => {
+  await pauseClock(page)
   await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   await select(page, '#term')
   await expect(page.locator(trigger)).toHaveCount(0)
   expect(await page.evaluate(() => window.qaEvents.map((event) => event.type))).toEqual(['selection'])
-  await page.waitForTimeout(80)
+  await page.clock.runFor(799)
   await expect(page.locator(trigger)).toHaveCount(0)
+  await page.clock.runFor(1)
   await expect(page.locator(trigger)).toBeVisible()
   expect(await page.evaluate(() => window.qaEvents.map((event) => event.type))).toEqual(['selection', 'trigger_show'])
 })
 
 test('showDelay restarts for a newer selection and cancels an invalid selection', async ({ page }) => {
+  await pauseClock(page)
   await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   await select(page, '#term')
-  await page.waitForTimeout(100)
+  await page.clock.runFor(400)
   await select(page, '#other-term')
-  await page.waitForTimeout(120)
+  // Pass the first selection's deadline but stay before the new deadline.
+  await page.clock.runFor(500)
   await expect(page.locator(trigger)).toHaveCount(0)
+  await page.clock.runFor(300)
   await expect(page.locator(trigger)).toBeVisible()
   expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
+  await select(page, '#term')
+  await expect(page.locator(trigger)).toHaveCount(0)
   await select(page, '#long')
   await expect(page.locator(trigger)).toHaveCount(0)
-  await page.waitForTimeout(220)
+  await page.clock.runFor(900)
   await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
 })
 
 test('showDelay waits for mouse release and is canceled by disable', async ({ page }) => {
-  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 150 } }))
+  await pauseClock(page)
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   const rect = await page.locator('#term').evaluate((element) => {
     const range = document.createRange()
     range.selectNodeContents(element)
@@ -260,18 +290,24 @@ test('showDelay waits for mouse release and is canceled by disable', async ({ pa
   await page.mouse.move(rect.left + 1, y)
   await page.mouse.down()
   await page.mouse.move(rect.right - 1, y, { steps: 8 })
-  await page.waitForTimeout(180)
+  await page.clock.runFor(900)
   await expect(page.locator(trigger)).toHaveCount(0)
   await page.mouse.up()
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await page.clock.runFor(800)
   await expect(page.locator(trigger)).toBeVisible()
   await select(page, '#other-term')
-  await page.evaluate(() => window.qa.disable())
-  await page.waitForTimeout(180)
   await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
+  await page.evaluate(() => window.qa.disable())
+  await page.clock.runFor(900)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
 })
 
 test('showDelay validates input and cancels pending work on update or destroy', async ({ page }) => {
-  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 160 } }))
+  await pauseClock(page)
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   const error = await page.evaluate(() => {
     try {
       window.qa.updateOptions({ trigger: { showDelay: -1 } })
@@ -282,16 +318,20 @@ test('showDelay validates input and cancels pending work on update or destroy', 
   })
   expect(error).toContain('trigger.showDelay')
   await select(page, '#term')
-  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 0 } }))
-  await page.waitForTimeout(180)
   await expect(page.locator(trigger)).toHaveCount(0)
+  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 0 } }))
+  await page.clock.runFor(900)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(0)
   await select(page, '#other-term')
   await expect(page.locator(trigger)).toBeVisible()
-  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 160 } }))
+  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 800 } }))
   await select(page, '#term')
-  await page.evaluate(() => window.qa.destroy())
-  await page.waitForTimeout(180)
   await expect(page.locator(trigger)).toHaveCount(0)
+  await page.evaluate(() => window.qa.destroy())
+  await page.clock.runFor(900)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
 })
 
 test('nearby context excludes sensitive, hidden and form content', async ({ page }) => {
@@ -686,6 +726,42 @@ test('updateOptions rejects a different root document without disabling the inst
   expect(error).toContain('root cannot change')
   await select(page)
   await expect(page.locator(trigger)).toBeVisible()
+})
+
+test('updateOptions replaces supplied nested groups and preserves omitted top-level options', async ({ page }) => {
+  await page.evaluate(() => {
+    window.resetQuickAssist({
+      trigger: { label: '旧入口', showDelay: 800, offset: 40, placement: 'top' },
+      selection: { maxTextLength: 3, validate: () => false },
+      nearbyContext: { maxLength: 4 },
+      messages: { inputLabel: '旧输入', submitLabel: '旧发送' },
+      suggestions: [{ id: 'retained', label: '保留任务', prompt: '保留问题' }],
+    })
+    window.qa.updateOptions({
+      trigger: { showDelay: 0 },
+      selection: { maxTextLength: 100 },
+      nearbyContext: { blockSelectors: ['#scope'] },
+      messages: { submitLabel: '新发送' },
+    })
+  })
+  await select(page, '#nearby-term')
+  const entry = page.getByRole('button', { name: '智能帮助', exact: true })
+  await expect(entry).toBeVisible()
+  await expect
+    .poll(() =>
+      entry.evaluate((element) => {
+        const anchor = window.getSelection()!.getRangeAt(0).getBoundingClientRect()
+        return element.getBoundingClientRect().top - anchor.bottom
+      }),
+    )
+    .toBeCloseTo(8, 0)
+  await entry.click()
+  const input = page.getByRole('textbox', { name: '请输入问题', exact: true })
+  await expect(input).toBeVisible()
+  await expect(page.getByRole('button', { name: '保留任务', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '新发送', exact: true }).click()
+  const request = await page.evaluate(() => window.qaRequests[0])
+  expect(request.context.nearbyText).toBe('计费模式 弹性计费')
 })
 
 test('UMD script injects shared CSS and completes an interaction', async ({ page }) => {

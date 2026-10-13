@@ -673,6 +673,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   }
   const updateOptions = (partial: Partial<QuickAssistOptions>): void => {
     if (destroyed) return
+    // Public contract: supplied nested groups replace the previous group.
     const merged = { ...resolved, ...partial } as QuickAssistOptions
     let nextResolved: ResolvedQuickAssistOptions
     let nextModules: ReturnType<typeof createModules>

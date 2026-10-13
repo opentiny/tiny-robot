@@ -171,24 +171,26 @@ const quickAssist = createQuickAssist({
 
 可以通过 `getContext` 添加业务字段，通过 `getNearbyContext` 定制附近文本，并通过 `sanitizeContext` 返回最终允许外发的完整上下文。`sanitizeContext` 在业务上下文构造后执行；脱敏完成前不会调用推荐函数或 `adapter`。
 
+下面使用虚构租户编号演示脱敏。输入框可能保留选中的原文，因此还需通过 `buildPrompt` 对最终发送的问题脱敏；此例的宿主仅发送 `prompt` 和 `context`。
+
 ```ts
+const tenantId = 'tenant-demo-4812'
+const redactTenant = (text: string) => text.replaceAll(tenantId, '[redacted]')
+
 const quickAssist = createQuickAssist({
   adapter,
-  getContext: async (_context, signal) => {
-    const currentPage = await loadCurrentPageContext({ signal })
-    return {
-      product: currentPage.product,
-      section: currentPage.section,
-      tenantId: currentPage.tenantId,
-    }
-  },
+  getContext: () => ({ product: '云服务器', section: '创建实例', tenantId }),
   sanitizeContext: (context) => ({
     ...context,
+    text: redactTenant(context.text),
+    selection: context.selection ? { ...context.selection, text: redactTenant(context.selection.text) } : undefined,
+    nearbyText: context.nearbyText ? redactTenant(context.nearbyText) : undefined,
     businessContext: {
       ...context.businessContext,
       tenantId: '[redacted]',
     },
   }),
+  buildPrompt: ({ query, suggestion }) => redactTenant(suggestion?.prompt ?? query),
 })
 ```
 
@@ -216,7 +218,7 @@ const quickAssist = createQuickAssist({
 
 默认拒绝空白、纯数字、纯标点/符号、明显 URL、UUID 和超出长度的选区；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会被拒绝，不会悄悄截断后发送。
 
-默认排除 `input`、`textarea`、`select`、`contenteditable`、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。
+默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
 ::: tip 支持范围
 当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
 :::
@@ -356,6 +358,8 @@ onBeforeUnmount(() => {
 | `destroy`       | —                                      | 关闭并释放监听器与 DOM；重复调用无副作用                             |
 
 `root` 创建后不可更换；`updateOptions({ root: anotherDocument })` 会抛出错误，应先销毁旧实例再创建新实例。更新时省略 `enabled` 会保留实例当前启用/停用状态；显式传入时使用新值。
+
+例如，原来配置 `trigger: { label: '帮助', offset: 12 }`，随后调用 `updateOptions({ trigger: { showDelay: 200 } })` 会把标签和偏移恢复到默认值。若要保留它们，需要传入完整分组：`updateOptions({ trigger: { label: '帮助', offset: 12, showDelay: 200 } })`。`selection`、`nearbyContext`、`messages` 和 `attrs` 同样遵循整体替换语义。
 
 ## Events
 

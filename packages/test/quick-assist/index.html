@@ -62,6 +62,15 @@
       </table>
       <textarea id="editable">编辑器文字</textarea>
       <div id="contenteditable" contenteditable="true">可编辑内容</div>
+      <div contenteditable="false">
+        <p>只读上下文 <span id="readonly-term">只读术语</span></p>
+      </div>
+      <p contenteditable="FALSE"><span id="readonly-uppercase">只读大写属性</span></p>
+      <div contenteditable="true">
+        <span id="readonly-in-editor" contenteditable="false">编辑器内只读内容</span>
+      </div>
+      <div contenteditable="plaintext-only"><span id="plaintext-editor">纯文本编辑内容</span></div>
+      <div contenteditable><span id="empty-editor">默认编辑内容</span></div>
       <div class="monaco-editor"><span id="monaco">代码文本</span></div>
       <div id="scroll-box">
         <p id="scroll-term">滚动容器术语</p>

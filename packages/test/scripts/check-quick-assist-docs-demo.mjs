@@ -169,6 +169,7 @@ try {
       selection.addRange(range)
       document.dispatchEvent(new Event('selectionchange'))
     })
+    await expect(page.locator('.tr-quick-assist__trigger'), '租户编号划词应显示入口').toBeVisible()
     await page.locator('.tr-quick-assist__trigger').click()
     await page.locator('.tr-quick-assist__popover textarea').press('Enter')
     await expect(page.locator('#qa-context-text').locator('..').locator('pre')).toContainText('[已脱敏]')

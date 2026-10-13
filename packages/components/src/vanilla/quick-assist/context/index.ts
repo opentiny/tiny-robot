@@ -19,7 +19,7 @@ const SKIP_SELECTOR = [
   'textarea',
   'select',
   'option',
-  '[contenteditable]',
+  '[contenteditable]:not([contenteditable="false" i])',
   '.monaco-editor',
   '.CodeMirror',
   '.cm-editor',

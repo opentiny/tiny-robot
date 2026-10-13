@@ -184,6 +184,7 @@ export interface QuickAssistInstance {
   disable: () => void
   close: () => void
   destroy: () => void
+  /** Shallow-merges top-level options; supplied nested groups replace the entire group. */
   updateOptions: (options: Partial<QuickAssistOptions>) => void
 }
 
