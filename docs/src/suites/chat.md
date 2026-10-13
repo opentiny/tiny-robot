@@ -426,13 +426,13 @@ const disabledErrorUI: ChatUIOptions = {
 
 请求异常处理和操作失败通知见 [请求失败时的提示](./chat-runtime#请求失败时的提示)。
 
-### 管理历史会话
+### 配置历史会话列表
 
-`TrChat` 默认根据 Runtime 的会话生成历史列表，支持切换、重命名和删除。需要分组展示时，通过 `historyData` 属性传入分组数据，无需替换默认列表。
+`TrChat` 默认使用 Runtime 的会话生成历史列表，支持切换、重命名和删除，无需额外传入 `historyData`。需要自定义排序、筛选或分组展示时，可通过 `historyData` 提供列表数据，继续使用内置列表和会话操作。
 
-`historyData` 支持会话数组或 `{ group, items }[]` 分组数组，没有默认值；未传入时使用 Runtime 会话列表。`group` 是分组标题，`items` 是该组的会话数组，每项的 `id` 应对应 Runtime 中已有的会话。
+`historyData` 支持会话数组或 `{ group, items }[]` 分组数组，列表按传入顺序展示；传入 `[]` 时显示空列表。`group` 是分组标题，`items` 是该组的会话数组，每项的 `id` 应对应 Runtime 中已有的会话。
 
-下面按会话中的 `metadata.group` 展示“置顶”“昨天”“30天内”，未设置分组的会话放入“30天内”。`metadata.group` 是本例约定的字段，不是内置日期或置顶配置：
+下面以分组展示为例，按会话中的 `metadata.group` 展示“置顶”“昨天”“30天内”，未设置分组的会话放入“30天内”。`metadata.group` 是本例约定的字段，不是内置日期或置顶配置：
 
 ```ts
 import { computed } from 'vue'
@@ -453,7 +453,9 @@ const historyData = computed<ChatHistoryData>(() =>
 <TrChat class="chat-history" :runtime="runtime" :ui="ui" :history-data="historyData" />
 ```
 
-列表会随会话新增、重命名或删除更新。`ui.history` 用于配置菜单等展示选项，设为 `false` 可隐藏历史列表；默认菜单包含重命名和删除。例如，只保留重命名菜单：
+本例通过 `computed` 根据 Runtime 会话生成分组，列表会随会话新增、重命名或删除更新。
+
+`ui.history` 用于配置菜单等展示选项，可不传，默认菜单包含重命名和删除；设为 `false` 可隐藏历史列表。例如，只保留重命名菜单：
 
 ```ts
 const ui: ChatUIOptions = {

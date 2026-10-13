@@ -78,6 +78,12 @@ const ui: ChatUIOptions = {
   min-height: 0;
 }
 
+.history-groups-demo__chat :deep(.tr-welcome__title-wrapper) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .history-groups-demo__chat :deep(.chat-left-aside-content) {
   overflow-x: hidden;
 }

@@ -170,55 +170,6 @@ await runtime.actions.abort?.()
   description="点击外部按钮发送预设问题，在回答生成过程中停止请求。"
 />
 
-### 会话管理
-
-开始新会话有两种方式：`clearActiveConversation()` 返回新会话页面，默认在发送首条非空消息时创建会话；`createConversation()` 则立即创建并选中会话。
-
-返回新会话页面：
-
-```ts
-await runtime.actions.clearActiveConversation()
-```
-
-立即创建并选中一个会话：
-
-```ts
-await runtime.actions.createConversation({ title: '项目问答' })
-```
-
-> `clearActiveConversation()` 不会删除会话或停止当前请求。需要停止当前请求时，先调用 `abort()`。
-
-切换、重命名或删除已有会话时，传入该会话的 ID。下面三种操作独立使用，其中 `conversationId` 替换为实际 ID：
-
-```ts
-await runtime.actions.switchConversation(conversationId)
-await runtime.actions.renameConversation(conversationId, '新的会话标题')
-await runtime.actions.deleteConversation(conversationId)
-```
-
-新建会话未指定 `title` 时，界面显示 `'新对话'`。默认发送自动创建会话时，标题取首条消息去除首尾空格后的前 20 个字符；通过 `useChatRuntime` 的 `titleGenerator` 可自定义：
-
-```ts
-const runtime = useChatRuntime({
-  modelProviders,
-  titleGenerator: (text) => text.trim().slice(0, 10) || '新对话',
-})
-```
-
-下面的演示使用 `TrChat` 内置历史列表，首次打开时提供两组不同的历史消息：点击会话名称切换会话，通过会话菜单重命名或删除。左侧“新建会话”返回新会话页面，发送消息后才创建会话；上方“立即创建会话”按钮直接调用 `createConversation()`，创建并选中指定标题的会话。
-
-<demo
-  vue="../../demos/chat/runtime-conversations.vue"
-  :vueFiles="[
-    '../../demos/chat/runtime-conversations.vue',
-    '../../demos/chat/shared/modelProviders.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
-    '../../demos/chat/shared/runtime-demo.css'
-  ]"
-  title="使用内置历史列表管理会话"
-  description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
-/>
-
 ### 发送前检查
 
 `useChatRuntime` 的 `beforeSend` 用于在发送前检查登录状态、权限或输入内容；未配置时，不执行自定义检查。函数接收本次发送内容 `payload`，也可读取选中的 `model` 和工具配置 `mcp`，支持异步返回。
@@ -299,6 +250,55 @@ const runtime = useChatRuntime({
 ```
 
 `handleRuntimeError` 是项目中记录日志或显示通知的处理函数，事件参数见 [TrChat 事件](./chat#事件)。错误记录的可选配置见 [错误记录配置](#错误记录配置)。直接调用 `runtime.actions.send()` 时，参考 [发送与取消](#发送与取消) 中的异常处理示例。
+
+### 会话管理
+
+开始新会话有两种方式：`clearActiveConversation()` 返回新会话页面，默认在发送首条非空消息时创建会话；`createConversation()` 则立即创建并选中会话。
+
+返回新会话页面：
+
+```ts
+await runtime.actions.clearActiveConversation()
+```
+
+立即创建并选中一个会话：
+
+```ts
+await runtime.actions.createConversation({ title: '项目问答' })
+```
+
+> `clearActiveConversation()` 不会删除会话或停止当前请求。需要停止当前请求时，先调用 `abort()`。
+
+切换、重命名或删除已有会话时，传入该会话的 ID。下面三种操作独立使用，其中 `conversationId` 替换为实际 ID：
+
+```ts
+await runtime.actions.switchConversation(conversationId)
+await runtime.actions.renameConversation(conversationId, '新的会话标题')
+await runtime.actions.deleteConversation(conversationId)
+```
+
+新建会话未指定 `title` 时，界面显示 `'新对话'`。默认发送自动创建会话时，标题取首条消息去除首尾空格后的前 20 个字符；通过 `useChatRuntime` 的 `titleGenerator` 可自定义：
+
+```ts
+const runtime = useChatRuntime({
+  modelProviders,
+  titleGenerator: (text) => text.trim().slice(0, 10) || '新对话',
+})
+```
+
+下面的演示使用 `TrChat` 内置历史列表，首次打开时提供两组不同的历史消息：点击会话名称切换会话，通过会话菜单重命名或删除。左侧“新建会话”返回新会话页面，发送消息后才创建会话；上方“立即创建会话”按钮直接调用 `createConversation()`，创建并选中指定标题的会话。
+
+<demo
+  vue="../../demos/chat/runtime-conversations.vue"
+  :vueFiles="[
+    '../../demos/chat/runtime-conversations.vue',
+    '../../demos/chat/shared/modelProviders.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/runtime-demo.css'
+  ]"
+  title="使用内置历史列表管理会话"
+  description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
+/>
 
 ### 接入 MCP 工具
 
