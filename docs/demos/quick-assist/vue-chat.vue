@@ -138,6 +138,8 @@ onBeforeUnmount(() => quickAssist?.destroy())
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 18px;
   min-height: 430px;
+  height: 560px;
+  max-height: 560px;
   padding: 18px;
   border: 1px solid var(--tr-border-color, #dfe3e8);
   border-radius: 12px;
@@ -146,6 +148,8 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 .qa-demo__page {
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   line-height: 1.75;
 }
 
@@ -178,6 +182,9 @@ onBeforeUnmount(() => quickAssist?.destroy())
 .qa-demo__assistant {
   display: flex;
   min-height: 390px;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
   flex-direction: column;
   gap: 12px;
   padding: 14px;
@@ -188,6 +195,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 .qa-demo__assistant-head {
   display: flex;
+  flex-shrink: 0;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
@@ -209,7 +217,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 }
 
 .qa-demo__messages {
-  min-height: 160px;
+  min-height: 0;
   flex: 1;
   overflow: auto;
 }
@@ -221,6 +229,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 .qa-demo__context {
   max-height: 150px;
+  flex-shrink: 0;
   overflow: auto;
   font-size: 12px;
 }
@@ -230,9 +239,20 @@ onBeforeUnmount(() => quickAssist?.destroy())
   overflow-wrap: anywhere;
 }
 
+.qa-demo__assistant > :last-child {
+  flex-shrink: 0;
+}
+
 @media (max-width: 700px) {
   .qa-demo {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 2fr);
+    height: 900px;
+    max-height: 900px;
+  }
+
+  .qa-demo__assistant {
+    min-height: 0;
   }
 }
 </style>

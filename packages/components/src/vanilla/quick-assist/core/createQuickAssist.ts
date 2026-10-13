@@ -252,10 +252,12 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     current.controller.abort()
     session = null
     current.state = 'idle'
-    // During re-selection the collector has already recorded the new range (or
-    // cleared the invalid one). Resetting it here would lose the snapshot used
-    // to dismiss a trigger if the same mouse drag later exceeds the limit.
-    if (reason !== 'reselection') selectionModule.reset?.()
+    // Preserve the collector's snapshot on dismissal so the same selection
+    // cannot reactivate on the next keyup/pointerup. Re-selection has already
+    // recorded its new range (or cleared an invalid one).
+    if (reason !== 'reselection' && reason !== 'escape' && reason !== 'manual' && reason !== 'outside') {
+      selectionModule.reset?.()
+    }
     ui.close()
     emit({ type: 'close', sessionId: current.id, reason }, reason === 'destroy')
   }

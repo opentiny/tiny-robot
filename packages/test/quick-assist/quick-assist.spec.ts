@@ -91,6 +91,67 @@ test('suggestion label is distinct from prompt and single click submits', async 
   await expect(page.locator(popover)).toHaveCount(0)
 })
 
+for (const reason of ['escape', 'manual', 'outside'] as const) {
+  test(`${reason} dismissal stays closed for the same selection and allows a new selection`, async ({ page }) => {
+    await dragSelectText(page, '#term')
+    await expect(page.locator(trigger)).toBeVisible()
+    if (reason === 'escape') await page.keyboard.press('Escape')
+    else if (reason === 'manual') await page.evaluate(() => window.qa.close())
+    else {
+      // Keep the page selection intact, as a non-selectable host control can.
+      await page.locator('#outside-button').evaluate((element) => {
+        element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      })
+    }
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
+      document.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'mouse' }))
+    })
+    await expect(page.locator(trigger)).toHaveCount(0)
+    expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
+    await select(page, '#other-term')
+    await expect(page.locator(trigger)).toBeVisible()
+  })
+}
+
+test('default recommendation labels insert dollar sequences literally', async ({ page }) => {
+  const text = "a$&b x$$y c$`d e$'f"
+  await page.locator('#term').evaluate((element, value) => (element.textContent = value), text)
+  await open(page)
+  await expect(page.getByRole('button', { name: `解释 ${text}`, exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: `${text}适用场景`, exact: true })).toBeVisible()
+})
+
+test('canceled touch allows subsequent mouse and keyboard selection', async ({ page }) => {
+  await page.evaluate(() => {
+    document.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch' }))
+    document.dispatchEvent(new PointerEvent('pointercancel', { pointerType: 'touch' }))
+  })
+  await page.waitForTimeout(350)
+  await dragSelectText(page, '#term')
+  await expect(page.locator(trigger)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.locator('#other-term').evaluate((element) => {
+    const selection = window.getSelection()!
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }))
+  })
+  await expect(page.locator(trigger)).toBeVisible()
+})
+
+test('disable clears an unfinished touch gesture before re-enable', async ({ page }) => {
+  await page.evaluate(() => {
+    document.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch' }))
+    window.qa.disable()
+    window.qa.enable()
+  })
+  await select(page)
+  await expect(page.locator(trigger)).toBeVisible()
+})
+
 test('default validation rejects invalid and excluded selections', async ({ page }) => {
   for (const id of [
     'url',
@@ -163,7 +224,7 @@ test('default trigger appears only after mouse selection ends', async ({ page })
 })
 
 test('showDelay waits after selection settles and emits trigger_show only when visible', async ({ page }) => {
-  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 180 } }))
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   await select(page, '#term')
   await expect(page.locator(trigger)).toHaveCount(0)
   expect(await page.evaluate(() => window.qaEvents.map((event) => event.type))).toEqual(['selection'])
@@ -174,7 +235,7 @@ test('showDelay waits after selection settles and emits trigger_show only when v
 })
 
 test('showDelay restarts for a newer selection and cancels an invalid selection', async ({ page }) => {
-  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 200 } }))
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
   await select(page, '#term')
   await page.waitForTimeout(100)
   await select(page, '#other-term')

@@ -2,6 +2,7 @@ import { chromium, expect } from '@playwright/test'
 
 const url = process.argv[2] || 'http://127.0.0.1:4173/components/quick-assist.html'
 const standalone = new URL(url).pathname.endsWith('/docs/demos/quick-assist/vanilla.html')
+const screenshotRoot = process.argv[3]
 const browser = await chromium.launch({ headless: true })
 
 try {
@@ -158,12 +159,11 @@ try {
     await page.locator('.tr-quick-assist__popover').getByText('查看注意事项').click()
     await expect(page.locator('#qa-recommendations-text').locator('..').locator('pre')).toContainText('查看注意事项')
 
-    const contextText = page.locator('#qa-context-text p').first()
+    const contextText = page.locator('#qa-context-tenant')
     await contextText.scrollIntoViewIfNeeded()
     await contextText.evaluate((element) => {
       const range = document.createRange()
-      range.setStart(element.firstChild, 0)
-      range.setEnd(element.firstChild, 3)
+      range.selectNodeContents(element)
       const selection = window.getSelection()
       selection.removeAllRanges()
       selection.addRange(range)
@@ -172,6 +172,74 @@ try {
     await page.locator('.tr-quick-assist__trigger').click()
     await page.locator('.tr-quick-assist__popover textarea').press('Enter')
     await expect(page.locator('#qa-context-text').locator('..').locator('pre')).toContainText('[已脱敏]')
+    const submittedContext = JSON.parse(
+      await page.locator('#qa-context-text').locator('..').locator('pre').textContent(),
+    )
+    expect(submittedContext.上下文.text).toBe('[已脱敏]')
+    expect(submittedContext.上下文.selection.text).toBe('[已脱敏]')
+    expect(submittedContext.上下文.nearbyText).toContain('[已脱敏]')
+    expect(submittedContext.上下文.businessContext.tenantId).toBe('[已脱敏]')
+    expect(JSON.stringify(submittedContext)).not.toContain('tenant-demo-4812')
+    const sensitiveText = page.locator('#qa-context-text [data-sensitive]')
+    await sensitiveText.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+
+    // Exercise the actual adapter with enough messages to overflow the panel.
+    const chatDemo = page.locator('.qa-demo')
+    await chatDemo.getByRole('button', { name: '打开 AI 对话', exact: true }).click()
+    const chatText = chatDemo.locator('.qa-demo__page p').first()
+    for (let index = 0; index < 8; index++) {
+      await chatText.scrollIntoViewIfNeeded()
+      await chatText.evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        document.dispatchEvent(new Event('selectionchange'))
+      })
+      await page.locator('.tr-quick-assist__trigger').click()
+      await page.locator('.tr-quick-assist__popover textarea').press('Enter')
+      await expect(chatDemo.locator('.tr-bubble')).toHaveCount((index + 1) * 2)
+    }
+    const checkChatHeight = async (maxHeight) => {
+      const geometry = await chatDemo.evaluate((element) => {
+        const panel = element.querySelector('.qa-demo__assistant')
+        const messages = element.querySelector('.qa-demo__messages')
+        const panelRect = panel.getBoundingClientRect()
+        const senderRect = panel.lastElementChild.getBoundingClientRect()
+        return {
+          height: element.getBoundingClientRect().height,
+          panelHeight: panel.clientHeight,
+          panelContent: panel.scrollHeight,
+          messagesHeight: messages.clientHeight,
+          messagesContent: messages.scrollHeight,
+          senderHeight: senderRect.height,
+          senderBottom: senderRect.bottom,
+          panelBottom: panelRect.bottom,
+        }
+      })
+      expect(geometry.height).toBeLessThanOrEqual(maxHeight)
+      expect(geometry.panelContent).toBeLessThanOrEqual(geometry.panelHeight + 1)
+      expect(geometry.messagesContent).toBeGreaterThan(geometry.messagesHeight)
+      expect(geometry.messagesHeight).toBeGreaterThanOrEqual(80)
+      expect(geometry.senderHeight).toBeGreaterThan(0)
+      expect(geometry.senderBottom).toBeLessThanOrEqual(geometry.panelBottom)
+    }
+    await checkChatHeight(560)
+    if (screenshotRoot) {
+      await chatDemo.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+      await chatDemo.screenshot({ path: `${screenshotRoot}/chat-desktop.png`, animations: 'disabled' })
+    }
+    await chatDemo.locator('summary').click()
+    await checkChatHeight(560)
 
     const longText = page.locator('#qa-scope-allowed p').nth(1)
     await longText.scrollIntoViewIfNeeded()
@@ -193,6 +261,13 @@ try {
       '已模拟路由切换并关闭当前会话，划词功能仍保持原有启停状态',
     )
     await page.setViewportSize({ width: 390, height: 900 })
+    await checkChatHeight(900)
+    if (screenshotRoot) {
+      await page.setViewportSize({ width: 390, height: 1100 })
+      await chatDemo.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+      await chatDemo.screenshot({ path: `${screenshotRoot}/chat-mobile.png`, animations: 'disabled' })
+      await page.setViewportSize({ width: 390, height: 900 })
+    }
     const mobileFrame = await page
       .locator('iframe')
       .first()

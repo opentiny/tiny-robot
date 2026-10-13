@@ -23,7 +23,7 @@ function renderMessage(
   fallback: string,
 ): string {
   const value = typeof message === 'function' ? message(text) : message
-  return (value ?? fallback).replace(/\{text\}/gu, text)
+  return (value ?? fallback).replace(/\{text\}/gu, () => text)
 }
 
 function defaultSuggestions(context: QuickAssistContext, messages: QuickAssistMessages): Suggestion[] {

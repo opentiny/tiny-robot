@@ -320,6 +320,9 @@ export function createSelectionModule(options: SelectionModuleOptions): Selectio
     if (event.isComposing) return
     inspect()
   }
+  const onPointerCancel = (event: PointerEvent) => {
+    if (event.pointerType === 'touch') ignoreTouchUntil = Date.now() + 300
+  }
 
   const enable = () => {
     if (enabled) return
@@ -327,15 +330,18 @@ export function createSelectionModule(options: SelectionModuleOptions): Selectio
     root.addEventListener('selectionchange', onSelectionChange)
     root.addEventListener('pointerdown', onPointerDown)
     root.addEventListener('pointerup', onPointerUp)
+    root.addEventListener('pointercancel', onPointerCancel)
     root.addEventListener('keyup', onKeyUp)
   }
   const disable = () => {
     if (!enabled) return
     enabled = false
     lastSnapshot = null
+    ignoreTouchUntil = 0
     root.removeEventListener('selectionchange', onSelectionChange)
     root.removeEventListener('pointerdown', onPointerDown)
     root.removeEventListener('pointerup', onPointerUp)
+    root.removeEventListener('pointercancel', onPointerCancel)
     root.removeEventListener('keyup', onKeyUp)
   }
 
