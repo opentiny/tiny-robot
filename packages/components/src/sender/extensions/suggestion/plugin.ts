@@ -404,7 +404,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // 快捷键选中建议项
-        if (activeSuggestionKeys.includes(event.key)) {
+        if (!isKey(event, 'TAB') && activeSuggestionKeys.includes(event.key)) {
           event.preventDefault()
           selectAndClose(view, state)
           return true
