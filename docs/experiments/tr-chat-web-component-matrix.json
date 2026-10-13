@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-14T01:05:00.000+08:00",
+  "examples": [
+    {
+      "id": "basic",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Owned Runtime is configured through runtimeOptions and send uses the element method."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Rendered layout and overflow invariants are checked; pixel-diff parity is not yet automated."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "layout-presets",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/layout-presets.vue",
+      "behavior": { "status": "direct", "evidence": "The same ui.layout options are reassigned as DOM properties." },
+      "visual": {
+        "status": "partial",
+        "evidence": "Preset layout geometry and overflow are checked without pixel snapshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "welcome-prompts",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/welcome-prompts.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "prompt-click CustomEvent updates the controlled inputValue property."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Welcome and prompts render through the same Vue components; no pixel diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "sender-options",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/sender-options.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "defaultInputValue and serializable Sender options use DOM properties."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Sender visibility and container geometry are checked without pixel diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "bubble-options",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/bubble-options.vue",
+      "behavior": { "status": "direct", "evidence": "Message data and serializable Bubble options pass unchanged." },
+      "visual": {
+        "status": "partial",
+        "evidence": "Both roles render and layout invariants are checked without pixel diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-error",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/runtime-error.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "runtime-action-error remains distinct and replacing runtime recovers the UI."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Error recovery is behavior-tested; pixel parity is not applicable to the external controls."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "history-groups",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/history-groups.vue",
+      "behavior": { "status": "direct", "evidence": "Grouped history data passes through the data property." },
+      "visual": { "status": "partial", "evidence": "Grouped labels render; no pixel-diff baseline is stored." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "slots-basic",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/slots-basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Static slots use Light DOM and scoped slots use Node renderers with AbortSignal cleanup."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Static and renderer output are asserted; no Vue-versus-element pixel diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "right-aside-panel",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/right-aside-panel.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Panel content uses a renderer and is controlled by element methods."
+      },
+      "visual": { "status": "partial", "evidence": "Panel visibility and overflow are checked without pixel diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "floating-layout",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/floating-layout.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "floatingState and floating-state-update preserve the existing layout contract."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Floating geometry is retained but drag screenshots are not diffed."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "responsive-layout",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/responsive-layout.vue",
+      "behavior": { "status": "direct", "evidence": "Container resizing drives the existing responsive layout." },
+      "visual": {
+        "status": "partial",
+        "evidence": "Narrow and wide container geometry is checked without screenshot diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "controlled-ui",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/controlled-ui.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Vue update events map to *-update CustomEvents and property reassignment."
+      },
+      "visual": { "status": "partial", "evidence": "Controlled value changes are asserted without pixel diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-actions",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-actions.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Element send() and getRuntime().actions.abort() expose the same actions."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Action outcomes are asserted; external-control pixels are not compared."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-before-send",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-before-send.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "beforeSend receives the same context and returns reject or continue."
+      },
+      "visual": {
+        "status": "partial",
+        "evidence": "Rejected and accepted states are behavior-tested without pixel diff."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-composer",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-composer.vue",
+      "behavior": { "status": "direct", "evidence": "Structural composer readable values preserve disabled states." },
+      "visual": { "status": "partial", "evidence": "Control-state behavior is exercised without pixel diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-conversations",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-conversations.vue",
+      "behavior": { "status": "direct", "evidence": "Conversation readables and actions retain the Runtime protocol." },
+      "visual": { "status": "partial", "evidence": "Conversation switches render correctly without screenshot diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-send",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-send.vue",
+      "behavior": { "status": "direct", "evidence": "The send element method returns the Runtime boolean result." },
+      "visual": { "status": "partial", "evidence": "Message completion is behavior-tested without pixel diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "runtime-adapter",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-adapter.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Business-owned state uses data properties and submit CustomEvents."
+      },
+      "visual": { "status": "partial", "evidence": "Adapter output reuses TrChatUI rendering without pixel diff." },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    }
+  ],
+  "summary": {
+    "behaviorCoverage": { "covered": 18, "applicable": 18, "percent": 100 }
+  }
+}
