@@ -1,7 +1,20 @@
 import './experimental.css'
 
-/**
- * Marks the opt-in Web Component surface while the concrete elements are
- * developed behind the experimental package entry.
- */
-export const TR_CHAT_EXPERIMENTAL = true as const
+export { dispatchExperimentalEvent, toExperimentalEventName } from './events'
+export { createRendererHost } from './renderers'
+export { whenTrChatReady } from './readiness'
+export { defineTrChatElements, TrChatElement, TrChatUIElement } from './register'
+
+export type { ExperimentalErrorDetail, ExperimentalEventInit } from './events'
+export type {
+  ExperimentalRenderer,
+  ExperimentalRendererHost,
+  ExperimentalRendererLifecycle,
+  ExperimentalRendererResult,
+} from './renderers'
+export type {
+  TrChatElementConstructor,
+  TrChatElementConstructors,
+  TrChatHTMLElement,
+  TrChatUIHTMLElement,
+} from './types'

@@ -45,3 +45,28 @@ test('does not expose temporary workflow files', () => {
     assert.doesNotMatch(JSON.stringify(target), /superpowers|specs|plans/)
   }
 })
+
+test('keeps experimental declarations framework-neutral and internally resolvable', () => {
+  const declarationFiles = fs
+    .readdirSync(path.join(packageDir, 'dist'))
+    .filter((name) => name.endsWith('.d.ts') && name !== 'index.d.ts')
+
+  for (const name of declarationFiles) {
+    const file = path.join(packageDir, 'dist', name)
+    const source = fs.readFileSync(file, 'utf8')
+    assert.doesNotMatch(source, /from\s+['"]vue['"]|import\(['"]vue['"]\)/, `${name} exposes Vue types`)
+
+    for (const [, specifier] of source.matchAll(/from\s+['"](\.{1,2}\/[^'"]*|\.{1,2})['"]/g)) {
+      const target = path.resolve(path.dirname(file), specifier)
+      const packageFile = path.join(target, 'package.json')
+      const packageTypes = fs.existsSync(packageFile)
+        ? path.resolve(target, JSON.parse(fs.readFileSync(packageFile, 'utf8')).types ?? '')
+        : undefined
+      const resolves = [`${target}.d.ts`, path.join(target, 'index.d.ts'), packageTypes].some(
+        (candidate) => candidate && fs.existsSync(candidate),
+      )
+
+      assert.equal(resolves, true, `${name} has an unresolved declaration import: ${specifier}`)
+    }
+  }
+})

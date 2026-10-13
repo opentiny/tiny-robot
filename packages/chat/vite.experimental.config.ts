@@ -17,7 +17,7 @@ export default defineConfig({
       beforeWriteFile(filePath, content) {
         return {
           filePath: filePath.replace(/index\.d\.ts$/, 'experimental.d.ts'),
-          content,
+          content: content.replace(/from ['"]\.\.\/types['"]/g, "from '..'"),
         }
       },
     }),
