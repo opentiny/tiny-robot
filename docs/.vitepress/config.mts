@@ -44,6 +44,16 @@ export default defineConfig({
         ...(process.env.VP_MODE === 'development'
           ? [
               {
+                find: /^@opentiny\/tiny-robot-chat\/experimental$/,
+                replacement: fileURLToPath(new URL('../../packages/chat/src/experimental/index.ts', import.meta.url)),
+              },
+              {
+                find: /^@opentiny\/tiny-robot-chat\/experimental\.css$/,
+                replacement: fileURLToPath(
+                  new URL('../../packages/chat/src/experimental/experimental.css', import.meta.url),
+                ),
+              },
+              {
                 find: /^@opentiny\/tiny-robot-chat$/,
                 replacement: fileURLToPath(new URL('../../packages/chat/src/index.ts', import.meta.url)),
               },

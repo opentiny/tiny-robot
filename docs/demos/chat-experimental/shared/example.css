@@ -1,0 +1,77 @@
+.tr-chat-experiment-gallery {
+  display: grid;
+  gap: 24px;
+}
+
+.tr-chat-experiment-card {
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+}
+
+.tr-chat-experiment-card__header,
+.tr-chat-experiment-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tr-chat-experiment-card__header {
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.tr-chat-experiment-card__header h3,
+.tr-chat-experiment-card__header p {
+  margin: 0;
+}
+
+.tr-chat-experiment-card__header p {
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+}
+
+.tr-chat-experiment-controls {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.tr-chat-experiment-controls button,
+.tr-chat-experiment-controls label {
+  font: inherit;
+}
+
+.tr-chat-experiment-controls button {
+  padding: 4px 10px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  cursor: pointer;
+}
+
+.tr-chat-experiment-host {
+  position: relative;
+  height: 420px;
+  background: var(--tr-container-bg-default, #fff);
+}
+
+.tr-chat-experiment-host > tr-chat,
+.tr-chat-experiment-host > tr-chat-ui {
+  height: 100%;
+}
+
+.tr-chat-experiment-log {
+  min-height: 24px;
+  padding: 6px 12px;
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .tr-chat-experiment-host {
+    height: 520px;
+  }
+}

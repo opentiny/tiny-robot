@@ -1,0 +1,122 @@
+[
+  { "id": "basic", "title": "基础聊天", "group": "Chat", "baseline": "../chat/basic.vue", "module": "basic.ts" },
+  {
+    "id": "layout-presets",
+    "title": "布局预设",
+    "group": "Chat",
+    "baseline": "../chat/layout-presets.vue",
+    "module": "layout-presets.ts"
+  },
+  {
+    "id": "welcome-prompts",
+    "title": "欢迎区与推荐问题",
+    "group": "Chat",
+    "baseline": "../chat/welcome-prompts.vue",
+    "module": "welcome-prompts.ts"
+  },
+  {
+    "id": "sender-options",
+    "title": "输入区配置",
+    "group": "Chat",
+    "baseline": "../chat/sender-options.vue",
+    "module": "sender-options.ts"
+  },
+  {
+    "id": "bubble-options",
+    "title": "消息气泡配置",
+    "group": "Chat",
+    "baseline": "../chat/bubble-options.vue",
+    "module": "bubble-options.ts"
+  },
+  {
+    "id": "runtime-error",
+    "title": "Runtime 错误恢复",
+    "group": "Chat",
+    "baseline": "../chat/runtime-error.vue",
+    "module": "runtime-error.ts"
+  },
+  {
+    "id": "history-groups",
+    "title": "会话历史分组",
+    "group": "Chat",
+    "baseline": "../chat/history-groups.vue",
+    "module": "history-groups.ts"
+  },
+  {
+    "id": "slots-basic",
+    "title": "Slot 与 renderer",
+    "group": "Chat",
+    "baseline": "../chat/slots-basic.vue",
+    "module": "slots-basic.ts"
+  },
+  {
+    "id": "right-aside-panel",
+    "title": "右侧面板",
+    "group": "Chat",
+    "baseline": "../chat/right-aside-panel.vue",
+    "module": "right-aside-panel.ts"
+  },
+  {
+    "id": "floating-layout",
+    "title": "浮动布局",
+    "group": "Chat",
+    "baseline": "../chat/floating-layout.vue",
+    "module": "floating-layout.ts"
+  },
+  {
+    "id": "responsive-layout",
+    "title": "响应式布局",
+    "group": "Chat",
+    "baseline": "../chat/responsive-layout.vue",
+    "module": "responsive-layout.ts"
+  },
+  {
+    "id": "controlled-ui",
+    "title": "受控 UI",
+    "group": "Chat",
+    "baseline": "../chat/controlled-ui.vue",
+    "module": "controlled-ui.ts"
+  },
+  {
+    "id": "runtime-actions",
+    "title": "外部发送与取消",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-actions.vue",
+    "module": "runtime-actions.ts"
+  },
+  {
+    "id": "runtime-before-send",
+    "title": "发送前检查",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-before-send.vue",
+    "module": "runtime-before-send.ts"
+  },
+  {
+    "id": "runtime-composer",
+    "title": "Composer 状态",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-composer.vue",
+    "module": "runtime-composer.ts"
+  },
+  {
+    "id": "runtime-conversations",
+    "title": "会话操作",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-conversations.vue",
+    "module": "runtime-conversations.ts"
+  },
+  {
+    "id": "runtime-send",
+    "title": "Runtime send",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-send.vue",
+    "module": "runtime-send.ts"
+  },
+  {
+    "id": "runtime-adapter",
+    "title": "自有状态适配",
+    "group": "Runtime",
+    "baseline": "../chat/runtime-adapter.vue",
+    "module": "runtime-adapter.ts"
+  }
+]
