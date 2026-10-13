@@ -1,4 +1,5 @@
 import vue from '@vitejs/plugin-vue'
+import { rmSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
@@ -13,7 +14,12 @@ export default defineConfig({
       outDir: 'dist',
       entryRoot: 'src/experimental',
       include: ['src/experimental'],
-      exclude: ['src/experimental/**/*.test.*'],
+      exclude: [
+        'src/experimental/**/*.test.*',
+        'src/experimental/**/*.ce.vue',
+        'src/experimental/elementHost.ts',
+        'src/experimental/elementRenderers.ts',
+      ],
       tsconfigPath: resolve(__dirname, 'tsconfig.experimental.json'),
       beforeWriteFile(filePath, content) {
         return {
@@ -27,6 +33,19 @@ export default defineConfig({
         }
       },
     }),
+    {
+      name: 'remove-internal-experimental-declarations',
+      closeBundle() {
+        for (const file of [
+          'TrChatElement.ce.vue.d.ts',
+          'TrChatUIElement.ce.vue.d.ts',
+          'elementHost.d.ts',
+          'elementRenderers.d.ts',
+        ]) {
+          rmSync(resolve(__dirname, 'dist', file), { force: true })
+        }
+      },
+    },
   ],
   build: {
     lib: {

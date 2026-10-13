@@ -236,6 +236,30 @@ test.describe('experimental renderer lifecycle', () => {
 
     expect(result).toEqual({ message: 'renderer failed', text: 'recovered', connected: true })
   })
+
+  test('clears and aborts the previous renderer when its replacement throws', async ({ mount, page }) => {
+    await mount(ProtocolFixture)
+
+    const result = await page.evaluate(() => {
+      const host = document.createElement('div')
+      const rendererHost = window.__trChatProtocol.createRendererHost(host)
+      let firstSignal: AbortSignal | undefined
+
+      rendererHost.render((_context, lifecycle) => {
+        firstSignal = lifecycle.signal
+        const node = document.createElement('span')
+        node.textContent = 'stale output'
+        return node
+      }, {})
+      rendererHost.render(() => {
+        throw new Error('replacement failed')
+      }, {})
+
+      return { firstAborted: firstSignal?.aborted, childCount: host.childNodes.length }
+    })
+
+    expect(result).toEqual({ firstAborted: true, childCount: 0 })
+  })
 })
 
 declare global {

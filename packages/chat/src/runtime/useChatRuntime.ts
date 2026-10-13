@@ -90,7 +90,7 @@ export function createChatRuntimeLifecycle(options: UseChatRuntimeOptions) {
         mcp: resolvedMcp?.runtime,
       },
     }),
-    dispose: conversation.dispose,
+    dispose: () => conversation.dispose?.() ?? Promise.resolve(),
   }
 }
 

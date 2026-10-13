@@ -17,7 +17,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": {
           "status": "direct",
@@ -41,7 +41,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -62,7 +62,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -83,7 +83,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -101,7 +101,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -122,7 +122,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -137,7 +137,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -158,7 +158,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": {
           "status": "direct",
@@ -182,7 +182,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -203,7 +203,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -221,7 +221,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": {
           "status": "direct",
@@ -245,7 +245,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -266,7 +266,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -287,7 +287,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -302,7 +302,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -317,7 +317,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -332,7 +332,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": {
           "status": "direct",
@@ -356,7 +356,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium full 18-example behavior and normalized layout matrix passed."
+          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -368,19 +368,19 @@
   },
   "measurements": {
     "stable": {
-      "js": { "rawBytes": 130133, "gzipBytes": 33339 },
+      "js": { "rawBytes": 130232, "gzipBytes": 33362 },
       "css": { "rawBytes": 13828, "gzipBytes": 2637 }
     },
     "experimental": {
-      "js": { "rawBytes": 2283848, "gzipBytes": 607234 },
+      "js": { "rawBytes": 2283940, "gzipBytes": 607215 },
       "css": { "rawBytes": 121957, "gzipBytes": 12902 },
       "bundlesVue": true
     },
     "firstMount": {
-      "samplesMs": [2.2, 1.4, 1.1, 1.1, 1.4],
-      "minMs": 1.1,
-      "medianMs": 1.4,
-      "maxMs": 2.2,
+      "samplesMs": [2, 1.1, 0.8, 0.8, 0.7],
+      "minMs": 0.7,
+      "medianMs": 0.8,
+      "maxMs": 2,
       "consoleErrors": []
     }
   },

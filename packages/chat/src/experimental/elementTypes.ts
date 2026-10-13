@@ -60,6 +60,7 @@ export interface TrChatSharedElementProperties {
 
 export interface TrChatHTMLElement extends HTMLElement, TrChatSharedElementProperties {
   runtime?: ChatRuntime
+  /** Initial owned Runtime configuration. Set before connecting the element. */
   runtimeOptions?: CreateChatRuntimeOptions
   historyData?: ChatHistoryData
   send(payload: ChatSendPayload): Promise<boolean>

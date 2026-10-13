@@ -1,6 +1,7 @@
 import type { ChatRuntime, ChatUIData, ChatUIOptions } from '@opentiny/tiny-robot-chat'
 import type { TrChatRenderers } from '@opentiny/tiny-robot-chat/experimental'
 import { createDemoRuntimeOptions } from './createRuntime'
+import { mockStreamingResponseProvider } from './modelProviders'
 import {
   addButton,
   addControls,
@@ -276,11 +277,12 @@ export const runtimeActions = defineExample(
   async (host) => {
     const controls = addControls(host)
     const log = addLog(host)
-    const runtimeOptions = createDemoRuntimeOptions()
+    const runtimeOptions = createDemoRuntimeOptions({ responseProvider: mockStreamingResponseProvider })
     const element = await mountChat(host, { runtimeOptions, ui: { layout: { leftAside: false } } })
     addButton(controls, '发送预设问题', async () => log(`send: ${await element.send({ text: '外部发送' })}`))
     addButton(controls, '停止请求', async () => {
       await element.getRuntime()?.actions.abort?.()
+      host.dataset.abortStatus = 'complete'
       log('abort 已调用')
     })
     return () => element.remove()

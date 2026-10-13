@@ -77,5 +77,5 @@ export interface UseConversationReturn {
    * Release in-memory engines and persistence watchers without deleting
    * conversations or messages from the configured storage.
    */
-  dispose: () => Promise<void>
+  dispose?: () => Promise<void>
 }

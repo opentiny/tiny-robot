@@ -1,4 +1,4 @@
-import type { ChatCompletion, ResponseProvider } from '@opentiny/tiny-robot-kit'
+import type { ChatCompletion, ChatCompletionChunk, ResponseProvider } from '@opentiny/tiny-robot-kit'
 
 export const mockResponseProvider: ResponseProvider = async (request) => {
   const prompt = String(request.messages.at(-1)?.content ?? '')
@@ -19,4 +19,35 @@ export const mockResponseProvider: ResponseProvider = async (request) => {
     ],
   }
   return completion
+}
+
+export const mockStreamingResponseProvider: ResponseProvider = async function* (_request, signal) {
+  const chunks = ['Web Component ', '流式响应', '已完成']
+
+  for (const [index, content] of chunks.entries()) {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(resolve, 150)
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timeout)
+          reject(new DOMException('Request aborted', 'AbortError'))
+        },
+        { once: true },
+      )
+    })
+    yield {
+      id: 'web-component-stream',
+      object: 'chat.completion.chunk',
+      created: 1,
+      model: 'mock-web-component',
+      choices: [
+        {
+          index: 0,
+          delta: { role: 'assistant', content },
+          finish_reason: index === chunks.length - 1 ? 'stop' : null,
+        },
+      ],
+    } as ChatCompletionChunk
+  }
 }

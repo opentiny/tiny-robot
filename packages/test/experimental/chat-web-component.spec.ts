@@ -50,6 +50,12 @@ test('validates the complete Chromium example matrix and normalized layout invar
   await beforeSend.getByRole('button', { name: '尝试发送' }).click()
   await expect(beforeSend.locator('[data-event-log]')).toContainText('true')
 
+  const runtimeActions = page.locator('[data-example-id="runtime-actions"]')
+  await runtimeActions.getByRole('button', { name: '发送预设问题' }).click()
+  await expect(runtimeActions.getByText('流式响应', { exact: false })).toBeVisible()
+  await runtimeActions.getByRole('button', { name: '停止请求' }).click()
+  await expect(runtimeActions.locator('[data-example-host]')).toHaveAttribute('data-abort-status', 'complete')
+
   expect(consoleErrors).toEqual([])
   expect(readCompatibilityMatrix().examples.map(({ id }) => id)).toEqual(EXAMPLE_IDS)
 })

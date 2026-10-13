@@ -540,4 +540,53 @@ describe('useConversation lifecycle', () => {
     await firstDispose
     expect(disposed).toBe(true)
   })
+
+  it('ignores a conversation list that finishes loading after disposal', async () => {
+    let resolveLoad!: (items: ConversationInfo[]) => void
+    const delayedLoad = new Promise<ConversationInfo[]>((resolve) => {
+      resolveLoad = resolve
+    })
+    const onLoad = vi.fn()
+    const api = useConversation({
+      storage: {
+        loadConversations: () => delayedLoad,
+        loadMessages: () => [],
+      },
+      useMessageOptions: { responseProvider },
+      onLoad,
+    })
+
+    await api.dispose()
+    resolveLoad([info('late')])
+    await delayedLoad
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(api.conversations.value).toEqual([])
+    expect(onLoad).not.toHaveBeenCalled()
+  })
+
+  it('does not activate or recreate an engine when message loading finishes after disposal', async () => {
+    let resolveMessages!: (items: ChatMessage[]) => void
+    const delayedMessages = new Promise<ChatMessage[]>((resolve) => {
+      resolveMessages = resolve
+    })
+    const api = useConversation({
+      storage: {
+        loadConversations: () => [info('stored')],
+        loadMessages: () => delayedMessages,
+      },
+      useMessageOptions: { responseProvider },
+    })
+    await vi.waitFor(() => expect(api.conversations.value).toHaveLength(1))
+
+    const switching = api.switchConversation('stored')
+    await Promise.resolve()
+    await api.dispose()
+    resolveMessages([{ role: 'user', content: 'late' }])
+
+    await expect(switching).resolves.toBeNull()
+    expect(api.activeConversationId.value).toBeNull()
+    expect(api.activeConversation.value).toBeNull()
+  })
 })

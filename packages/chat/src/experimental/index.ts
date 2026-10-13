@@ -2,7 +2,7 @@ import './experimental.css'
 
 export { dispatchExperimentalEvent, toExperimentalEventName } from './events'
 export { TR_CHAT_EVENT_NAMES, TR_CHAT_UI_EVENT_NAMES, forwardElementEvent } from './elementEvents'
-export { SCOPED_RENDERER_NAMES, STATIC_SLOT_NAMES } from './elementRenderers'
+export { SCOPED_RENDERER_NAMES, STATIC_SLOT_NAMES } from './elementSlots'
 export { createRendererHost } from './renderers'
 export { whenTrChatReady } from './readiness'
 export { defineTrChatElements, TrChatElement, TrChatUIElement } from './register'

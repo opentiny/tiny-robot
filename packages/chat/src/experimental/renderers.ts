@@ -35,6 +35,7 @@ export function createRendererHost(host: HTMLElement): ExperimentalRendererHost 
 
   return {
     render(renderer, context) {
+      clear()
       const nextController = new AbortController()
       let nodes: Node[]
 
@@ -49,7 +50,6 @@ export function createRendererHost(host: HTMLElement): ExperimentalRendererHost 
         return
       }
 
-      activeController?.abort()
       activeController = nextController
       host.replaceChildren(...nodes)
     },
