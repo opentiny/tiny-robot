@@ -77,4 +77,8 @@ const ui: ChatUIOptions = {
   height: 100%;
   min-height: 0;
 }
+
+.history-groups-demo__chat :deep(.chat-left-aside-content) {
+  overflow-x: hidden;
+}
 </style>

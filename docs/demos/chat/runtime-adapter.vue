@@ -51,6 +51,7 @@ const responseProvider: ResponseProvider = async (requestBody) => {
 const conversation = useConversation({
   storage: memoryStorage,
   autoSaveMessages: true,
+  autoSaveThrottle: 0,
   useMessageOptions: { responseProvider },
 })
 const runtime = useChatRuntimeFromConversation({ conversation })

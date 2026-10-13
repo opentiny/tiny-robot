@@ -416,7 +416,13 @@ const disabledErrorUI: ChatUIOptions = {
   description="使用本地模拟请求，查看默认错误提示和正常回复。"
 />
 
-> 默认提示的样式变量为 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width`。单独使用 `Bubble` 或 `BubbleProvider` 时，错误提示默认关闭。
+默认错误提示支持以下 CSS 变量：
+
+- `--tr-bubble-error-color`：文字颜色。
+- `--tr-bubble-error-bg`：背景颜色。
+- `--tr-bubble-error-border-radius`：圆角大小。
+
+更多样式配置见 [Bubble CSS 变量](../components/bubble#css-变量)。
 
 请求异常处理和操作失败通知见 [请求失败时的提示](./chat-runtime#请求失败时的提示)。
 
@@ -485,7 +491,11 @@ const ui: ChatUIOptions = {
 
 ### 插槽定制
 
-本示例使用 `layout-header` 自定义页头、`bubble-content-footer` 添加消息反馈按钮、`composer-after` 添加输入框下方的提示。
+本示例使用以下插槽：
+
+- `layout-header`：自定义页头。
+- `bubble-content-footer`：添加消息反馈按钮。
+- `composer-after`：添加输入框下方的提示。
 
 <demo
   vue="../../demos/chat/slots-basic.vue"
@@ -549,9 +559,12 @@ const ui: ChatUIOptions = {
 
 ### 浮动聊天窗口
 
-`ui.layout.surface.mode` 用于设置聊天界面的显示方式，默认是 `'normal'`，显示在父容器中；设为 `'floating'` 时显示为浮动窗口。
+`ui.layout.surface` 用于配置聊天界面的显示方式，可在父容器中显示，也可作为浮动窗口显示。它包含以下两个属性：
 
-通过 `ui.layout.surface.floatingOptions` 配置窗口的拖动、缩放和尺寸限制：
+- `mode`：选择显示方式，默认 `'normal'`，显示在父容器中；设为 `'floating'` 时显示为浮动窗口。
+- `floatingOptions`：配置浮动窗口的拖动、缩放和尺寸限制，仅在 `mode` 为 `'floating'` 时生效。
+
+`floatingOptions` 的常用字段如下：
 
 | 字段                     | 用途                          | 默认值或行为                      |
 | ------------------------ | ----------------------------- | --------------------------------- |

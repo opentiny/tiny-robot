@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
 import type { ConversationStorageStrategy, MessageRequestBody, ResponseProvider } from '@opentiny/tiny-robot-kit'
-import { TrChat, useChatRuntime, type ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
+import {
+  TrChat,
+  useChatRuntime,
+  type ChatRuntimeActionErrorPayload,
+  type ChatUIOptions,
+} from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
 let responseIndex = 0
@@ -48,6 +53,11 @@ const runtime = useChatRuntime({
   conversation: { storage: memoryStorage, useMessageOptions: { responseProvider } },
 })
 const actionStatus = shallowRef('尚未收到操作失败通知')
+const ui: ChatUIOptions = {
+  layout: { leftAside: false, rightAside: false },
+  welcome: false,
+  prompts: false,
+}
 
 function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
   actionStatus.value = payload.action === 'send' ? '已收到发送失败通知' : '已收到操作失败通知'
@@ -59,7 +69,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
     <p class="runtime-error-demo__hint">发送包含“失败”的内容可查看错误提示，发送其他内容可查看正常回复。</p>
     <p class="runtime-error-demo__status" aria-live="polite">{{ actionStatus }}</p>
     <div class="runtime-error-demo__chat">
-      <tr-chat :runtime="runtime" @runtime-action-error="handleRuntimeActionError" />
+      <TrChat :runtime="runtime" :ui="ui" @runtime-action-error="handleRuntimeActionError" />
     </div>
   </section>
 </template>
