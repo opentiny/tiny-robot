@@ -143,7 +143,7 @@ const ui: ChatUIOptions = {
 | `leftAside.width`          | 左侧栏展开宽度，单位为 px                                                  | `300`                |
 | `leftAside.collapsedWidth` | 左侧栏收起宽度，单位为 px                                                  | `56`                 |
 | `leftAside.defaultOpen`    | 是否默认展开，之后可通过界面按钮切换                                       | `false`              |
-| `composer.welcome`         | `'footer'` 在页面底部显示输入区；`'center'` 在欢迎区中央显示               | `'footer'`           |
+| `composer.welcome`         | 空会话时的输入区位置：`'footer'` 位于页面底部；`'center'` 随内置欢迎区居中显示，需保留默认内容布局、欢迎区和输入区 | `'footer'`           |
 
 例如，缩小内容宽度并默认展开左侧栏：
 
@@ -157,7 +157,9 @@ const ui: ChatUIOptions = {
 }
 ```
 
-`composer.welcome` 只影响没有消息时的输入区位置；已有消息时，输入区仍位于页面底部。点击下面的按钮，可比较侧栏宽度、展开和隐藏，以及两种空会话输入位置。
+> 已有消息或隐藏欢迎区时，输入区仍位于底部。通过插槽自定义主区或空会话内容时，输入区的居中位置需自行设置，详见[插槽说明](#插槽)。
+
+点击下面的按钮，可比较侧栏宽度、展开和隐藏，以及两种空会话输入位置。
 
 > 此演示使用 `TrChatUI` 展示布局效果，相同的 `ui` 配置也适用于 `TrChat`。
 
@@ -969,7 +971,7 @@ const data = computed<ChatUIData>(() => ({
 | --------------------------- | -------------------------------- | ------------------------ | --------------------------------------------------------------------- |
 | `surface.mode`              | `'normal' \| 'floating'`         | `'normal'`               | 页面或浮动窗口；浮动时读取 `floatingOptions` 与 `floating-state`。    |
 | `emptyState`                | `'start' \| 'center'`            | `'start'`                | 空状态在主区起始位置或居中。                                          |
-| `composer.welcome`          | `'footer' \| 'center'`           | `'footer'`               | 空会话时输入区位于页面底部或欢迎区中央。                              |
+| `composer.welcome`          | `'footer' \| 'center'`           | `'footer'`               | 空会话时的输入区位置：`'footer'` 位于页面底部；`'center'` 随内置欢迎区居中显示，需保留默认内容布局、欢迎区和输入区。 |
 | `contentMaxWidth`           | `string \| number`               | `980`                    | 消息、欢迎区和输入区的最大内容宽度。                                  |
 | `panelPadding` / `panelGap` | `string \| number`               | `12` / `12`              | 内容区内边距与区域间距。                                              |
 | `leftAside`                 | `false \| ChatAsideOptions`      | Dock，`300` / `56`，关闭 | 左栏；`open` 由应用管理，`defaultOpen` 仅设置组件管理开闭时的初始值。 |
