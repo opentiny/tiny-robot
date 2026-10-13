@@ -33,7 +33,7 @@ export interface UseChatRuntimeOptions {
   mcpServers?: ChatMcpServers
 }
 
-export function useChatRuntime(options: UseChatRuntimeOptions) {
+export function createChatRuntimeLifecycle(options: UseChatRuntimeOptions) {
   const conversationOptions: NonNullable<UseChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
   const userUseMessageOptions = conversationOptions.useMessageOptions
@@ -79,14 +79,21 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
     useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
   })
 
-  return useChatRuntimeFromConversation({
-    conversation,
-    titleGenerator: resolveTitle,
-    beforeSend: options.beforeSend,
-    composer: {
-      ...composerOptions,
-      model: providerRuntime?.model,
-      mcp: resolvedMcp?.runtime,
-    },
-  })
+  return {
+    runtime: useChatRuntimeFromConversation({
+      conversation,
+      titleGenerator: resolveTitle,
+      beforeSend: options.beforeSend,
+      composer: {
+        ...composerOptions,
+        model: providerRuntime?.model,
+        mcp: resolvedMcp?.runtime,
+      },
+    }),
+    dispose: conversation.dispose,
+  }
+}
+
+export function useChatRuntime(options: UseChatRuntimeOptions) {
+  return createChatRuntimeLifecycle(options).runtime
 }

@@ -47,12 +47,14 @@ test('does not expose temporary workflow files', () => {
 })
 
 test('keeps experimental declarations framework-neutral and internally resolvable', () => {
+  const distDir = path.join(packageDir, 'dist')
   const declarationFiles = fs
-    .readdirSync(path.join(packageDir, 'dist'))
+    .readdirSync(distDir, { recursive: true })
     .filter((name) => name.endsWith('.d.ts') && name !== 'index.d.ts')
 
   for (const name of declarationFiles) {
-    const file = path.join(packageDir, 'dist', name)
+    assert.doesNotMatch(name, /\.test\.d\.ts$/, `test declaration was published: ${name}`)
+    const file = path.join(distDir, name)
     const source = fs.readFileSync(file, 'utf8')
     assert.doesNotMatch(source, /from\s+['"]vue['"]|import\(['"]vue['"]\)/, `${name} exposes Vue types`)
 

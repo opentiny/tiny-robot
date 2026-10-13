@@ -29,8 +29,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * complete out of order.
    */
   const persistenceQueues = new Map<string, Promise<void>>()
+  let disposed = false
+  let disposePromise: Promise<void> | undefined
 
   const enqueuePersistence = (id: string, operation: () => Promise<void>): Promise<void> => {
+    if (disposed) return Promise.resolve()
+
     const previousOperation = persistenceQueues.get(id)
     const currentOperation = previousOperation ? previousOperation.catch(() => undefined).then(operation) : operation()
     persistenceQueues.set(id, currentOperation)
@@ -387,6 +391,24 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     await activeConversation.value?.engine.abortRequest()
   }
 
+  const dispose = (): Promise<void> => {
+    if (disposePromise) return disposePromise
+
+    disposed = true
+    watchers.forEach((watcher) => watcher())
+    watchers.clear()
+
+    disposePromise = (async () => {
+      await Promise.allSettled([...workingEngines.values()].map((engine) => engine.abortRequest()))
+      await Promise.allSettled([...persistenceQueues.values()])
+      workingEngines.clear()
+      persistenceQueues.clear()
+      activeConversationId.value = null
+    })()
+
+    return disposePromise
+  }
+
   return {
     conversations,
     activeConversationId,
@@ -401,5 +423,6 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     sendMessage,
     abortActiveRequest,
+    dispose,
   }
 }

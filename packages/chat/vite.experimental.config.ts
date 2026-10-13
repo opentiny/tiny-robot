@@ -13,11 +13,17 @@ export default defineConfig({
       outDir: 'dist',
       entryRoot: 'src/experimental',
       include: ['src/experimental'],
+      exclude: ['src/experimental/**/*.test.*'],
       tsconfigPath: resolve(__dirname, 'tsconfig.experimental.json'),
       beforeWriteFile(filePath, content) {
         return {
           filePath: filePath.replace(/index\.d\.ts$/, 'experimental.d.ts'),
-          content: content.replace(/from ['"]\.\.\/types['"]/g, "from '..'"),
+          content: content
+            .replace(/from ['"]\.\.\/types['"]/g, "from '..'")
+            .replace(
+              /from ['"]\.\.\/\.\.\/(?:types|runtime\/(?:useChatRuntime|mcp\/types|provider))['"]/g,
+              "from '../..'",
+            ),
         }
       },
     }),

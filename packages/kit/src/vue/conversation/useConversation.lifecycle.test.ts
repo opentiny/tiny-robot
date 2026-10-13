@@ -453,4 +453,91 @@ describe('useConversation lifecycle', () => {
 
     expect(active?.engine.messages.value).toEqual([{ role: 'system', content: 'fallback context' }])
   })
+
+  it('disposes engines and auto-save watchers without deleting persisted conversations', async () => {
+    let markRequestStarted!: () => void
+    const requestStarted = new Promise<void>((resolve) => {
+      markRequestStarted = resolve
+    })
+    let requestAborted = false
+    const blockingProvider: ResponseProvider = (_request, signal) =>
+      new Promise<ChatCompletion>((_resolve, reject) => {
+        markRequestStarted()
+        signal.addEventListener(
+          'abort',
+          () => {
+            requestAborted = true
+            reject(signal.reason)
+          },
+          { once: true },
+        )
+      })
+    const { storage, conversations, messages } = createMemoryStorage()
+    const deleteConversation = vi.spyOn(storage, 'deleteConversation')
+    const saveMessages = vi.spyOn(storage, 'saveMessages')
+    const api = useConversation({
+      storage,
+      autoSaveMessages: true,
+      autoSaveThrottle: 0,
+      useMessageOptions: { responseProvider: blockingProvider },
+    })
+    const created = api.createConversation({ id: 'kept', title: 'Keep me' })
+    const sending = api.sendMessage('pending').catch(() => undefined)
+    await requestStarted
+    await vi.waitFor(() => expect(messages.get('kept')).toBeDefined())
+
+    await api.dispose()
+    await sending
+    const saveCountAfterDispose = saveMessages.mock.calls.length
+    created.engine.messages.value.push({ role: 'user', content: 'after dispose' })
+    await Promise.resolve()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    expect(requestAborted).toBe(true)
+    expect(api.activeConversation.value).toBeNull()
+    expect(conversations.get('kept')).toMatchObject({ id: 'kept', title: 'Keep me' })
+    expect(messages.get('kept')).not.toContainEqual({ role: 'user', content: 'after dispose' })
+    expect(saveMessages).toHaveBeenCalledTimes(saveCountAfterDispose)
+    expect(deleteConversation).not.toHaveBeenCalled()
+  })
+
+  it('waits for pending persistence and returns the same promise when disposed repeatedly', async () => {
+    let markSaveStarted!: () => void
+    const saveStarted = new Promise<void>((resolve) => {
+      markSaveStarted = resolve
+    })
+    let releaseSave!: () => void
+    const savePending = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const storage: ConversationStorageStrategy = {
+      loadConversations: () => [],
+      loadMessages: () => [],
+      saveConversation: () => undefined,
+      saveMessages: async () => {
+        markSaveStarted()
+        await savePending
+      },
+      deleteConversation: vi.fn(),
+    }
+    const api = useConversation({ storage, useMessageOptions: { responseProvider } })
+    api.createConversation({ id: 'pending-save' })
+    await saveStarted
+
+    const firstDispose = api.dispose()
+    const secondDispose = api.dispose()
+    let disposed = false
+    void firstDispose.then(() => {
+      disposed = true
+    })
+    await Promise.resolve()
+
+    expect(secondDispose).toBe(firstDispose)
+    expect(disposed).toBe(false)
+    expect(storage.deleteConversation).not.toHaveBeenCalled()
+
+    releaseSave()
+    await firstDispose
+    expect(disposed).toBe(true)
+  })
 })
