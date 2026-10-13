@@ -365,5 +365,33 @@
   ],
   "summary": {
     "behaviorCoverage": { "covered": 18, "applicable": 18, "percent": 100 }
+  },
+  "measurements": {
+    "stable": {
+      "js": { "rawBytes": 130133, "gzipBytes": 33339 },
+      "css": { "rawBytes": 13828, "gzipBytes": 2637 }
+    },
+    "experimental": {
+      "js": { "rawBytes": 2283848, "gzipBytes": 607234 },
+      "css": { "rawBytes": 121957, "gzipBytes": 12902 },
+      "bundlesVue": true
+    },
+    "firstMount": {
+      "samplesMs": [2.2, 1.4, 1.1, 1.1, 1.4],
+      "minMs": 1.1,
+      "medianMs": 1.4,
+      "maxMs": 2.2,
+      "consoleErrors": []
+    }
+  },
+  "realServices": {
+    "streaming": {
+      "status": "not-run",
+      "evidence": "TR_CHAT_REAL_API_URL, TR_CHAT_REAL_MODEL_ID, and TR_CHAT_REAL_API_KEY were not available."
+    },
+    "mcp": {
+      "status": "not-run",
+      "evidence": "TR_CHAT_REAL_MCP_URL was not available."
+    }
   }
 }
