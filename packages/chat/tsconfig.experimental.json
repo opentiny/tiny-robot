@@ -1,4 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/experimental/**/*.ts", "src/experimental/**/*.tsx", "src/experimental/**/*.vue"]
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/vite-env.d.ts",
+    "src/experimental/**/*.ts",
+    "src/experimental/**/*.tsx",
+    "src/experimental/**/*.vue"
+  ]
 }

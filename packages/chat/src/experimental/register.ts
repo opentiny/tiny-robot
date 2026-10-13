@@ -1,85 +1,20 @@
-import {
-  defineComponent,
-  defineCustomElement,
-  getCurrentInstance,
-  h,
-  onMounted,
-  onUpdated,
-  type ComponentObjectPropsOptions,
-  type PropType,
-} from 'vue'
-import { signalTrChatReady } from './readiness'
+import { defineCustomElement } from 'vue'
+import TrChatElementComponent from './TrChatElement.ce.vue'
+import TrChatUIElementComponent from './TrChatUIElement.ce.vue'
 import type {
   TrChatElementConstructor,
   TrChatElementConstructors,
   TrChatHTMLElement,
   TrChatUIHTMLElement,
-} from './types'
+} from './elementTypes'
 
-const sharedProps = {
-  ui: Object,
-  floatingState: Object,
-  rightAsideOpen: { type: Boolean, default: undefined },
-  defaultRightAsideOpen: { type: Boolean, default: undefined },
-  activeRightAsidePanelId: String,
-  defaultActiveRightAsidePanelId: String,
-} satisfies ComponentObjectPropsOptions
+export const TrChatElement = defineCustomElement(TrChatElementComponent, {
+  shadowRoot: false,
+}) as unknown as TrChatElementConstructor<TrChatHTMLElement>
 
-function createProtocolElement(
-  name: string,
-  props: ComponentObjectPropsOptions,
-  booleanProps: readonly string[],
-): CustomElementConstructor {
-  const component = defineComponent({
-    name,
-    props,
-    setup(resolvedProps, { slots }) {
-      const propValues = resolvedProps as Record<string, unknown>
-      const instance = getCurrentInstance() as (ReturnType<typeof getCurrentInstance> & { ce?: HTMLElement }) | null
-
-      const syncBooleanProperties = () => {
-        const host = instance?.ce as (HTMLElement & Record<string, unknown>) | undefined
-        if (!host) return
-
-        for (const key of booleanProps) {
-          const value = propValues[key]
-          if (host[key] !== value) host[key] = value
-        }
-      }
-
-      onMounted(() => {
-        syncBooleanProperties()
-        if (instance?.ce) signalTrChatReady(instance.ce)
-      })
-      onUpdated(syncBooleanProperties)
-      return () => h('div', { part: 'root' }, slots.default?.())
-    },
-  })
-
-  return defineCustomElement(component, { shadowRoot: false }) as CustomElementConstructor
-}
-
-export const TrChatElement = createProtocolElement(
-  'TrChatElement',
-  {
-    ...sharedProps,
-    runtime: Object as PropType<object>,
-    title: String,
-    historyData: Object,
-  },
-  ['rightAsideOpen', 'defaultRightAsideOpen'],
-) as TrChatElementConstructor<TrChatHTMLElement>
-
-export const TrChatUIElement = createProtocolElement(
-  'TrChatUIElement',
-  {
-    ...sharedProps,
-    inputValue: String,
-    defaultInputValue: String,
-    data: Object,
-  },
-  ['rightAsideOpen', 'defaultRightAsideOpen'],
-) as TrChatElementConstructor<TrChatUIHTMLElement>
+export const TrChatUIElement = defineCustomElement(TrChatUIElementComponent, {
+  shadowRoot: false,
+}) as unknown as TrChatElementConstructor<TrChatUIHTMLElement>
 
 const defaultConstructors: Required<TrChatElementConstructors> = {
   chat: TrChatElement,
