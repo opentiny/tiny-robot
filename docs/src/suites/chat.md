@@ -2,112 +2,13 @@
 outline: [1, 3]
 ---
 
-# Chat 聊天界面
+# 界面与交互配置
 
-`TrChat` 是用于 Vue 应用的 AI 聊天页面组件，提供会话列表、消息展示和输入区，可接入模型服务发送消息，适用于独立聊天页面和应用内嵌 AI 助手。
-
-## 快速开始
-
-### 安装
-
-在已有 Vue 项目中安装 Chat 套件：
-
-::: code-group
-
-```bash [pnpm]
-pnpm add @opentiny/tiny-robot-chat
-```
-
-```bash [yarn]
-yarn add @opentiny/tiny-robot-chat
-```
-
-```bash [npm]
-npm install @opentiny/tiny-robot-chat
-```
-
-:::
-
-### 引入样式
-
-在应用入口（如 `main.ts`）引入基础组件和 Chat 的样式：
-
-```ts
-import '@opentiny/tiny-robot/dist/style.css'
-import '@opentiny/tiny-robot-chat/dist/style.css'
-```
-
-### 接入模型服务
-
-`TrChat` 推荐通过 `useChatRuntime` 接入模型服务。[`useChatRuntime`](./chat-runtime#usechatruntime-配置) 是 Chat 套件提供的聊天功能配置函数，负责连接模型服务、管理会话和发送请求，无需自行编写这些聊天逻辑。
-
-将返回的 `runtime` 对象传给 `TrChat`，即可使用发送消息、取消请求和切换会话等功能，可参考以下最小接入示例：
-
-```vue
-<script setup lang="ts">
-import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
-
-// 模型服务配置数组，每项配置一个服务及其可用模型
-const modelProviders: ChatProviderConfig[] = [
-  {
-    // 必填，无默认值；可选 'openai'、'deepseek'、'qwen'
-    // 本例服务兼容 OpenAI /chat/completions 接口，因此使用 'openai'
-    type: 'openai',
-
-    // 替换为实际服务地址，以下地址仅作占位，不能直接使用
-    // 可填服务根地址或完整 /chat/completions 地址；省略时使用对应服务的预设地址
-    apiUrl: 'https://your-service.example.com/v1/chat/completions',
-
-    // 该服务下的模型列表；id 和 label 均为必填，无默认值
-    models: [
-      {
-        id: 'your-model-id', // 替换为服务支持的模型 ID
-        label: '应用助手', // 模型在界面中显示的名称
-      },
-    ],
-  },
-]
-
-const runtime = useChatRuntime({ modelProviders })
-</script>
-
-<template>
-  <main class="chat-page">
-    <TrChat :runtime="runtime" />
-  </main>
-</template>
-
-<style scoped>
-.chat-page {
-  --tr-layout-height: 100%;
-  height: 600px;
-}
-</style>
-```
-
-::: tip 容器高度
-为父容器设置明确高度，并通过 `--tr-layout-height: 100%` 让聊天界面填满容器。示例使用 `600px`，可根据页面布局调整；未设置该变量时，聊天界面默认使用浏览器视口高度。
-:::
-
-以下演示使用本地模拟服务，无需配置真实模型服务，可体验发送消息和查看回答：
-
-<demo
-  vue="../../demos/chat/basic.vue"
-  :vueFiles="[
-    '../../demos/chat/basic.vue',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="完整聊天页面"
-  description="输入消息并发送，查看模拟服务返回的回答。"
-/>
-
-生产环境应通过服务端转发请求并保管模型密钥，不要将长期密钥写入前端代码。更多配置见 [模型服务](./chat-runtime#模型服务)。
-
-项目已使用 Kit 的 `useConversation` 管理会话时，可通过 `useChatRuntimeFromConversation` 接入 `TrChat`，复用已有会话和请求配置，详见 [复用已有会话](./chat-runtime#复用已有会话)。
+本文介绍如何通过 `ui` 配置和插槽调整 `TrChat` 的布局、输入区、消息展示及交互，以及如何使用 `TrChatUI` 复用聊天界面。首次接入见 [快速上手](./quick-start)。
 
 ## 界面配置与定制
 
-前面通过 `runtime` 接入了模型服务，并实现了发送消息、取消请求和会话切换等操作。需要调整页面布局、欢迎内容或输入区时，可以通过 `TrChat` 的 `ui` 属性定制界面。
+按照 [快速上手](./quick-start) 接入 `TrChat` 后，可以通过 `ui` 配置和插槽调整界面。需要保留项目自己的聊天逻辑、只复用界面时，参考[复用聊天界面](#复用聊天界面)。
 
 `ui` 是一个界面配置对象，用于设置布局、文案和各区域的显示方式；只需配置需要调整的部分，其余使用默认值。常用的字段如下，具体配置见后续示例：
 
@@ -135,7 +36,18 @@ const ui: ChatUIOptions = {
 
 ### 基础布局
 
-通过 `ui.layout` 调整内容宽度、侧栏和空会话时的输入区位置：
+调整内容宽度、侧栏显示和空会话输入区的位置，适应不同页面布局。
+
+<demo
+  vue="../../demos/chat/layout-presets.vue"
+  :vueFiles="['../../demos/chat/layout-presets.vue']"
+  title="基础布局"
+  description="切换布局，查看侧栏宽度、展开和隐藏，以及空会话输入区的位置变化。"
+/>
+
+> 此演示使用 `TrChatUI` 展示布局效果，相同的 `ui` 配置也适用于 `TrChat`。
+
+通过 `ui.layout` 设置布局，常用字段如下：
 
 | 配置                       | 用途和可选值                                                               | 默认值               |
 | -------------------------- | -------------------------------------------------------------------------- | -------------------- |
@@ -160,20 +72,23 @@ const ui: ChatUIOptions = {
 
 > 已有消息或隐藏欢迎区时，输入区仍位于底部。通过插槽自定义主区或空会话内容时，输入区的居中位置需自行设置，详见[插槽说明](#插槽)。
 
-点击下面的按钮，可比较侧栏宽度、展开和隐藏，以及两种空会话输入位置。
-
-> 此演示使用 `TrChatUI` 展示布局效果，相同的 `ui` 配置也适用于 `TrChat`。
-
-<demo
-  vue="../../demos/chat/layout-presets.vue"
-  :vueFiles="['../../demos/chat/layout-presets.vue']"
-  title="基础布局"
-  description="切换布局，查看侧栏宽度、展开和隐藏，以及空会话输入区的位置变化。"
-/>
-
 完整字段和默认值见 [布局配置](#layout)。
 
 ### 配置欢迎区和推荐问题
+
+设置欢迎内容和推荐问题，帮助用户开始对话。
+
+<demo
+  vue="../../demos/chat/welcome-prompts.vue"
+  :vueFiles="[
+    '../../demos/chat/welcome-prompts.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="欢迎区和推荐问题"
+  description="切换欢迎区和推荐问题的显示，点击问题填入输入框，编辑后发送并查看模拟回答。"
+/>
 
 没有消息时，通过 `ui.welcome` 设置欢迎标题和描述，通过 `ui.prompts` 提供推荐问题，帮助用户开始对话。
 
@@ -223,21 +138,25 @@ function handlePromptClick({ item }: ChatPromptClickPayload) {
 
 将 `ui.welcome` 或 `ui.prompts` 设为 `false` 可隐藏对应区域。发送首条消息后不再显示欢迎内容；返回新会话可重新查看。
 
+更多展示配置见 [Welcome](../components/welcome#props) 和 [Prompts](../components/prompts#props)。
+
+### 配置输入区
+
+为输入框添加提及、可编辑模板和自定义按钮，满足不同输入需求。
+
 <demo
-  vue="../../demos/chat/welcome-prompts.vue"
+  vue="../../demos/chat/sender-options.vue"
   :vueFiles="[
-    '../../demos/chat/welcome-prompts.vue',
+    '../../demos/chat/sender-options.vue',
     '../../demos/chat/shared/createChatRuntime.ts',
     '../../demos/chat/shared/mockConversationStorage.ts',
     '../../demos/chat/shared/modelProviders.ts'
   ]"
-  title="欢迎区和推荐问题"
-  description="切换欢迎区和推荐问题的显示，点击问题填入输入框，编辑后发送并查看模拟回答。"
+  title="输入扩展与自定义按钮"
+  description="输入 @ 选择对象，使用报告模板和常用问题按钮填入内容，编辑后发送；点击“使用说明”查看操作提示。"
 />
 
-更多展示配置见 [Welcome](../components/welcome#props) 和 [Prompts](../components/prompts#props)。
-
-### 配置输入区
+示例通过 `sender-header` 展示使用说明；“写报告”填入可编辑文本块和读者选项，“常用问题”填入预设问题。
 
 通过 `ui.sender` 调整输入框、配置提及和模板功能；通过输入区插槽添加自定义按钮，无需重新实现消息发送和取消。
 
@@ -319,35 +238,29 @@ function fillReportTemplate() {
 </TrChat>
 ```
 
-下面的演示将提及、模板和自定义按钮组合使用，还通过 `sender-header` 展示使用说明。点击“写报告”后可编辑文本块和选择读者；点击“常用问题”可填入预设问题。
-
-<demo
-  vue="../../demos/chat/sender-options.vue"
-  :vueFiles="[
-    '../../demos/chat/sender-options.vue',
-    '../../demos/chat/shared/createChatRuntime.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="输入扩展与自定义按钮"
-  description="输入 @ 选择对象，使用报告模板和常用问题按钮填入内容，编辑后发送；点击“使用说明”查看操作提示。"
-/>
-
 更多配置见 [Mention](../components/sender#mention-配置)、[Template](../components/sender#template-配置) 和 [默认按钮配置](../components/sender#默认按钮配置)，完整插槽列表见 [插槽](#插槽)。
 
 ### 配置消息展示
 
-`ui.bubble` 用于配置消息区域，可调整消息外观、内容渲染、错误提示和自动滚动。常用字段如下，未配置时使用默认展示方式：
-
-| 字段 | 用途 |
-| --- | --- |
-| `autoScroll` | 新消息和回答更新时自动滚动，默认 `true` |
-| `bubbleList` | 配置消息列表，例如按角色设置头像、位置和气泡形状 |
-| `bubbleProvider` | 配置消息内容的展示组件，例如自定义内容渲染和错误提示 |
-
-下面以消息外观和错误提示为例介绍配置方式。
+通过 `ui.bubble` 调整消息展示：`bubbleList` 设置消息列表外观，`bubbleProvider` 设置内容渲染和错误提示，`autoScroll` 控制自动滚动（默认 `true`）；未配置时使用默认展示方式。
 
 #### 消息外观
+
+按消息角色设置头像、位置和气泡形状，区分用户消息与 AI 回答。
+
+<demo
+  vue="../../demos/chat/bubble-options.vue"
+  :vueFiles="[
+    '../../demos/chat/bubble-options.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="按角色定制消息外观"
+  description="切换默认和自定义外观，比较用户与 AI 消息的头像和气泡形状；预设回答包含 Markdown 内容。"
+/>
+
+演示中的自定义外观还将 AI 气泡背景设为透明；继续发送消息，新的消息会沿用当前配置。
 
 通过 `ui.bubble.bubbleList.roleConfigs` 按消息角色设置外观。例如，分别配置用户消息（`user`）和 AI 回答（`assistant`）的头像、位置和气泡形状。
 
@@ -374,25 +287,20 @@ const ui: ChatUIOptions = {
 }
 ```
 
-下面的演示进一步将 AI 气泡背景设为透明，通过“默认外观”和“自定义外观”比较效果。继续发送消息，新的消息会沿用当前配置。
-
-<demo
-  vue="../../demos/chat/bubble-options.vue"
-  :vueFiles="[
-    '../../demos/chat/bubble-options.vue',
-    '../../demos/chat/shared/createChatRuntime.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="按角色定制消息外观"
-  description="切换默认和自定义外观，比较用户与 AI 消息的头像和气泡形状；预设回答包含 Markdown 内容。"
-/>
-
 更多配置见 [头像和位置](../components/bubble#头像和位置)、[气泡形状](../components/bubble#气泡形状) 和 [BubbleList 属性](../components/bubble#bubblelist)。
 
 #### 消息错误提示配置
 
-使用 `useChatRuntime` 接入时，请求失败会在对应的 AI 消息下显示错误提示，默认不提供重试按钮。
+请求失败时，在对应的 AI 消息下显示错误提示，帮助用户了解失败原因。
+
+<demo
+  vue="../../demos/chat/runtime-error.vue"
+  :vueFiles="['../../demos/chat/runtime-error.vue']"
+  title="请求失败提示"
+  description="发送包含“失败”的内容查看默认错误提示，发送其他内容查看正常回复。"
+/>
+
+演示使用 `useChatRuntime` 展示默认错误提示，不包含自定义提示组件；默认提示不提供重试按钮。
 
 通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
 
@@ -410,14 +318,7 @@ const disabledErrorUI: ChatUIOptions = {
 }
 ```
 
-该配置只控制提示的显示，不会改变请求的失败状态。下面的演示展示默认错误提示，不包含自定义提示组件：
-
-<demo
-  vue="../../demos/chat/runtime-error.vue"
-  :vueFiles="['../../demos/chat/runtime-error.vue']"
-  title="请求失败提示"
-  description="使用本地模拟请求，查看默认错误提示和正常回复。"
-/>
+`errorRenderer` 只控制提示的显示，不会改变请求的失败状态。
 
 默认错误提示支持以下 CSS 变量：
 
@@ -430,6 +331,24 @@ const disabledErrorUI: ChatUIOptions = {
 请求异常处理和操作失败通知见 [请求失败时的提示](./chat-runtime#请求失败时的提示)。
 
 ### 配置历史会话列表
+
+自定义历史会话的排序、筛选和分组，同时保留内置会话操作。
+
+<demo
+  vue="../../demos/chat/history-groups.vue"
+  :vueFiles="[
+    '../../demos/chat/history-groups.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="自定义历史会话分组"
+  description="查看预设分组和选中样式，切换、重命名或删除会话；新建会话并发送消息后，查看列表更新。"
+/>
+
+浏览器宽度低于 `960px` 时，先通过界面按钮展开会话列表。
+
+> “置顶”和日期分组使用预设数据，不包含置顶操作或自动按日期归类。演示使用独立的本地存储保存示例会话，刷新后保留修改结果。
 
 `TrChat` 默认使用 Runtime 的会话生成历史列表，支持切换、重命名和删除，无需额外传入 `historyData`。需要自定义排序、筛选或分组展示时，可通过 `historyData` 提供列表数据，继续使用内置列表和会话操作。
 
@@ -476,31 +395,11 @@ const ui: ChatUIOptions = {
 }
 ```
 
-下面的演示展示自定义分组和选中样式，并保留默认会话操作。浏览器宽度低于 `960px` 时，先通过界面按钮展开会话列表。
-
-> “置顶”和日期分组使用预设数据，不包含置顶操作或自动按日期归类。演示使用独立的本地存储保存示例会话，刷新后保留修改结果。
-
-<demo
-  vue="../../demos/chat/history-groups.vue"
-  :vueFiles="[
-    '../../demos/chat/history-groups.vue',
-    '../../demos/chat/shared/createChatRuntime.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="自定义历史会话分组"
-  description="查看预设分组和选中样式，切换、重命名或删除会话；新建会话并发送消息后，查看列表更新。"
-/>
-
 完整展示配置见 [History 属性](../components/history#props) 和 [样式变量](../components/history#css-变量)，程序调用见 [会话管理](./chat-runtime#会话管理)。
 
 ### 插槽定制
 
-本示例使用以下插槽：
-
-- `layout-header`：自定义页头。
-- `bubble-content-footer`：添加消息反馈按钮。
-- `composer-after`：添加输入框下方的提示。
+在页头、消息和输入区添加自定义内容。
 
 <demo
   vue="../../demos/chat/slots-basic.vue"
@@ -509,9 +408,29 @@ const ui: ChatUIOptions = {
   description="通过自定义页头展开会话列表或返回新会话页面，点击 AI 回答下的“有帮助”按钮，并查看输入框外下方的提示文字。"
 />
 
+本示例使用以下插槽：
+
+- `layout-header`：自定义页头。
+- `bubble-content-footer`：添加消息反馈按钮。
+- `composer-after`：添加输入框下方的提示。
+
 完整插槽列表及参数见 [插槽](#插槽)。
 
 ### 右侧面板
+
+在聊天界面旁展示引用资料或结果预览。
+
+<demo
+  vue="../../demos/chat/right-aside-panel.vue"
+  :vueFiles="[
+    '../../demos/chat/right-aside-panel.vue',
+    '../../demos/chat/business-right-aside.vue',
+    '../../demos/chat/release-preview.html',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="右侧资料与预览面板"
+  description="点击消息操作，打开发布方案预览或引用资料。"
+/>
 
 需要在会话旁展示引用资料、预览结果等内容时，通过 `ui.layout.rightAside.panels` 配置面板列表，再用 `layout-right-aside-panel` 插槽提供内容。
 
@@ -546,23 +465,18 @@ const ui: ChatUIOptions = {
 
 通过 `v-model` 绑定 `rightAsideOpen` 和 `activeRightAsidePanelId`，分别控制右栏开闭和当前面板。未设置这两个属性时，由组件自行管理。
 
-下面的演示提供预览和引用资料两个面板：
-
-<demo
-  vue="../../demos/chat/right-aside-panel.vue"
-  :vueFiles="[
-    '../../demos/chat/right-aside-panel.vue',
-    '../../demos/chat/business-right-aside.vue',
-    '../../demos/chat/release-preview.html',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="右侧资料与预览面板"
-  description="点击消息操作，打开发布方案预览或引用资料。"
-/>
-
 完整配置及默认值见 [布局配置](#layout)，面板控制属性见 [TrChat 属性](#trchat-props)。
 
 ### 浮动聊天窗口
+
+将聊天界面显示为可拖动、缩放的浮动窗口。
+
+<demo
+  vue="../../demos/chat/floating-layout.vue"
+  :vueFiles="['../../demos/chat/floating-layout.vue']"
+  title="浮动聊天窗口"
+  description="打开聊天窗口，拖动或缩放后查看位置和尺寸变化。"
+/>
 
 `ui.layout.surface` 用于配置聊天界面的显示方式，可在父容器中显示，也可作为浮动窗口显示。它包含以下两个属性：
 
@@ -616,16 +530,20 @@ const floatingState = shallowRef<LayoutFloatingState>({
 
 传入 `floatingState` 时，需同步更新状态，建议使用 `v-model:floating-state`。
 
-<demo
-  vue="../../demos/chat/floating-layout.vue"
-  :vueFiles="['../../demos/chat/floating-layout.vue']"
-  title="浮动聊天窗口"
-  description="打开聊天窗口，拖动或缩放后查看位置和尺寸变化。"
-/>
-
 完整字段及默认值见 [拖动与缩放配置](../components/layout#layout-floating-options)和[窗口位置与尺寸](../components/layout#layout-floating-state)。
 
 ### 响应式布局与侧栏缩放
+
+切换桌面和移动端布局，并在桌面布局下调整侧栏宽度。
+
+<demo
+  vue="../../demos/chat/responsive-layout.vue"
+  :vueFiles="['../../demos/chat/responsive-layout.vue']"
+  title="桌面与移动端布局"
+  description="切换布局，查看侧栏的显示和开闭效果，以及桌面布局下的宽度调整。"
+/>
+
+> 演示切换的是布局效果，不改变浏览器宽度；浏览器可视区域宽度低于 `960px` 时，即使选择桌面布局，也会自动使用抽屉。
 
 侧栏支持两种布局，通过 `ui.layout.leftAside.mode` 或 `ui.layout.rightAside.mode` 设置，默认是 `'dock'`：
 
@@ -651,30 +569,24 @@ const ui: ChatUIOptions = {
 }
 ```
 
-以下演示切换两种布局效果，不改变实际设备或浏览器宽度。桌面布局下，可拖动左侧栏右边缘调整宽度；右侧栏的设置方式相同。
-
-> 浏览器宽度低于 `960px` 时，即使选择桌面布局，也会自动使用抽屉。
-
-<demo
-  vue="../../demos/chat/responsive-layout.vue"
-  :vueFiles="['../../demos/chat/responsive-layout.vue']"
-  title="桌面与移动端布局"
-  description="切换布局，查看侧栏的显示和开闭效果，以及桌面布局下的宽度调整。"
-/>
-
 完整侧栏配置及默认值见 [布局配置](#layout)。
 
-## 单独使用 TrChatUI
+### 复用聊天界面
 
-`TrChatUI` 只提供聊天界面，不包含模型请求和会话保存逻辑。需要接入自己的后端服务，并自行处理请求、会话和消息更新时，可单独使用 `TrChatUI`，通过 `data` 提供显示数据，监听事件处理用户操作。
+需要保留项目自己的会话、消息和请求处理逻辑时，可使用 `TrChatUI` 复用现成的聊天界面。
 
-需要配套的聊天功能时，推荐使用 `TrChat`。
+<demo
+  vue="../../demos/chat/controlled-ui.vue"
+  :vueFiles="['../../demos/chat/controlled-ui.vue']"
+  title="处理发送与取消"
+  description="使用本地模拟回答，展示消息更新、发送中状态和取消操作，不连接真实服务或保存会话。"
+/>
 
-> 前面的 `ui` 配置和插槽也适用于 `TrChatUI`。
+`TrChatUI` 通过 `data` 展示数据，通过事件通知项目处理用户操作，不负责模型请求和会话保存。前面的 `ui` 配置和插槽同样适用。
 
-### 数据与事件处理
+#### 数据与事件处理
 
-通过 `data` 提供当前显示的会话、消息和发送状态，通过 `ui` 设置布局和各区域的展示方式。处理用户操作后，更新对应数据即可更新界面。
+通过 `data` 提供会话列表、消息和发送状态。用户发送消息、取消请求或切换会话时，在对应事件中执行项目的操作，并更新显示数据。
 
 ```ts
 import { computed, shallowRef } from 'vue'
@@ -723,22 +635,14 @@ const data = computed<ChatUIData>(() => ({
 
 输入区的清空按钮会清空输入；使用 `v-model` 时，会同步更新绑定值。清空输入不会删除消息或取消请求。
 
-下面的演示在提交后追加用户消息并清空输入，等待期间显示取消操作。取消后保留用户消息，不再追加模拟回答；完成或取消后均可继续发送。
-
-<demo
-  vue="../../demos/chat/controlled-ui.vue"
-  :vueFiles="['../../demos/chat/controlled-ui.vue']"
-  title="处理发送与取消"
-  description="使用本地模拟回答，展示消息更新、发送中状态和取消操作，不连接真实服务或保存会话。"
-/>
-
 完整数据字段见 [ChatUIData](#chatuidata)，属性和事件见 [TrChatUI API](#trchatui-api)。
 
-### 受控与非受控
+#### 受控与非受控
 
-部分界面状态支持两种管理方式：受控时，由项目传入当前值并处理更新；非受控时，由组件自行维护，可通过默认值属性设置初始状态。
+输入内容、侧栏开闭等界面状态支持两种管理方式：
 
-需要从外部修改或同步状态时，使用受控方式；只需设置初始状态时，可以使用非受控方式。这两种方式只针对界面状态，不代表组件会自动发送请求或保存会话。
+- **受控**：由项目传入当前值并同步更新，适合填入预设问题、发送后清空输入或从外部打开侧栏。
+- **非受控**：由组件维护状态，无需从外部同步更新，可按需设置初始值。
 
 以输入内容为例，受控方式通过 `v-model:input-value` 绑定当前内容，`inputValue` 可初始化为 `''`：
 
@@ -897,7 +801,7 @@ const data = computed<ChatUIData>(() => ({
 | `title`    | `string`                 | 新对话 | 页头标题；空字符串会原样显示。                                      |
 | `history`  | `ChatHistoryData`        | —      | 应用提供的排序或分组结果；提供后优先于根据 `items` 生成的默认历史。 |
 
-`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [Chat 配置与操作：会话、消息与发送](./chat-runtime#会话、消息与发送)。
+`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [数据与逻辑配置：会话、消息与发送](./chat-runtime#会话、消息与发送)。
 
 #### `bubble` 与 `sender`
 
@@ -944,7 +848,7 @@ const data = computed<ChatUIData>(() => ({
 
 `request` 会传给 `layout-main` 和 `layout-empty-state`。默认界面的发送中反馈读取 `sender.loading`，消息错误读取 `message.state.error`；只更新 `request` 不会自动渲染这些反馈。
 
-## 通用配置
+## 公共配置
 
 以下界面配置和插槽均适用于 `TrChat` 和 `TrChatUI`。
 
@@ -1044,7 +948,7 @@ const data = computed<ChatUIData>(() => ({
 
 ## 类型索引
 
-### 组件类型
+#### 组件类型
 
 | 类型                           | 类别        | 说明                                              |
 | ------------------------------ | ----------- | ------------------------------------------------- |
@@ -1061,9 +965,9 @@ const data = computed<ChatUIData>(() => ({
 | `ChatRequestState`             | `type`      | 请求状态类型。                                    |
 | `ChatProcessingState`          | `type`      | `'requesting' \| 'completing' \| string`。        |
 
-会话、消息和操作相关类型见 [Chat 配置与操作 API](./chat-runtime#api)。
+会话、消息和操作相关类型见 [数据与逻辑配置 API](./chat-runtime#api)。
 
-### 展示数据类型
+#### 展示数据类型
 
 | 类型                   | 说明                                                                      |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -1080,7 +984,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatMcpToolView`      | 单个工具的名称、启用和加载状态。                                          |
 | `ChatMcpToolMap`       | `Partial<Record<string, readonly ChatMcpToolView[]>>`，键为 MCP 服务 ID。 |
 
-### 界面配置类型
+#### 界面配置类型
 
 | 类型                         | 说明                                                                        |
 | ---------------------------- | --------------------------------------------------------------------------- |
@@ -1102,7 +1006,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatModelOptions`           | 模型选择器弹出面板所在容器的配置。                                          |
 | `ChatMcpOptions`             | 当前为空对象配置。                                                          |
 
-### 插槽参数
+#### 插槽参数
 
 | 类型                               | 字段                                                                                                                                                                                                        |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1118,7 +1022,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatBubbleSlotProps`              | `messages`；`role?`；`messageIndexes`                                                                                                                                                                       |
 | `ChatBubbleContentFooterSlotProps` | `messages`；`role?`；`messageIndexes`；`contentIndex?: number` |
 
-### 事件参数
+#### 事件参数
 
 | 类型                                                     | 字段                                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -1146,4 +1050,4 @@ const data = computed<ChatUIData>(() => ({
 
 ### 页面没有高度或消息区不滚动
 
-为 Chat 的父容器设置明确高度，并设置 `--tr-layout-height: 100%`，让聊天界面使用父容器高度，见 [最小接入示例](#接入模型服务)。使用百分比高度时，祖先容器也需要有明确高度；使用 flex 布局时，检查消息区所在的子项是否允许收缩（如设置 `min-height: 0`）。
+为 Chat 的父容器设置明确高度，并设置 `--tr-layout-height: 100%`，让聊天界面使用父容器高度，见 [最小接入示例](./quick-start#接入模型服务)。使用百分比高度时，祖先容器也需要有明确高度；使用 flex 布局时，检查消息区所在的子项是否允许收缩（如设置 `min-height: 0`）。

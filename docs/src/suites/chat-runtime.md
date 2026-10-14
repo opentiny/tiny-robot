@@ -2,7 +2,7 @@
 outline: [1, 3]
 ---
 
-# Chat 配置与操作
+# 数据与逻辑配置
 
 本文介绍如何为 `TrChat` 配置模型服务、发送消息、取消请求、管理会话和接入 MCP 工具。
 
@@ -13,7 +13,7 @@ outline: [1, 3]
 
 两种方式都将返回的 `runtime` 对象传给 `TrChat`。
 
-> 首次接入见 [Chat 快速开始](./chat#快速开始)；复用已有会话、自定义模型请求或发送流程见 [高级用法](#高级用法)。
+> 首次接入见 [快速上手](./quick-start)；复用已有会话、自定义模型请求或发送流程见 [高级用法](#高级用法)。
 
 ## 模型服务
 
@@ -54,7 +54,7 @@ const modelProviders: ChatProviderConfig[] = [
 ```
 
 ::: info 示例配置
-示例地址不能直接使用，`models[].id` 中的 `'your-model-id'` 也是占位值，请替换为实际服务地址和模型 ID。接入组件的方式见 [Chat 快速开始](./chat#快速开始)。
+示例地址不能直接使用，`models[].id` 中的 `'your-model-id'` 也是占位值，请替换为实际服务地址和模型 ID。接入组件的方式见 [快速上手](./quick-start)。
 :::
 
 配置多个模型时，默认选择第一个未禁用的模型。下面的片段在上述配置中补充可选字段，均应在调用 `useChatRuntime({ modelProviders })` 前设置。
@@ -138,6 +138,19 @@ modelProviders[0].models[0].effortParam = 'reasoning_effort'
 
 ### 发送与取消
 
+通过外部按钮或业务逻辑发送消息，并在回答生成过程中停止请求。
+
+<demo
+  vue="../../demos/chat/runtime-actions.vue"
+  :vueFiles="[
+    '../../demos/chat/runtime-actions.vue',
+    '../../demos/chat/shared/modelProviders.ts',
+    '../../demos/chat/shared/runtime-demo.css'
+  ]"
+  title="通过外部按钮发送与取消"
+  description="点击外部按钮发送预设问题，在回答生成过程中停止请求。"
+/>
+
 `runtime.actions.send()` 用于发送一条消息，`text` 是必填的文本字段。发送完成或发送前检查返回 `'handled'`（项目已自行处理）时返回 `true`；未发送时返回 `false`；失败时抛出错误。直接调用时需处理异常：
 
 ```ts
@@ -157,20 +170,22 @@ try {
 await runtime.actions.abort?.()
 ```
 
-下面的演示通过外部按钮发送预设问题，并在回答生成过程中停止请求。
+### 发送前检查
+
+发送前检查登录状态、权限或输入内容，按检查结果决定是否继续发送。
 
 <demo
-  vue="../../demos/chat/runtime-actions.vue"
+  vue="../../demos/chat/runtime-before-send.vue"
   :vueFiles="[
-    '../../demos/chat/runtime-actions.vue',
+    '../../demos/chat/runtime-before-send.vue',
     '../../demos/chat/shared/modelProviders.ts',
     '../../demos/chat/shared/runtime-demo.css'
   ]"
-  title="通过外部按钮发送与取消"
-  description="点击外部按钮发送预设问题，在回答生成过程中停止请求。"
+  title="发送前检查登录状态"
+  description="切换“已登录”开关，比较阻止发送与正常发送；不执行真实登录。"
 />
 
-### 发送前检查
+演示中未勾选“已登录”时，发送被阻止，输入内容保留且不会追加消息；勾选后再次提交，即可正常发送。
 
 `useChatRuntime` 的 `beforeSend` 用于在发送前检查登录状态、权限或输入内容；未配置时，不执行自定义检查。函数接收本次发送内容 `payload`，也可读取选中的 `model` 和工具配置 `mcp`，支持异步返回。
 
@@ -193,20 +208,20 @@ const runtime = useChatRuntime({
 
 检查函数抛出错误时，`send()` 也会抛出该错误。
 
-下面以登录检查为例：未勾选“已登录”时，发送被阻止，输入内容保留且不会追加消息；勾选后再次提交，即可正常发送。
+### 禁用输入与提交
+
+根据业务状态禁用整个输入区，或仅禁止提交并保留编辑能力。
 
 <demo
-  vue="../../demos/chat/runtime-before-send.vue"
+  vue="../../demos/chat/runtime-composer.vue"
   :vueFiles="[
-    '../../demos/chat/runtime-before-send.vue',
+    '../../demos/chat/runtime-composer.vue',
     '../../demos/chat/shared/modelProviders.ts',
     '../../demos/chat/shared/runtime-demo.css'
   ]"
-  title="发送前检查登录状态"
-  description="使用模拟登录开关观察 reject 和 continue 的效果，不执行真实登录。"
+  title="禁用输入区与仅禁用提交"
+  description="点击“填入预设问题”，切换禁用状态，比较输入编辑和发送按钮的变化。"
 />
-
-### 禁用输入与提交
 
 通过 `useChatRuntime` 的 `composer` 配置输入区是否可用。以下字段均为可选，可随业务状态更新：
 
@@ -229,18 +244,6 @@ const runtime = useChatRuntime({
 
 请求进行中或工具加载中时，组件仍会根据状态限制提交。
 
-点击“填入预设问题”，再切换状态：禁用输入区时无法编辑或发送；仅禁用提交时仍可编辑，但不能发送。
-
-<demo
-  vue="../../demos/chat/runtime-composer.vue"
-  :vueFiles="[
-    '../../demos/chat/runtime-composer.vue',
-    '../../demos/chat/shared/modelProviders.ts',
-    '../../demos/chat/shared/runtime-demo.css'
-  ]"
-  title="禁用输入区与仅禁用提交"
-/>
-
 ### 请求失败时的提示
 
 使用 `useChatRuntime` 接入时，`TrChat` 默认在消息中显示请求失败提示，界面配置和效果见 [消息错误提示配置](./chat#消息错误提示配置)。需要记录日志或显示操作失败通知时，监听 `runtime-action-error`：
@@ -252,6 +255,22 @@ const runtime = useChatRuntime({
 `handleRuntimeError` 是项目中记录日志或显示通知的处理函数，事件参数见 [TrChat 事件](./chat#trchat-events)。错误记录的可选配置见 [错误记录配置](#错误记录配置)。直接调用 `runtime.actions.send()` 时，参考 [发送与取消](#发送与取消) 中的异常处理示例。
 
 ### 会话管理
+
+通过内置历史列表切换、重命名和删除会话，并按需创建新会话。
+
+<demo
+  vue="../../demos/chat/runtime-conversations.vue"
+  :vueFiles="[
+    '../../demos/chat/runtime-conversations.vue',
+    '../../demos/chat/shared/modelProviders.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/runtime-demo.css'
+  ]"
+  title="使用内置历史列表管理会话"
+  description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
+/>
+
+演示首次打开时提供两组不同的历史消息；左侧“新建会话”返回新会话页面，上方“立即创建会话”直接创建并选中会话。
 
 开始新会话有两种方式：`clearActiveConversation()` 返回新会话页面，默认在发送首条非空消息时创建会话；`createConversation()` 则立即创建并选中会话。
 
@@ -285,20 +304,6 @@ const runtime = useChatRuntime({
   titleGenerator: (text) => text.trim().slice(0, 10) || '新对话',
 })
 ```
-
-下面的演示使用 `TrChat` 内置历史列表，首次打开时提供两组不同的历史消息：点击会话名称切换会话，通过会话菜单重命名或删除。左侧“新建会话”返回新会话页面，发送消息后才创建会话；上方“立即创建会话”按钮直接调用 `createConversation()`，创建并选中指定标题的会话。
-
-<demo
-  vue="../../demos/chat/runtime-conversations.vue"
-  :vueFiles="[
-    '../../demos/chat/runtime-conversations.vue',
-    '../../demos/chat/shared/modelProviders.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
-    '../../demos/chat/shared/runtime-demo.css'
-  ]"
-  title="使用内置历史列表管理会话"
-  description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
-/>
 
 ### 接入 MCP 工具
 
@@ -379,6 +384,17 @@ const runtime = useChatRuntime({
 
 ### 自定义发送流程
 
+需要自行处理会话创建、消息保存和请求时，可自定义发送流程，下面以空文本提交为例展示差异。
+
+<demo
+  vue="../../demos/chat/runtime-send.vue"
+  :vueFiles="['../../demos/chat/runtime-send.vue']"
+  title="默认发送与自定义发送"
+  description="比较两种发送方式对空文本的处理。示例仅展示这一差异，不包含实际请求和消息保存。"
+/>
+
+默认发送不接受空文本，自定义发送可以处理空文本；该演示仅比较这一差异，不包含实际请求和消息保存。
+
 需要自行处理会话创建、消息保存和请求时，通过 `useChatRuntimeFromConversation` 的 `send` 替换默认发送方法。未设置时使用已有 Kit 会话发送；仅替换模型请求时，使用上一节的 `responseProvider` 即可：
 
 ```ts
@@ -394,18 +410,18 @@ const runtime = useChatRuntimeFromConversation({
 
 > 组件不会在调用自定义 `send` 前自动创建会话；未选择会话时，需由回调自行创建或选择会话。
 
-默认发送不接受空文本，自定义发送可以处理空文本。下面的演示仅比较这一差异：
-
-<demo
-  vue="../../demos/chat/runtime-send.vue"
-  :vueFiles="['../../demos/chat/runtime-send.vue']"
-  title="默认发送与自定义发送"
-  description="比较两种发送方式对空文本的处理。示例仅展示这一差异，不包含实际请求和消息保存。"
-/>
-
 自定义发送的参数见 [`useChatRuntimeFromConversation` 配置](#usechatruntimefromconversation-配置)。
 
 ### 在 TrChatUI 中复用 Runtime
+
+单独使用 `TrChatUI` 时，可复用已有 `runtime`，连接消息展示、发送和会话操作。
+
+<demo
+  vue="../../demos/chat/runtime-adapter.vue"
+  :vueFiles="['../../demos/chat/runtime-adapter.vue']"
+  title="在 TrChatUI 中复用 Runtime"
+  description="展示输入、发送及会话切换、重命名、删除的绑定方式。"
+/>
 
 `TrChat` 已自动绑定聊天数据和操作，通常无需使用此方法。单独使用 `TrChatUI`，并希望复用已有 `runtime` 时，可通过 `useChatRuntimeAdapter` 获取显示数据和操作方法。
 
@@ -434,16 +450,7 @@ const adapter = useChatRuntimeAdapter({
 />
 ```
 
-会话切换、重命名和删除等操作的完整绑定见下面的演示。
-
-<demo
-  vue="../../demos/chat/runtime-adapter.vue"
-  :vueFiles="['../../demos/chat/runtime-adapter.vue']"
-  title="在 TrChatUI 中复用 Runtime"
-  description="展示输入、发送及会话切换、重命名、删除的绑定方式。"
-/>
-
-完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [单独使用 TrChatUI](./chat#单独使用-trchatui)。
+完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [复用聊天界面](./chat#复用聊天界面)。
 
 ## API
 

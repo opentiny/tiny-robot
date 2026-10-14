@@ -49,7 +49,7 @@ npm install @opentiny/tiny-robot-chat
 
 :::
 
-完整接入示例、样式引入和模型服务配置见 [Chat 聊天界面](/suites/chat)。
+完整接入示例、样式引入和模型服务配置见 [Chat 套件快速上手](/suites/quick-start)。
 
 ### 方式二：使用基础组件自由组合
 
@@ -200,7 +200,7 @@ npx @opentiny/tiny-robot-cli add chat
 
 ## 注意事项
 
-1. **样式引入**：手动接入时需引入 `@opentiny/tiny-robot/dist/style.css`；使用 `TrChat` 或 `TrChatUI` 时还需引入 `@opentiny/tiny-robot-chat/dist/style.css`，具体步骤见 [Chat 聊天界面](/suites/chat)。
+1. **样式引入**：手动接入时需引入 `@opentiny/tiny-robot/dist/style.css`；使用 `TrChat` 或 `TrChatUI` 时还需引入 `@opentiny/tiny-robot-chat/dist/style.css`，具体步骤见 [Chat 套件快速上手](/suites/quick-start)。
 
 2. **按需引入优势**：
    - 减小打包体积，只打包使用到的组件
@@ -219,7 +219,8 @@ npx @opentiny/tiny-robot-cli add chat
 
 现在你已经成功安装并引入了 TinyRobot，可以：
 
-- 查看[**Chat 聊天界面**](/suites/chat)了解 `TrChat`、`TrChatUI` 的接入与定制方式
+- 查看[**Chat 套件快速上手**](/suites/quick-start)了解 `TrChat` 的接入方式
+- 查看[**界面与交互配置**](/suites/chat)了解界面定制和 `TrChatUI` 的用法
 - 查看[**主题配置**](/guide/theme-config)了解如何自定义主题样式
 - 浏览[**更新日志**](/guide/update-log)查看最新版本变更
 - 探索[**组件文档**](/components/container)了解所有可用组件
