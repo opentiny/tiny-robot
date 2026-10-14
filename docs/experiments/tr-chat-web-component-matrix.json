@@ -17,7 +17,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": {
           "status": "direct",
@@ -41,7 +41,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -62,7 +62,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -83,7 +83,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -101,7 +101,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -122,7 +122,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -137,7 +137,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -158,7 +158,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": {
           "status": "direct",
@@ -182,7 +182,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -203,7 +203,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -221,7 +221,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": {
           "status": "direct",
@@ -245,7 +245,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -266,7 +266,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -287,7 +287,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -302,7 +302,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -317,7 +317,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -332,7 +332,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": {
           "status": "direct",
@@ -356,7 +356,7 @@
       "browsers": {
         "chromium": {
           "status": "direct",
-          "evidence": "Chromium mounted this example and passed shared readiness and normalized layout invariants; interaction-specific coverage is listed in the report."
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
         },
         "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
         "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
@@ -364,7 +364,15 @@
     }
   ],
   "summary": {
-    "behaviorCoverage": { "covered": 18, "applicable": 18, "percent": 100 }
+    "behaviorCoverage": { "covered": 18, "applicable": 18, "percent": 100 },
+    "browserValidation": {
+      "chromiumExamplesPassed": 18,
+      "chromiumExamplesTotal": 18,
+      "percent": 100,
+      "uiAssertions": true,
+      "interactionAssertions": true,
+      "pixelDiff": false
+    }
   },
   "measurements": {
     "stable": {

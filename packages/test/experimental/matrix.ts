@@ -41,6 +41,14 @@ export interface CompatibilityMatrix {
   readonly examples: readonly MatrixResult[]
   readonly summary: {
     readonly behaviorCoverage: Coverage
+    readonly browserValidation: {
+      readonly chromiumExamplesPassed: number
+      readonly chromiumExamplesTotal: number
+      readonly percent: number
+      readonly uiAssertions: boolean
+      readonly interactionAssertions: boolean
+      readonly pixelDiff: boolean
+    }
   }
 }
 

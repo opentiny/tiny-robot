@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   testDir: './experimental',
@@ -19,7 +20,8 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
-    command: 'pnpm --dir ../.. -F docs dev --host 127.0.0.1 --port 3333',
+    command: 'pnpm -F docs dev --host 127.0.0.1 --port 3333',
+    cwd: fileURLToPath(new URL('../..', import.meta.url)),
     url: 'http://127.0.0.1:3333',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

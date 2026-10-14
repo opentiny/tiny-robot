@@ -15,7 +15,15 @@ test('validates the complete Chromium example matrix and normalized layout invar
   for (const id of EXAMPLE_IDS) {
     const card = page.locator(`[data-example-id="${id}"]`)
     await expect(card).toHaveAttribute('data-mount-status', 'ready')
-    await expect(card.locator(`[data-example-host="${id}"] > :is(tr-chat, tr-chat-ui)`)).toBeVisible()
+    if (id === 'floating-layout') {
+      await expect(card.locator(`[data-example-host="${id}"] > :is(tr-chat, tr-chat-ui)`)).toHaveCount(0)
+      await card.getByRole('button', { name: '打开浮动聊天', exact: true }).click()
+      await expect(page.locator('.tr-layout--floating')).toBeVisible()
+      await card.getByRole('button', { name: '关闭浮动聊天', exact: true }).click()
+      await expect(page.locator('.tr-layout--floating')).toHaveCount(0)
+    } else {
+      await expect(card.locator(`[data-example-host="${id}"] > :is(tr-chat, tr-chat-ui)`)).toBeVisible()
+    }
     await expect(card.getByText(`Vue baseline: ../chat/${id}.vue`)).toBeVisible()
 
     const geometry = await card.locator('[data-example-host]').evaluate((host) => ({

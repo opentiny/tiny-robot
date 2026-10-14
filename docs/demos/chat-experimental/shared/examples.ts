@@ -98,8 +98,8 @@ export const senderOptions = defineExample(
 
 export const bubbleOptions = defineExample(
   'bubble-options',
-  '复用 TrChatUI 的消息气泡渲染与事件路径。',
-  ['消息渲染', '角色布局', '气泡事件'],
+  '复用 TrChatUI 的消息气泡渲染与角色布局。',
+  ['消息渲染', '角色布局'],
   async (host) => {
     const element = await mountChatUI(host, {
       data: messageData('气泡配置'),
@@ -169,13 +169,16 @@ export const slotsBasic = defineExample(
   '静态内容使用命名 slot；带上下文内容使用 DOM renderer。',
   ['Light DOM slot', 'renderer context', 'AbortSignal'],
   async (host) => {
+    const controls = addControls(host)
+    const log = addLog(host)
     const element = document.createElement('tr-chat-ui') as Awaited<ReturnType<typeof mountChatUI>>
     const notice = document.createElement('span')
     notice.slot = 'header-notice'
     notice.textContent = '原生 Light DOM notice slot'
     element.append(notice)
     const renderers: TrChatRenderers = {
-      'layout-main': (context) => {
+      'layout-main': (context, lifecycle) => {
+        lifecycle.signal.addEventListener('abort', () => log('renderer aborted'), { once: true })
         const output = document.createElement('div')
         output.dataset.rendererOutput = ''
         output.textContent = `DOM renderer：${context.conversation.title}`
@@ -187,6 +190,16 @@ export const slotsBasic = defineExample(
     element.ui = { layout: { leftAside: false }, sender: false }
     host.append(element)
     await customElements.whenDefined('tr-chat-ui')
+    addButton(controls, '替换 renderer', () => {
+      element.renderers = {
+        'layout-main': (context) => {
+          const output = document.createElement('div')
+          output.dataset.rendererOutput = ''
+          output.textContent = `新 renderer：${context.conversation.title}`
+          return output
+        },
+      }
+    })
     return () => element.remove()
   },
 )
@@ -201,7 +214,11 @@ export const rightAsidePanel = defineExample(
       data: messageData('右侧面板'),
       ui: { layout: { leftAside: false, rightAside: { panels: [{ id: 'details', title: '详情' }] } }, sender: false },
       configure(target) {
+        target.rightAsideOpen = false
         target.renderers = { 'layout-right-aside-panel': ({ panelId }) => `当前面板：${panelId ?? '无'}` }
+        target.addEventListener('right-aside-open-update', (event) => {
+          target.rightAsideOpen = (event as CustomEvent<boolean>).detail
+        })
       },
     })
     addButton(controls, '打开详情', () => element.openRightAside('details'))
@@ -212,22 +229,57 @@ export const rightAsidePanel = defineExample(
 
 export const floatingLayout = defineExample(
   'floating-layout',
-  '验证浮动 surface 与受控 floatingState 更新事件。',
-  ['浮动布局', '拖动状态', '尺寸状态'],
+  '按需打开浮动 surface，并验证受控 floatingState 更新事件。',
+  ['打开/关闭', '浮动布局', '拖动状态', '尺寸状态'],
   async (host) => {
+    const controls = addControls(host)
     const log = addLog(host)
-    const element = await mountChatUI(host, {
-      data: messageData('浮动布局'),
-      ui: { layout: { surface: { mode: 'floating' }, leftAside: false }, sender: false },
-      configure(target) {
-        target.floatingState = { x: 16, y: 16, width: 560, height: 360 }
-        target.addEventListener('floating-state-update', (event) => {
-          target.floatingState = (event as CustomEvent).detail
-          log('floating-state-update')
-        })
-      },
+    let element: Awaited<ReturnType<typeof mountChatUI>> | undefined
+    let requestId = 0
+
+    const openButton = addButton(controls, '打开浮动聊天', async () => {
+      const currentRequest = ++requestId
+      openButton.disabled = true
+      closeButton.disabled = false
+      element?.remove()
+      element = undefined
+      const mounted = await mountChatUI(host, {
+        data: messageData('浮动布局'),
+        ui: {
+          layout: { surface: { mode: 'floating', floatingOptions: { resizable: true } }, leftAside: false },
+          sender: false,
+        },
+        configure(target) {
+          target.floatingState = { x: 16, y: 16, width: 560, height: 360 }
+          target.addEventListener('floating-state-update', (event) => {
+            target.floatingState = (event as CustomEvent).detail
+            log('floating-state-update')
+          })
+        },
+      })
+
+      if (currentRequest !== requestId) {
+        mounted.remove()
+        return
+      }
+
+      element = mounted
+      log('浮动聊天已打开')
     })
-    return () => element.remove()
+    const closeButton = addButton(controls, '关闭浮动聊天', () => {
+      requestId += 1
+      element?.remove()
+      element = undefined
+      openButton.disabled = false
+      closeButton.disabled = true
+      log('浮动聊天已关闭')
+    })
+    closeButton.disabled = true
+
+    return () => {
+      requestId += 1
+      element?.remove()
+    }
   },
 )
 
@@ -250,7 +302,7 @@ export const responsiveLayout = defineExample(
 export const controlledUI = defineExample(
   'controlled-ui',
   '使用 DOM 属性和 *-update 事件实现双向受控状态。',
-  ['inputValue', '右侧栏', '属性重赋值'],
+  ['inputValue', '属性重赋值', 'update 事件'],
   async (host) => {
     const controls = addControls(host)
     const log = addLog(host)
@@ -333,8 +385,8 @@ function composerRuntime(disabled: boolean, submitDisabled: boolean) {
 
 export const runtimeConversations = defineExample(
   'runtime-conversations',
-  '宿主 Runtime 提供会话列表并响应新建/切换操作。',
-  ['会话列表', '新建', '切换'],
+  '宿主 Runtime 提供会话列表并通过 Runtime 替换切换活动会话。',
+  ['会话列表', '切换', 'Runtime 替换'],
   async (host) => {
     const controls = addControls(host)
     const first = conversationRuntime('one', '会话一')

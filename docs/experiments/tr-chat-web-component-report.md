@@ -4,7 +4,7 @@
 
 **结论：GO — 保留 `@opentiny/tiny-robot-chat/experimental` 实验导出，继续作为 TrChat 的 experiment 功能验证；暂不升级为稳定 API。**
 
-原型满足既定 go/no-go 条件：18 个文档示例都有明确的适配映射和浏览器挂载结果；消息发送、流式增量、取消、会话、错误恢复、响应式布局和 Runtime 生命周期的专项契约没有 blocking defect。适配映射覆盖率为 **18 / 18（100%）**，其中 direct 与 adapted 分开统计。当前主要代价不是已发现的阻断功能缺失，而是自包含构建体积、非 SSR-safe import，以及 scoped slot 必须转换成 DOM renderer。
+原型满足既定 go/no-go 条件：18 个文档示例都有明确的适配映射，并各自通过 Chromium UI 与功能交互脚本；消息发送、流式增量、取消、会话、错误恢复、响应式布局和 Runtime 生命周期没有 blocking defect。适配映射覆盖率与逐例浏览器通过率均为 **18 / 18（100%）**。当前主要代价不是已发现的阻断功能缺失，而是自包含构建体积、非 SSR-safe import，以及 scoped slot 必须转换成 DOM renderer。
 
 ## 范围与基线
 
@@ -43,32 +43,34 @@
 | not-applicable |    0 |
 | not-run        |    0 |
 
-覆盖率公式为 `(direct + adapted) / applicable`，所以结果为 `(12 + 6) / 18 = 100%`。这里的 direct / adapted 表示每个 Vue 示例是否存在直接或经平台协议转换后的实现映射，不等于 18 项都完成了独立端到端交互脚本。所有示例都执行通用 readiness、可见内容、布局尺寸和横向溢出检查；关键协议另由组件契约测试和专项交互覆盖。visual 维度的 18 项均为 `partial`，因为没有保存 Vue baseline 与 Web Component 的像素级截图差异。因此原型结论可为 GO，视觉结论不能解读为 pixel-perfect 认证。
+覆盖率公式为 `(direct + adapted) / applicable`，所以结果为 `(12 + 6) / 18 = 100%`。这里的 direct / adapted 表示每个 Vue 示例是直接映射还是经平台协议转换。除通用 readiness、可见内容、布局高度边界和横向溢出检查外，18 项现在各有独立 Chromium 场景，覆盖该示例列出的 UI 状态与交互。visual 维度仍均为 `partial`，因为没有保存 Vue baseline 与 Web Component 的像素级截图差异；因此结论是功能与结构 UI 通过，不是 pixel-perfect 认证。
 
 ## 18 个示例结果
 
 | ID                      | Vue baseline                     | behavior                            | visual                           | Chromium evidence      | Firefox / WebKit      |
 | ----------------------- | -------------------------------- | ----------------------------------- | -------------------------------- | ---------------------- | --------------------- |
-| `basic`                 | `chat/basic.vue`                 | adapted：owned Runtime options      | partial：无 pixel diff           | 通用挂载/布局          | 核心 smoke 通过       |
-| `layout-presets`        | `chat/layout-presets.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `welcome-prompts`       | `chat/welcome-prompts.vue`       | adapted：DOM event 回写 property    | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `sender-options`        | `chat/sender-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `bubble-options`        | `chat/bubble-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `runtime-error`         | `chat/runtime-error.vue`         | direct                              | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
-| `history-groups`        | `chat/history-groups.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `slots-basic`           | `chat/slots-basic.vue`           | adapted：slot + DOM renderer        | partial：无 pixel diff           | renderer 专项通过      | 核心 smoke 通过       |
-| `right-aside-panel`     | `chat/right-aside-panel.vue`     | adapted：renderer + element methods | partial：无 pixel diff           | 开关面板专项通过       | not-run：非核心 smoke |
-| `floating-layout`       | `chat/floating-layout.vue`       | direct                              | partial：未做拖拽截图 diff       | 通用挂载/布局          | not-run：非核心 smoke |
-| `responsive-layout`     | `chat/responsive-layout.vue`     | direct                              | partial：几何校验，无 pixel diff | 窄/宽容器专项通过      | 核心 smoke 通过       |
-| `controlled-ui`         | `chat/controlled-ui.vue`         | adapted：`*-update` 事件            | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
-| `runtime-actions`       | `chat/runtime-actions.vue`       | direct                              | partial：无 pixel diff           | send/stream/abort 专项 | not-run：非核心 smoke |
-| `runtime-before-send`   | `chat/runtime-before-send.vue`   | direct                              | partial：无 pixel diff           | reject/continue 专项   | not-run：非核心 smoke |
-| `runtime-composer`      | `chat/runtime-composer.vue`      | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `runtime-conversations` | `chat/runtime-conversations.vue` | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
-| `runtime-send`          | `chat/runtime-send.vue`          | direct                              | partial：无 pixel diff           | send 专项通过          | 核心 smoke 通过       |
-| `runtime-adapter`       | `chat/runtime-adapter.vue`       | adapted：data + submit event        | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
+| `basic`                 | `chat/basic.vue`                 | adapted：owned Runtime options      | partial：无 pixel diff           | 输入、发送、响应       | 核心 smoke 通过       |
+| `layout-presets`        | `chat/layout-presets.vue`        | direct                              | partial：无 pixel diff           | 三种布局与 CSS 几何    | not-run：非核心 smoke |
+| `welcome-prompts`       | `chat/welcome-prompts.vue`       | adapted：DOM event 回写 property    | partial：无 pixel diff           | prompt、事件、受控输入 | not-run：非核心 smoke |
+| `sender-options`        | `chat/sender-options.vue`        | direct                              | partial：无 pixel diff           | 默认值、计数、清空     | not-run：非核心 smoke |
+| `bubble-options`        | `chat/bubble-options.vue`        | direct                              | partial：无 pixel diff           | 双角色内容与对齐       | not-run：非核心 smoke |
+| `runtime-error`         | `chat/runtime-error.vue`         | direct                              | partial：无 pixel diff           | 失败事件与恢复发送     | not-run：非核心 smoke |
+| `history-groups`        | `chat/history-groups.vue`        | direct                              | partial：无 pixel diff           | 分组、条目、选中态     | not-run：非核心 smoke |
+| `slots-basic`           | `chat/slots-basic.vue`           | adapted：slot + DOM renderer        | partial：无 pixel diff           | slot、context、abort   | 核心 smoke 通过       |
+| `right-aside-panel`     | `chat/right-aside-panel.vue`     | adapted：renderer + element methods | partial：无 pixel diff           | 打开、激活、关闭       | not-run：非核心 smoke |
+| `floating-layout`       | `chat/floating-layout.vue`       | direct                              | partial：未做拖拽截图 diff       | 开关、拖动、缩放       | not-run：非核心 smoke |
+| `responsive-layout`     | `chat/responsive-layout.vue`     | direct                              | partial：几何校验，无 pixel diff | 窄/宽、drawer、溢出    | 核心 smoke 通过       |
+| `controlled-ui`         | `chat/controlled-ui.vue`         | adapted：`*-update` 事件            | partial：无 pixel diff           | 宿主更新与用户回写     | not-run：非核心 smoke |
+| `runtime-actions`       | `chat/runtime-actions.vue`       | direct                              | partial：无 pixel diff           | send、stream、abort    | not-run：非核心 smoke |
+| `runtime-before-send`   | `chat/runtime-before-send.vue`   | direct                              | partial：无 pixel diff           | reject、保留、continue | not-run：非核心 smoke |
+| `runtime-composer`      | `chat/runtime-composer.vue`      | direct                              | partial：无 pixel diff           | disabled 三种状态      | not-run：非核心 smoke |
+| `runtime-conversations` | `chat/runtime-conversations.vue` | direct                              | partial：无 pixel diff           | 列表与双向切换         | not-run：非核心 smoke |
+| `runtime-send`          | `chat/runtime-send.vue`          | direct                              | partial：无 pixel diff           | 返回值与消息追加       | 核心 smoke 通过       |
+| `runtime-adapter`       | `chat/runtime-adapter.vue`       | adapted：data + submit event        | partial：无 pixel diff           | submit 与业务状态回写  | not-run：非核心 smoke |
 
 机器可读明细见 [`tr-chat-web-component-matrix.json`](./tr-chat-web-component-matrix.json)。
+
+“18 / 18 通过”指当前 18 个 experimental 映射场景的 UI 与声明交互全部通过，不表示把 Vue baseline 页面里的每个演示控制器逐项复制到了 Web Component 页面。当前 gallery 有意简化了部分演示面板，例如 layout baseline 的更多预设、sender 的 mention/template/help、bubble 外观切换、history rename/delete、更多 slot 内容、多个右侧面板入口以及会话新建。这些能力是否纳入下一轮逐控件 parity，应在原型确认后按产品价值选择；本轮没有把未暴露的控件计为“浏览器已通过”。
 
 ## 公共 API 覆盖
 
@@ -99,12 +101,14 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 
 ## 浏览器与真实服务
 
-- Chromium：18/18 示例通过通用 readiness、可见性和 normalized layout invariant；关键协议与代表性流程另有专项交互测试，未声称每个示例都有独立全交互脚本。
+- Chromium：18/18 示例分别通过独立 UI/交互场景，并统一通过 readiness、可见性、宿主高度边界和横向溢出检查。
 - Firefox：注册、基础渲染、Light DOM/renderer、响应式与 send 核心 smoke 通过。
 - WebKit：同一核心 smoke 通过。
 - 真实 streaming：`not-run`，环境未提供 `TR_CHAT_REAL_API_URL`、`TR_CHAT_REAL_MODEL_ID`、`TR_CHAT_REAL_API_KEY`。
 - 真实 MCP：`not-run`，环境未提供 `TR_CHAT_REAL_MCP_URL`。
 - 确定性 mock 已验证增量流式渲染与 abort；真实服务的 `not-run` 不阻塞主流程，但不能被解释为真实供应商兼容性通过。
+
+本轮逐例浏览器验证发现并修复了五个原型问题：示例宿主没有覆盖 `--tr-layout-height`，导致内部 `100dvh` 布局超出 420px 宿主并裁切发送区；带控制栏的示例没有为元素预留剩余 flex 高度；浮动示例默认挂载到 `body` 覆盖文档且漏配 resize；浮动元素在 ready 前快速打开/关闭存在过期异步挂载残留；Playwright 文档服务工作目录依赖调用位置。修复后，普通示例布局都受宿主高度约束，浮动聊天改为显式打开/关闭并可拖动、缩放，过期挂载会被取消，测试服务可从任意工作目录启动。
 
 ## Angular 20 跨框架验证
 
@@ -134,7 +138,7 @@ Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此�
 - `@opentiny/tiny-robot-kit` 单元测试：21 个文件，195 通过、1 个既有跳过。
 - Playwright 组件回归：247 / 247 通过，其中包含 18 个 Web Component 契约用例。
 - Angular 20 消费者：2 / 2 单元测试、1 / 1 Chromium 端到端和 production build 通过。
-- 实验浏览器套件：Chromium 2 通过、真实服务 2 个按凭据守卫跳过；Firefox 1 / 1、WebKit 1 / 1 通过。
+- 实验浏览器套件：Chromium 21 通过、真实服务 2 个按凭据守卫跳过，其中逐例场景 18 / 18 通过；Firefox 1 / 1、WebKit 1 / 1 核心 smoke 通过。
 - 导出、示例清单、构建测量与报告一致性：10 / 10 通过。
 - chat production build（stable + experimental）、实验/组件类型检查和文档 production build 通过。
 
@@ -144,7 +148,7 @@ Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此�
 2. **Light DOM**：便于继承现有 CSS 和调试，但不提供样式隔离；宿主样式可能影响内部节点。
 3. **Shadow DOM**：若未来要求强隔离，需要重新验证 teleport/overlay、全局主题变量、第三方组件样式和可访问性树；本原型不应直接切换。
 4. **Scoped slot**：平台 slot 没有 Vue scoped slot 的上下文能力，所以 renderer 是必要适配，不是语法等价。
-5. **视觉证据**：Angular 消费者已增加关键 display/grid-area 与宿主边界几何回归，能捕获本次“样式未打包”和固定高度越界问题；18 组 Vue baseline 与 Web Component 的像素 diff 仍未建立。
+5. **视觉证据**：18 个示例都有可见内容、布局状态、宿主边界和交互结果断言，能捕获本次 `100dvh` 裁切、默认浮层覆盖整页和样式未打包问题；Vue baseline 与 Web Component 的像素 diff 仍未建立。
 6. **体积**：捆绑 Vue 和完整依赖是推广前最优先的工程问题。
 7. **稳定性与版本承诺**：继续保持 experimental；破坏性调整、SSR、IIFE/UMD/CDN、framework wrapper、完整 a11y/perf/CSP/legacy browser 和正式 graduation policy 后续单独决策。
 

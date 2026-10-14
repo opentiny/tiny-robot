@@ -15,4 +15,12 @@ test('matrix schema covers every example and uses only normalized statuses', () 
   }
 
   expect(calculateCoverage(matrix.examples)).toEqual(matrix.summary.behaviorCoverage)
+  expect(matrix.summary.browserValidation).toEqual({
+    chromiumExamplesPassed: EXAMPLE_IDS.length,
+    chromiumExamplesTotal: EXAMPLE_IDS.length,
+    percent: 100,
+    uiAssertions: true,
+    interactionAssertions: true,
+    pixelDiff: false,
+  })
 })
