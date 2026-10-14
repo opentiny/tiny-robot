@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, ref, shallowRef, watch } from 'vue'
+import { computed, onUnmounted, ref, shallowRef, useAttrs, watch } from 'vue'
 import Chat from '../Chat.vue'
 import type {
   ChatHistoryData,
@@ -15,13 +15,14 @@ import type { TrChatRenderers } from './elementTypes'
 import { createChatRuntime } from './runtime/createChatRuntime'
 import type { CreateChatRuntimeOptions, CreateChatRuntimeResult } from './runtime/types'
 
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     runtime?: ChatRuntime
     runtimeOptions?: CreateChatRuntimeOptions
     ui?: ChatUIOptions
     renderers?: Readonly<TrChatRenderers>
-    title?: string
     floatingState?: LayoutFloatingState
     rightAsideOpen?: boolean
     defaultRightAsideOpen?: boolean
@@ -31,15 +32,18 @@ const props = withDefaults(
   }>(),
   { rightAsideOpen: undefined },
 )
+const attrs = useAttrs()
+const chatTitle = computed(() => (typeof attrs.title === 'string' ? attrs.title : undefined))
 const chat = ref<InstanceType<typeof Chat>>()
 const resolvedRuntime = shallowRef<ChatRuntime>()
 let ownedRuntime: CreateChatRuntimeResult | undefined
-const { forward } = useExperimentalElementHost(props as unknown as Record<string, unknown>, [
-  'rightAsideOpen',
-  'defaultRightAsideOpen',
-])
+const { forward } = useExperimentalElementHost(
+  props as unknown as Record<string, unknown>,
+  ['rightAsideOpen', 'defaultRightAsideOpen'],
+  () => Boolean(resolvedRuntime.value),
+)
 
-function resolveRuntime(runtime: ChatRuntime | undefined) {
+function resolveRuntime(runtime: ChatRuntime | undefined, runtimeOptions: CreateChatRuntimeOptions | undefined) {
   if (runtime) {
     void ownedRuntime?.dispose()
     ownedRuntime = undefined
@@ -47,11 +51,25 @@ function resolveRuntime(runtime: ChatRuntime | undefined) {
     return
   }
 
-  ownedRuntime = createChatRuntime(props.runtimeOptions ?? {})
+  if (!runtimeOptions) {
+    void ownedRuntime?.dispose()
+    ownedRuntime = undefined
+    resolvedRuntime.value = undefined
+    return
+  }
+
+  void ownedRuntime?.dispose()
+  ownedRuntime = createChatRuntime(runtimeOptions)
   resolvedRuntime.value = ownedRuntime.runtime
 }
 
-watch(() => props.runtime, resolveRuntime, { immediate: true })
+watch(
+  [() => props.runtime, () => props.runtimeOptions],
+  ([runtime, runtimeOptions]) => {
+    resolveRuntime(runtime, runtimeOptions)
+  },
+  { immediate: true },
+)
 onUnmounted(() => void ownedRuntime?.dispose())
 
 defineExpose({
@@ -70,7 +88,7 @@ defineExpose({
     ref="chat"
     :runtime="resolvedRuntime"
     :ui="props.ui"
-    :title="props.title"
+    :title="chatTitle"
     :floating-state="props.floatingState"
     :right-aside-open="props.rightAsideOpen"
     :default-right-aside-open="props.defaultRightAsideOpen"

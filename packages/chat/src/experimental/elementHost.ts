@@ -4,7 +4,11 @@ import { signalTrChatReady } from './readiness'
 
 type CustomElementInstance = ComponentInternalInstance & { ce?: HTMLElement }
 
-export function useExperimentalElementHost(props: Record<string, unknown>, booleanProps: readonly string[]) {
+export function useExperimentalElementHost(
+  props: Record<string, unknown>,
+  booleanProps: readonly string[],
+  isReady: () => boolean = () => true,
+) {
   const instance = getCurrentInstance() as CustomElementInstance | null
   const getHost = () => instance?.ce
 
@@ -22,12 +26,20 @@ export function useExperimentalElementHost(props: Record<string, unknown>, boole
     return host ? forwardElementEvent(host, name, detail) : true
   }
 
-  onMounted(() => {
-    syncBooleanProperties()
+  function signalReady() {
+    if (!isReady()) return
     const host = getHost()
     if (host) signalTrChatReady(host)
+  }
+
+  onMounted(() => {
+    syncBooleanProperties()
+    signalReady()
   })
-  onUpdated(syncBooleanProperties)
+  onUpdated(() => {
+    syncBooleanProperties()
+    signalReady()
+  })
 
   return { forward, getHost }
 }

@@ -1,0 +1,54 @@
+.consumer-shell {
+  display: grid;
+  gap: 1rem;
+  min-height: 100vh;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  background: #f4f6fa;
+  color: #182431;
+}
+
+header,
+.probe,
+tr-chat {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+}
+
+header h1,
+header p {
+  margin-block: 0.25rem;
+}
+
+.eyebrow {
+  color: #526ecc;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.probe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 1rem rgb(26 48 78 / 10%);
+}
+
+.probe button {
+  margin-left: auto;
+  padding: 0.55rem 0.9rem;
+}
+
+tr-chat {
+  display: block;
+  height: 680px;
+  min-height: 480px;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.5rem 2rem rgb(26 48 78 / 12%);
+}

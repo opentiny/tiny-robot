@@ -29,7 +29,8 @@ test('report records baseline, measurements, browsers, limitations, and justifie
 
   assert.match(report, /c855826eba33f1d151514c9469b56fd09e679ae0/)
   assert.match(report, /@opentiny\/tiny-robot-chat\/experimental/)
-  assert.match(report, /607[,.]?215|607\.2\s*KB/i)
+  assert.ok(report.includes(`${matrix.measurements.experimental.js.rawBytes.toLocaleString('en-US')} B`))
+  assert.ok(report.includes(`${matrix.measurements.experimental.js.gzipBytes.toLocaleString('en-US')} B`))
   assert.match(report, /Chromium.*18\/18/is)
   assert.match(report, /Firefox.*WebKit/is)
   assert.match(report, /real.*not-run|真实服务.*not-run/is)

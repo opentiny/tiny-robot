@@ -47,26 +47,26 @@
 
 ## 18 个示例结果
 
-| ID                      | Vue baseline                     | behavior                            | visual                           | Chromium evidence        | Firefox / WebKit      |
-| ----------------------- | -------------------------------- | ----------------------------------- | -------------------------------- | ------------------------ | --------------------- |
-| `basic`                 | `chat/basic.vue`                 | adapted：owned Runtime options      | partial：无 pixel diff           | 通用挂载/布局            | 核心 smoke 通过       |
-| `layout-presets`        | `chat/layout-presets.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `welcome-prompts`       | `chat/welcome-prompts.vue`       | adapted：DOM event 回写 property    | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `sender-options`        | `chat/sender-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `bubble-options`        | `chat/bubble-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `runtime-error`         | `chat/runtime-error.vue`         | direct                              | partial：无 pixel diff           | 通用挂载 + 契约测试      | not-run：非核心 smoke |
-| `history-groups`        | `chat/history-groups.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `slots-basic`           | `chat/slots-basic.vue`           | adapted：slot + DOM renderer        | partial：无 pixel diff           | renderer 专项通过        | 核心 smoke 通过       |
-| `right-aside-panel`     | `chat/right-aside-panel.vue`     | adapted：renderer + element methods | partial：无 pixel diff           | 开关面板专项通过         | not-run：非核心 smoke |
-| `floating-layout`       | `chat/floating-layout.vue`       | direct                              | partial：未做拖拽截图 diff       | 通用挂载/布局            | not-run：非核心 smoke |
-| `responsive-layout`     | `chat/responsive-layout.vue`     | direct                              | partial：几何校验，无 pixel diff | 窄/宽容器专项通过        | 核心 smoke 通过       |
-| `controlled-ui`         | `chat/controlled-ui.vue`         | adapted：`*-update` 事件            | partial：无 pixel diff           | 通用挂载 + 契约测试      | not-run：非核心 smoke |
-| `runtime-actions`       | `chat/runtime-actions.vue`       | direct                              | partial：无 pixel diff           | send/stream/abort 专项   | not-run：非核心 smoke |
-| `runtime-before-send`   | `chat/runtime-before-send.vue`   | direct                              | partial：无 pixel diff           | reject/continue 专项     | not-run：非核心 smoke |
-| `runtime-composer`      | `chat/runtime-composer.vue`      | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `runtime-conversations` | `chat/runtime-conversations.vue` | direct                              | partial：无 pixel diff           | 通用挂载/布局            | not-run：非核心 smoke |
-| `runtime-send`          | `chat/runtime-send.vue`          | direct                              | partial：无 pixel diff           | send 专项通过            | 核心 smoke 通过       |
-| `runtime-adapter`       | `chat/runtime-adapter.vue`       | adapted：data + submit event        | partial：无 pixel diff           | 通用挂载 + 契约测试      | not-run：非核心 smoke |
+| ID                      | Vue baseline                     | behavior                            | visual                           | Chromium evidence      | Firefox / WebKit      |
+| ----------------------- | -------------------------------- | ----------------------------------- | -------------------------------- | ---------------------- | --------------------- |
+| `basic`                 | `chat/basic.vue`                 | adapted：owned Runtime options      | partial：无 pixel diff           | 通用挂载/布局          | 核心 smoke 通过       |
+| `layout-presets`        | `chat/layout-presets.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `welcome-prompts`       | `chat/welcome-prompts.vue`       | adapted：DOM event 回写 property    | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `sender-options`        | `chat/sender-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `bubble-options`        | `chat/bubble-options.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `runtime-error`         | `chat/runtime-error.vue`         | direct                              | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
+| `history-groups`        | `chat/history-groups.vue`        | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `slots-basic`           | `chat/slots-basic.vue`           | adapted：slot + DOM renderer        | partial：无 pixel diff           | renderer 专项通过      | 核心 smoke 通过       |
+| `right-aside-panel`     | `chat/right-aside-panel.vue`     | adapted：renderer + element methods | partial：无 pixel diff           | 开关面板专项通过       | not-run：非核心 smoke |
+| `floating-layout`       | `chat/floating-layout.vue`       | direct                              | partial：未做拖拽截图 diff       | 通用挂载/布局          | not-run：非核心 smoke |
+| `responsive-layout`     | `chat/responsive-layout.vue`     | direct                              | partial：几何校验，无 pixel diff | 窄/宽容器专项通过      | 核心 smoke 通过       |
+| `controlled-ui`         | `chat/controlled-ui.vue`         | adapted：`*-update` 事件            | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
+| `runtime-actions`       | `chat/runtime-actions.vue`       | direct                              | partial：无 pixel diff           | send/stream/abort 专项 | not-run：非核心 smoke |
+| `runtime-before-send`   | `chat/runtime-before-send.vue`   | direct                              | partial：无 pixel diff           | reject/continue 专项   | not-run：非核心 smoke |
+| `runtime-composer`      | `chat/runtime-composer.vue`      | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `runtime-conversations` | `chat/runtime-conversations.vue` | direct                              | partial：无 pixel diff           | 通用挂载/布局          | not-run：非核心 smoke |
+| `runtime-send`          | `chat/runtime-send.vue`          | direct                              | partial：无 pixel diff           | send 专项通过          | 核心 smoke 通过       |
+| `runtime-adapter`       | `chat/runtime-adapter.vue`       | adapted：data + submit event        | partial：无 pixel diff           | 通用挂载 + 契约测试    | not-run：非核心 smoke |
 
 机器可读明细见 [`tr-chat-web-component-matrix.json`](./tr-chat-web-component-matrix.json)。
 
@@ -89,13 +89,13 @@
 | 产物             |         raw |                     gzip |
 | ---------------- | ----------: | -----------------------: |
 | stable JS        |   130,232 B |                 33,362 B |
-| experimental JS  | 2,283,940 B | 607,215 B（约 607.2 KB） |
+| experimental JS  | 2,284,271 B | 607,328 B（约 607.3 KB） |
 | stable CSS       |    13,828 B |                  2,637 B |
 | experimental CSS |   121,957 B |                 12,902 B |
 
 experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认 bundles Vue。实验 CSS gzip 约为 stable 的 4.9 倍。这个结果支持原型阶段“自包含优先”，但在推广前必须评估 external-Vue、按功能拆包或更细粒度 tree-shaking。
 
-模块已加载且 gallery 就绪后，额外创建 5 个最小 `<tr-chat-ui>` 的挂载样本为 `2.0 / 1.1 / 0.8 / 0.8 / 0.7 ms`，中位数 `0.8 ms`，控制台错误 `0`。这是 warm mount 指标，不是网络下载、解析和首屏 cold-start 指标。
+模块已加载且 gallery 就绪后，额外创建 5 个最小 `<tr-chat-ui>` 的挂载样本为 `4.0 / 1.7 / 1.3 / 1.1 / 1.1 ms`，中位数 `1.3 ms`，控制台错误 `0`。这是 warm mount 指标，不是网络下载、解析和首屏 cold-start 指标。
 
 ## 浏览器与真实服务
 
@@ -106,11 +106,31 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 - 真实 MCP：`not-run`，环境未提供 `TR_CHAT_REAL_MCP_URL`。
 - 确定性 mock 已验证增量流式渲染与 abort；真实服务的 `not-run` 不阻塞主流程，但不能被解释为真实供应商兼容性通过。
 
+## Angular 20 跨框架验证
+
+新增 private workspace package `@opentiny/tiny-robot-angular20-experimental`，由官方 Angular CLI 20.3.39 以 standalone、strict、pnpm 配置创建。消费者只导入 `@opentiny/tiny-robot-chat/experimental` 和 `experimental.css` 两个公开入口，不引用 Vue、TrChat 源文件或内部路径。
+
+验证覆盖 Angular `CUSTOM_ELEMENTS_SCHEMA`、复杂对象 property binding、`ready` / `runtime-action-error` 标准 DOM 事件、公开 `send()` 方法、真实 Vue UI 渲染和确定性消息响应。集成过程发现并修复了一个框架顺序差异：Angular 会先连接 Custom Element，再写入 `runtimeOptions`；元素现在会等待 Runtime 配置后才初始化和发出 `ready`，重新赋值 owned `runtimeOptions` 时会释放并重建旧 Runtime。
+
+| Angular 20 验证项                | 结果                       |
+| -------------------------------- | -------------------------- |
+| Jasmine / Karma + ChromeHeadless | 2 / 2 通过                 |
+| Playwright Chromium 端到端       | 1 / 1 通过，控制台 error 0 |
+| production build                 | 通过                       |
+| initial bundle raw               | 1.77 MB                    |
+| initial estimated transfer       | 452.90 kB                  |
+| 外部服务或凭据                   | 不需要，使用确定性 mock    |
+
+Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此测试工程保留预算检查但将阈值设为 1.8 MB warning / 2 MB error。这个结果进一步确认了“可跨框架使用”，同时也支持把自包含体积列为稳定化前的首要优化项。
+
+验证环境实际版本为 Angular 20.3.33、Angular CLI 20.3.39、TypeScript 5.9.3。宿主 Node 26.9.0 高于 Angular 20 支持范围，`ng version` 会给出环境告警；本次 build、unit 和 e2e 均通过，但复现环境建议改用 Angular 20 支持的 Node LTS。
+
 ## 最终验证统计
 
 - `@opentiny/tiny-robot-chat` 单元测试：5 个文件，21 / 21 通过。
 - `@opentiny/tiny-robot-kit` 单元测试：21 个文件，195 通过、1 个既有跳过。
-- Playwright 组件回归：246 / 246 通过，其中包含 17 个 Web Component 契约用例。
+- Playwright 组件回归：247 / 247 通过，其中包含 18 个 Web Component 契约用例。
+- Angular 20 消费者：2 / 2 单元测试、1 / 1 Chromium 端到端和 production build 通过。
 - 实验浏览器套件：Chromium 2 通过、真实服务 2 个按凭据守卫跳过；Firefox 1 / 1、WebKit 1 / 1 通过。
 - 导出、示例清单、构建测量与报告一致性：10 / 10 通过。
 - chat production build（stable + experimental）、实验/组件类型检查和文档 production build 通过。

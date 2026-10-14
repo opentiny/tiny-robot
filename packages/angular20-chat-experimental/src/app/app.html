@@ -1,0 +1,34 @@
+<main class="consumer-shell">
+  <header>
+    <p class="eyebrow">Angular 20 consumer</p>
+    <h1>TrChat Web Component integration</h1>
+    <p>
+      This application imports the workspace experimental entry and communicates with TrChat only
+      through standard Custom Element properties, methods, and events.
+    </p>
+  </header>
+
+  <section class="probe" aria-label="Integration status">
+    <span data-testid="ready-state">Element: {{ ready() ? 'ready' : 'waiting' }}</span>
+    <span data-testid="send-state">Send: {{ sendState() }}</span>
+    <button
+      data-testid="send"
+      type="button"
+      [disabled]="!ready() || sendState() === 'sending'"
+      (click)="sendMessage()"
+    >
+      Send from Angular
+    </button>
+    @if (errorMessage()) {
+      <output data-testid="runtime-error">{{ errorMessage() }}</output>
+    }
+  </section>
+
+  <tr-chat
+    #chat
+    data-testid="tr-chat"
+    [runtimeOptions]="runtimeOptions"
+    (ready)="onReady()"
+    (runtime-action-error)="onRuntimeError($event)"
+  ></tr-chat>
+</main>

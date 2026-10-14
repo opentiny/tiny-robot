@@ -314,6 +314,108 @@ test.describe('experimental TrChat element runtime ownership', () => {
     expect(result).toEqual({ sent: true, sendCalls: 2, runtimeStillUsable: true })
   })
 
+  test('accepts owned Runtime options assigned immediately after Angular connects the element', async ({
+    mount,
+    page,
+  }) => {
+    await mount(ElementsFixture)
+
+    const result = await page.evaluate(async () => {
+      const api = window.__trChatElements
+      api.defineTrChatElements()
+      const element = document.createElement('tr-chat') as HTMLElement & {
+        runtimeOptions?: object
+        send(payload: { text: string }): Promise<boolean>
+      }
+      let firstProviderCalls = 0
+      let secondProviderCalls = 0
+      let secondRequestSignal: AbortSignal | undefined
+
+      document.body.append(element)
+      element.runtimeOptions = {
+        storage: {
+          loadConversations: () => [],
+          loadMessages: () => [],
+          saveConversation() {},
+          saveMessages() {},
+          deleteConversation() {},
+        },
+        responseProvider: async () => {
+          firstProviderCalls++
+          return {
+            id: 'angular-late-property',
+            object: 'chat.completion',
+            created: 1,
+            model: 'mock',
+            system_fingerprint: null,
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'Angular property binding works' },
+                delta: undefined,
+                logprobs: null,
+                finish_reason: 'stop',
+              },
+            ],
+          }
+        },
+      }
+
+      await api.whenTrChatReady(element)
+      const sent = await element.send({ text: 'Angular connected first' })
+      const hasVueChat = Boolean(element.querySelector('.tr-chat-ui'))
+      element.runtimeOptions = {
+        storage: {
+          loadConversations: () => [],
+          loadMessages: () => [],
+          saveConversation() {},
+          saveMessages() {},
+          deleteConversation() {},
+        },
+        responseProvider: async (_request: unknown, signal: AbortSignal) => {
+          secondProviderCalls++
+          secondRequestSignal = signal
+          await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }))
+          return {
+            id: 'angular-reassigned-property',
+            object: 'chat.completion',
+            created: 2,
+            model: 'mock',
+            system_fingerprint: null,
+            choices: [],
+          }
+        },
+      }
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+      const pendingSend = element.send({ text: 'Angular reassigned options' })
+      while (!secondRequestSignal) await Promise.resolve()
+      element.runtimeOptions = undefined
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      const disposedAfterClear = secondRequestSignal.aborted
+      element.remove()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      const sentAfterReassignment = await pendingSend
+
+      return {
+        sent,
+        hasVueChat,
+        sentAfterReassignment,
+        firstProviderCalls,
+        secondProviderCalls,
+        disposedAfterClear,
+      }
+    })
+
+    expect(result).toEqual({
+      sent: true,
+      hasVueChat: true,
+      sentAfterReassignment: true,
+      firstProviderCalls: 1,
+      secondProviderCalls: 1,
+      disposedAfterClear: true,
+    })
+  })
+
   test('creates and disposes an owned runtime while preserving disconnect/reinsert moves', async ({ mount, page }) => {
     await mount(ElementsFixture)
 

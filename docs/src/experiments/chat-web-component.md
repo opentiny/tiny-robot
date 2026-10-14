@@ -25,7 +25,7 @@ chat.runtimeOptions = { responseProvider }
 document.body.append(chat)
 ```
 
-原型使用 Vue 3 `defineCustomElement()`、Light DOM 和显式注册。复杂值通过 DOM 属性传递，响应式属性更新时重新赋值；事件使用标准 `CustomEvent`，`detail` 直接承载 payload；无上下文内容使用命名 slot，带上下文内容通过 `renderers` 属性返回 DOM Node。`runtimeOptions` 是 owned Runtime 的初始化配置，必须在连接元素前设置，挂载后不会据此重建 Runtime；需要动态切换时应改写 `runtime` 注入属性或创建新元素。
+原型使用 Vue 3 `defineCustomElement()`、Light DOM 和显式注册。复杂值通过 DOM 属性传递，响应式属性更新时重新赋值；事件使用标准 `CustomEvent`，`detail` 直接承载 payload；无上下文内容使用命名 slot，带上下文内容通过 `renderers` 属性返回 DOM Node。`runtimeOptions` 是 owned Runtime 的配置，可在连接元素前设置，也兼容 Angular 等框架先连接元素、随后绑定属性的初始化顺序；重新赋值会重建并释放旧的 owned Runtime。需要由宿主控制生命周期时，应改用 `runtime` 注入属性。
 
 下面固定列出 PR source 分支中的 18 个 Vue 文档示例及对应实验实现。每项显示基线源码、当前 Web Component 结果与后续自动化使用的稳定 matrix ID。
 
