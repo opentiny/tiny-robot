@@ -79,13 +79,14 @@ const runtime = useChatRuntime({ modelProviders })
 
 <style scoped>
 .chat-page {
+  --tr-layout-height: 100%;
   height: 600px;
 }
 </style>
 ```
 
 ::: tip 容器高度
-示例通过 `height: 600px` 设置父容器高度。请根据页面布局设置明确高度，否则消息区可能无法正常显示或滚动。
+为父容器设置明确高度，并通过 `--tr-layout-height: 100%` 让聊天界面填满容器。示例使用 `600px`，可根据页面布局调整；未设置该变量时，聊天界面默认使用浏览器视口高度。
 :::
 
 以下演示使用本地模拟服务，无需配置真实模型服务，可体验发送消息和查看回答：
@@ -104,7 +105,7 @@ const runtime = useChatRuntime({ modelProviders })
 
 项目已使用 Kit 的 `useConversation` 管理会话时，可通过 `useChatRuntimeFromConversation` 接入 `TrChat`，复用已有会话和请求配置，详见 [复用已有会话](./chat-runtime#复用已有会话)。
 
-## 常用功能
+## 界面配置与定制
 
 前面通过 `runtime` 接入了模型服务，并实现了发送消息、取消请求和会话切换等操作。需要调整页面布局、欢迎内容或输入区时，可以通过 `TrChat` 的 `ui` 属性定制界面。
 
@@ -130,9 +131,9 @@ const ui: ChatUIOptions = {
 <TrChat :runtime="runtime" :ui="ui" />
 ```
 
-下面介绍常用配置和示例，完整字段见 [界面配置](#界面配置)。需要自定义界面内容时，见 [插槽定制](#插槽定制)。
+下面介绍常用配置和示例，完整字段见 [ChatUIOptions](#chatuioptions)。需要自定义界面内容时，见 [插槽定制](#插槽定制)。
 
-### 页面布局
+### 基础布局
 
 通过 `ui.layout` 调整内容宽度、侧栏和空会话时的输入区位置：
 
@@ -166,7 +167,7 @@ const ui: ChatUIOptions = {
 <demo
   vue="../../demos/chat/layout-presets.vue"
   :vueFiles="['../../demos/chat/layout-presets.vue']"
-  title="页面布局"
+  title="基础布局"
   description="切换布局，查看侧栏宽度、展开和隐藏，以及空会话输入区的位置变化。"
 />
 
@@ -559,7 +560,7 @@ const ui: ChatUIOptions = {
   description="点击消息操作，打开发布方案预览或引用资料。"
 />
 
-完整配置及默认值见 [布局配置](#layout)，面板控制属性见 [TrChat 属性](#属性)。
+完整配置及默认值见 [布局配置](#layout)，面板控制属性见 [TrChat 属性](#trchat-props)。
 
 ### 浮动聊天窗口
 
@@ -624,7 +625,7 @@ const floatingState = shallowRef<LayoutFloatingState>({
 
 完整字段及默认值见 [拖动与缩放配置](../components/layout#layout-floating-options)和[窗口位置与尺寸](../components/layout#layout-floating-state)。
 
-### 窄屏与移动端
+### 响应式布局与侧栏缩放
 
 侧栏支持两种布局，通过 `ui.layout.leftAside.mode` 或 `ui.layout.rightAside.mode` 设置，默认是 `'dock'`：
 
@@ -769,14 +770,19 @@ const data = computed<ChatUIData>(() => ({
 
 ## API
 
+- TrChat：[属性](#trchat-props) · [事件](#trchat-events) · [方法](#trchat-methods)
+- TrChatUI：[属性](#trchatui-props) · [事件](#trchatui-events) · [方法](#trchatui-methods)
+- 显示数据：[ChatUIData](#chatuidata)
+- 界面配置：[ChatUIOptions](#chatuioptions)
+
 ### TrChat API
 
-#### 属性
+#### 属性 {#trchat-props}
 
 | 属性名                                | 说明                                       | 类型                                                                | 默认值         | 必填 |
 | ------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- | -------------- | ---- |
 | `runtime`                             | 提供会话、输入区状态和操作方法。           | [`ChatRuntime`](./chat-runtime#状态与方法)                          | —              | 是   |
-| `ui`                                  | 配置页面布局、文案和区域。                 | [`ChatUIOptions`](#界面配置)                                        | 默认界面配置   | 否   |
+| `ui`                                  | 配置页面布局、文案和区域。                 | [`ChatUIOptions`](#chatuioptions)                                        | 默认界面配置   | 否   |
 | `title`                               | 覆盖当前会话提供的页面标题。               | `string`                                                            | —              | 否   |
 | `history-data`                        | 覆盖 Runtime 会话生成的历史列表或分组。    | [`ChatHistoryData`](#展示数据类型)                                  | —              | 否   |
 | `floating-state`                      | 由应用管理的浮动窗口位置和尺寸。           | [`LayoutFloatingState`](../components/layout#layout-floating-state) | —              | 否   |
@@ -785,7 +791,7 @@ const data = computed<ChatUIData>(() => ({
 | `active-right-aside-panel-id`         | 由应用管理的当前右栏面板，需处理更新事件。 | `ChatRightAsidePanelId`                                             | —              | 否   |
 | `default-active-right-aside-panel-id` | 组件管理当前面板时的初始值。               | `ChatRightAsidePanelId`                                             | 第一个可用面板 | 否   |
 
-#### 事件
+#### 事件 {#trchat-events}
 
 `TrChat` 会直接处理提交、取消、会话切换、模型选择和 MCP 开关操作，调用 Runtime 对应方法；这些事件不会再次向外发出。
 
@@ -804,7 +810,7 @@ const data = computed<ChatUIData>(() => ({
 | `floating-drag-start` / `floating-drag` / `floating-drag-end`       | [`LayoutFloatingDragDetail`](../components/layout#layout-floating-drag-detail)     | 浮动窗口开始拖动、拖动中或拖动结束。                                    |
 | `floating-resize-start` / `floating-resize` / `floating-resize-end` | [`LayoutFloatingResizeDetail`](../components/layout#layout-floating-resize-detail) | 浮动窗口开始缩放、缩放中或缩放结束。                                    |
 
-#### 组件方法
+#### 组件方法 {#trchat-methods}
 
 | 方法                      | 签名                                             | 说明                           |
 | ------------------------- | ------------------------------------------------ | ------------------------------ |
@@ -816,12 +822,12 @@ const data = computed<ChatUIData>(() => ({
 
 ### TrChatUI API
 
-#### 属性
+#### 属性 {#trchatui-props}
 
 | 属性名                                | 说明                                     | 类型                                                                | 默认值         | 必填 |
 | ------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------- | -------------- | ---- |
 | `data`                                | 应用提供的显示数据；组件不会修改该对象。 | [`ChatUIData`](#chatuidata)                                         | 空展示数据     | 否   |
-| `ui`                                  | 配置页面布局、文案和区域。               | [`ChatUIOptions`](#界面配置)                                        | 默认界面配置   | 否   |
+| `ui`                                  | 配置页面布局、文案和区域。               | [`ChatUIOptions`](#chatuioptions)                                        | 默认界面配置   | 否   |
 | `input-value`                         | 应用管理的输入内容，需处理更新事件。     | `string`                                                            | —              | 否   |
 | `default-input-value`                 | 组件管理输入时的初始内容。               | `string`                                                            | `''`           | 否   |
 | `floating-state`                      | 由应用管理的浮动窗口位置和尺寸。         | [`LayoutFloatingState`](../components/layout#layout-floating-state) | —              | 否   |
@@ -832,7 +838,7 @@ const data = computed<ChatUIData>(() => ({
 
 `input-value` 与 `default-input-value` 二选一，使用期间不切换输入管理方式。由应用管理左栏开闭时，通过 `ui.layout.leftAside.open` 设置状态，并在 `left-aside-open-change` 事件中更新该值。
 
-#### 事件
+#### 事件 {#trchatui-events}
 
 点击“新会话”时，`TrChatUI` 只触发 `create-conversation`，由项目决定清空当前选择还是立即创建会话。`TrChat` 会返回新会话页面；使用默认发送流程时，在发送首条非空消息时创建会话。
 
@@ -865,7 +871,7 @@ const data = computed<ChatUIData>(() => ({
 | `floating-drag-start` / `floating-drag` / `floating-drag-end`       | [`LayoutFloatingDragDetail`](../components/layout#layout-floating-drag-detail)     | 处理窗口开始拖动、拖动中或拖动结束。                                  |
 | `floating-resize-start` / `floating-resize` / `floating-resize-end` | [`LayoutFloatingResizeDetail`](../components/layout#layout-floating-resize-detail) | 处理窗口开始缩放、缩放中或缩放结束。                                  |
 
-#### 组件方法
+#### 组件方法 {#trchatui-methods}
 
 | 方法                      | 签名                                        | 说明                           |
 | ------------------------- | ------------------------------------------- | ------------------------------ |
@@ -898,7 +904,7 @@ const data = computed<ChatUIData>(() => ({
 | `title`    | `string`                 | 新对话 | 页头标题；空字符串会原样显示。                                      |
 | `history`  | `ChatHistoryData`        | —      | 应用提供的排序或分组结果；提供后优先于根据 `items` 生成的默认历史。 |
 
-`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [Chat 配置与操作：会话、消息与发送](./chat-runtime#会话、消息与发送)。
+`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [Chat Runtime 配置与操作：会话、消息与发送](./chat-runtime#会话、消息与发送)。
 
 ##### `bubble` 与 `sender`
 
@@ -945,7 +951,7 @@ const data = computed<ChatUIData>(() => ({
 
 `request` 会传给 `layout-main` 和 `layout-empty-state`。默认界面的发送中反馈读取 `sender.loading`，消息错误读取 `message.state.error`；只更新 `request` 不会自动渲染这些反馈。
 
-### 界面配置
+### ChatUIOptions
 
 `TrChat` 和 `TrChatUI` 都通过 `ui` 接收 `ChatUIOptions`，配置布局、文案和各区域的显示方式。
 
@@ -992,7 +998,7 @@ const data = computed<ChatUIData>(() => ({
 | `showClose`      | `boolean`                      | `true`                                                 | 仅右栏；是否显示关闭按钮                                           |
 | `panels`         | `ChatRightAsidePanelOptions[]` | `[]`                                                   | 仅右栏；每项必填 `id`，可选 `title`                                |
 
-右栏开闭和当前面板通过组件属性设置，见 [TrChat 属性](#属性)。浮动窗口的配置结构、尺寸限制和状态绑定见 [浮动聊天窗口](#浮动聊天窗口)。
+右栏开闭和当前面板通过组件属性设置，见 [TrChat 属性](#trchat-props)。浮动窗口的配置结构、尺寸限制和状态绑定见 [浮动聊天窗口](#浮动聊天窗口)。
 
 `panels` 需要配合 `layout-right-aside` 或 `layout-right-aside-panel` 插槽提供内容；面板 ID 不能重复，也不能使用内置保留 ID `mcp`。`layout-right-aside-title` 和 `layout-right-aside-panel` 只用于应用添加的面板，不替换 MCP 面板。
 
@@ -1049,7 +1055,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatUIEmits`                  | `interface` | `TrChatUI` 的事件及参数类型。 |
 | `ChatUISlots`                  | `interface` | `TrChat` 和 `TrChatUI` 的插槽及参数类型。 |
 | `ChatUIData`                   | `interface` | 显示数据；字段行为见 [ChatUIData](#chatuidata)。  |
-| `ChatUIOptions`                | `interface` | 界面配置；字段行为见 [ChatUIOptions](#界面配置)。 |
+| `ChatUIOptions`                | `interface` | 界面配置；字段行为见 [ChatUIOptions](#chatuioptions)。 |
 | `ChatCssSize`                  | `type`      | `string \| number`。                              |
 | `ChatWelcomeComposerPlacement` | `type`      | `'footer' \| 'center'`。                          |
 | `ChatRightAsidePanelId`        | `type`      | `string`。                                        |
@@ -1058,7 +1064,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatRequestState`             | `type`      | 请求状态类型。                                    |
 | `ChatProcessingState`          | `type`      | `'requesting' \| 'completing' \| string`。        |
 
-会话、消息和操作相关类型见 [Chat 配置与操作 API](./chat-runtime#api)。
+会话、消息和操作相关类型见 [Chat Runtime 配置与操作 API](./chat-runtime#api)。
 
 #### 展示数据类型
 
@@ -1143,4 +1149,4 @@ const data = computed<ChatUIData>(() => ({
 
 ### 页面没有高度或消息区不滚动
 
-为 Chat 的父容器设置明确高度，例如快速开始中的 `height: 600px`。使用百分比高度时，祖先容器也需要有明确高度；使用 flex 布局时，检查消息区所在的子项是否允许收缩（如设置 `min-height: 0`）。
+为 Chat 的父容器设置明确高度，并设置 `--tr-layout-height: 100%`，让聊天界面使用父容器高度，见 [最小接入示例](#接入模型服务)。使用百分比高度时，祖先容器也需要有明确高度；使用 flex 布局时，检查消息区所在的子项是否允许收缩（如设置 `min-height: 0`）。
