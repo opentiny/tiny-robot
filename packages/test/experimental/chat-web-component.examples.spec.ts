@@ -77,9 +77,40 @@ function expectNoConsoleErrors(errors: string[]) {
   expect(errors).toEqual([])
 }
 
+async function findExamplesWithInternalVerticalOverflow(page: Page) {
+  return page.locator('[data-example-id]:not([data-example-id="floating-layout"])').evaluateAll((cards) =>
+    cards.flatMap((card) => {
+      const id = card.getAttribute('data-example-id') ?? 'unknown'
+      const overflowing = [...card.querySelectorAll<HTMLElement>('*')].filter((node) => {
+        const { overflowY } = getComputedStyle(node)
+        return ['auto', 'scroll'].includes(overflowY) && node.scrollHeight > node.clientHeight + 1
+      })
+      return overflowing.length > 0 ? [id] : []
+    }),
+  )
+}
+
 test.describe('TrChat Web Component documented examples', () => {
   test.beforeEach(({}, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'The complete per-example matrix runs in Chromium.')
+  })
+
+  test('embedded examples provide enough height for their initial UI without internal vertical overflow', async ({
+    page,
+  }) => {
+    await page.goto('/experiments/chat-web-component')
+    await expect(page.locator('[data-example-id]')).toHaveCount(18)
+    await expect(page.locator('[data-example-id="runtime-adapter"]')).toHaveAttribute('data-mount-status', 'ready')
+
+    expect(await findExamplesWithInternalVerticalOverflow(page)).toEqual([])
+  })
+
+  test('narrow documentation examples retain enough height after controls wrap', async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 900 })
+    await page.goto('/experiments/chat-web-component')
+    await expect(page.locator('[data-example-id="runtime-adapter"]')).toHaveAttribute('data-mount-status', 'ready')
+
+    expect(await findExamplesWithInternalVerticalOverflow(page)).toEqual([])
   })
 
   test('basic: renders, accepts input, and sends through the owned Runtime', async ({ page }) => {

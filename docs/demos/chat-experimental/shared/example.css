@@ -56,7 +56,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 420px;
+  height: 560px;
   --tr-layout-height: 100%;
   --tr-layout-main-min-width: 0;
   background: var(--tr-container-bg-default, #fff);
@@ -78,6 +78,6 @@
 
 @media (max-width: 720px) {
   .tr-chat-experiment-host {
-    height: 520px;
+    height: 640px;
   }
 }

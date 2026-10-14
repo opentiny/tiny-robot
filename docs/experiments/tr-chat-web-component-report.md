@@ -108,7 +108,7 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 - 真实 MCP：`not-run`，环境未提供 `TR_CHAT_REAL_MCP_URL`。
 - 确定性 mock 已验证增量流式渲染与 abort；真实服务的 `not-run` 不阻塞主流程，但不能被解释为真实供应商兼容性通过。
 
-本轮逐例浏览器验证发现并修复了五个原型问题：示例宿主没有覆盖 `--tr-layout-height`，导致内部 `100dvh` 布局超出 420px 宿主并裁切发送区；带控制栏的示例没有为元素预留剩余 flex 高度；浮动示例默认挂载到 `body` 覆盖文档且漏配 resize；浮动元素在 ready 前快速打开/关闭存在过期异步挂载残留；Playwright 文档服务工作目录依赖调用位置。修复后，普通示例布局都受宿主高度约束，浮动聊天改为显式打开/关闭并可拖动、缩放，过期挂载会被取消，测试服务可从任意工作目录启动。
+本轮逐例浏览器验证发现并修复了五个原型问题：示例宿主没有覆盖 `--tr-layout-height`，导致内部 `100dvh` 布局超出 420px 宿主并裁切发送区；带控制栏的示例没有为元素预留剩余 flex 高度；浮动示例默认挂载到 `body` 覆盖文档且漏配 resize；浮动元素在 ready 前快速打开/关闭存在过期异步挂载残留；Playwright 文档服务工作目录依赖调用位置。修复后，普通示例布局都受宿主高度约束，浮动聊天改为显式打开/关闭并可拖动、缩放，过期挂载会被取消，测试服务可从任意工作目录启动。示例宿主进一步统一为桌面 `560px`、窄屏 `640px`；浏览器回归确认初始 UI 和换行后的窄屏控制区不会因容器过矮产生内部纵向滚动。
 
 ## Angular 20 跨框架验证
 
@@ -138,7 +138,7 @@ Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此�
 - `@opentiny/tiny-robot-kit` 单元测试：21 个文件，195 通过、1 个既有跳过。
 - Playwright 组件回归：247 / 247 通过，其中包含 18 个 Web Component 契约用例。
 - Angular 20 消费者：2 / 2 单元测试、1 / 1 Chromium 端到端和 production build 通过。
-- 实验浏览器套件：Chromium 21 通过、真实服务 2 个按凭据守卫跳过，其中逐例场景 18 / 18 通过；Firefox 1 / 1、WebKit 1 / 1 核心 smoke 通过。
+- 实验浏览器套件：Chromium 23 通过、真实服务 2 个按凭据守卫跳过，其中逐例场景 18 / 18、桌面与窄屏高度回归 2 / 2 通过；Firefox 1 / 1、WebKit 1 / 1 核心 smoke 通过。
 - 导出、示例清单、构建测量与报告一致性：10 / 10 通过。
 - chat production build（stable + experimental）、实验/组件类型检查和文档 production build 通过。
 
