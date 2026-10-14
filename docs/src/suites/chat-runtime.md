@@ -2,14 +2,14 @@
 outline: [1, 3]
 ---
 
-# Chat Runtime 配置与操作
+# Chat 配置与操作
 
 本文介绍如何为 `TrChat` 配置模型服务、发送消息、取消请求、管理会话和接入 MCP 工具。
 
 根据项目情况，选择以下一种接入方式：
 
 - [`useChatRuntime`](#usechatruntime-配置)：推荐使用，配置模型服务和会话功能。
-- [`useChatRuntimeFromConversation`](#usechatruntimefromconversation-配置)：项目已通过 Kit 的 `useConversation` 管理会话时，复用已有会话和请求配置。
+- [`useChatRuntimeFromConversation`](#usechatruntimefromconversation-配置)：项目已使用 TinyRobot Kit 管理会话时，将已有会话接入 `TrChat`，保留原有请求配置。
 
 两种方式都将返回的 `runtime` 对象传给 `TrChat`。
 
@@ -79,7 +79,7 @@ modelProviders[0].models[0].capabilities = {
 
 `capabilities` 表示模型支持哪些功能，不表示默认开启；用户通过开关选择是否使用，联网搜索默认关闭。模型服务必须实际支持这些功能，添加配置不会为模型增加能力。
 
-### 请求与鉴权
+### 其他配置
 
 以下字段均为可选，按需设置。
 
@@ -95,8 +95,6 @@ modelProviders[0].models[0].capabilities = {
 ::: warning 密钥安全
 生产环境应由服务端保管模型密钥并转发请求，不要将长期密钥写入前端代码。
 :::
-
-### 模型参数与思考强度
 
 以下字段均为可选，放在 `models` 数组中的对应模型上：
 
@@ -302,7 +300,7 @@ const runtime = useChatRuntime({
   description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
 />
 
-## 接入 MCP 工具
+### 接入 MCP 工具
 
 MCP 用于连接外部工具服务，让模型调用工具，例如查询项目资料。需要使用工具时，再配置此项。
 
@@ -448,12 +446,6 @@ const adapter = useChatRuntimeAdapter({
 完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [单独使用 TrChatUI](./chat#单独使用-trchatui)。
 
 ## API
-
-可通过以下链接直接查阅：
-
-- 配置：[`useChatRuntime`](#usechatruntime-配置)、[`useChatRuntimeFromConversation`](#usechatruntimefromconversation-配置)。
-- 状态与操作：[状态](#状态)、[会话操作](#会话操作)、[模型状态与操作](#模型状态与操作)、[MCP 状态与操作](#mcp-状态与操作)。
-- 类型：[Runtime 与状态类型](#runtime-与状态类型)、[会话、消息与发送](#会话、消息与发送)、[模型与 MCP](#模型与-mcp)。
 
 ### 公开函数
 
