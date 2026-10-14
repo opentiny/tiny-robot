@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-14T01:47:25.206Z",
+  "generatedAt": "2026-10-14T02:20:16.132Z",
   "examples": [
     {
       "id": "basic",
@@ -372,15 +372,15 @@
       "css": { "rawBytes": 13828, "gzipBytes": 2637 }
     },
     "experimental": {
-      "js": { "rawBytes": 2284271, "gzipBytes": 607328 },
-      "css": { "rawBytes": 121957, "gzipBytes": 12902 },
+      "js": { "rawBytes": 2286034, "gzipBytes": 607906 },
+      "css": { "rawBytes": 322867, "gzipBytes": 43054 },
       "bundlesVue": true
     },
     "firstMount": {
-      "samplesMs": [4, 1.7, 1.3, 1.1, 1.1],
-      "minMs": 1.1,
-      "medianMs": 1.3,
-      "maxMs": 4,
+      "samplesMs": [2.1, 1, 0.9, 0.9, 0.9],
+      "minMs": 0.9,
+      "medianMs": 0.9,
+      "maxMs": 2.1,
       "consoleErrors": []
     }
   },

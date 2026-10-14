@@ -89,13 +89,13 @@
 | 产物             |         raw |                     gzip |
 | ---------------- | ----------: | -----------------------: |
 | stable JS        |   130,232 B |                 33,362 B |
-| experimental JS  | 2,284,271 B | 607,328 B（约 607.3 KB） |
+| experimental JS  | 2,286,034 B | 607,906 B（约 607.9 KB） |
 | stable CSS       |    13,828 B |                  2,637 B |
-| experimental CSS |   121,957 B |                 12,902 B |
+| experimental CSS |   322,867 B |                 43,054 B |
 
-experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认 bundles Vue。实验 CSS gzip 约为 stable 的 4.9 倍。这个结果支持原型阶段“自包含优先”，但在推广前必须评估 external-Vue、按功能拆包或更细粒度 tree-shaking。
+experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认 bundles Vue。实验 CSS 为 stable CSS 的约 23.3 倍（gzip 约 16.3 倍）；增长来自补齐 Web Component 外部消费者此前缺失的 TinyRobot 基础组件样式。这个结果支持原型阶段“自包含和正确渲染优先”，但在推广前必须评估 external-Vue、样式裁剪、按功能拆包或更细粒度 tree-shaking。
 
-模块已加载且 gallery 就绪后，额外创建 5 个最小 `<tr-chat-ui>` 的挂载样本为 `4.0 / 1.7 / 1.3 / 1.1 / 1.1 ms`，中位数 `1.3 ms`，控制台错误 `0`。这是 warm mount 指标，不是网络下载、解析和首屏 cold-start 指标。
+模块已加载且 gallery 就绪后，额外创建 5 个最小 `<tr-chat-ui>` 的挂载样本为 `2.1 / 1.0 / 0.9 / 0.9 / 0.9 ms`，中位数 `0.9 ms`，控制台错误 `0`。这是 warm mount 指标，不是网络下载、解析和首屏 cold-start 指标。
 
 ## 浏览器与真实服务
 
@@ -110,18 +110,21 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 
 新增 private workspace package `@opentiny/tiny-robot-angular20-experimental`，由官方 Angular CLI 20.3.39 以 standalone、strict、pnpm 配置创建。消费者只导入 `@opentiny/tiny-robot-chat/experimental` 和 `experimental.css` 两个公开入口，不引用 Vue、TrChat 源文件或内部路径。
 
-验证覆盖 Angular `CUSTOM_ELEMENTS_SCHEMA`、复杂对象 property binding、`ready` / `runtime-action-error` 标准 DOM 事件、公开 `send()` 方法、真实 Vue UI 渲染和确定性消息响应。集成过程发现并修复了一个框架顺序差异：Angular 会先连接 Custom Element，再写入 `runtimeOptions`；元素现在会等待 Runtime 配置后才初始化和发出 `ready`，重新赋值 owned `runtimeOptions` 时会释放并重建旧 Runtime。
+验证覆盖 Angular `CUSTOM_ELEMENTS_SCHEMA`、复杂对象 property binding、`ready` / `runtime-action-error` 标准 DOM 事件、公开 `send()` 方法、真实 Vue UI 渲染和确定性消息响应。集成过程发现并修复了两个跨框架问题：Angular 会先连接 Custom Element，再写入 `runtimeOptions`；元素现在会等待 Runtime 配置后才初始化和发出 `ready`，重新赋值 owned `runtimeOptions` 时会释放并重建旧 Runtime。首次视觉复核还发现 `experimental.css` 没有包含 TinyRobot 基础组件样式，导致元素结构存在但布局退化为普通 block；入口现已自包含这些样式。
 
-| Angular 20 验证项                | 结果                       |
-| -------------------------------- | -------------------------- |
-| Jasmine / Karma + ChromeHeadless | 2 / 2 通过                 |
-| Playwright Chromium 端到端       | 1 / 1 通过，控制台 error 0 |
-| production build                 | 通过                       |
-| initial bundle raw               | 1.77 MB                    |
-| initial estimated transfer       | 452.90 kB                  |
-| 外部服务或凭据                   | 不需要，使用确定性 mock    |
+| Angular 20 验证项                | 结果                                           |
+| -------------------------------- | ---------------------------------------------- |
+| Jasmine / Karma + ChromeHeadless | 2 / 2 通过                                     |
+| Playwright Chromium 端到端       | 1 / 1 通过，控制台 error 0                     |
+| 结构视觉契约                     | body grid、aside grid-area、sender flex 均通过 |
+| 桌面固定高度几何                 | host/layout 同高 680px，sender 未越界          |
+| 320px 窄视口                     | layout/main 均在 host 内，页面无横向溢出       |
+| production build                 | 通过                                           |
+| initial bundle raw               | 1.97 MB                                        |
+| initial estimated transfer       | 477.33 kB                                      |
+| 外部服务或凭据                   | 不需要，使用确定性 mock                        |
 
-Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此测试工程保留预算检查但将阈值设为 1.8 MB warning / 2 MB error。这个结果进一步确认了“可跨框架使用”，同时也支持把自包含体积列为稳定化前的首要优化项。
+Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此测试工程保留预算检查但将阈值设为 1.8 MB warning / 2 MB error；当前 1.97 MB 已触发 warning，但仍低于 error 阈值。这个结果进一步确认了“可跨框架使用”，同时也支持把自包含体积列为稳定化前的首要优化项。
 
 验证环境实际版本为 Angular 20.3.33、Angular CLI 20.3.39、TypeScript 5.9.3。宿主 Node 26.9.0 高于 Angular 20 支持范围，`ng version` 会给出环境告警；本次 build、unit 和 e2e 均通过，但复现环境建议改用 Angular 20 支持的 Node LTS。
 
@@ -141,7 +144,7 @@ Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此�
 2. **Light DOM**：便于继承现有 CSS 和调试，但不提供样式隔离；宿主样式可能影响内部节点。
 3. **Shadow DOM**：若未来要求强隔离，需要重新验证 teleport/overlay、全局主题变量、第三方组件样式和可访问性树；本原型不应直接切换。
 4. **Scoped slot**：平台 slot 没有 Vue scoped slot 的上下文能力，所以 renderer 是必要适配，不是语法等价。
-5. **视觉证据**：现有自动化能阻止显著布局、溢出和交互回归，但尚未建立 18 组像素 baseline。
+5. **视觉证据**：Angular 消费者已增加关键 display/grid-area 与宿主边界几何回归，能捕获本次“样式未打包”和固定高度越界问题；18 组 Vue baseline 与 Web Component 的像素 diff 仍未建立。
 6. **体积**：捆绑 Vue 和完整依赖是推广前最优先的工程问题。
 7. **稳定性与版本承诺**：继续保持 experimental；破坏性调整、SSR、IIFE/UMD/CDN、framework wrapper、完整 a11y/perf/CSP/legacy browser 和正式 graduation policy 后续单独决策。
 

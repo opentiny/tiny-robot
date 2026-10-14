@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
+    "pretest:e2e": "pnpm --dir ../chat build:experimental",
     "test:e2e": "playwright test"
   },
   "prettier": {

@@ -16,7 +16,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm exec ng serve --host 127.0.0.1 --port 4300',
+    command: './node_modules/.bin/ng serve --host 127.0.0.1 --port 4300',
     url: 'http://127.0.0.1:4300',
     reuseExistingServer: false,
     timeout: 120_000,

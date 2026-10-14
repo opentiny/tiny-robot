@@ -11,6 +11,7 @@
 header,
 .probe,
 tr-chat {
+  box-sizing: border-box;
   width: min(100%, 1100px);
   margin-inline: auto;
 }
@@ -44,6 +45,9 @@ header p {
 }
 
 tr-chat {
+  --tr-layout-height: 100%;
+  --tr-layout-main-min-width: 0;
+
   display: block;
   height: 680px;
   min-height: 480px;
