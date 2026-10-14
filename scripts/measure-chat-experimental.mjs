@@ -58,7 +58,7 @@ export function collectBuildMeasurements() {
     },
     experimental: {
       js: aggregate(experimentalFiles),
-      css: bytes(join(dist, 'experimental.css')),
+      css: bytes(join(dist, 'web-component.css')),
       files: experimentalFiles.map((path) => relative(dist, path)).sort(),
       bundlesVue: experimentalSource.includes('__VUE__') && experimentalSource.includes('createApp'),
     },

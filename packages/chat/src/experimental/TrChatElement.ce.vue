@@ -37,6 +37,9 @@ const chatTitle = computed(() => (typeof attrs.title === 'string' ? attrs.title 
 const chat = ref<InstanceType<typeof Chat>>()
 const resolvedRuntime = shallowRef<ChatRuntime>()
 let ownedRuntime: CreateChatRuntimeResult | undefined
+let runtimeResolution = 0
+let runtimeTransition = Promise.resolve()
+let runtimeTransitioning = false
 const { forward } = useExperimentalElementHost(
   props as unknown as Record<string, unknown>,
   ['rightAsideOpen', 'defaultRightAsideOpen'],
@@ -44,23 +47,35 @@ const { forward } = useExperimentalElementHost(
 )
 
 function resolveRuntime(runtime: ChatRuntime | undefined, runtimeOptions: CreateChatRuntimeOptions | undefined) {
-  if (runtime) {
-    void ownedRuntime?.dispose()
-    ownedRuntime = undefined
-    resolvedRuntime.value = runtime
-    return
-  }
+  const resolution = ++runtimeResolution
+  const previousOwnedRuntime = ownedRuntime
+  const previousTransition = runtimeTransition
+  ownedRuntime = undefined
+  runtimeTransitioning = true
+  if (previousOwnedRuntime) resolvedRuntime.value = undefined
 
-  if (!runtimeOptions) {
-    void ownedRuntime?.dispose()
-    ownedRuntime = undefined
-    resolvedRuntime.value = undefined
-    return
-  }
+  runtimeTransition = Promise.allSettled([
+    previousTransition,
+    ...(previousOwnedRuntime ? [previousOwnedRuntime.dispose()] : []),
+  ]).then(() => {
+    if (resolution !== runtimeResolution) return
 
-  void ownedRuntime?.dispose()
-  ownedRuntime = createChatRuntime(runtimeOptions)
-  resolvedRuntime.value = ownedRuntime.runtime
+    if (runtime) {
+      resolvedRuntime.value = runtime
+      runtimeTransitioning = false
+      return
+    }
+
+    if (!runtimeOptions) {
+      resolvedRuntime.value = undefined
+      runtimeTransitioning = false
+      return
+    }
+
+    ownedRuntime = createChatRuntime(runtimeOptions)
+    resolvedRuntime.value = ownedRuntime.runtime
+    runtimeTransitioning = false
+  })
 }
 
 watch(
@@ -70,10 +85,22 @@ watch(
   },
   { immediate: true },
 )
-onUnmounted(() => void ownedRuntime?.dispose())
+onUnmounted(() => {
+  runtimeResolution++
+  runtimeTransitioning = true
+  const previousOwnedRuntime = ownedRuntime
+  const previousTransition = runtimeTransition
+  ownedRuntime = undefined
+  resolvedRuntime.value = undefined
+  runtimeTransition = Promise.allSettled([
+    previousTransition,
+    ...(previousOwnedRuntime ? [previousOwnedRuntime.dispose()] : []),
+  ]).then(() => undefined)
+})
 
 defineExpose({
-  send: (payload: ChatSendPayload) => chat.value?.send(payload) ?? Promise.resolve(false),
+  send: (payload: ChatSendPayload) =>
+    runtimeTransitioning ? Promise.resolve(false) : (chat.value?.send(payload) ?? Promise.resolve(false)),
   getRuntime: () => resolvedRuntime.value,
   openRightAside: (panel?: ChatRightAsidePanelId) => chat.value?.openRightAside(panel),
   closeRightAside: () => chat.value?.closeRightAside(),

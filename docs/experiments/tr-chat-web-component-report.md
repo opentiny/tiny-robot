@@ -13,7 +13,7 @@
 - 初始与最终基线 SHA：`c855826eba33f1d151514c9469b56fd09e679ae0`
 - 最终刷新时间：2026-10-14；PR head 与原始基线一致，无需重放文档变更。
 - 实验入口：`@opentiny/tiny-robot-chat/experimental`
-- 样式入口：`@opentiny/tiny-robot-chat/experimental.css`
+- 样式入口：`@opentiny/tiny-robot-chat/experimental/web-component.css`
 - 元素：`<tr-chat>`、`<tr-chat-ui>`
 - 浏览器：Chromium 完整矩阵；Firefox、WebKit 核心 smoke。
 
@@ -43,7 +43,7 @@
 | not-applicable |    0 |
 | not-run        |    0 |
 
-覆盖率公式为 `(direct + adapted) / applicable`，所以结果为 `(12 + 6) / 18 = 100%`。这里的 direct / adapted 表示每个 Vue 示例是直接映射还是经平台协议转换。除通用 readiness、可见内容、布局高度边界和横向溢出检查外，18 项现在各有独立 Chromium 场景，覆盖该示例列出的 UI 状态与交互。visual 维度仍均为 `partial`，因为没有保存 Vue baseline 与 Web Component 的像素级截图差异；因此结论是功能与结构 UI 通过，不是 pixel-perfect 认证。
+覆盖率公式为 `(direct + adapted) / applicable`，所以结果为 `(12 + 6) / 18 = 100%`。这里的 direct / adapted 表示每个 Vue 示例是直接映射还是经平台协议转换。除通用 readiness、可见内容、布局高度边界和横向溢出检查外，18 项现在各有独立 Chromium 专项交互场景，覆盖该示例列出的 UI 状态与交互。visual 维度仍均为 `partial`，因为没有保存 Vue baseline 与 Web Component 的像素级截图差异；因此结论是功能与结构 UI 通过，不是 pixel-perfect 认证。
 
 ## 18 个示例结果
 
@@ -91,7 +91,7 @@
 | 产物             |         raw |                     gzip |
 | ---------------- | ----------: | -----------------------: |
 | stable JS        |   130,232 B |                 33,362 B |
-| experimental JS  | 2,286,034 B | 607,906 B（约 607.9 KB） |
+| experimental JS  | 2,284,703 B | 607,464 B（约 607.5 KB） |
 | stable CSS       |    13,828 B |                  2,637 B |
 | experimental CSS |   322,867 B |                 43,054 B |
 
@@ -112,9 +112,9 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 
 ## Angular 20 跨框架验证
 
-新增 private workspace package `@opentiny/tiny-robot-angular20-experimental`，由官方 Angular CLI 20.3.39 以 standalone、strict、pnpm 配置创建。消费者只导入 `@opentiny/tiny-robot-chat/experimental` 和 `experimental.css` 两个公开入口，不引用 Vue、TrChat 源文件或内部路径。
+新增 private workspace package `@opentiny/tiny-robot-angular20-experimental`，由官方 Angular CLI 20.3.39 以 standalone、strict、pnpm 配置创建。消费者只导入 `@opentiny/tiny-robot-chat/experimental` 和 `experimental/web-component.css` 两个公开入口，不引用 Vue、TrChat 源文件或内部路径。
 
-验证覆盖 Angular `CUSTOM_ELEMENTS_SCHEMA`、复杂对象 property binding、`ready` / `runtime-action-error` 标准 DOM 事件、公开 `send()` 方法、真实 Vue UI 渲染和确定性消息响应。集成过程发现并修复了两个跨框架问题：Angular 会先连接 Custom Element，再写入 `runtimeOptions`；元素现在会等待 Runtime 配置后才初始化和发出 `ready`，重新赋值 owned `runtimeOptions` 时会释放并重建旧 Runtime。首次视觉复核还发现 `experimental.css` 没有包含 TinyRobot 基础组件样式，导致元素结构存在但布局退化为普通 block；入口现已自包含这些样式。
+验证覆盖 Angular `CUSTOM_ELEMENTS_SCHEMA`、复杂对象 property binding、`ready` / `runtime-action-error` 标准 DOM 事件、公开 `send()` 方法、真实 Vue UI 渲染和确定性消息响应。集成过程发现并修复了两个跨框架问题：Angular 会先连接 Custom Element，再写入 `runtimeOptions`；元素现在会等待 Runtime 配置后才初始化和发出 `ready`，重新赋值 owned `runtimeOptions` 时会释放并重建旧 Runtime。首次视觉复核还发现 Web Component 样式入口没有包含 TinyRobot 基础组件样式，导致元素结构存在但布局退化为普通 block；入口现已自包含这些样式。
 
 | Angular 20 验证项                | 结果                                           |
 | -------------------------------- | ---------------------------------------------- |
@@ -125,7 +125,7 @@ experimental JS 是 stable JS 的约 17.5 倍（gzip 约 18.2 倍），并确认
 | 320px 窄视口                     | layout/main 均在 host 内，页面无横向溢出       |
 | production build                 | 通过                                           |
 | initial bundle raw               | 1.97 MB                                        |
-| initial estimated transfer       | 477.33 kB                                      |
+| initial estimated transfer       | 476.98 kB                                      |
 | 外部服务或凭据                   | 不需要，使用确定性 mock                        |
 
 Angular 默认 1 MB initial bundle error budget 会被该原型超过，因此测试工程保留预算检查但将阈值设为 1.8 MB warning / 2 MB error；当前 1.97 MB 已触发 warning，但仍低于 error 阈值。这个结果进一步确认了“可跨框架使用”，同时也支持把自包含体积列为稳定化前的首要优化项。

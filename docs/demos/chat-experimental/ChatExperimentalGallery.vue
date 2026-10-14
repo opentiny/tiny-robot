@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import '@opentiny/tiny-robot-chat/experimental.css'
+import '@opentiny/tiny-robot-chat/experimental/web-component.css'
 import manifest from './examples.json'
 import { examplesById } from './shared/examples'
 import './shared/example.css'

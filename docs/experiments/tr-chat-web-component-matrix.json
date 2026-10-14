@@ -380,7 +380,7 @@
       "css": { "rawBytes": 13828, "gzipBytes": 2637 }
     },
     "experimental": {
-      "js": { "rawBytes": 2286034, "gzipBytes": 607906 },
+      "js": { "rawBytes": 2284703, "gzipBytes": 607464 },
       "css": { "rawBytes": 322867, "gzipBytes": 43054 },
       "bundlesVue": true
     },

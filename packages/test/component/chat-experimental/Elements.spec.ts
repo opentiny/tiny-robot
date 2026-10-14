@@ -416,6 +416,155 @@ test.describe('experimental TrChat element runtime ownership', () => {
     })
   })
 
+  test('flushes owned runtime messages before loading replacement runtime options', async ({ mount, page }) => {
+    await mount(ElementsFixture)
+
+    const result = await page.evaluate(async () => {
+      const api = window.__trChatElements
+      api.defineTrChatElements()
+      const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+      const conversations = new Map<string, { id: string; createdAt: number; updatedAt: number }>()
+      const messages = new Map<string, Array<{ role: string; content?: unknown }>>()
+      let loadCalls = 0
+      let replacementLoadedFinalReply = false
+      let markInitialSave!: () => void
+      const initialSave = new Promise<void>((resolve) => {
+        markInitialSave = resolve
+      })
+      let blockFinalSave = false
+      let markFinalSaveStarted!: () => void
+      const finalSaveStarted = new Promise<void>((resolve) => {
+        markFinalSaveStarted = resolve
+      })
+      let releaseFinalSave!: () => void
+      const finalSavePending = new Promise<void>((resolve) => {
+        releaseFinalSave = resolve
+      })
+      let markProviderStarted!: () => void
+      const providerStarted = new Promise<void>((resolve) => {
+        markProviderStarted = resolve
+      })
+      let resolveCompletion!: (value: object) => void
+      const completionPending = new Promise<object>((resolve) => {
+        resolveCompletion = resolve
+      })
+      const storage = {
+        loadConversations: () => {
+          loadCalls++
+          if (loadCalls === 2) {
+            replacementLoadedFinalReply = [...messages.values()].some((items) =>
+              items.some((message) => message.content === 'complete before replacement'),
+            )
+          }
+          return [...conversations.values()].map((conversation) => clone(conversation))
+        },
+        loadMessages: (id: string) => clone(messages.get(id) ?? []),
+        saveConversation: (conversation: { id: string; createdAt: number; updatedAt: number }) => {
+          conversations.set(conversation.id, clone(conversation))
+        },
+        saveMessages: async (id: string, nextMessages: Array<{ role: string; content?: unknown }>) => {
+          const snapshot = clone(nextMessages)
+          if (
+            snapshot.some((message) => message.content === 'persist before replacement') &&
+            !snapshot.some((message) => message.content === 'complete before replacement')
+          ) {
+            markInitialSave()
+          }
+          if (blockFinalSave && snapshot.some((message) => message.content === 'complete before replacement')) {
+            markFinalSaveStarted()
+            await finalSavePending
+          }
+          messages.set(id, snapshot)
+        },
+        deleteConversation: (id: string) => {
+          conversations.delete(id)
+          messages.delete(id)
+        },
+      }
+      const element = document.createElement('tr-chat') as HTMLElement & {
+        runtimeOptions: object
+        send(payload: { text: string }): Promise<boolean>
+      }
+      document.body.append(element)
+      element.runtimeOptions = {
+        storage,
+        responseProvider: async () => {
+          markProviderStarted()
+          return completionPending
+        },
+      }
+      await api.whenTrChatReady(element)
+
+      const sending = element.send({ text: 'persist before replacement' })
+      await Promise.race([
+        providerStarted,
+        new Promise<never>((_resolve, reject) =>
+          setTimeout(() => reject(new Error('response provider did not start')), 2_000),
+        ),
+      ])
+      await Promise.race([
+        initialSave,
+        new Promise<never>((_resolve, reject) =>
+          setTimeout(() => reject(new Error('incomplete turn was not persisted first')), 2_000),
+        ),
+      ])
+      resolveCompletion({
+        id: 'replacement-flush',
+        object: 'chat.completion',
+        created: 1,
+        model: 'mock',
+        system_fingerprint: null,
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'complete before replacement' },
+            delta: undefined,
+            logprobs: null,
+            finish_reason: 'stop',
+          },
+        ],
+      })
+      await sending
+
+      blockFinalSave = true
+      element.runtimeOptions = {
+        storage,
+        responseProvider: async () => {
+          throw new Error('replacement provider should not run')
+        },
+      }
+      await Promise.race([
+        finalSaveStarted,
+        new Promise<never>((_resolve, reject) =>
+          setTimeout(() => reject(new Error('final save did not start during replacement')), 2_000),
+        ),
+      ])
+      const sentDuringReplacement = await element.send({ text: 'must not use disposed runtime' })
+      releaseFinalSave()
+      const replacementDeadline = Date.now() + 2_000
+      while (loadCalls < 2 && Date.now() < replacementDeadline) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+      if (loadCalls < 2) throw new Error('replacement runtime did not load')
+      element.remove()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      return {
+        replacementLoadedFinalReply,
+        sentDuringReplacement,
+        persistedFinalReply: [...messages.values()].some((items) =>
+          items.some((message) => message.content === 'complete before replacement'),
+        ),
+      }
+    })
+
+    expect(result).toEqual({
+      replacementLoadedFinalReply: true,
+      sentDuringReplacement: false,
+      persistedFinalReply: true,
+    })
+  })
+
   test('creates and disposes an owned runtime while preserving disconnect/reinsert moves', async ({ mount, page }) => {
     await mount(ElementsFixture)
 

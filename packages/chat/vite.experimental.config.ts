@@ -58,7 +58,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) =>
-          assetInfo.name === 'style.css' ? 'experimental.css' : 'assets/[name]-[hash][extname]',
+          assetInfo.name === 'style.css' ? 'web-component.css' : 'assets/[name]-[hash][extname]',
       },
     },
     outDir: resolve(__dirname, 'dist'),

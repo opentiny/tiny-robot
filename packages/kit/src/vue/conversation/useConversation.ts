@@ -32,8 +32,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   let disposed = false
   let disposePromise: Promise<void> | undefined
 
-  const enqueuePersistence = (id: string, operation: () => Promise<void>): Promise<void> => {
-    if (disposed) return Promise.resolve()
+  const enqueuePersistence = (
+    id: string,
+    operation: () => Promise<void>,
+    options: { allowDisposed?: boolean } = {},
+  ): Promise<void> => {
+    if (disposed && !options.allowDisposed) return Promise.resolve()
 
     const previousOperation = persistenceQueues.get(id)
     const currentOperation = previousOperation ? previousOperation.catch(() => undefined).then(operation) : operation()
@@ -79,17 +83,25 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    *
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
-  const saveConversationMessages = (id: string, messages: ChatMessage[]): Promise<void> => {
-    return enqueuePersistence(id, async () => {
-      if (!storage?.saveMessages) return
+  const saveConversationMessages = (
+    id: string,
+    messages: ChatMessage[],
+    options: { allowDisposed?: boolean } = {},
+  ): Promise<void> => {
+    return enqueuePersistence(
+      id,
+      async () => {
+        if (!storage?.saveMessages) return
 
-      const conversation = conversations.value.find((item) => item.id === id)
-      if (!conversation) return
+        const conversation = conversations.value.find((item) => item.id === id)
+        if (!conversation) return
 
-      conversation.updatedAt = Date.now()
-      await storage.saveConversation?.(conversation)
-      await storage.saveMessages(id, messages)
-    })
+        conversation.updatedAt = Date.now()
+        await storage.saveConversation?.(conversation)
+        await storage.saveMessages(id, messages)
+      },
+      options,
+    )
   }
 
   const saveMessages = async (id?: string): Promise<void> => {
@@ -413,6 +425,13 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     disposePromise = (async () => {
       await Promise.allSettled([...workingEngines.values()].map((engine) => engine.abortRequest()))
+      if (options.autoSaveMessages && storage?.saveMessages) {
+        await Promise.allSettled(
+          [...workingEngines].map(([id, engine]) =>
+            saveConversationMessages(id, engine.messages.value, { allowDisposed: true }),
+          ),
+        )
+      }
       await Promise.allSettled([...persistenceQueues.values()])
       workingEngines.clear()
       persistenceQueues.clear()

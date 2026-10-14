@@ -23,10 +23,10 @@ defineTrChatElements();
 ```
 
 ```css
-@import '@opentiny/tiny-robot-chat/experimental.css';
+@import '@opentiny/tiny-robot-chat/experimental/web-component.css';
 ```
 
-`experimental.css` is self-contained and includes the TinyRobot component styles required by the element. When the host has an explicit height, set `--tr-layout-height: 100%` on the element so the inner layout uses the host bounds instead of the viewport default. If the host can be narrower than the layout's default 320px main column, override `--tr-layout-main-min-width` as well; this fixture uses `0` and verifies a 320px viewport without horizontal overflow.
+`experimental/web-component.css` is self-contained and includes the TinyRobot component styles required by the element. When the host has an explicit height, set `--tr-layout-height: 100%` on the element so the inner layout uses the host bounds instead of the viewport default. If the host can be narrower than the layout's default 320px main column, override `--tr-layout-main-min-width` as well; this fixture uses `0` and verifies a 320px viewport without horizontal overflow.
 
 Angular integration uses `CUSTOM_ELEMENTS_SCHEMA`, property binding for `runtimeOptions`, standard DOM events, and the element's public `send()` method. The response provider is deterministic and does not require external credentials.
 

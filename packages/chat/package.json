@@ -27,7 +27,7 @@
       "types": "./dist/experimental.d.ts",
       "import": "./dist/experimental.js"
     },
-    "./experimental.css": "./dist/experimental.css",
+    "./experimental/web-component.css": "./dist/web-component.css",
     "./dist/*": "./dist/*"
   },
   "sideEffects": [

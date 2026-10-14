@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ChatMessage } from '../../types'
 import type { ConversationStorageStrategy } from '../../storage'
@@ -499,6 +500,31 @@ describe('useConversation lifecycle', () => {
     expect(messages.get('kept')).not.toContainEqual({ role: 'user', content: 'after dispose' })
     expect(saveMessages).toHaveBeenCalledTimes(saveCountAfterDispose)
     expect(deleteConversation).not.toHaveBeenCalled()
+  })
+
+  it('flushes the latest auto-saved messages before disposal completes', async () => {
+    const { storage, messages } = createMemoryStorage()
+    const api = useConversation({
+      storage,
+      autoSaveMessages: true,
+      useMessageOptions: { responseProvider },
+    })
+    const created = api.createConversation({ id: 'flush-before-dispose' })
+    await api.saveMessages()
+
+    created.engine.messages.value.push({ role: 'user', content: 'first save' })
+    await nextTick()
+    await api.saveMessages()
+    expect(messages.get('flush-before-dispose')).toEqual([{ role: 'user', content: 'first save' }])
+
+    created.engine.messages.value.push({ role: 'assistant', content: 'pending trailing save' })
+    await nextTick()
+    await api.dispose()
+
+    expect(messages.get('flush-before-dispose')).toEqual([
+      { role: 'user', content: 'first save' },
+      { role: 'assistant', content: 'pending trailing save' },
+    ])
   })
 
   it('waits for pending persistence and returns the same promise when disposed repeatedly', async () => {

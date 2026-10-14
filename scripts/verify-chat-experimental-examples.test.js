@@ -48,7 +48,7 @@ test('publishes the experiment page and navigation entry', () => {
   const theme = readFileSync(resolve(root, 'docs/.vitepress/themeConfig.ts'), 'utf8')
 
   assert.match(page, /@opentiny\/tiny-robot-chat\/experimental/)
-  assert.match(page, /experimental\.css/)
+  assert.match(page, /experimental\/web-component\.css/)
   assert.match(page, /ChatExperimentalGallery/)
   assert.match(theme, /\/experiments\/chat-web-component/)
 })

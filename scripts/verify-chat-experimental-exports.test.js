@@ -23,7 +23,8 @@ test('publishes the experimental module and stylesheet', () => {
     types: './dist/experimental.d.ts',
     import: './dist/experimental.js',
   })
-  assert.equal(packageJson.exports?.['./experimental.css'], './dist/experimental.css')
+  assert.equal(packageJson.exports?.['./experimental/web-component.css'], './dist/web-component.css')
+  assert.equal(packageJson.exports?.['./experimental.css'], undefined)
   assert.equal(packageJson.exports?.['./dist/*'], './dist/*')
 
   for (const target of [
@@ -31,7 +32,7 @@ test('publishes the experimental module and stylesheet', () => {
     'dist/index.d.ts',
     'dist/experimental.js',
     'dist/experimental.d.ts',
-    'dist/experimental.css',
+    'dist/web-component.css',
   ]) {
     assert.equal(fs.existsSync(path.join(packageDir, target)), true, `missing built export target: ${target}`)
   }

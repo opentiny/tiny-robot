@@ -1,4 +1,4 @@
-import './experimental.css'
+import './web-component.css'
 
 export { dispatchExperimentalEvent, toExperimentalEventName } from './events'
 export { TR_CHAT_EVENT_NAMES, TR_CHAT_UI_EVENT_NAMES, forwardElementEvent } from './elementEvents'
@@ -26,9 +26,10 @@ export type {
   TrChatElementConstructor,
   TrChatElementConstructors,
   TrChatHTMLElement,
+  TrChatRenderers,
+  TrChatSharedElementProperties,
   TrChatUIHTMLElement,
-} from './types'
-export type { TrChatRenderers, TrChatSharedElementProperties } from './elementTypes'
+} from './elementTypes'
 export type {
   CreateChatRuntimeComposerOptions,
   CreateChatRuntimeOptions,

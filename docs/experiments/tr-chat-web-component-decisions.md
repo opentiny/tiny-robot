@@ -14,7 +14,7 @@ This is the durable decision and follow-up register for validating TrChat as Web
 - Provide `<tr-chat>` and `<tr-chat-ui>` as separate elements and register them explicitly with an idempotent `defineTrChatElements()` helper.
 - Build a self-contained ESM with Vue 3.5 or later bundled into the experimental artifact.
 - Use Vue `defineCustomElement()` with thin TrChat-specific adapter components. Fall back to a handwritten `HTMLElement` wrapper only if the prototype demonstrates a blocking Vue defect.
-- Render in Light DOM and require an explicit `@opentiny/tiny-robot-chat/experimental.css` import.
+- Render in Light DOM and require an explicit `@opentiny/tiny-robot-chat/experimental/web-component.css` import.
 - Measure behavioral parity rather than Vue-syntax identity.
 - Use attributes for primitive inputs and DOM properties for objects, functions, Runtime instances, and renderers. Do not parse complex JSON attributes.
 - Emit kebab-case DOM `CustomEvent`s with the payload directly in `detail`; use cancelable events where the Vue behavior has a preventable default action.
@@ -54,10 +54,3 @@ These questions are intentionally recorded but are not prototype acceptance crit
 - **CSP and nonce support**: the separate stylesheet avoids inline-style pressure, but formal CSP validation is later work.
 - **Legacy browsers and polyfills**: no support work beyond the browsers in the agreed matrix.
 - **Promotion and deprecation process**: define how experimental APIs graduate, change, or disappear only after the prototype conclusion.
-
-## Related records
-
-- [`CONTEXT.md`](../../CONTEXT.md)
-- [`ADR 0001`](../adr/0001-use-vue-custom-elements-for-the-experimental-entry.md)
-- [`ADR 0002`](../adr/0002-use-light-dom-for-the-web-component-prototype.md)
-- [`ADR 0003`](../adr/0003-measure-web-component-behavioral-parity.md)
