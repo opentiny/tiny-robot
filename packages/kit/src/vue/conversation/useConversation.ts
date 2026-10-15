@@ -425,7 +425,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     disposePromise = (async () => {
       await Promise.allSettled([...workingEngines.values()].map((engine) => engine.abortRequest()))
-      if (options.autoSaveMessages && storage?.saveMessages) {
+      if (options.autoSaveMessages) {
         await Promise.allSettled(
           [...workingEngines].map(([id, engine]) =>
             saveConversationMessages(id, engine.messages.value, { allowDisposed: true }),

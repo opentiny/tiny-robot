@@ -1,34 +1,95 @@
-<main class="consumer-shell">
-  <header>
-    <p class="eyebrow">Angular 20 consumer</p>
-    <h1>TrChat Web Component integration</h1>
-    <p>
-      This application imports the workspace experimental entry and communicates with TrChat only
-      through standard Custom Element properties, methods, and events.
-    </p>
+<main class="app-shell">
+  <header class="topbar">
+    <div class="product-heading">
+      <span class="product-mark" aria-hidden="true">T</span>
+      <div>
+        <p>Angular 20 · Experimental</p>
+        <h1>TrChat 应用级验证</h1>
+      </div>
+    </div>
+
+    <label class="conversation-search">
+      <span>搜索会话</span>
+      <input
+        type="search"
+        aria-label="搜索会话"
+        placeholder="搜索会话"
+        [value]="searchQuery()"
+        (input)="searchConversations($event)"
+      />
+    </label>
+
+    <div class="topbar-actions">
+      <button data-testid="new-conversation" type="button" (click)="createConversation()">
+        新建会话
+      </button>
+      <button type="button" aria-label="打开示例设置" (click)="openSettings()">设置</button>
+    </div>
   </header>
 
-  <section class="probe" aria-label="Integration status">
+  <section class="application-status" aria-label="应用状态">
     <span data-testid="ready-state">Element: {{ ready() ? 'ready' : 'waiting' }}</span>
-    <span data-testid="send-state">Send: {{ sendState() }}</span>
-    <button
-      data-testid="send"
-      type="button"
-      [disabled]="!ready() || sendState() === 'sending'"
-      (click)="sendMessage()"
-    >
-      Send from Angular
-    </button>
+    <span>确定性 mock · 不发送外部请求</span>
     @if (errorMessage()) {
       <output data-testid="runtime-error">{{ errorMessage() }}</output>
     }
   </section>
 
-  <tr-chat
-    #chat
-    data-testid="tr-chat"
-    [runtimeOptions]="runtimeOptions"
-    (ready)="onReady()"
-    (runtime-action-error)="onRuntimeError($event)"
-  ></tr-chat>
+  <section class="chat-card" aria-label="TrChat 应用">
+    <tr-chat
+      #chat
+      data-testid="tr-chat"
+      [runtimeOptions]="runtimeOptions"
+      [ui]="ui"
+      [historyData]="historyData()"
+      (ready)="onReady()"
+      (history-action)="onHistoryAction()"
+      (runtime-action-error)="onRuntimeError($event)"
+    ></tr-chat>
+  </section>
+
+  @if (settingsOpen()) {
+    <div class="settings-backdrop" (click)="closeSettings()">
+      <aside
+        class="settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="settings-heading">
+          <div>
+            <p>Angular 宿主业务</p>
+            <h2 id="settings-title">示例设置</h2>
+          </div>
+          <button type="button" aria-label="关闭示例设置" (click)="closeSettings()">×</button>
+        </div>
+
+        <fieldset>
+          <legend>主题</legend>
+          <button type="button" (click)="useTheme('light')">明亮主题</button>
+          <button type="button" (click)="useTheme('night')">夜间主题</button>
+        </fieldset>
+
+        <label>
+          界面语言
+          <select [value]="language()" (change)="chooseLanguage($event)">
+            <option value="zh">简体中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+
+        <label>
+          朗读音色
+          <select [value]="voice()" (change)="chooseVoice($event)">
+            <option value="clear">清晰</option>
+            <option value="calm">沉稳</option>
+          </select>
+        </label>
+
+        <p data-testid="settings-summary">{{ languageLabel() }} · {{ voiceLabel() }}</p>
+        <p class="settings-note">设置外壳由 Angular 模拟，不代表 TrChat 的账号或云端能力。</p>
+      </aside>
+    </div>
+  }
 </main>
