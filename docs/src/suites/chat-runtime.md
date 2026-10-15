@@ -11,7 +11,7 @@ outline: [1, 3]
 - [`useChatRuntime`](#usechatruntime-配置)：推荐使用，配置模型服务和会话功能。
 - [`useChatRuntimeFromConversation`](#usechatruntimefromconversation-配置)：项目已使用 TinyRobot Kit 管理会话时，将已有会话接入 `TrChat`，保留原有请求配置。
 
-两种方式都将返回的 `runtime` 对象传给 `TrChat`。
+两种方式都会返回 `runtime`，其中包含聊天界面需要的数据和操作方法。通过 `<TrChat :runtime="runtime" />` 传入后，即可展示会话和消息，并支持发送、取消请求和切换会话。
 
 > 首次接入见 [快速上手](./quick-start)；复用已有会话、自定义模型请求或发送流程见 [高级用法](#高级用法)。
 
@@ -185,8 +185,6 @@ await runtime.actions.abort?.()
   description="切换“已登录”开关，比较阻止发送与正常发送；不执行真实登录。"
 />
 
-演示中未勾选“已登录”时，发送被阻止，输入内容保留且不会追加消息；勾选后再次提交，即可正常发送。
-
 `useChatRuntime` 的 `beforeSend` 用于在发送前检查登录状态、权限或输入内容；未配置时，不执行自定义检查。函数接收本次发送内容 `payload`，也可读取选中的 `model` 和工具配置 `mcp`，支持异步返回。
 
 | 返回值       | 结果                                       |
@@ -269,8 +267,6 @@ const runtime = useChatRuntime({
   title="使用内置历史列表管理会话"
   description="在历史列表中切换、重命名和删除会话，对比两种新建方式。会话保存在浏览器中，刷新后保留。"
 />
-
-演示首次打开时提供两组不同的历史消息；左侧“新建会话”返回新会话页面，上方“立即创建会话”直接创建并选中会话。
 
 开始新会话有两种方式：`clearActiveConversation()` 返回新会话页面，默认在发送首条非空消息时创建会话；`createConversation()` 则立即创建并选中会话。
 
@@ -384,7 +380,7 @@ const runtime = useChatRuntime({
 
 ### 自定义发送流程
 
-需要自行处理会话创建、消息保存和请求时，可自定义发送流程，下面以空文本提交为例展示差异。
+需要自行处理会话创建、消息保存和请求时，可自定义发送流程。
 
 <demo
   vue="../../demos/chat/runtime-send.vue"
@@ -393,9 +389,7 @@ const runtime = useChatRuntime({
   description="比较两种发送方式对空文本的处理。示例仅展示这一差异，不包含实际请求和消息保存。"
 />
 
-默认发送不接受空文本，自定义发送可以处理空文本；该演示仅比较这一差异，不包含实际请求和消息保存。
-
-需要自行处理会话创建、消息保存和请求时，通过 `useChatRuntimeFromConversation` 的 `send` 替换默认发送方法。未设置时使用已有 Kit 会话发送；仅替换模型请求时，使用上一节的 `responseProvider` 即可：
+通过 `useChatRuntimeFromConversation` 的 `send` 替换默认发送方法。默认发送不接受空文本，自定义发送可以处理空文本；未设置 `send` 时使用已有 Kit 会话发送。仅替换模型请求时，使用上一节的 `responseProvider` 即可：
 
 ```ts
 const runtime = useChatRuntimeFromConversation({
@@ -450,7 +444,7 @@ const adapter = useChatRuntimeAdapter({
 />
 ```
 
-完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [复用聊天界面](./chat#复用聊天界面)。
+完整返回值见 [`useChatRuntimeAdapter`](#usechatruntimeadapter)。不使用 `runtime`、直接传入项目数据的用法，见 [仅使用界面组件](./chat#仅使用界面组件)。
 
 ## API
 
