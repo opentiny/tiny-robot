@@ -2,114 +2,324 @@
 outline: [1, 3]
 ---
 
-# Chat 聊天界面
+# 界面与交互配置
 
-`TrChat` 用 Runtime 驱动完整聊天页面；`TrChatUI` 只渲染应用提供的数据并发出用户操作事件。需要自主管理请求与会话时选择前者，已有数据层时选择后者。
+本文介绍如何通过 `ui` 配置和插槽调整 `TrChat` 的布局、输入区、消息展示及交互，以及如何单独使用界面组件 `TrChatUI`。首次接入见 [快速上手](./quick-start)。
 
-## 概览
+## 界面配置与定制
 
-### 适用场景
+按照 [快速上手](./quick-start) 接入 `TrChat` 后，可以通过 `ui` 配置和插槽调整界面。需要直接提供显示数据并自行处理界面事件时，参考[仅使用界面组件](#仅使用界面组件)。
 
-- 使用 `TrChat` 快速嵌入会话列表、消息、输入区和模型选择。
-- 使用 `TrChatUI` 接入应用已有的会话、消息和请求状态。
-- 使用插槽替换局部区域，或注册应用右侧面板。
-
-### 选择组件
-
-| 场景              | 组件       | 应用负责的内容                  |
-| ----------------- | ---------- | ------------------------------- |
-| 使用 Chat Runtime | `TrChat`   | 提供 Runtime，按需处理转发事件  |
-| 已有数据和请求层  | `TrChatUI` | 更新 `data`、处理提交和会话操作 |
-
-`TrChatUI` 是纯界面入口；它不会创建会话、发送请求或持久化数据。`TrChat` 在其基础上连接 Runtime 并处理标准动作。
-
-## 快速开始
-
-安装并在应用入口引入样式：
-
-```bash
-pnpm add @opentiny/tiny-robot-chat
-```
+`ui` 是一个界面配置对象，用于设置布局、文案和各区域的显示方式；只需配置需要调整的部分，其余使用默认值。常用的字段如下，具体配置见后续示例：
 
 ```ts
-import '@opentiny/tiny-robot/dist/style.css'
-import '@opentiny/tiny-robot-chat/dist/style.css'
+import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
+
+const ui: ChatUIOptions = {
+  layout: {},  // 页面布局、侧栏和浮动窗口
+  labels: {},  // 按字段修改界面文案
+  history: {}, // 历史会话列表
+  welcome: {}, // 欢迎区内容
+  prompts: {}, // 推荐问题
+  sender: {},  // 输入区配置
+  bubble: {},  // 消息展示配置
+}
 ```
 
-Chat 的父容器需要有可计算高度。下面的示例使用本地模拟服务，发送后会显示回答。
-
-<demo
-  vue="../../demos/chat/basic.vue"
-  :vueFiles="[
-    '../../demos/chat/basic.vue',
-    '../../demos/chat/shared/modelProviders.ts'
-  ]"
-  title="完整聊天页面"
-  description="创建 Runtime 后传给 TrChat，完成一次消息发送。"
-/>
+将配置好的 `ui` 传给 `TrChat`：
 
 ```vue
-<script setup lang="ts">
-import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
-
-const modelProviders: ChatProviderConfig[] = [
-  {
-    type: 'openai',
-    apiUrl: '/api',
-    models: [{ id: 'assistant', label: '应用助手' }],
-  },
-]
-
-const runtime = useChatRuntime({ modelProviders })
-</script>
-
-<template>
-  <main class="chat-page">
-    <tr-chat :runtime="runtime" />
-  </main>
-</template>
+<TrChat :runtime="runtime" :ui="ui" />
 ```
 
-生产环境应通过 BFF 保存长期密钥。Runtime 配置见 [Chat 运行时](./chat-runtime#模型服务)。
+下面介绍常用配置和示例，完整字段见 [界面配置](#界面配置)。需要自定义界面内容时，见 [插槽定制](#插槽定制)。
 
-## 用法示例
+### 基础布局
 
-### 数据驱动的页面状态
-
-`TrChatUI` 把 `data` 中的会话、消息、输入状态、模型和 MCP 数据映射到对应界面区域。下面三个快照分别描述一个完整场景，便于观察同一数据结构如何随会话进程扩展；示例不发送请求。
+调整内容宽度、侧栏显示和空会话输入区的位置，适应不同页面布局。
 
 <demo
-  vue="../../demos/chat/data-driven-ui.vue"
-  :vueFiles="['../../demos/chat/data-driven-ui.vue']"
-  title="数据驱动的聊天界面"
-  description="切换三组 ChatUIData 快照，对比各数据分支对应的界面区域。"
+  vue="../../demos/chat/layout-presets.vue"
+  :vueFiles="['../../demos/chat/layout-presets.vue']"
+  title="基础布局"
+  description="切换布局，查看侧栏宽度、展开和隐藏，以及空会话输入区的位置变化。"
 />
 
-`data.sender.loading` 控制发送中的反馈，`disabled` 和 `submitDisabled` 分别禁用输入或提交。`data.request` 记录请求生命周期，并作为参数传给 `layout-main` 和 `layout-empty-state`；默认界面不会仅根据它额外渲染反馈。可展示的错误属于具体消息，应放在对应 assistant 消息的 `state.error` 中。
+> 此演示使用 `TrChatUI` 展示布局效果，相同的 `ui` 配置也适用于 `TrChat`。
 
-### 消息错误状态
+通过 `ui.layout` 设置布局，常用字段如下：
 
-`useChatRuntime` 默认把请求错误规范化到本轮最后一条 assistant 消息的 `state.error`。Bubble 在正常消息内容之后渲染错误，因此错误会保持所属消息的头像、顺序和布局；请求失败仍会让 `request.state` 进入 `error`。
+| 配置                       | 用途和可选值                                                               | 默认值               |
+| -------------------------- | -------------------------------------------------------------------------- | -------------------- |
+| `contentMaxWidth`          | 消息、欢迎区和输入区的最大内容宽度；支持数字或 CSS 长度，如 `640`、`'80%'` | `980`，数字单位为 px |
+| `leftAside`                | 左侧栏配置对象；设为 `false` 隐藏整个左侧栏                                | 显示侧栏，默认收起   |
+| `leftAside.width`          | 左侧栏展开宽度，单位为 px                                                  | `300`                |
+| `leftAside.collapsedWidth` | 左侧栏收起宽度，单位为 px                                                  | `56`                 |
+| `leftAside.defaultOpen`    | 是否默认展开，之后可通过界面按钮切换                                       | `false`              |
+| `composer.welcome`         | 空会话时的输入区位置：`'footer'` 位于页面底部；`'center'` 随内置欢迎区居中显示，需保留默认内容布局、欢迎区和输入区 | `'footer'`           |
+
+例如，缩小内容宽度并默认展开左侧栏：
+
+```ts
+const ui: ChatUIOptions = {
+  layout: {
+    contentMaxWidth: 640,
+    leftAside: { width: 240, collapsedWidth: 48, defaultOpen: true },
+    composer: { welcome: 'center' },
+  },
+}
+```
+
+> 已有消息或隐藏欢迎区时，输入区仍位于底部。通过插槽自定义主区或空会话内容时，输入区的居中位置需自行设置，详见[插槽说明](#插槽)。
+
+完整字段和默认值见 [布局配置](#layout)。
+
+聊天界面默认使用浏览器视口高度。嵌入已有页面时，可将 `TrChat` 放入高度明确的容器，并设置 `--tr-layout-height: 100%`，使界面填满该容器。例如，将高度设为 `600px`：
+
+```vue
+<template>
+  <main class="chat-page">
+    <TrChat :runtime="runtime" />
+  </main>
+</template>
+
+<style scoped>
+.chat-page {
+  --tr-layout-height: 100%;
+  height: 600px;
+}
+</style>
+```
+
+### 配置欢迎区和推荐问题
+
+设置欢迎内容和推荐问题，帮助用户开始对话。
+
+<demo
+  vue="../../demos/chat/welcome-prompts.vue"
+  :vueFiles="[
+    '../../demos/chat/welcome-prompts.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="欢迎区和推荐问题"
+  description="切换欢迎区和推荐问题的显示，点击问题填入输入框，编辑后发送并查看模拟回答。"
+/>
+
+没有消息时，通过 `ui.welcome` 设置欢迎标题和描述，通过 `ui.prompts` 提供推荐问题，帮助用户开始对话。
+
+| 配置                  | 用途                                                                      | 默认值                                        |
+| --------------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
+| `welcome.title`       | 欢迎标题，类型为 `string`                                                 | `'TinyRobot AI 助手'`                         |
+| `welcome.description` | 欢迎描述，类型为 `string`                                                 | `'您好，我是TinyRobot，您专属的 AI 智能专家'` |
+| `prompts.items`       | 推荐问题数组；每项的 `label` 为必填显示文字，`description` 为可选补充说明 | `[]`，不显示推荐问题                          |
+| `prompts.wrap`        | 是否允许推荐问题换行，类型为 `boolean`                                    | `false`                                       |
+
+例如，设置项目助手的欢迎内容和两个推荐问题：
+
+```ts
+const ui: ChatUIOptions = {
+  welcome: {
+    title: '项目助手',
+    description: '选择一个问题开始，或输入自己的问题。',
+  },
+  prompts: {
+    wrap: true,
+    items: [
+      { label: '解释代码', description: '请解释这段代码的作用，并给出使用建议。' },
+      { label: '撰写周报', description: '请帮我整理本周工作，生成一份简洁的周报。' },
+    ],
+  },
+}
+```
+
+点击推荐问题会触发 `prompt-click`，不会自动填入或发送。下面使用 Sender 的模板扩展将问题填入输入框，用户可编辑后发送：
+
+```ts
+import { shallowRef } from 'vue'
+import { TrSender, type TemplateItem } from '@opentiny/tiny-robot'
+import type { ChatPromptClickPayload } from '@opentiny/tiny-robot-chat'
+
+const inputTemplate = shallowRef<TemplateItem[]>([])
+ui.sender = { extensions: [TrSender.template(inputTemplate)] }
+
+function handlePromptClick({ item }: ChatPromptClickPayload) {
+  inputTemplate.value = [{ type: 'text', content: item.description || item.label }]
+}
+```
+
+```vue
+<TrChat :runtime="runtime" :ui="ui" @prompt-click="handlePromptClick" />
+```
+
+将 `ui.welcome` 或 `ui.prompts` 设为 `false` 可隐藏对应区域。发送首条消息后不再显示欢迎内容；返回新会话可重新查看。
+
+更多展示配置见 [Welcome](../components/welcome#props) 和 [Prompts](../components/prompts#props)。
+
+### 配置输入区
+
+为输入框添加提及、可编辑模板和自定义按钮，满足不同输入需求。
+
+<demo
+  vue="../../demos/chat/sender-options.vue"
+  :vueFiles="[
+    '../../demos/chat/sender-options.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="输入扩展与自定义按钮"
+  description="输入 @ 选择对象，使用报告模板和常用问题按钮填入内容，编辑后发送；点击“使用说明”查看操作提示。"
+/>
+
+示例通过 `sender-header` 展示使用说明；“写报告”填入可编辑文本块和读者选项，“常用问题”填入预设问题。
+
+通过 `ui.sender` 调整输入框、配置提及和模板功能；通过输入区插槽添加自定义按钮，无需重新实现消息发送和取消。
+
+#### 基础设置
+
+以下默认值为 Chat 的输入区配置，与单独使用 Sender 时不同：
+
+| 配置             | 用途和可选值                                              | 默认值                                                   |
+| ---------------- | --------------------------------------------------------- | -------------------------------------------------------- |
+| `placeholder`    | 输入框为空时的提示，类型为 `string`                       | 未发送时为 `'请输入你的问题...'`，发送中为 `'思考中...'` |
+| `mode`           | `'single'` 单行、`'multiple'` 多行                        | `'multiple'`                                             |
+| `maxLength`      | 最大输入字数，类型为 `number`；超出后保留内容，但无法提交 | `1000`                                                   |
+| `showWordLimit`  | 是否显示字数统计，类型为 `boolean`                        | `true`                                                   |
+| `clearable`      | 有内容时是否显示清空按钮，类型为 `boolean`                | `true`                                                   |
+| `defaultActions` | 配置默认发送和清空按钮的提示等选项                        | 沿用内置按钮配置                                         |
+| `extensions`     | 输入扩展数组，如提及、模板和联想                          | `[]`                                                     |
+
+例如，限制为 300 字并修改按钮提示：
+
+```ts
+const ui: ChatUIOptions = {
+  sender: {
+    placeholder: '请输入问题，最多 300 字...',
+    maxLength: 300,
+    showWordLimit: true,
+    defaultActions: {
+      submit: { tooltip: '发送给项目助手' },
+      clear: { tooltip: '清空输入内容' },
+    },
+  },
+}
+```
+
+输入值、发送中状态和禁用状态由 Chat 管理，不在 `ui.sender` 中设置。需要禁止输入或提交时，见 [禁用输入与提交](./chat-runtime#禁用输入与提交)。
+
+#### 提及与模板
+
+`TrSender.mention()` 为输入框提供提及选择，默认输入 `@` 触发；`TrSender.template()` 用于填入包含可编辑字段的模板。将它们放入 `ui.sender.extensions` 即可在 `TrChat` 中使用，默认不启用这些扩展。
+
+```ts
+import { shallowRef } from 'vue'
+import { TrSender, type MentionItem, type TemplateItem } from '@opentiny/tiny-robot'
+
+const mentions: MentionItem[] = [
+  { label: '产品组', value: 'product' },
+  { label: '研发组', value: 'engineering' },
+]
+const currentTemplate = shallowRef<TemplateItem[]>([])
+
+ui.sender = {
+  ...ui.sender,
+  extensions: [TrSender.mention(mentions), TrSender.template(currentTemplate)],
+}
+
+function fillReportTemplate() {
+  currentTemplate.value = [
+    { type: 'text', content: '请帮我写一份关于' },
+    { type: 'block', content: '项目进展' },
+    { type: 'text', content: '的报告。' },
+  ]
+}
+```
+
+提及项中的 `label` 是显示名称，`value` 是对应标识；模板中的 `'text'` 为普通文本，`'block'` 为可编辑字段。更新 `currentTemplate` 会替换输入框内容。
+
+> 提及功能不会自动切换模型或助手。默认发送使用输入内容的纯文本；需要处理提及标识或模板字段时，见 [结构化提交数据](../components/sender#结构化数据) 和 [发送前检查](./chat-runtime#发送前检查)。
+
+#### 自定义按钮
+
+`sender-footer` 在多行输入框底部左侧添加按钮，与模型选择等操作同一区域；`sender-footer-right` 在底部右侧、默认操作按钮前添加内容。这些插槽默认没有自定义内容，使用时不会替换发送和取消按钮。
+
+例如，通过按钮插入上面配置的报告模板：
+
+```vue
+<TrChat :runtime="runtime" :ui="ui">
+  <template #sender-footer>
+    <button type="button" @click="fillReportTemplate">写报告</button>
+  </template>
+</TrChat>
+```
+
+更多配置见 [Mention](../components/sender#mention-配置)、[Template](../components/sender#template-配置) 和 [默认按钮配置](../components/sender#默认按钮配置)，完整插槽列表见 [插槽](#插槽)。
+
+### 配置消息展示
+
+通过 `ui.bubble` 调整消息展示：`bubbleList` 设置消息列表外观，`bubbleProvider` 设置内容渲染和错误提示，`autoScroll` 控制自动滚动（默认 `true`）；未配置时使用默认展示方式。
+
+#### 消息外观
+
+按消息角色设置头像、位置和气泡形状，区分用户消息与 AI 回答。
+
+<demo
+  vue="../../demos/chat/bubble-options.vue"
+  :vueFiles="[
+    '../../demos/chat/bubble-options.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="按角色定制消息外观"
+  description="切换默认和自定义外观，比较用户与 AI 消息的头像和气泡形状；预设回答包含 Markdown 内容。"
+/>
+
+演示中的自定义外观还将 AI 气泡背景设为透明；继续发送消息，新的消息会沿用当前配置。
+
+通过 `ui.bubble.bubbleList.roleConfigs` 按消息角色设置外观。例如，分别配置用户消息（`user`）和 AI 回答（`assistant`）的头像、位置和气泡形状。
+
+| 配置        | 用途和可选值                                                           | 默认值                                      |
+| ----------- | ---------------------------------------------------------------------- | ------------------------------------------- |
+| `avatar`    | 自定义头像，例如通过 Vue 的 `h()` 创建的节点                           | 用户和 AI 分别使用内置头像                  |
+| `placement` | `'start'` 左侧、`'end'` 右侧                                           | `user` 为 `'end'`，`assistant` 为 `'start'` |
+| `shape`     | `'corner'` 带角气泡、`'rounded'` 圆角气泡、`'none'` 不使用预设气泡形状 | `'corner'`                                  |
+
+例如，给用户设置圆角气泡，给 AI 设置自定义头像：
+
+```ts
+import { h } from 'vue'
+
+const ui: ChatUIOptions = {
+  bubble: {
+    bubbleList: {
+      roleConfigs: {
+        user: { placement: 'end', avatar: h('span', '我'), shape: 'rounded' },
+        assistant: { placement: 'start', avatar: h('span', 'AI'), shape: 'none' },
+      },
+    },
+  },
+}
+```
+
+更多配置见 [头像和位置](../components/bubble#头像和位置)、[气泡形状](../components/bubble#气泡形状) 和 [BubbleList 属性](../components/bubble#bubblelist)。
+
+#### 消息错误提示配置
+
+请求失败时，在对应的 AI 消息下显示错误提示，帮助用户了解失败原因。
 
 <demo
   vue="../../demos/chat/runtime-error.vue"
   :vueFiles="['../../demos/chat/runtime-error.vue']"
-  title="消息级请求错误"
-  description="使用确定性本地 Provider 反复触发失败与成功，观察默认错误气泡和动作失败通知。"
+  title="请求失败提示"
+  description="发送包含“失败”的内容查看默认错误提示，发送其他内容查看正常回复。"
 />
 
-错误状态的职责如下：
+演示使用 `useChatRuntime` 展示默认错误提示，不包含自定义提示组件；默认提示不提供重试按钮。
 
-| 状态或通知              | 管理方         | 用途                                                               |
-| ----------------------- | -------------- | ------------------------------------------------------------------ |
-| `message.state.error`   | Runtime 或应用 | 保存并展示属于这条消息的错误详情。                                 |
-| `request.state`         | Runtime 或应用 | 表达 idle、processing、completed、aborted、error 等请求生命周期。  |
-| `runtime-action-error`  | `TrChat`       | 通知应用某个 Runtime 动作失败，可用于遥测或全局非消息动作反馈。    |
-| TrChatUI 默认错误渲染器 | `TrChatUI`     | 在消息内容之后展示错误；不会提供重试按钮，也不改变请求或消息状态。 |
-
-`TrChatUI` 会显式启用内置错误渲染器；单独使用 `Bubble` 或 `BubbleProvider` 时，错误渲染器默认关闭。默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width` 主题变量。
-
-需要不同结构时，通过 `ui.bubble.bubbleProvider.errorRenderer` 提供统一的 Provider 级渲染器；传入 `null` 可以关闭 `TrChatUI` 的默认错误视图。不要依赖内部 `.tr-bubble__error` 选择器，也不要把重试等副作用放进纯展示渲染器。
+通过 `ui.bubble.bubbleProvider.errorRenderer` 替换错误提示，传入 `null` 可关闭默认提示。`CustomErrorRenderer` 表示应用自行实现的错误展示组件。
 
 ```ts
 const customErrorUI: ChatUIOptions = {
@@ -125,48 +335,107 @@ const disabledErrorUI: ChatUIOptions = {
 }
 ```
 
-`runtime-action-error` 在 send 失败时仍会发出，但它不是消息错误的数据源。应用可以用它记录遥测；默认页面和综合案例不会再把同一个 send 错误同时显示为顶部提示。会话、模型或 MCP 等非消息动作失败仍适合使用全局反馈。
+`errorRenderer` 只控制提示的显示，不会改变请求的失败状态。
 
-### 接入外部数据
+默认错误提示支持以下 CSS 变量：
 
-受控输入时，值由应用持有，收到 `update:input-value` 后必须更新该值。非受控输入使用 `defaultInputValue`，组件在生命周期内维护草稿；两种模式不要切换。
+- `--tr-bubble-error-color`：文字颜色。
+- `--tr-bubble-error-bg`：背景颜色。
+- `--tr-bubble-error-border-radius`：圆角大小。
 
-<demo
-  vue="../../demos/chat/controlled-ui.vue"
-  :vueFiles="['../../demos/chat/controlled-ui.vue']"
-  title="受控数据"
-  description="应用接收提交事件，更新消息列表、请求状态和输入值。"
-/>
+更多样式配置见 [Bubble CSS 变量](../components/bubble#css-变量)。
 
-`TrChat` 的“新会话”会调用 `runtime.actions.clearActiveConversation()`，不会创建空会话。`TrChatUI` 只触发 `create-conversation`，由应用决定清空当前会话还是立即创建会话。
+请求异常处理和操作失败通知见 [请求失败时的提示](./chat-runtime#请求失败时的提示)。
 
-### 页面布局
+### 配置历史会话列表
 
-通过 `ui` 调整内容宽度和页面区域，不会修改 `data` 或 Runtime 中的会话状态。下面的示例始终使用同一份数据，只切换布局配置。
+自定义历史会话的排序、筛选和分组，同时保留内置会话操作。
 
 <demo
-  vue="../../demos/chat/layout-presets.vue"
-  :vueFiles="['../../demos/chat/layout-presets.vue']"
-  title="页面布局预设"
-  description="比较默认、紧凑内容和专注模式下的页面区域与内容宽度。"
+  vue="../../demos/chat/history-groups.vue"
+  :vueFiles="[
+    '../../demos/chat/history-groups.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="自定义历史会话分组"
+  description="查看预设分组和选中样式，切换、重命名或删除会话；新建会话并发送消息后，查看列表更新。"
 />
 
-常用默认值：
+浏览器宽度低于 `960px` 时，先通过界面按钮展开会话列表。
 
-| 配置                                        | 默认值       |
-| ------------------------------------------- | ------------ |
-| `layout.surface.mode`                       | `'normal'`   |
-| `layout.emptyState`                         | `'start'`    |
-| `layout.composer.welcome`                   | `'footer'`   |
-| `layout.contentMaxWidth`                    | `980`        |
-| `layout.panelPadding` / `panelGap`          | `12` / `12`  |
-| `layout.leftAside.width` / `collapsedWidth` | `300` / `56` |
-| `layout.rightAside.width`                   | `320`        |
-| `sender.maxLength`                          | `1000`       |
+> “置顶”和日期分组使用预设数据，不包含置顶操作或自动按日期归类。演示使用独立的本地存储保存示例会话，刷新后保留修改结果。
+
+`TrChat` 默认使用 Runtime 的会话生成历史列表，支持切换、重命名和删除，无需额外传入 `historyData`。需要自定义排序、筛选或分组展示时，可通过 `historyData` 提供列表数据，继续使用内置列表和会话操作。
+
+`historyData` 支持会话数组或 `{ group, items }[]` 分组数组，列表按传入顺序展示；传入 `[]` 时显示空列表。`group` 是分组标题，`items` 是该组的会话数组，每项的 `id` 应对应 Runtime 中已有的会话。
+
+下面以分组展示为例，按会话中的 `metadata.group` 展示“置顶”“昨天”“30天内”，未设置分组的会话放入“30天内”。`metadata.group` 是本例约定的字段，不是内置日期或置顶配置：
+
+```ts
+import { computed } from 'vue'
+import type { ChatHistoryData } from '@opentiny/tiny-robot-chat'
+
+const groups = ['置顶', '昨天', '30天内']
+const historyData = computed<ChatHistoryData>(() =>
+  groups
+    .map((group) => ({
+      group,
+      items: runtime.conversations.value.filter((item) => (item.metadata?.group ?? '30天内') === group),
+    }))
+    .filter(({ items }) => items.length > 0),
+)
+```
+
+```vue
+<TrChat class="chat-history" :runtime="runtime" :ui="ui" :history-data="historyData" />
+```
+
+本例通过 `computed` 根据 Runtime 会话生成分组，列表会随会话新增、重命名或删除更新。
+
+`ui.history` 用于配置菜单等展示选项，可不传，默认菜单包含重命名和删除；设为 `false` 可隐藏历史列表。例如，只保留重命名菜单：
+
+```ts
+const ui: ChatUIOptions = {
+  history: { menuItems: [{ id: 'rename', text: '重命名' }] },
+}
+```
+
+左侧栏默认使用页面背景色，可通过 `--tr-chat-ui-left-aside-bg` 调整。选中颜色和圆角可通过 History 的 CSS 变量调整，在 `TrChat`、`TrChatUI` 或其父容器上设置即可：
+
+```css
+.chat-history {
+  --tr-history-item-selected-bg: #e4edfd;
+  --tr-history-item-selected-color: #3964fe;
+  --tr-history-item-border-radius: 8px;
+}
+```
+
+完整展示配置见 [History 属性](../components/history#props) 和 [样式变量](../components/history#css-变量)，程序调用见 [会话管理](./chat-runtime#会话管理)。
+
+### 插槽定制
+
+在页头、消息和输入区添加自定义内容。
+
+<demo
+  vue="../../demos/chat/slots-basic.vue"
+  :vueFiles="['../../demos/chat/slots-basic.vue', '../../demos/chat/shared/modelProviders.ts']"
+  title="插槽定制"
+  description="通过自定义页头展开会话列表或返回新会话页面，点击 AI 回答下的“有帮助”按钮，并查看输入框外下方的提示文字。"
+/>
+
+本示例使用以下插槽：
+
+- `layout-header`：自定义页头。
+- `bubble-content-footer`：添加消息反馈按钮。
+- `composer-after`：添加输入框下方的提示。
+
+完整插槽列表及参数见 [插槽](#插槽)。
 
 ### 右侧面板
 
-通过 `layout.rightAside.panels` 注册应用面板。`rightAsideOpen` 和 `activeRightAsidePanelId` 同时支持受控值和 `default*` 初始值；受控时应用收到 `update:*` 后更新对应值。
+在聊天界面旁展示引用资料或结果预览。
 
 <demo
   vue="../../demos/chat/right-aside-panel.vue"
@@ -176,103 +445,286 @@ const disabledErrorUI: ChatUIOptions = {
     '../../demos/chat/release-preview.html',
     '../../demos/chat/shared/modelProviders.ts'
   ]"
-  title="对话驱动的工作台"
-  description="消息操作可以打开发布方案预览和引用资料面板；输入区 MCP 按钮可以打开内置 MCP 面板。"
+  title="右侧资料与预览面板"
+  description="点击消息操作，打开发布方案预览或引用资料。"
 />
 
-`mcp` 是内置保留面板 ID，不能在 `panels` 中注册。MCP 激活时直接使用自身的标题和关闭按钮；`layout-right-aside-title` 与 `layout-right-aside-panel` 只作用于应用注册的面板。
+需要在会话旁展示引用资料、预览结果等内容时，通过 `ui.layout.rightAside.panels` 配置面板列表，再用 `layout-right-aside-panel` 插槽提供内容。
 
-### 插槽定制
+`panels` 是面板配置对象数组，默认为空数组 `[]`，每项包含以下字段：
 
-优先使用局部插槽。`layout-right-aside`、`layout-header`、`layout-left-aside` 和 `layout-main` 会替换整个区域；开发者需要自行实现被替换区域的布局、事件、键盘、焦点和 ARIA 行为。
+| 字段    | 用途                                                                  | 必填 |
+| ------- | --------------------------------------------------------------------- | ---- |
+| `id`    | 面板唯一标识，与 `layout-right-aside-panel` 插槽中的 `panelId` 对应。 | 是   |
+| `title` | 面板标题，省略时显示 `ui.labels.rightAsideTitle`（默认 `'详情'`）。   | 否   |
 
-`layout-main` 保留滚动宿主和滚动控制，`layout-footer` 保留外层 Footer，只替换默认 Sender。`layout-main` 优先于 `layout-empty-state`；自定义空状态需要调用 `renderComposer()` 才会渲染默认输入区。
+`id` 不能重复，也不能使用内置保留标识 `mcp`。右侧栏默认宽度为 `320px`，初始关闭；没有自定义面板或 MCP 数据时不会显示。
+
+```ts
+const ui: ChatUIOptions = {
+  layout: {
+    rightAside: {
+      panels: [{ id: 'preview', title: '结果预览' }],
+    },
+  },
+}
+```
+
+仅需设置初始打开状态时，使用 `defaultRightAsideOpen` 属性（默认 `false`）；`defaultActiveRightAsidePanelId` 属性指定初始面板，未设置时选择第一个可用面板：
+
+```vue
+<TrChat :runtime="runtime" :ui="ui" :default-right-aside-open="true" default-active-right-aside-panel-id="preview">
+  <template #layout-right-aside-panel="{ panelId }">
+    <p v-if="panelId === 'preview'">在这里放置预览内容。</p>
+  </template>
+</TrChat>
+```
+
+通过 `v-model` 绑定 `rightAsideOpen` 和 `activeRightAsidePanelId`，分别控制右栏开闭和当前面板。未设置这两个属性时，由组件自行管理。
+
+完整配置及默认值见 [布局配置](#layout)，面板控制属性见 [TrChat 属性](#trchat-props)。
 
 ### 浮动聊天窗口
 
-`layout.surface.mode: 'floating'` 启用浮动布局。通过 `floatingState` 和 `update:floating-state` 受控位置和尺寸；如果应用不写回新值，窗口会回到旧位置。
+将聊天界面显示为可拖动、缩放的浮动窗口。
 
 <demo
   vue="../../demos/chat/floating-layout.vue"
   :vueFiles="['../../demos/chat/floating-layout.vue']"
-  title="受控浮动聊天"
-  description="打开聊天窗口并拖动或缩放，观察位置与尺寸状态同步更新。"
+  title="浮动聊天窗口"
+  description="打开聊天窗口，拖动或缩放后查看位置和尺寸变化。"
 />
 
-### 窄视口与移动端
+`ui.layout.surface` 用于配置聊天界面的显示方式，可在父容器中显示，也可作为浮动窗口显示。它包含以下两个属性：
 
-侧栏的 `dock` 模式占据页面宽度，`drawer` 模式覆盖主内容。下面的约束容器用于比较两种结果；它显式切换模式，不模拟浏览器视口。
+- `mode`：选择显示方式，默认 `'normal'`，显示在父容器中；设为 `'floating'` 时显示为浮动窗口。
+- `floatingOptions`：配置浮动窗口的拖动、缩放和尺寸限制，仅在 `mode` 为 `'floating'` 时生效。
+
+`floatingOptions` 的常用字段如下：
+
+| 字段                     | 用途                          | 默认值或行为                      |
+| ------------------------ | ----------------------------- | --------------------------------- |
+| `draggable`              | 是否允许拖动窗口              | `true`                            |
+| `resizable`              | 是否允许拖动边缘缩放窗口      | `false`                           |
+| `minWidth` / `minHeight` | 最小宽度、最小高度，单位为 px | `320` / `240`，同时受视口尺寸限制 |
+| `maxWidth` / `maxHeight` | 最大宽度、最大高度，单位为 px | 不超过当前视口宽度、高度          |
+
+窗口默认支持拖动，下面开启缩放：
+
+```ts
+const ui: ChatUIOptions = {
+  layout: {
+    surface: {
+      mode: 'floating',
+      floatingOptions: { resizable: true },
+    },
+  },
+}
+```
+
+需要自定义窗口的位置和尺寸时，设置 `floatingState` 属性：
+
+```ts
+import { shallowRef } from 'vue'
+import type { LayoutFloatingState } from '@opentiny/tiny-robot-chat'
+
+const floatingState = shallowRef<LayoutFloatingState>({
+  placement: 'top-right',
+  offsetX: 24,
+  offsetY: 72,
+  width: 520,
+  height: 520,
+})
+```
+
+```vue
+<TrChat :runtime="runtime" :ui="ui" v-model:floating-state="floatingState" />
+```
+
+> 上例将窗口放在右上角，距右侧 `24px`、顶部 `72px`，宽高均为 `520px`。
+
+未设置 `floatingState` 时，窗口默认居中，尺寸为 `420px × 560px`；实际尺寸不会超过浏览器可视区域。
+
+传入 `floatingState` 时，需同步更新状态，建议使用 `v-model:floating-state`。
+
+完整字段及默认值见 [拖动与缩放配置](../components/layout#layout-floating-options)和[窗口位置与尺寸](../components/layout#layout-floating-state)。
+
+### 响应式布局与侧栏缩放
+
+切换桌面和移动端布局，并在桌面布局下调整侧栏宽度。
 
 <demo
   vue="../../demos/chat/responsive-layout.vue"
   :vueFiles="['../../demos/chat/responsive-layout.vue']"
-  title="Dock 与 Drawer"
-  description="比较桌面与移动端侧栏交互，并观察侧栏开闭事件。"
+  title="桌面与移动端布局"
+  description="切换布局，查看侧栏的显示和开闭效果，以及桌面布局下的宽度调整。"
 />
 
-组件的自动响应式判断使用浏览器视口：宽度低于 `960px` 时侧栏转为抽屉。仅收窄父容器不会触发自动转换。视口转换导致侧栏状态变化时，会触发 `*-aside-open-change`，其 `source` 为 `'viewport'`；用户点击产生的事件则为 `'user'`。桌面端 `rightAside.mode: 'dock'` 且 `resizable: true` 时可调整右栏宽度，移动端和 `drawer` 模式不支持调整宽度。
+> 演示切换的是布局效果，不改变浏览器宽度；浏览器可视区域宽度低于 `960px` 时，即使选择桌面布局，也会自动使用抽屉。
 
-## 可访问性与布局约束
+侧栏支持两种布局，通过 `ui.layout.leftAside.mode` 或 `ui.layout.rightAside.mode` 设置，默认是 `'dock'`：
 
-- 将 Chat 放入有明确高度的 flex 容器；消息区负责内部滚动。
-- 内置图标按钮提供可访问名称。替换 Header、Sender、侧栏或主区后，开发者需要提供等效的名称、键盘操作和焦点管理。
-- 宽度不足 `960px` 时，侧栏切换为抽屉。右栏、消息和自定义内容应允许收缩，长内容由区域自身滚动或换行。
-- 当前没有另行承诺的 Chat CSS Variable；不要依赖内部 DOM 或 `--tr-chat-ui-*` 变量作为稳定定制入口。
+- 桌面布局（`'dock'`）：侧栏与消息区并排显示。
+- 移动端布局（`'drawer'`）：侧栏以抽屉形式覆盖消息区。
 
-## API
+浏览器可视区域宽度低于 `960px` 时，组件会自动使用抽屉布局。
 
-所有 Chat 类型均从 `@opentiny/tiny-robot-chat` 导出，另有说明的 TinyRobot 基础组件类型除外。
+> 仅缩小父容器不会触发自动切换；需要在较窄容器中使用抽屉时，将侧栏的 `mode` 设为 `'drawer'`。
 
-### 状态所有权
+桌面布局下，将侧栏配置中的 `resizable` 设为 `true`，可拖动边缘调整宽度，默认不启用。通过 `minWidth`、`maxWidth` 设置调整范围，单位为 px；抽屉布局不支持调整宽度。例如：
 
-| 输入或通知                      | 所有者                | 组件行为                                                                                                                |
-| ------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `TrChat.runtime`                | Runtime               | `TrChat` 读取状态并执行标准动作；会话、消息、请求、模型和 MCP 的详细协议见 [Chat 运行时](./chat-runtime#runtime-协议)。 |
-| `TrChatUI.data`                 | 应用                  | 只读展示快照；用户操作后组件发出事件，应用处理并传入新的 `data`。                                                       |
-| `ui`                            | 应用                  | 只配置区域、文案和组件选项，不保存会话数据，也不覆盖 Runtime 状态。                                                     |
-| `input-value`、右栏和浮动受控值 | 应用                  | 组件发出 `update:*`，应用必须写回；`default-*` 只提供非受控初始值。                                                     |
-| 其他 Events                     | 应用或 Runtime 适配层 | 表达用户意图或状态通知；`TrChatUI` 不会据此修改应用数据。                                                               |
+```ts
+const ui: ChatUIOptions = {
+  layout: {
+    leftAside: {
+      defaultOpen: true,
+      resizable: true,
+      minWidth: 240,
+      maxWidth: 420,
+    },
+  },
+}
+```
 
-### TrChat API
+完整侧栏配置及默认值见 [布局配置](#layout)。
 
-#### Props
+### 仅使用界面组件
 
-| 属性名                                | 说明                                    | 类型                    | 默认值         | 必填 |
-| ------------------------------------- | --------------------------------------- | ----------------------- | -------------- | ---- |
-| `runtime`                             | 提供会话、Composer 状态和动作。         | `ChatRuntime`           | —              | 是   |
-| `ui`                                  | 配置页面布局、文案和区域。              | `ChatUIOptions`         | 默认界面配置   | 否   |
-| `title`                               | 覆盖当前会话提供的页面标题。            | `string`                | —              | 否   |
-| `history-data`                        | 覆盖 Runtime 会话生成的历史列表或分组。 | `ChatHistoryData`       | —              | 否   |
-| `floating-state`                      | 浮动布局的受控位置和尺寸。              | `LayoutFloatingState`   | —              | 否   |
-| `right-aside-open`                    | 右栏受控开闭状态。                      | `boolean`               | —              | 否   |
-| `default-right-aside-open`            | 非受控右栏初始开闭状态。                | `boolean`               | `false`        | 否   |
-| `active-right-aside-panel-id`         | 右栏受控当前面板；应用处理更新事件。    | `ChatRightAsidePanelId` | —              | 否   |
-| `default-active-right-aside-panel-id` | 非受控当前面板初始值。                  | `ChatRightAsidePanelId` | 第一个可用面板 | 否   |
+`TrChatUI` 是 `TrChat` 使用的界面组件，只负责展示数据和触发事件。需要自行处理消息请求、会话保存和数据更新时，可单独使用，前面的 `ui` 配置和插槽同样适用。
 
-#### Events
+> 复用已有会话或请求逻辑，也可以继续使用 `TrChat`，详见[高级用法](./chat-runtime#高级用法)。
 
-`TrChat` 在内部消费提交、取消、会话切换、模型选择和 MCP 开关事件，并调用 Runtime 动作；这些事件不会再次向外发出。
+<demo
+  vue="../../demos/chat/controlled-ui.vue"
+  :vueFiles="['../../demos/chat/controlled-ui.vue']"
+  title="处理发送与取消"
+  description="使用本地模拟回答，展示消息更新、发送中状态和取消操作，不连接真实服务或保存会话。"
+/>
 
-| 事件                                                                | 参数                                 | 触发时机                                                                |
-| ------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
-| `runtime-action-error`                                              | `ChatRuntimeActionErrorPayload`      | Runtime 动作失败；send 错误详情仍从所属消息读取。                       |
-| `history-action`                                                    | `ChatHistoryActionPayload`           | 历史菜单操作；删除动作可调用 `preventDefault()` 阻止默认 Runtime 删除。 |
-| `prompt-click`                                                      | `ChatPromptClickPayload`             | 点击提示项。                                                            |
-| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`         | 请求创建 MCP Server；Runtime 不处理创建表单。                           |
-| `bubble-state-change`                                               | `ChatBubbleStateChangePayload`       | 气泡内部状态变化。                                                      |
-| `bubble-event`                                                      | `ChatBubbleEventPayload`             | 气泡内容发出自定义事件。                                                |
-| `left-aside-open-change` / `right-aside-open-change`                | `ChatAsideOpenChangePayload`         | 侧栏状态变化。                                                          |
-| `update:right-aside-open`                                           | `boolean`                            | 请求应用写回受控右栏开闭状态。                                          |
-| `update:active-right-aside-panel-id`                                | `ChatRightAsidePanelId \| undefined` | 请求应用写回受控右栏面板。                                              |
-| `update:floating-state`                                             | `LayoutFloatingState`                | 请求应用写回受控浮动位置和尺寸。                                        |
-| `floating-drag-start` / `floating-drag` / `floating-drag-end`       | `LayoutFloatingDragDetail`           | 浮动窗口拖拽生命周期。                                                  |
-| `floating-resize-start` / `floating-resize` / `floating-resize-end` | `LayoutFloatingResizeDetail`         | 浮动窗口缩放生命周期。                                                  |
+#### 数据与事件处理
 
-#### Slots
+通过 `data` 提供会话列表、消息和发送状态。用户发送消息、取消请求或切换会话时，在对应事件中执行项目的操作，并更新显示数据。
 
-`TrChat` 将全部界面插槽传给内部的 `TrChatUI`。插槽名、作用域参数和替换责任见 [TrChatUI Slots](#trchatui-slots)；作用域中的会话、提交、模型和 MCP 动作会连接当前 Runtime。
+```ts
+import { computed, shallowRef } from 'vue'
+import type { ChatMessageItem, ChatUIData } from '@opentiny/tiny-robot-chat'
 
-#### Expose
+const inputValue = shallowRef('')
+const messages = shallowRef<ChatMessageItem[]>([])
+const sending = shallowRef(false)
+
+const data = computed<ChatUIData>(() => ({
+  conversation: { title: '应用助手' },
+  bubble: { messages: messages.value },
+  sender: { loading: sending.value },
+}))
+```
+
+| 字段 | 用途 | 默认值 |
+| --- | --- | --- |
+| `conversation.title` | 设置页头标题 | 默认文案为“新对话” |
+| `bubble.messages` | 提供消息列表 | `[]` |
+| `sender.loading` | 显示发送中状态，并切换为取消操作 | `false` |
+
+常见操作通过以下事件通知项目处理：
+
+| 用户操作 | 事件 | 项目需要处理 |
+| --- | --- | --- |
+| 发送消息 | `submit` | 发起请求，更新消息和发送状态 |
+| 取消发送 | `cancel` | 停止请求，恢复发送状态 |
+| 新建会话 | `create-conversation` | 清空当前选择或创建会话，更新显示数据 |
+| 切换会话 | `switch-conversation` | 更新选中会话、标题和消息 |
+| 重命名会话 | `rename-conversation` | 保存新标题并更新列表 |
+| 删除会话 | `history-action` | 判断 `action.id === 'delete'`，删除并更新数据 |
+
+例如，监听 `submit` 和 `cancel` 处理发送与取消，通过 `v-model:input-value` 同步输入内容：
+
+```vue
+<TrChatUI
+  :data="data"
+  v-model:input-value="inputValue"
+  @submit="handleSubmit"
+  @cancel="handleCancel"
+/>
+```
+
+`submit` 和 `cancel` 只通知项目处理操作，不会自动请求或停止服务。发送后是否清空输入、何时追加回答，由对应的事件处理方法决定。
+
+输入区的清空按钮会清空输入；使用 `v-model` 时，会同步更新绑定值。清空输入不会删除消息或取消请求。
+
+完整数据字段见 [ChatUIData](#chatuidata)，属性和事件见 [TrChatUI API](#trchatui-api)。
+
+#### 受控与非受控
+
+输入内容、侧栏开闭等界面状态支持两种管理方式：
+
+- **受控**：由项目传入当前值并同步更新，适合填入预设问题、发送后清空输入或从外部打开侧栏。
+- **非受控**：由组件维护状态，无需从外部同步更新，可按需设置初始值。
+
+以输入内容为例，受控方式通过 `v-model:input-value` 绑定当前内容，`inputValue` 可初始化为 `''`：
+
+```vue
+<TrChatUI v-model:input-value="inputValue" @submit="handleSubmit" />
+```
+
+非受控方式不传入 `inputValue`，由组件维护输入。可通过 `defaultInputValue` 设置初始内容，默认 `''`；后续修改该属性不会重置当前输入：
+
+```vue
+<TrChatUI defaultInputValue="请介绍一下 TinyRobot" @submit="handleSubmit" />
+```
+
+两种方式都能通过 `submit` 获取文本，但不会自动发送请求或清空输入。
+
+> 输入管理方式应在初始化时确定，不要在使用过程中切换。
+
+右栏和浮动窗口也支持这两种方式：
+
+| 状态 | 受控方式 | 非受控方式 |
+| --- | --- | --- |
+| 右栏开闭 | `v-model:right-aside-open` | 使用 `defaultRightAsideOpen` 设置初始值，默认 `false` |
+| 当前右栏面板 | `v-model:active-right-aside-panel-id` | 使用 `defaultActiveRightAsidePanelId`；未指定有效面板时选择第一个可用面板 |
+| 浮动窗口位置和尺寸 | `v-model:floating-state` | 不传入当前值，由组件维护内置窗口状态 |
+
+左栏通过 `ui.layout.leftAside.open` 设置当前开闭状态，并在 `left-aside-open-change` 中更新；不设置当前值时，可通过 `ui.layout.leftAside.defaultOpen` 设置初始状态，默认 `false`。
+
+完整属性和事件见 [TrChatUI API](#trchatui-api)，相关布局配置见 [右侧面板](#右侧面板) 和 [浮动聊天窗口](#浮动聊天窗口)。
+
+## TrChat API
+
+### 属性 {#trchat-props}
+
+| 属性名                                | 说明                                       | 类型                                                                | 默认值         | 必填 |
+| ------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- | -------------- | ---- |
+| `runtime`                             | 提供会话、输入区状态和操作方法。           | [`ChatRuntime`](./chat-runtime#状态与方法)                          | —              | 是   |
+| `ui`                                  | 配置页面布局、文案和区域。                 | [`ChatUIOptions`](#界面配置)                                        | 默认界面配置   | 否   |
+| `title`                               | 覆盖当前会话提供的页面标题。               | `string`                                                            | —              | 否   |
+| `history-data`                        | 覆盖 Runtime 会话生成的历史列表或分组。    | [`ChatHistoryData`](#展示数据类型)                                  | —              | 否   |
+| `floating-state`                      | 由应用管理的浮动窗口位置和尺寸。           | [`LayoutFloatingState`](../components/layout#layout-floating-state) | —              | 否   |
+| `right-aside-open`                    | 由应用管理的右栏开闭状态。                 | `boolean`                                                           | —              | 否   |
+| `default-right-aside-open`            | 组件管理右栏开闭时的初始值。               | `boolean`                                                           | `false`        | 否   |
+| `active-right-aside-panel-id`         | 由应用管理的当前右栏面板，需处理更新事件。 | `ChatRightAsidePanelId`                                             | —              | 否   |
+| `default-active-right-aside-panel-id` | 组件管理当前面板时的初始值。               | `ChatRightAsidePanelId`                                             | 第一个可用面板 | 否   |
+
+### 事件 {#trchat-events}
+
+`TrChat` 会直接处理提交、取消、会话切换、模型选择和 MCP 开关操作，调用 Runtime 对应方法；这些事件不会再次向外发出。
+
+| 事件                                                                | 参数                                                                               | 触发时机                                                                |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `runtime-action-error`                                              | `ChatRuntimeActionErrorPayload`                                                    | Runtime 操作失败；send 错误详情仍从所属消息读取。                       |
+| `history-action`                                                    | `ChatHistoryActionPayload`                                                         | 历史菜单操作；删除操作可调用 `preventDefault()` 阻止默认 Runtime 删除。 |
+| `prompt-click`                                                      | `ChatPromptClickPayload`                                                           | 点击提示项。                                                            |
+| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                                                       | 请求创建 MCP 服务；Runtime 不处理创建表单。                             |
+| `bubble-state-change`                                               | `ChatBubbleStateChangePayload`                                                     | 气泡内部状态变化。                                                      |
+| `bubble-event`                                                      | `ChatBubbleEventPayload`                                                           | 气泡内容发出自定义事件。                                                |
+| `left-aside-open-change` / `right-aside-open-change`                | `ChatAsideOpenChangePayload`                                                       | 侧栏状态变化。                                                          |
+| `update:right-aside-open`                                           | `boolean`                                                                          | 通知应用更新右栏开闭状态。                                              |
+| `update:active-right-aside-panel-id`                                | `ChatRightAsidePanelId \| undefined`                                               | 通知应用更新当前右栏面板。                                              |
+| `update:floating-state`                                             | [`LayoutFloatingState`](../components/layout#layout-floating-state)                | 通知应用更新浮动窗口的位置和尺寸。                                      |
+| `floating-drag-start` / `floating-drag` / `floating-drag-end`       | [`LayoutFloatingDragDetail`](../components/layout#layout-floating-drag-detail)     | 浮动窗口开始拖动、拖动中或拖动结束。                                    |
+| `floating-resize-start` / `floating-resize` / `floating-resize-end` | [`LayoutFloatingResizeDetail`](../components/layout#layout-floating-resize-detail) | 浮动窗口开始缩放、缩放中或缩放结束。                                    |
+
+### 组件方法 {#trchat-methods}
 
 | 方法                      | 签名                                             | 说明                           |
 | ------------------------- | ------------------------------------------------ | ------------------------------ |
@@ -282,76 +734,58 @@ const disabledErrorUI: ChatUIOptions = {
 | `toggleRightAside`        | `(panel?: ChatRightAsidePanelId) => void`        | 切换右栏，可同时指定面板。     |
 | `activateRightAsidePanel` | `(panel: ChatRightAsidePanelId) => boolean`      | 激活存在的面板并返回是否成功。 |
 
-### TrChatUI API
+## TrChatUI API
 
-#### Props
+### 属性 {#trchatui-props}
 
-| 属性名                                | 说明                                     | 类型                    | 默认值         | 必填 |
-| ------------------------------------- | ---------------------------------------- | ----------------------- | -------------- | ---- |
-| `data`                                | 应用提供的展示事实；组件不会修改该对象。 | `ChatUIData`            | 空展示数据     | 否   |
-| `ui`                                  | 配置页面布局、文案和区域。               | `ChatUIOptions`         | 默认界面配置   | 否   |
-| `input-value`                         | 受控草稿；应用处理更新事件并写回新值。   | `string`                | —              | 否   |
-| `default-input-value`                 | 非受控草稿初始值。                       | `string`                | `''`           | 否   |
-| `floating-state`                      | 浮动布局的受控位置和尺寸。               | `LayoutFloatingState`   | —              | 否   |
-| `right-aside-open`                    | 右栏受控开闭状态。                       | `boolean`               | —              | 否   |
-| `default-right-aside-open`            | 非受控右栏初始开闭状态。                 | `boolean`               | `false`        | 否   |
-| `active-right-aside-panel-id`         | 受控当前面板；应用处理更新事件。         | `ChatRightAsidePanelId` | —              | 否   |
-| `default-active-right-aside-panel-id` | 非受控当前面板初始值。                   | `ChatRightAsidePanelId` | 第一个可用面板 | 否   |
+| 属性名                                | 说明                                     | 类型                                                                | 默认值         | 必填 |
+| ------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------- | -------------- | ---- |
+| `data`                                | 应用提供的显示数据；组件不会修改该对象。 | [`ChatUIData`](#chatuidata)                                         | 空展示数据     | 否   |
+| `ui`                                  | 配置页面布局、文案和区域。               | [`ChatUIOptions`](#界面配置)                                        | 默认界面配置   | 否   |
+| `input-value`                         | 应用管理的输入内容，需处理更新事件。     | `string`                                                            | —              | 否   |
+| `default-input-value`                 | 组件管理输入时的初始内容。               | `string`                                                            | `''`           | 否   |
+| `floating-state`                      | 由应用管理的浮动窗口位置和尺寸。         | [`LayoutFloatingState`](../components/layout#layout-floating-state) | —              | 否   |
+| `right-aside-open`                    | 由应用管理的右栏开闭状态。               | `boolean`                                                           | —              | 否   |
+| `default-right-aside-open`            | 组件管理右栏开闭时的初始值。             | `boolean`                                                           | `false`        | 否   |
+| `active-right-aside-panel-id`         | 由应用管理的当前面板，需处理更新事件。   | `ChatRightAsidePanelId`                                             | —              | 否   |
+| `default-active-right-aside-panel-id` | 组件管理当前面板时的初始值。             | `ChatRightAsidePanelId`                                             | 第一个可用面板 | 否   |
 
-`input-value` 与 `default-input-value` 二选一，并在组件生命周期内保持同一种模式。左栏的受控开闭值位于 `ui.layout.leftAside.open`；应用收到 `left-aside-open-change` 后更新该配置。
+`input-value` 与 `default-input-value` 二选一，使用期间不切换输入管理方式。由应用管理左栏开闭时，通过 `ui.layout.leftAside.open` 设置状态，并在 `left-aside-open-change` 事件中更新该值。
 
-#### Events
+### 事件 {#trchatui-events}
 
-| 事件                                                                | 参数                                                     | 应用责任                                          |
-| ------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------- |
-| `submit`                                                            | `ChatSendPayload`                                        | 发送请求并更新消息、请求状态和输入值。            |
-| `update:input-value`                                                | `string`                                                 | 受控输入时写回草稿。                              |
-| `cancel` / `clear`                                                  | 无                                                       | 中止请求或清空草稿；组件不会修改外部请求。        |
-| `create-conversation`                                               | 无                                                       | 清空当前会话或创建新会话。                        |
-| `switch-conversation`                                               | `ChatSwitchConversationPayload`                          | 切换数据源并更新 `data.conversation.activeId`。   |
-| `rename-conversation`                                               | `ChatRenameConversationPayload`                          | 保存新标题并更新会话列表。                        |
-| `history-action`                                                    | `ChatHistoryActionPayload`                               | 处理历史菜单动作；`TrChatUI` 本身不会执行删除。   |
-| `prompt-click`                                                      | `ChatPromptClickPayload`                                 | 决定填充输入、直接提交或执行其他操作。            |
-| `bubble-state-change` / `bubble-event`                              | 对应 payload                                             | 更新消息状态或处理自定义气泡事件。                |
-| `model-select`                                                      | `ChatModelSelectPayload`                                 | 更新 `data.model.selectedId`。                    |
-| `model-feature-change`                                              | `ChatModelFeatureChangePayload`                          | 更新能力开关；异步时可同步 `pendingFeatureIds`。  |
-| `model-reasoning-effort-change`                                     | `ChatModelReasoningEffortChangePayload`                  | 更新 reasoning effort。                           |
-| `mcp-add-server` / `mcp-remove-server`                              | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload` | 更新 MCP Server 列表。                            |
-| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                             | 创建并接入自定义 MCP Server。                     |
-| `mcp-server-enabled-change`                                         | `ChatMcpServerEnabledChangePayload`                      | 更新 Server 启用状态。                            |
-| `mcp-tool-enabled-change`                                           | `ChatMcpToolEnabledChangePayload`                        | 更新工具启用状态。                                |
-| `left-aside-open-change` / `right-aside-open-change`                | `ChatAsideOpenChangePayload`                             | 受控时写回开闭状态；`source` 区分用户与视口变化。 |
-| `update:right-aside-open`                                           | `boolean`                                                | 写回受控右栏开闭状态。                            |
-| `update:active-right-aside-panel-id`                                | `ChatRightAsidePanelId \| undefined`                     | 写回受控当前面板。                                |
-| `update:floating-state`                                             | `LayoutFloatingState`                                    | 写回受控浮动位置和尺寸。                          |
-| `floating-drag-start` / `floating-drag` / `floating-drag-end`       | `LayoutFloatingDragDetail`                               | 按需记录或响应拖拽生命周期。                      |
-| `floating-resize-start` / `floating-resize` / `floating-resize-end` | `LayoutFloatingResizeDetail`                             | 按需记录或响应缩放生命周期。                      |
+点击“新会话”时，`TrChatUI` 只触发 `create-conversation`，由项目决定清空当前选择还是立即创建会话。`TrChat` 会返回新会话页面；使用默认发送流程时，在发送首条非空消息时创建会话。
 
-<span id="trchatui-slots"></span>
+> 配置自定义 `send` 时，不会自动创建会话，需由回调自行创建或选择会话，见 [自定义发送流程](./chat-runtime#自定义发送流程)。
 
-#### Slots
+以下事件需由项目自行处理：
 
-| 插槽                                                                                                            | 作用域参数                         | 说明                               |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------- |
-| `layout-header`                                                                                                 | `ChatHeaderSlotProps`              | 替换 Header。                      |
-| `layout-left-aside`                                                                                             | `ChatLeftAsideSlotProps`           | 替换左侧展开面板。                 |
-| `layout-left-aside-brand` / `layout-left-aside-actions` / `layout-left-aside-footer` / `layout-left-aside-rail` | `ChatLeftAsideSlotProps`           | 扩展默认左侧栏对应区域。           |
-| `layout-left-aside-content`                                                                                     | `ChatLeftAsideContentSlotProps`    | 扩展默认左侧栏内容区。             |
-| `layout-left-aside-history-item-prefix`                                                                         | `ChatHistoryItemPrefixSlotProps`   | 扩展默认历史项前缀。               |
-| `layout-right-aside`                                                                                            | `ChatRightAsidePanelSlotProps`     | 替换整个右栏，并接管所有面板。     |
-| `layout-right-aside-title`                                                                                      | `ChatRightAsideTitleSlotProps`     | 替换应用注册面板的标题。           |
-| `layout-right-aside-panel`                                                                                      | `ChatRightAsidePanelSlotProps`     | 渲染应用注册面板的正文。           |
-| `layout-main`                                                                                                   | `ChatMainSlotProps`                | 替换消息和空状态主内容。           |
-| `layout-empty-state`                                                                                            | `ChatEmptyStateSlotProps`          | 在没有可见消息时替换默认空状态。   |
-| `layout-footer` / `composer-before`                                                                             | `ChatSenderSlotProps`              | 替换默认 Sender 或在其前插入内容。 |
-| `sender-header` / `sender-footer` / `sender-footer-right`                                                       | 无                                 | 扩展默认 Sender。                  |
-| `header-notice` / `welcome-footer` / `prompts-footer`                                                           | 无                                 | 扩展对应区域。                     |
-| `bubble-prefix` / `bubble-suffix` / `bubble-after`                                                              | `ChatBubbleSlotProps`              | 扩展消息周边。                     |
-| `bubble-content-footer`                                                                                         | `ChatBubbleContentFooterSlotProps` | 扩展消息内容底部。                 |
+| 事件                                                                | 参数                                                                               | 说明                                                                  |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `submit`                                                            | `ChatSendPayload`                                                                  | 发送请求并更新消息、请求状态和输入值。                                |
+| `update:input-value`                                                | `string`                                                                           | 由应用管理输入时，更新输入内容。                                      |
+| `cancel` / `clear`                                                  | 无                                                                                 | 中止请求或清空输入；组件不会修改外部请求。                            |
+| `create-conversation`                                               | 无                                                                                 | 清空当前会话或创建新会话。                                            |
+| `switch-conversation`                                               | `ChatSwitchConversationPayload`                                                    | 切换数据源并更新 `data.conversation.activeId`。                       |
+| `rename-conversation`                                               | `ChatRenameConversationPayload`                                                    | 保存新标题并更新会话列表。                                            |
+| `history-action`                                                    | `ChatHistoryActionPayload`                                                         | 处理历史菜单操作；`TrChatUI` 本身不会执行删除。                       |
+| `prompt-click`                                                      | `ChatPromptClickPayload`                                                           | 决定填充输入、直接提交或执行其他操作。                                |
+| `bubble-state-change` / `bubble-event`                              | 对应 payload                                                                       | 更新消息状态或处理自定义气泡事件。                                    |
+| `model-select`                                                      | `ChatModelSelectPayload`                                                           | 更新 `data.model.selectedId`。                                        |
+| `model-feature-change`                                              | `ChatModelFeatureChangePayload`                                                    | 更新能力开关；异步时可同步 `pendingFeatureIds`。                      |
+| `model-reasoning-effort-change`                                     | `ChatModelReasoningEffortChangePayload`                                            | 更新思考强度。                                                        |
+| `mcp-add-server` / `mcp-remove-server`                              | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload`                           | 更新 MCP 服务列表。                                                   |
+| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                                                       | 创建并接入自定义 MCP 服务。                                           |
+| `mcp-server-enabled-change`                                         | `ChatMcpServerEnabledChangePayload`                                                | 更新 MCP 服务启用状态。                                               |
+| `mcp-tool-enabled-change`                                           | `ChatMcpToolEnabledChangePayload`                                                  | 更新工具启用状态。                                                    |
+| `left-aside-open-change` / `right-aside-open-change`                | `ChatAsideOpenChangePayload`                                                       | 由应用管理侧栏时更新开闭状态；`source` 区分用户操作和浏览器窗口变化。 |
+| `update:right-aside-open`                                           | `boolean`                                                                          | 更新应用管理的右栏开闭状态。                                          |
+| `update:active-right-aside-panel-id`                                | `ChatRightAsidePanelId \| undefined`                                               | 更新应用管理的当前面板。                                              |
+| `update:floating-state`                                             | [`LayoutFloatingState`](../components/layout#layout-floating-state)                | 更新应用管理的浮动窗口位置和尺寸。                                    |
+| `floating-drag-start` / `floating-drag` / `floating-drag-end`       | [`LayoutFloatingDragDetail`](../components/layout#layout-floating-drag-detail)     | 处理窗口开始拖动、拖动中或拖动结束。                                  |
+| `floating-resize-start` / `floating-resize` / `floating-resize-end` | [`LayoutFloatingResizeDetail`](../components/layout#layout-floating-resize-detail) | 处理窗口开始缩放、缩放中或缩放结束。                                  |
 
-替换整个 Header、侧栏、主区或 Sender 时，插槽内容接管相应的按钮、事件、键盘、焦点和 ARIA 责任。`layout-main` 优先于 `layout-empty-state`。
-
-#### Expose
+### 组件方法 {#trchatui-methods}
 
 | 方法                      | 签名                                        | 说明                           |
 | ------------------------- | ------------------------------------------- | ------------------------------ |
@@ -561,7 +995,7 @@ const disabledErrorUI: ChatUIOptions = {
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `ChatSendPayload`                                        | `text: string`；`structuredData?: ChatStructuredData`                                                   |
 | `ChatStructuredData`                                     | `ChatStructuredDataItem[]`                                                                              |
-| `ChatStructuredDataItem`                                 | `type: string`；可追加自定义字段。                                                                      |
+| `ChatStructuredDataItem`                                 | `type: string` 用于标识数据种类；其他字段按该种类提供，字段值类型为 `unknown`。 |
 | `ChatHistoryActionPayload`                               | `action: HistoryMenuItem`；`conversation: ChatConversationInfo`；`defaultPrevented`；`preventDefault()` |
 | `ChatSwitchConversationPayload`                          | `conversationId: string`                                                                                |
 | `ChatRenameConversationPayload`                          | `conversationId: string`；`title: string`                                                               |
@@ -583,8 +1017,4 @@ const disabledErrorUI: ChatUIOptions = {
 
 ### 页面没有高度或消息区不滚动
 
-检查应用根节点、页面容器和 Chat 外层是否有可计算高度，并允许中间 flex 子项收缩。
-
-### TrChatUI 是否保存会话
-
-不会。应用处理事件后，将会话、消息、请求和输入状态写回 `data`。
+聊天界面默认使用浏览器视口高度。嵌入已有页面时，检查父容器是否有明确高度，以及是否设置了 `--tr-layout-height: 100%`，见 [基础布局](#基础布局)。使用百分比高度时，祖先容器也需要有明确高度；使用 flex 布局时，检查消息区所在的子项是否允许收缩（如设置 `min-height: 0`）。
