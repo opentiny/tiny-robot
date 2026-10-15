@@ -7,9 +7,36 @@ import { lengthPlugin } from './plugins/lengthPlugin'
 import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { TOOL_RESUME_COMMAND, toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
+import { useAskUserRuntime } from './useAskUserRuntime'
 import { useMessage } from './useMessage'
 
 describe('useMessage', () => {
+  it('injects the AskUser prompt into the existing system message', async () => {
+    const responseProvider = vi.fn((requestBody) => {
+      const systemMessage = requestBody.messages.find((message) => message.role === 'system')
+      expect(systemMessage?.content).toContain('请使用 ask_user 工具收集信息。')
+      expect(systemMessage?.content).toContain('Product instructions.')
+      return mockResponseProvider('ok')(requestBody)
+    })
+
+    const engine = useMessage({
+      initialMessages: [{ role: 'system', content: 'Product instructions.' }],
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          askUser: true,
+          askUserPrompt: '请使用 ask_user 工具收集信息。',
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await engine.sendMessage('请继续')
+
+    expect(engine.messages.value[0]).toMatchObject({ role: 'system', content: 'Product instructions.' })
+  })
+
   it('uses the core vue adapter while keeping the original return shape', async () => {
     const engine = useMessage({
       initialMessages: [{ role: 'system', content: 'hello' }],
@@ -372,6 +399,140 @@ describe('useMessage', () => {
     expect(engine.messages.value.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
+    })
+  })
+
+  it('bridges vue AskUser tool callbacks with core mutation and resume flow', async () => {
+    let resolvePaused!: () => void
+    let hasContextBridge = false
+    const paused = new Promise<void>((resolve) => {
+      resolvePaused = resolve
+    })
+
+    const responseProvider = mockSequentialResponseProvider([
+      {
+        finish_reason: 'tool_calls',
+        onRequest(requestBody) {
+          expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['ask_user', 'lookup'])
+        },
+        tool_calls: [
+          {
+            index: 0,
+            id: 'call-ask-user-vue',
+            type: 'function',
+            function: {
+              name: 'ask_user',
+              arguments: JSON.stringify({
+                id: 'profile',
+                title: '完善资料',
+                steps: [
+                  {
+                    id: 'name',
+                    title: '姓名',
+                    summary: '姓名',
+                    type: 'text',
+                    required: true,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+      {
+        content: '资料已保存',
+        onRequest(requestBody) {
+          const toolMessage = requestBody.messages.at(-1)
+          expect(toolMessage).toMatchObject({
+            role: 'tool',
+            tool_call_id: 'call-ask-user-vue',
+          })
+          expect(JSON.parse(String(toolMessage?.content))).toEqual({
+            type: 'ask_user_result',
+            interactionId: 'profile',
+            status: 'submitted',
+            answers: { name: 'Ada' },
+          })
+        },
+      },
+    ])
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          askUser: true,
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'lookup',
+                parameters: { type: 'object', properties: {} },
+              },
+            },
+          ],
+          callTool: async () => 'lookup result',
+          onTurnPause: (context) => {
+            hasContextBridge = typeof context.createMessage === 'function' && typeof context.mutate === 'function'
+            resolvePaused()
+          },
+        }),
+      ],
+    })
+    const askUserRuntime = useAskUserRuntime(engine)
+    const turn = engine.sendMessage('请完善我的资料')
+
+    await paused
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(hasContextBridge).toBe(true)
+    expect(engine.requestState.value).toBe('paused')
+    const assistantMessage = engine.messages.value[1]
+    expect(assistantMessage?.content).toEqual([
+      expect.objectContaining({
+        type: 'ask_user',
+        id: 'profile',
+      }),
+    ])
+    expect(assistantMessage?.state).toMatchObject({
+      askUser: {
+        status: 'active',
+        currentStep: 0,
+        answers: {},
+      },
+      askUserRuntime: {
+        interactionId: 'profile',
+        toolCallId: 'call-ask-user-vue',
+      },
+      toolCall: {
+        'call-ask-user-vue': {
+          status: 'awaiting-approval',
+        },
+      },
+    })
+
+    askUserRuntime.handleStateChange({
+      key: 'askUser',
+      value: {
+        status: 'submitted',
+        currentStep: 0,
+        answers: { name: 'Ada' },
+        completedStepIds: ['name'],
+      },
+      messageIndex: 1,
+      contentIndex: 0,
+    })
+    await askUserRuntime.handleBubbleEvent({ name: 'ask-user:submit', messageIndex: 1, contentIndex: 0 })
+    await turn
+
+    expect(engine.requestState.value).toBe('completed')
+    expect(engine.messages.value.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: '资料已保存',
+    })
+    expect(engine.messages.value[2]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-ask-user-vue',
     })
   })
 

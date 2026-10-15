@@ -246,6 +246,10 @@ type ResponseProvider<T = ChatCompletion> = (
 | `toolCallFailedContent`           | `string`                                                                          | 否   | `'Tool call failed.'`                | 执行失败或拒绝时使用的内容。                                                               |
 | `persistPausedTurn`               | `boolean`                                                                         | 否   | `true`                               | 是否把暂停回合快照写入浏览器 LocalStorage，以便重建引擎后恢复。                            |
 | `autoFillMissingToolMessages`     | `boolean`                                                                         | 否   | `false`                              | 下一轮请求前是否为历史中缺失的 tool 结果补充取消消息。                                     |
+| `askUser`                         | `boolean`                                                                         | 否   | `false`                              | 是否启用 `ask_user` 工具。启用后会自动注册工具、暂停对应调用，并在恢复时返回结构化答案。    |
+| `askUserPrompt`                   | `string`                                                                          | 否   | 使用默认提示词                       | 启用 `askUser` 时提供给模型的自定义提示词。                                                  |
+
+启用 `askUser` 后，模型可以通过结构化表单向用户收集信息。界面层可使用 `useAskUserRuntime` 处理表单状态变化和提交事件，提交成功后会恢复对应的工具调用；普通工具仍通过 `getTools` 和 `callTool` 接入。
 
 工具审批通过插件命令完成：
 
