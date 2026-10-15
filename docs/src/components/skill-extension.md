@@ -22,9 +22,21 @@ outline: [1, 3]
 
 `@opentiny/tiny-robot-kit` 是组件库的 peer dependency。使用默认解析器前应安装两个包：
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit
 ```
+
+```bash [yarn]
+yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
+```
+
+```bash [npm]
+npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
+```
+
+:::
 
 下面的示例不传 `resolve-skill`，由组件使用 kit 默认解析器读取 GitHub 上的真实 Skill。复制示例地址并粘贴进 URL 输入框，点击“导入”后可查看解析出的名称、`SKILL.md` 正文和资源文件。示例需要能访问 GitHub；网络请求或限流失败时，表单会显示错误。导入结果只保存在当前页面内，刷新后不会保留。
 
