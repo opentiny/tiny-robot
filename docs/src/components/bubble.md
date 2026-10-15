@@ -60,9 +60,21 @@ Bubble 用于展示单条消息或消息列表，适合聊天、AI 流式回复�
 
 Bubble 提供 `BubbleRenderers.Markdown` 渲染器。使用前需要在应用中安装 `markdown-it` 和 `dompurify`；单个 Bubble 可以通过 `fallback-content-renderer` 配置，列表或组件树则推荐由 `BubbleProvider` 统一配置。
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add markdown-it dompurify
 ```
+
+```bash [yarn]
+yarn add markdown-it dompurify
+```
+
+```bash [npm]
+npm install markdown-it dompurify
+```
+
+:::
 
 <demo vue="../../demos/bubble/markdown.vue" title="Markdown 内容" description="配置 Markdown 渲染器展示格式化文本。" />
 

@@ -13,13 +13,19 @@ TinyRobot 提供官方 CLI 工具 [`@opentiny/tiny-robot-cli`](https://www.npmjs
 
 无需全局安装，可直接通过 `npx` 或 `pnpm dlx` 使用。
 
-```bash
-# npm
-npx @opentiny/tiny-robot-cli
+::: code-group
 
+```bash [pnpm]
 # pnpm
 pnpm dlx @opentiny/tiny-robot-cli
 ```
+
+```bash [npm]
+# npm
+npx @opentiny/tiny-robot-cli
+```
+
+:::
 
 ## create
 
@@ -54,7 +60,9 @@ npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
 
 创建完成后：
 
-```bash
+::: code-group
+
+```bash [pnpm]
 cd my-app
 pnpm install
 
@@ -63,6 +71,28 @@ pnpm install
 
 pnpm dev
 ```
+
+```bash [yarn]
+cd my-app
+yarn install
+
+# configure your API key
+# copy .env.example to .env.local
+
+yarn dev
+```
+
+```bash [npm]
+cd my-app
+npm install
+
+# configure your API key
+# copy .env.example to .env.local
+
+npm run dev
+```
+
+:::
 
 create 命令特性
 
@@ -148,9 +178,21 @@ VITE_DEEPSEEK_API_KEY=your_api_key
 
 如果依赖更新了，不要忘记安装
 
-```shell
+::: code-group
+
+```bash [pnpm]
 pnpm install
 ```
+
+```bash [yarn]
+yarn install
+```
+
+```bash [npm]
+npm install
+```
+
+:::
 
 现在你可以启动你的应用体验 AI 聊天应用了
 

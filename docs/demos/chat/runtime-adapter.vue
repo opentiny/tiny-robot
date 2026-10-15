@@ -51,6 +51,7 @@ const responseProvider: ResponseProvider = async (requestBody) => {
 const conversation = useConversation({
   storage: memoryStorage,
   autoSaveMessages: true,
+  autoSaveThrottle: 0,
   useMessageOptions: { responseProvider },
 })
 const runtime = useChatRuntimeFromConversation({ conversation })
@@ -73,7 +74,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
   <section class="runtime-adapter-demo">
     <p class="runtime-adapter-demo__status" aria-live="polite">{{ actionStatus }}</p>
     <div class="runtime-adapter-demo__chat">
-      <tr-chat-u-i
+      <TrChatUI
         :data="adapter.data.value"
         :input-value="adapter.inputValue.value"
         @update:input-value="adapter.setInputValue"

@@ -22,8 +22,10 @@ const featureIcons: Record<ChatBuiltInModelFeature, typeof IconThink> = {
   search: IconSearch,
 }
 
+const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
+
 const featureOptions = computed(() =>
-  CHAT_BUILT_IN_MODEL_FEATURES.map((id) => ({
+  CHAT_BUILT_IN_MODEL_FEATURES.filter((id) => selectedModel.value?.capabilities?.[id] === true).map((id) => ({
     id,
     label: props.labels[featureLabels[id]],
     icon: featureIcons[id],
@@ -31,7 +33,6 @@ const featureOptions = computed(() =>
 )
 
 const pendingFeatureIds = computed(() => new Set(props.model.pendingFeatureIds ?? []))
-const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
 
 function isPending(id: ChatBuiltInModelFeature) {
   return pendingFeatureIds.value.has(id)
