@@ -794,13 +794,13 @@ const data = computed<ChatUIData>(() => ({
 | `toggleRightAside`        | `(panel?: ChatRightAsidePanelId) => void`   | 切换右栏，可同时指定面板。     |
 | `activateRightAsidePanel` | `(panel: ChatRightAsidePanelId) => boolean` | 激活存在的面板并返回是否成功。 |
 
-<span id="chatui-data"></span>
+### 显示数据 {#chatuidata}
 
-#### ChatUIData
+`ChatUIData` 是应用传给 `TrChatUI` 的显示数据，组件不会修改它。以下字段均为可选，对应区域见下表。
 
-`ChatUIData` 是应用拥有的只读展示快照，六个一级字段均为可选。组件会逐字段读取 `conversation`、`bubble` 和 `sender`，省略字段或传入 `undefined` 时使用下表默认值；空字符串、空数组、`false` 和 `null` 会保留，不会被默认值覆盖。`conversation: {}`、`bubble: {}` 和 `sender: {}` 因此会得到各自的字段默认值。`model`、`mcp` 和 `request` 没有默认对象；空的 `model` 或 `mcp` 对象仍表示该能力存在，若要隐藏应省略对应字段或把 `ui.model` / `ui.mcp` 设为 `false`。
+未配置的字段使用下表默认值。无需模型或 MCP 入口时，省略 `model` / `mcp`，或将 `ui.model` / `ui.mcp` 设为 `false`。
 
-| 一级字段       | 类型                   | 对应区域                     | 省略时的结果                          |
+| 字段           | 类型                   | 对应区域                     | 默认行为                              |
 | -------------- | ---------------------- | ---------------------------- | ------------------------------------- |
 | `conversation` | `ChatConversationView` | 页头标题、会话列表和当前选中 | 空列表、无选中，标题为“新对话”。      |
 | `bubble`       | `ChatBubbleView`       | 消息主区                     | `messages` 为空，进入空状态。         |
@@ -809,7 +809,7 @@ const data = computed<ChatUIData>(() => ({
 | `mcp`          | `ChatMcpView`          | 输入区 MCP 入口与内置右栏    | 不显示 MCP 入口或面板。               |
 | `request`      | `ChatRequestView`      | 自定义主区和空状态插槽参数   | `undefined`；默认界面不额外显示状态。 |
 
-##### `conversation`
+#### `conversation`
 
 | 字段       | 类型                     | 默认值 | 说明                                                                |
 | ---------- | ------------------------ | ------ | ------------------------------------------------------------------- |
@@ -818,176 +818,226 @@ const data = computed<ChatUIData>(() => ({
 | `title`    | `string`                 | 新对话 | 页头标题；空字符串会原样显示。                                      |
 | `history`  | `ChatHistoryData`        | —      | 应用提供的排序或分组结果；提供后优先于根据 `items` 生成的默认历史。 |
 
-`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [Chat 运行时：会话、消息与发送](./chat-runtime#会话消息与发送)。
+`ChatConversationInfo`、`ChatMessageItem` 及消息内容结构见 [数据与逻辑配置：会话、消息与发送](./chat-runtime#会话、消息与发送)。
 
-##### `bubble` 与 `sender`
+#### `bubble` 与 `sender`
 
-| 路径                    | 类型                | 默认值  | 说明                                       |
-| ----------------------- | ------------------- | ------- | ------------------------------------------ |
-| `bubble.messages`       | `ChatMessageItem[]` | `[]`    | 消息事实；组件不会追加、删除或持久化消息。 |
-| `sender.loading`        | `boolean`           | `false` | 显示发送中反馈并切换为取消操作。           |
-| `sender.disabled`       | `boolean`           | `false` | 禁用整个输入区。                           |
-| `sender.submitDisabled` | `boolean`           | `false` | 仅禁止提交；输入仍可编辑。                 |
+| 字段                    | 类型                | 默认值  | 说明                                     |
+| ----------------------- | ------------------- | ------- | ---------------------------------------- |
+| `bubble.messages`       | `ChatMessageItem[]` | `[]`    | 消息列表；组件不会追加、删除或保存消息。 |
+| `sender.loading`        | `boolean`           | `false` | 显示发送中反馈并切换为取消操作。         |
+| `sender.disabled`       | `boolean`           | `false` | 禁用整个输入区。                         |
+| `sender.submitDisabled` | `boolean`           | `false` | 仅禁止提交；输入仍可编辑。               |
 
-##### `model`
+单独使用 `TrChatUI` 时，AI 消息的 `state.error` 用于显示错误提示，需要由应用写入。
+
+#### `model`
 
 | 字段                 | 类型                                               | 说明                                           |
 | -------------------- | -------------------------------------------------- | ---------------------------------------------- |
-| `options`            | `ChatModelOptionView[]`                            | 可选模型；空数组显示模型空态。                 |
+| `options`            | `ChatModelOptionView[]`                            | 可选模型列表；为空时显示没有可选模型的提示。   |
 | `selectedId`         | `string \| null`                                   | 当前模型；选择后应用通过 `model-select` 写回。 |
 | `features`           | `Partial<Record<'thinking' \| 'search', boolean>>` | 当前能力开关。                                 |
-| `reasoning`          | `{ enabled: boolean; effort?: string }`            | 深度思考及当前 effort。                        |
+| `reasoning`          | `{ enabled: boolean; effort?: string }`            | 深度思考开关及当前思考强度。                   |
 | `selecting`          | `boolean`                                          | 模型切换中的整体等待状态。                     |
-| `reasoningSelecting` | `boolean`                                          | reasoning effort 切换中的等待状态。            |
+| `reasoningSelecting` | `boolean`                                          | 思考强度切换中的等待状态。                     |
 | `pendingFeatureIds`  | `('thinking' \| 'search')[]`                       | 正在切换的能力，用于逐项等待反馈。             |
 
-`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、effort 列表、默认 effort、能力声明和 `metadata`。选择器浮层挂载位置由 `ui.model.appendTo` 配置，其他行为见 [ModelSelector](../components/model-selector)。
+`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、思考强度选项（`efforts`）、默认强度（`defaultEffort`）、支持的功能和 `metadata`。选择器弹出面板所在的容器由 `ui.model.appendTo` 配置，其他行为见 [ModelSelector](../components/model-selector)。
 
-##### `mcp`
+#### `mcp`
 
-| 字段      | 类型                  | 说明                                                               |
-| --------- | --------------------- | ------------------------------------------------------------------ |
-| `servers` | `ChatMcpServerView[]` | Server 的安装、启用、加载和错误状态；应用处理对应事件后写回。      |
-| `tools`   | `ChatMcpToolMap`      | 以 Server ID 为键的工具数组；工具包含 `id`、`name`、`enabled` 等。 |
+| 字段      | 类型                  | 说明                                                                 |
+| --------- | --------------------- | -------------------------------------------------------------------- |
+| `servers` | `ChatMcpServerView[]` | MCP 服务的安装、启用、加载和错误状态；应用处理对应事件后写回。       |
+| `tools`   | `ChatMcpToolMap`      | 以 MCP 服务 ID 为键的工具数组；工具包含 `id`、`name`、`enabled` 等。 |
 
 `ChatMcpServerView` 要求 `id`、`name`、`installed` 和 `enabled`；可选 `description`、`icon`、`category`、`loading`、`error` 与 `metadata`。`ChatMcpToolView` 要求 `id`、`name` 和 `enabled`，可选 `description` 与 `loading`。只有 `ui.mcp` 与 `ui.layout.rightAside` 都未设为 `false` 时，MCP 入口和内置面板才可见。
 
-内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP Server 按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source }`；`config` 是规范化的单个 Server 连接配置，`source` 为 `'form'` 或 `'code'`。Chat 不保存自定义 Server，应用收到事件后负责持久化并更新 `mcp.servers`。服务器的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
+内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP 服务按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source }`；`config` 是整理后的单个 MCP 服务连接配置，`source` 为 `'form'` 或 `'code'`。Chat 不保存自定义 MCP 服务，应用收到事件后负责保存并更新 `mcp.servers`。服务的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
 
-##### `request`
+#### `request`
 
 | 字段              | 类型                                                                        | 必填 | 说明                   |
 | ----------------- | --------------------------------------------------------------------------- | ---- | ---------------------- |
-| `state`           | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'` | 是   | 请求生命周期。         |
+| `state`           | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'` | 是   | 请求状态。             |
 | `processingState` | `'requesting' \| 'completing' \| string`                                    | 否   | 应用定义的处理中阶段。 |
 
 `request` 会传给 `layout-main` 和 `layout-empty-state`。默认界面的发送中反馈读取 `sender.loading`，消息错误读取 `message.state.error`；只更新 `request` 不会自动渲染这些反馈。
 
-<span id="chatui-options"></span>
+## 公共配置
 
-#### ChatUIOptions
+以下界面配置和插槽均适用于 `TrChat` 和 `TrChatUI`。
 
-`ChatUIOptions` 的十一个一级字段均为可选，并按分支与默认配置合并；传入空对象或 `undefined` 都得到默认界面。标记为 `false` 的区域会被移除；重新传入对象即可恢复。数组字段以应用提供的数组整体替换默认数组，`bubble.bubbleList.roleConfigs` 例外，它按角色键合并。
+### 界面配置
 
-| 一级字段  | 类型                          | 省略时的行为与合并规则                                                        | `false` 的结果                            |
-| --------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| `layout`  | `ChatLayoutOptions`           | 逐个布局字段 fallback，嵌套的 `surface`、`composer`、左右侧栏分别解析。       | 不支持；使用 `leftAside` / `rightAside`。 |
-| `brand`   | `ChatBrandOptions`            | 与默认名称 `TinyRobot` 和默认图标浅合并。                                     | 不支持。                                  |
-| `labels`  | `Partial<ChatLabels>`         | 按字段覆盖内置中文文案；也会更新默认欢迎文案和历史菜单文案。                  | 不支持。                                  |
-| `header`  | `false`                       | 省略时显示默认 Header。                                                       | 移除 Header。                             |
-| `history` | `false \| ChatHistoryOptions` | 与默认 History 选项合并；`menuItems` 整体替换默认重命名、删除菜单。           | 隐藏历史列表，左栏品牌和动作仍在。        |
-| `welcome` | `false \| ChatWelcomeOptions` | 与默认 Welcome 选项合并；标题和描述 fallback 到 `labels`。                    | 空会话不显示 Welcome。                    |
-| `prompts` | `false \| ChatPromptsOptions` | 与默认 Prompts 选项合并；`items` 整体替换，默认 `[]`。                        | 不显示提示项。                            |
-| `bubble`  | `ChatBubbleOptions`           | 合并气泡 Provider 和列表配置；`autoScroll` 默认 `true`，system 消息默认隐藏。 | 不支持。                                  |
-| `sender`  | `false \| ChatSenderOptions`  | 与默认 Sender 选项浅合并。                                                    | 移除输入区及其插槽。                      |
-| `model`   | `false \| ChatModelOptions`   | 默认 `{}`；只有 `data.model` 存在时显示。                                     | 即使存在模型数据也隐藏选择器。            |
-| `mcp`     | `false \| ChatMcpOptions`     | 默认 `{}`；当前没有额外配置字段。                                             | 即使存在 MCP 数据也隐藏入口和面板。       |
+`TrChat` 和 `TrChatUI` 都通过 `ui` 接收 `ChatUIOptions`，配置布局、文案和各区域的显示方式。
 
-##### `layout`
+未配置时使用默认界面。支持 `false` 的区域可通过它隐藏，其他选项见下表。
 
-| 字段                        | 类型                             | 默认值                   | 说明                                                               |
-| --------------------------- | -------------------------------- | ------------------------ | ------------------------------------------------------------------ |
-| `surface.mode`              | `'normal' \| 'floating'`         | `'normal'`               | 页面或浮动窗口；浮动时读取 `floatingOptions` 与 `floating-state`。 |
-| `emptyState`                | `'start' \| 'center'`            | `'start'`                | 空状态在主区起始位置或居中。                                       |
-| `composer.welcome`          | `'footer' \| 'center'`           | `'footer'`               | 空会话时输入区位于 Footer 或 Welcome 中央。                        |
-| `contentMaxWidth`           | `string \| number`               | `980`                    | 消息、Welcome 和输入区的最大内容宽度。                             |
-| `panelPadding` / `panelGap` | `string \| number`               | `12` / `12`              | 内容区内边距与区域间距。                                           |
-| `leftAside`                 | `false \| ChatAsideOptions`      | Dock，`300` / `56`，关闭 | 左栏；`open` 为受控值，`defaultOpen` 为非受控初始值。              |
-| `rightAside`                | `false \| ChatRightAsideOptions` | Dock，宽 `320`，不可缩放 | 右栏；只有注册应用面板或存在可见 MCP 数据时才渲染。                |
+| 字段      | 类型                          | 配置说明                                                                  | `false` 的作用                            |
+| --------- | ----------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
+| `layout`  | `ChatLayoutOptions`           | 未配置的布局字段使用默认值；窗口、输入区和左右侧栏可分别配置。            | 不支持；使用 `leftAside` / `rightAside`。 |
+| `brand`   | `ChatBrandOptions`            | 提供的选项覆盖对应的默认名称或图标，默认名称为 `TinyRobot`。              | 不支持。                                  |
+| `labels`  | `Partial<ChatLabels>`         | 按字段覆盖内置中文文案；也会更新默认欢迎文案和历史菜单文案。              | 不支持。                                  |
+| `header`  | `false`                       | 省略时显示默认 Header。                                                   | 移除 Header。                             |
+| `history` | `false \| ChatHistoryOptions` | 与默认 History 选项合并；`menuItems` 整体替换默认重命名、删除菜单。       | 隐藏历史列表，左栏品牌和操作仍在。        |
+| `welcome` | `false \| ChatWelcomeOptions` | 与默认欢迎区配置合并；未提供标题和描述时使用 `labels` 中的文案。          | 空会话不显示欢迎区。                      |
+| `prompts` | `false \| ChatPromptsOptions` | 与默认 Prompts 选项合并；`items` 整体替换，默认 `[]`。                    | 不显示提示项。                            |
+| `bubble`  | `ChatBubbleOptions`           | 合并气泡渲染和列表配置；`autoScroll` 默认 `true`，`system` 消息默认隐藏。 | 不支持。                                  |
+| `sender`  | `false \| ChatSenderOptions`  | 提供的选项覆盖对应的默认输入区选项。                                      | 移除输入区及其插槽。                      |
+| `model`   | `false \| ChatModelOptions`   | 默认 `{}`；只有 `data.model` 存在时显示。                                 | 即使存在模型数据也隐藏选择器。            |
+| `mcp`     | `false \| ChatMcpOptions`     | 默认 `{}`；当前没有额外配置字段。                                         | 即使存在 MCP 数据也隐藏入口和面板。       |
 
-`ChatAsideOptions` 还包含 `mode`、`width`、`collapsedWidth`。浏览器视口低于 `960px` 时实际模式强制为 `drawer`。`ChatRightAsideOptions` 另有 `showClose`、`resizable`、`minWidth`、`maxWidth` 和 `panels`；`panels` 需要配合 `layout-right-aside` 或 `layout-right-aside-panel` 插槽，重复 ID 以及保留 ID `mcp` 会被忽略。
+#### `layout`
 
-##### 其他配置字段
+| 字段                        | 类型                             | 默认值                   | 说明                                                                  |
+| --------------------------- | -------------------------------- | ------------------------ | --------------------------------------------------------------------- |
+| `surface.mode`              | `'normal' \| 'floating'`         | `'normal'`               | 页面或浮动窗口；浮动时读取 `floatingOptions` 与 `floating-state`。    |
+| `emptyState`                | `'start' \| 'center'`            | `'start'`                | 空状态在主区起始位置或居中。                                          |
+| `composer.welcome`          | `'footer' \| 'center'`           | `'footer'`               | 空会话时的输入区位置：`'footer'` 位于页面底部；`'center'` 随内置欢迎区居中显示，需保留默认内容布局、欢迎区和输入区。 |
+| `contentMaxWidth`           | `string \| number`               | `980`                    | 消息、欢迎区和输入区的最大内容宽度。                                  |
+| `panelPadding` / `panelGap` | `string \| number`               | `12` / `12`              | 内容区内边距与区域间距。                                              |
+| `leftAside`                 | `false \| ChatAsideOptions`      | Dock，`300` / `56`，关闭 | 左栏；`open` 由应用管理，`defaultOpen` 仅设置组件管理开闭时的初始值。 |
+| `rightAside`                | `false \| ChatRightAsideOptions` | Dock，宽 `320`，不可缩放 | 右栏；只有注册应用面板或存在可见 MCP 数据时才渲染。                   |
 
-| 分支      | 常用字段或默认值                                                                                                          | 详细来源                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `brand`   | `name?: string`、`logo?: unknown`。                                                                                       | —                                             |
-| `labels`  | 会话创建/重命名/删除、侧栏展开/收起、输入占位、模型、MCP、Welcome、右栏和滚动到底部等文案。                               | —                                             |
-| `history` | 默认菜单为重命名和删除；Chat 固定管理 `data`、`selected` 与事件。                                                         | [History](../components/history)              |
-| `welcome` | 默认标题与描述来自 `labels.welcomeTitle`、`labels.welcomeDescription`。                                                   | [Welcome](../components/welcome)              |
-| `prompts` | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                                       | [Prompts](../components/prompts)              |
-| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；`bubbleProvider.errorRenderer` 可替换默认消息错误视图，传入 `null` 可关闭。 | [Bubble](../components/bubble)                |
-| `sender`  | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。          | [Sender](../components/sender)                |
-| `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                  | [ModelSelector](../components/model-selector) |
-| `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                               | —                                             |
+`leftAside` 和 `rightAside` 的配置字段如下，尺寸字段的单位均为 px：
+
+| 字段             | 类型或可选值                   | 默认值或未配置行为                                     | 用途                                                               |
+| ---------------- | ------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `mode`           | `'dock' \| 'drawer'`           | `'dock'`；浏览器视口低于 `960px` 时自动使用 `'drawer'` | 侧栏与消息区并排，或以抽屉覆盖消息区                               |
+| `width`          | `number`                       | 左栏 `300`；右栏 `320`                                 | 展开宽度                                                           |
+| `collapsedWidth` | `number`                       | 左栏 `56`；右栏 `0`                                    | 收起宽度；移动端使用 `0`                                           |
+| `resizable`      | `boolean`                      | `false`                                                | 允许拖动调整展开宽度，仅桌面端并排模式生效                         |
+| `minWidth`       | `number`                       | 左栏 `200`；右栏 `240`                                 | 最小展开宽度                                                       |
+| `maxWidth`       | `number`                       | 左栏 `560`；右栏 `640`                                 | 最大展开宽度                                                       |
+| `open`           | `boolean`                      | 未设置时由组件管理                                     | 仅左栏；由项目控制开闭时，需处理 `left-aside-open-change` 并更新值 |
+| `defaultOpen`    | `boolean`                      | `false`                                                | 仅左栏；由组件管理开闭时的初始值                                   |
+| `showClose`      | `boolean`                      | `true`                                                 | 仅右栏；是否显示关闭按钮                                           |
+| `panels`         | `ChatRightAsidePanelOptions[]` | `[]`                                                   | 仅右栏；每项必填 `id`，可选 `title`                                |
+
+右栏开闭和当前面板通过组件属性设置，见 [TrChat 属性](#trchat-props)。浮动窗口的配置结构、尺寸限制和状态绑定见 [浮动聊天窗口](#浮动聊天窗口)。
+
+`panels` 需要配合 `layout-right-aside` 或 `layout-right-aside-panel` 插槽提供内容；面板 ID 不能重复，也不能使用内置保留 ID `mcp`。`layout-right-aside-title` 和 `layout-right-aside-panel` 只用于应用添加的面板，不替换 MCP 面板。
+
+#### 各区域配置
+
+| 配置项    | 说明                                                                                                             | 相关组件                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `brand`   | `name?: string`、`logo?: unknown`。                                                                              | —                                             |
+| `labels`  | 会话创建/重命名/删除、侧栏展开/收起、输入占位、模型、MCP、Welcome、右栏和滚动到底部等文案。                      | —                                             |
+| `history` | 默认菜单为重命名和删除；Chat 固定管理 `data`、`selected` 与事件。                                                | [History](../components/history)              |
+| `welcome` | 默认标题与描述来自 `labels.welcomeTitle`、`labels.welcomeDescription`。                                          | [Welcome](../components/welcome)              |
+| `prompts` | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                              | [Prompts](../components/prompts)              |
+| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；消息错误提示配置见[消息错误提示配置](#消息错误提示配置)。          | [Bubble](../components/bubble)                |
+| `sender`  | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。 | [Sender](../components/sender)                |
+| `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                         | [ModelSelector](../components/model-selector) |
+| `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                      | —                                             |
 
 `ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
-### 类型索引
+### 插槽
 
-#### 组件与核心对象
+以下插槽适用于 `TrChat` 和 `TrChatUI`。插槽参数中的发送、会话、模型和 MCP 操作，在 `TrChat` 中调用当前 Runtime；在 `TrChatUI` 中触发事件，需要项目处理事件并更新数据。
 
-| 类型                           | 种类        | 说明                                                    |
-| ------------------------------ | ----------- | ------------------------------------------------------- |
-| `ChatUIProps`                  | `interface` | `TrChatUI` Props 的 camelCase 类型。                    |
-| `ChatUIEmits`                  | `interface` | `TrChatUI` 事件名到参数元组的映射。                     |
-| `ChatUISlots`                  | `interface` | 两个组件共享的插槽函数映射。                            |
-| `ChatUIData`                   | `interface` | 展示快照；字段行为见 [ChatUIData](#chatui-data)。       |
-| `ChatUIOptions`                | `interface` | 界面配置；字段行为见 [ChatUIOptions](#chatui-options)。 |
-| `ChatCssSize`                  | `type`      | `string \| number`。                                    |
-| `ChatWelcomeComposerPlacement` | `type`      | `'footer' \| 'center'`。                                |
-| `ChatRightAsidePanelId`        | `type`      | `string`。                                              |
-| `ChatRightAsidePanelContext`   | `interface` | 当前 `panelId` 与可选的面板配置。                       |
-| `ChatBuiltInModelFeature`      | `type`      | `'thinking' \| 'search'`。                              |
-| `ChatRequestState`             | `type`      | 请求生命周期联合类型。                                  |
-| `ChatProcessingState`          | `type`      | `'requesting' \| 'completing' \| string`。              |
+| 插槽                                                                               | 插槽参数                           | 说明                                                                                        |
+| ---------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| `layout-header`                                                                    | `ChatHeaderSlotProps`              | 替换页头。                                                                                  |
+| `layout-left-aside`                                                                | `ChatLeftAsideSlotProps`           | 替换左侧展开面板。                                                                          |
+| `layout-left-aside-brand` / `layout-left-aside-actions` / `layout-left-aside-rail` | `ChatLeftAsideSlotProps`           | 分别替换左栏品牌、操作和收起时的操作区域。                                                  |
+| `layout-left-aside-footer`                                                         | `ChatLeftAsideSlotProps`           | 在左栏底部添加内容。                                                                        |
+| `layout-left-aside-content`                                                        | `ChatLeftAsideContentSlotProps`    | 替换左栏内容区，包括默认会话列表。                                                          |
+| `layout-left-aside-history-item-prefix`                                            | `ChatHistoryItemPrefixSlotProps`   | 在历史项前添加内容。                                                                        |
+| `layout-right-aside`                                                               | `ChatRightAsidePanelSlotProps`     | 替换整个右栏及其面板。                                                                      |
+| `layout-right-aside-title`                                                         | `ChatRightAsideTitleSlotProps`     | 替换应用添加的面板标题。                                                                    |
+| `layout-right-aside-panel`                                                         | `ChatRightAsidePanelSlotProps`     | 提供应用添加的面板内容。                                                                    |
+| `layout-main`                                                                      | `ChatMainSlotProps`                | 替换消息区和空状态内容，保留外层滚动区域；优先于 `layout-empty-state`。                     |
+| `layout-empty-state`                                                               | `ChatEmptyStateSlotProps`          | 替换没有消息时的内容；需要显示默认输入区时，调用 `renderComposer()`。                       |
+| `layout-footer`                                                                    | `ChatSenderSlotProps`              | 替换默认输入框，需自行连接输入和提交操作；保留 `composer-before` 和 `composer-after`。      |
+| `composer-before`                                                                  | `ChatSenderSlotProps`              | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
+| `composer-after`                                                                   | `ChatSenderSlotProps`              | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
+| `sender-header`                                                                    | 无                                 | 在默认输入框内部上方添加内容。                                                              |
+| `sender-footer`                                                                    | 无                                 | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域。                            |
+| `sender-footer-right`                                                              | 无                                 | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容。                                      |
+| `header-notice` / `welcome-footer` / `prompts-footer`                              | 无                                 | 扩展对应区域。                                                                              |
+| `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
+| `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps` | 在消息内容下方添加内容。                                                                    |
 
-共享的 `ChatConversationInfo`、`ChatMessageItem`、消息内容、Runtime 和动作类型统一列在 [Chat 运行时 API](./chat-runtime#api)，这里不重复定义。
+## 类型索引
+
+#### 组件类型
+
+| 类型                           | 类别        | 说明                                              |
+| ------------------------------ | ----------- | ------------------------------------------------- |
+| `ChatUIProps`                  | `interface` | `TrChatUI` 的属性类型，属性名采用小驼峰写法。     |
+| `ChatUIEmits`                  | `interface` | `TrChatUI` 的事件及参数类型。 |
+| `ChatUISlots`                  | `interface` | `TrChat` 和 `TrChatUI` 的插槽及参数类型。 |
+| `ChatUIData`                   | `interface` | 显示数据；字段行为见 [ChatUIData](#chatuidata)。  |
+| `ChatUIOptions`                | `interface` | 界面配置；字段行为见 [ChatUIOptions](#界面配置)。 |
+| `ChatCssSize`                  | `type`      | `string \| number`。                              |
+| `ChatWelcomeComposerPlacement` | `type`      | `'footer' \| 'center'`。                          |
+| `ChatRightAsidePanelId`        | `type`      | `string`。                                        |
+| `ChatRightAsidePanelContext`   | `interface` | 当前 `panelId` 与可选的面板配置。                 |
+| `ChatBuiltInModelFeature`      | `type`      | `'thinking' \| 'search'`。                        |
+| `ChatRequestState`             | `type`      | 请求状态类型。                                    |
+| `ChatProcessingState`          | `type`      | `'requesting' \| 'completing' \| string`。        |
+
+会话、消息和操作相关类型见 [数据与逻辑配置 API](./chat-runtime#api)。
 
 #### 展示数据类型
 
-| 类型                   | 说明                                                                    |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `ChatConversationView` | 会话列表、当前 ID、标题和可选历史分组。                                 |
-| `ChatHistoryData`      | `ChatConversationInfo[] \| ChatHistoryGroup[]`。                        |
-| `ChatHistoryGroup`     | `group: string \| symbol` 与 `items`。                                  |
-| `ChatBubbleView`       | 消息列表容器。                                                          |
-| `ChatSenderView`       | 输入区 loading、disabled 与 submitDisabled 状态。                       |
-| `ChatRequestView`      | 请求 `state` 与可选 `processingState`。                                 |
-| `ChatModelView`        | 模型列表、选中值、能力、reasoning 和异步状态。                          |
-| `ChatModelOptionView`  | 单个模型的标签、能力、effort 与元数据。                                 |
-| `ChatMcpView`          | MCP Server 列表与工具映射。                                             |
-| `ChatMcpServerView`    | 单个 Server 的安装、启用、加载和错误状态。                              |
-| `ChatMcpToolView`      | 单个工具的名称、启用和加载状态。                                        |
-| `ChatMcpToolMap`       | `Partial<Record<string, readonly ChatMcpToolView[]>>`，键为 Server ID。 |
+| 类型                   | 说明                                                                      |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `ChatConversationView` | 会话列表、当前 ID、标题和可选历史分组。                                   |
+| `ChatHistoryData`      | `ChatConversationInfo[] \| ChatHistoryGroup[]`。                          |
+| `ChatHistoryGroup`     | `group: string \| symbol` 与 `items`。                                    |
+| `ChatBubbleView`       | 消息列表容器。                                                            |
+| `ChatSenderView`       | 输入区 loading、disabled 与 submitDisabled 状态。                         |
+| `ChatRequestView`      | 请求 `state` 与可选 `processingState`。                                   |
+| `ChatModelView`        | 模型列表、选中值、功能开关、思考强度和加载状态。                          |
+| `ChatModelOptionView`  | 单个模型的名称、支持的功能、思考强度与附加信息。                          |
+| `ChatMcpView`          | MCP 服务列表与工具映射。                                                  |
+| `ChatMcpServerView`    | 单个 MCP 服务的安装、启用、加载和错误状态。                               |
+| `ChatMcpToolView`      | 单个工具的名称、启用和加载状态。                                          |
+| `ChatMcpToolMap`       | `Partial<Record<string, readonly ChatMcpToolView[]>>`，键为 MCP 服务 ID。 |
 
 #### 界面配置类型
 
 | 类型                         | 说明                                                                        |
 | ---------------------------- | --------------------------------------------------------------------------- |
-| `ChatLayoutOptions`          | 页面 surface、空状态、内容宽度、间距和两侧栏。                              |
-| `ChatSurfaceOptions`         | 正常或浮动 surface 配置。                                                   |
-| `ChatComposerLayoutOptions`  | Welcome 中输入区的位置。                                                    |
+| `ChatLayoutOptions`          | 页面显示方式、空状态、内容宽度、间距和两侧栏。                              |
+| `ChatSurfaceOptions`         | 普通页面或浮动窗口配置。                                                    |
+| `ChatComposerLayoutOptions`  | 欢迎区中输入区的位置。                                                      |
 | `ChatBrandOptions`           | 品牌名称与图标。                                                            |
 | `ChatLabels`                 | Chat 所有内置中文文案字段。                                                 |
-| `ChatAsideOptions`           | 左栏模式、宽度与开闭值。                                                    |
+| `ChatAsideOptions`           | 左栏显示方式、宽度、拖动调整与开闭状态。                                    |
 | `ChatRightAsideOptions`      | 右栏模式、宽度、缩放与面板注册。                                            |
 | `ChatRightAsidePanelOptions` | `id` 与可选 `title`。                                                       |
-| `ChatHistoryOptions`         | 基于 `HistoryProps<ChatConversationInfo>`，排除 Chat 管理的数据和事件字段。 |
-| `ChatBubbleOptions`          | Bubble Provider、列表和自动滚动配置。                                       |
-| `ChatBubbleListOptions`      | 基于 `BubbleListProps`，排除 Chat 管理的消息和自动滚动字段。                |
-| `ChatWelcomeOptions`         | `Partial<WelcomeProps>`。                                                   |
-| `ChatPromptsOptions`         | 基于 `PromptsProps`，增加可选 `items`。                                     |
-| `ChatSenderOptions`          | 基于 `SenderProps`，排除值、loading、disabled 和原始 defaultActions。       |
-| `ChatSenderDefaultActions`   | 基于 `DefaultActions`，提交按钮的 disabled 由 Chat 管理。                   |
-| `ChatModelOptions`           | ModelSelector 的浮层挂载配置。                                              |
+| `ChatHistoryOptions`         | 支持 [History](../components/history) 的配置，不支持 `data`、`selected` 和 `onItemAction`。 |
+| `ChatBubbleOptions`          | 气泡渲染、列表和自动滚动配置。                                              |
+| `ChatBubbleListOptions`      | 支持 [BubbleList](../components/bubble) 的配置，不支持 `messages` 和 `autoScroll`。 |
+| `ChatWelcomeOptions`         | 支持 [Welcome](../components/welcome) 的配置，所有字段均可选。 |
+| `ChatPromptsOptions`         | 支持 [Prompts](../components/prompts) 的配置，`items?: PromptProps[]` 用于设置推荐问题。 |
+| `ChatSenderOptions`          | 支持 [Sender](../components/sender) 的配置，不支持 `modelValue`、`defaultValue`、`loading` 和 `disabled`；`defaultActions` 使用 `ChatSenderDefaultActions`。 |
+| `ChatSenderDefaultActions`   | 输入区默认按钮配置，支持 `DefaultActions` 中除 `submit.disabled` 外的配置；提交禁用状态通过 `data.sender.submitDisabled` 设置。 |
+| `ChatModelOptions`           | 模型选择器弹出面板所在容器的配置。                                          |
 | `ChatMcpOptions`             | 当前为空对象配置。                                                          |
 
-#### 插槽作用域
+#### 插槽参数
 
 | 类型                               | 字段                                                                                                                                                                                                        |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatHeaderSlotProps`              | `title`；`isEmpty`；`conversation`；`createConversation()`；`isLeftAsideOpen`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()`；`openRightAside(panel?)`；`closeRightAside()`                    |
 | `ChatLeftAsideSlotProps`           | `conversation`；`isOpen`；`isDock`；`createConversation()`；`switchConversation(id)`；`renameConversation(id, title)`；`deleteConversation(id)`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()` |
-| `ChatLeftAsideContentSlotProps`    | 继承 `ChatLeftAsideSlotProps`；`history?: ChatHistoryData`                                                                                                                                                  |
+| `ChatLeftAsideContentSlotProps`    | 包含 `ChatLeftAsideSlotProps` 的全部参数，另有 `history?: ChatHistoryData`。 |
 | `ChatHistoryItemPrefixSlotProps`   | `item: ChatConversationInfo`                                                                                                                                                                                |
 | `ChatRightAsidePanelSlotProps`     | `panelId?`；`panel?`；`panels`；右栏打开、关闭、切换和激活方法；`isRightAsideOpen`                                                                                                                          |
 | `ChatRightAsideTitleSlotProps`     | `panelId?`；`panel?`                                                                                                                                                                                        |
 | `ChatSenderSlotProps`              | `value`；`loading`；`disabled`；`submitDisabled`；输入更新、提交、取消和清空方法                                                                                                                            |
 | `ChatMainSlotProps`                | `messages`；`request?`；`conversation`                                                                                                                                                                      |
-| `ChatEmptyStateSlotProps`          | 继承主区数据；`isEmpty: true`；`renderComposer()`                                                                                                                                                           |
+| `ChatEmptyStateSlotProps`          | `messages`；`request?`；`conversation`；`isEmpty: true`；`renderComposer()` |
 | `ChatBubbleSlotProps`              | `messages`；`role?`；`messageIndexes`                                                                                                                                                                       |
-| `ChatBubbleContentFooterSlotProps` | 继承 `ChatBubbleSlotProps`；`contentIndex?`                                                                                                                                                                 |
+| `ChatBubbleContentFooterSlotProps` | `messages`；`role?`；`messageIndexes`；`contentIndex?: number` |
 
 #### 事件参数
 
