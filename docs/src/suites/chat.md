@@ -254,14 +254,14 @@ function fillReportTemplate() {
     '../../demos/chat/shared/modelProviders.ts'
   ]"
   title="配置左侧按钮与窄屏适配"
-  description="切换复选框调整按钮顺序、显隐和禁用状态；勾选“窄输入区预览”限制预览宽度为 600px，“生成式 UI”根据 isNarrow 移除图标、保留文字，点击可切换高亮状态。"
+  description="切换复选框调整按钮顺序、显隐和禁用状态；勾选“窄输入区预览”限制预览宽度为 600px，带图标的按钮会自动隐藏文字、保留图标；点击“生成式 UI”可切换高亮状态。"
 />
 
 - **追加按钮**：使用 `(defaults) => [...defaults, customItem]` 保留内置按钮；自定义按钮配置 `type: 'custom'`、`label`、`icon` 和 `onClick`，通过 `active` 控制高亮。
 - **调整顺序**：函数配置可基于 `defaults` 排序；数组配置完整替换按钮列表，未列出的按钮不显示。
 - **控制显隐**：`visible: false` 隐藏按钮。
 - **控制禁用**：`disabled: true` 禁止点击；设为 `false` 仍受模型能力和输入区禁用状态限制。
-- **适配窄屏**：函数第二个参数 `{ isNarrow }` 表示输入区宽度是否 ≤640px，可据此调整按钮形态或可见性。
+- **适配窄屏**：带图标的按钮在窄输入区自动隐藏文字、保留图标；`label` 仍用于无障碍名称和悬浮提示。
 
 显隐和禁用不改变功能开关状态。清空、发送和停止按钮通过[默认按钮配置](../components/sender#默认按钮配置)管理。
 
@@ -950,7 +950,7 @@ const data = computed<ChatUIData>(() => ({
 
 #### `sender.toolbar` {#sender-toolbar}
 
-`ui.sender.toolbar` 用于配置左侧工具栏，支持 `readonly ChatSenderToolbarItem[]` 或 `(defaults: readonly ChatSenderToolbarItem[], context: ChatSenderToolbarContext) => readonly ChatSenderToolbarItem[]`；交互示例见[工具栏与自定义按钮](#工具栏与自定义按钮)。
+`ui.sender.toolbar` 用于配置左侧工具栏，支持 `readonly ChatSenderToolbarItem[]` 或 `(defaults: readonly ChatSenderToolbarItem[]) => readonly ChatSenderToolbarItem[]`；交互示例见[工具栏与自定义按钮](#工具栏与自定义按钮)。
 
 | 字段 | 内置项 | 自定义项 |
 | --- | --- | --- |
@@ -963,24 +963,20 @@ const data = computed<ChatUIData>(() => ({
 | `active` | 读取当前功能状态 | 可选，由业务控制高亮 |
 | `onClick` | 使用现有内置操作 | 必填，`() => void` |
 
-未提供 `toolbar` 时，默认顺序为 `thinking → search → model → mcp`。数组配置完整替换默认列表，未列出的项隐藏。函数配置接收尚未按数据和可见性过滤的只读默认列表，同步返回最终列表，可追加、筛选或排序；请勿修改 `defaults`。两种配置均在确定列表后统一应用显示和禁用规则，返回 `[]` 时隐藏整个工具栏。
-
-第二个参数 `context` 包含只读的 `isNarrow: boolean`，表示输入区容器宽度是否 ≤640px，不表示移动设备或窗口宽度。组件首次测量前为 `false`，测量完成及跨越断点时自动重新计算；原有单参数回调继续有效。回调应仅返回配置，避免执行请求或修改状态等副作用。
+未提供 `toolbar` 时，默认顺序为 `thinking → search → model → mcp`。数组配置完整替换默认列表，未列出的项隐藏。函数配置接收尚未按数据和可见性过滤的只读默认列表，同步返回最终列表，可追加、筛选或排序；请勿修改 `defaults` 或在回调中执行副作用。两种配置均在确定列表后统一应用显示和禁用规则，返回 `[]` 时隐藏整个工具栏。带图标的按钮在窄输入区自动隐藏文字、保留图标；`label` 仍用于无障碍名称和悬浮提示。
 
 ```ts
-toolbar: (defaults, { isNarrow }) => [
+toolbar: (defaults) => [
   ...defaults,
   {
     type: 'custom',
     id: 'gui',
     label: '生成式 UI',
-    icon: isNarrow ? undefined : IconGenerativeUi,
+    icon: IconGenerativeUi,
     onClick: handleGui,
   },
 ]
 ```
-
-示例在窄输入区移除图标、保留文字。始终提供 `icon` 时，窄输入区沿用自动隐藏文字的规则；设置 `visible: !isNarrow` 可在窄输入区隐藏整个按钮。`label` 始终必填，用于按钮文案、无障碍描述和悬浮提示。
 
 `visible: false` 隐藏单项，全部隐藏时移除工具栏容器。ID 必须唯一；重复 ID 仅保留第一项，使用内置 ID 的自定义项不显示。
 
@@ -1075,7 +1071,6 @@ toolbar: (defaults, { isNarrow }) => [
 | `ChatSenderOptions`          | 支持 [Sender](../components/sender) 的配置，不支持 `modelValue`、`defaultValue`、`loading` 和 `disabled`；`defaultActions` 使用 `ChatSenderDefaultActions`。 |
 | `ChatSenderDefaultActions`   | 输入区默认按钮配置，支持 `DefaultActions` 中除 `submit.disabled` 外的配置；提交禁用状态通过 `data.sender.submitDisabled` 设置。 |
 | `ChatSenderToolbarItem`      | 左侧工具栏内置项或自定义项，配置顺序、显示和禁用状态，见[完整配置](#sender-toolbar)。 |
-| `ChatSenderToolbarContext`   | 工具栏函数的布局上下文，`isNarrow` 表示输入区容器宽度是否 ≤640px。 |
 | `ChatModelOptions`           | 模型选择器弹出面板所在容器的配置。                                          |
 | `ChatMcpOptions`             | 当前为空对象配置。                                                          |
 

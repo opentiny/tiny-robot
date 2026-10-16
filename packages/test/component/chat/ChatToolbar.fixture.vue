@@ -15,16 +15,7 @@ import type {
 const props = withDefaults(
   defineProps<{
     entry?: 'ui' | 'runtime'
-    preset?:
-      | 'default'
-      | 'mixed'
-      | 'empty'
-      | 'hidden'
-      | 'custom-only'
-      | 'append'
-      | 'transform'
-      | 'callback-empty'
-      | 'responsive'
+    preset?: 'default' | 'mixed' | 'empty' | 'hidden' | 'custom-only' | 'append' | 'transform' | 'callback-empty'
     hostWidth?: number
     disabled?: boolean
     itemDisabled?: boolean
@@ -100,12 +91,6 @@ const ui = computed<ChatUIOptions>(() => {
     toolbar = [custom]
   } else if (props.preset === 'append') {
     toolbar = (defaults) => [...defaults, custom]
-  } else if (props.preset === 'responsive') {
-    toolbar = (defaults, { isNarrow }) => [
-      ...defaults,
-      { ...custom, icon: isNarrow ? undefined : IconThink },
-      { ...custom, id: 'wide-only', label: 'Wide only', visible: !isNarrow },
-    ]
   } else if (props.preset === 'transform') {
     toolbar = (defaults) => [
       ...defaults

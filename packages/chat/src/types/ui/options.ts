@@ -162,10 +162,6 @@ export type ChatSenderToolbarItem = Readonly<
   )
 >
 
-export interface ChatSenderToolbarContext {
-  readonly isNarrow: boolean
-}
-
 export interface ChatSenderOptions extends Omit<
   SenderProps,
   'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
@@ -173,10 +169,7 @@ export interface ChatSenderOptions extends Omit<
   readonly defaultActions?: ChatSenderDefaultActions
   readonly toolbar?:
     | readonly ChatSenderToolbarItem[]
-    | ((
-        defaults: readonly ChatSenderToolbarItem[],
-        context: ChatSenderToolbarContext,
-      ) => readonly ChatSenderToolbarItem[])
+    | ((defaults: readonly ChatSenderToolbarItem[]) => readonly ChatSenderToolbarItem[])
 }
 
 export interface ChatModelOptions {

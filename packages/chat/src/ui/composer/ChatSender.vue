@@ -24,7 +24,6 @@ const props = defineProps<{
   model?: ChatModelView
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
-  isNarrow: boolean
 }>()
 
 const emit = defineEmits<{
@@ -57,8 +56,7 @@ const defaultToolbar: readonly ChatSenderToolbarItem[] = [
 
 const toolbarItems = computed(() => {
   const toolbar = props.senderOptions.toolbar
-  const items =
-    typeof toolbar === 'function' ? toolbar(defaultToolbar, { isNarrow: props.isNarrow }) : (toolbar ?? defaultToolbar)
+  const items = typeof toolbar === 'function' ? toolbar(defaultToolbar) : (toolbar ?? defaultToolbar)
   const ids = new Set<string>()
   return items
     .filter((item) => {

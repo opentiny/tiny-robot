@@ -14,7 +14,7 @@ const ui = computed<ChatUIOptions>(() => ({
   layout: { leftAside: false },
   welcome: { title: '工具栏配置', description: '调整输入区左侧按钮的顺序、可见性和禁用状态。' },
   sender: {
-    toolbar: (defaults, { isNarrow }) => [
+    toolbar: (defaults) => [
       ...(modelFirst.value
         ? [...defaults.filter((item) => item.id === 'model'), ...defaults.filter((item) => item.id !== 'model')]
         : defaults
@@ -24,7 +24,7 @@ const ui = computed<ChatUIOptions>(() => ({
       {
         type: 'custom',
         id: 'gui',
-        label: isNarrow ? undefined : '生成式 UI',
+        label: '生成式 UI',
         icon: IconGenerativeUi,
         active: guiEnabled.value,
         onClick: () => {

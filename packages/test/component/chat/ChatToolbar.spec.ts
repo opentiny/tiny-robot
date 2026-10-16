@@ -68,43 +68,44 @@ for (const entry of ['ui', 'runtime'] as const) {
       await expectToolbarOrder(toolbar, ['Generate UI'])
     })
 
-    test('updates toolbar context at the container breakpoint without resizing the viewport', async ({
-      mount,
-      page,
-    }) => {
-      const component = await mount(ChatToolbarFixture, { props: { entry, preset: 'responsive' } })
+    test('automatically hides custom button text at the container breakpoint', async ({ mount, page }) => {
+      const component = await mount(ChatToolbarFixture, { props: { entry, preset: 'append' } })
       const footer = component.locator('.chat-footer')
       const custom = component.getByRole('button', { name: 'Generate UI', exact: true })
-      const wideOnly = component.getByRole('button', { name: 'Wide only', exact: true })
       const viewport = page.viewportSize()
 
       for (const width of [641, 640, 639, 641]) {
         await footer.evaluate((element, value) => {
           element.style.width = `${value}px`
         }, width)
-        await expect(custom.locator('.tr-chat-toolbar-button__icon')).toHaveCount(width <= 640 ? 0 : 1)
-        await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeVisible()
-        await expect(wideOnly).toHaveCount(width <= 640 ? 0 : 1)
+        await expect(custom.locator('.tr-chat-toolbar-button__icon')).toHaveCount(1)
+        if (width <= 640) {
+          await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeHidden()
+        } else {
+          await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeVisible()
+        }
+        await expect(custom).toHaveAttribute('aria-label', 'Generate UI')
+        await expect(custom).toHaveAttribute('title', 'Generate UI')
       }
 
       expect(page.viewportSize()).toEqual(viewport)
       await custom.click()
       await expect(component.getByTestId('custom-clicks')).toHaveText('1')
-      await expect(component.locator('.tr-sender')).not.toHaveAttribute('is-narrow')
     })
 
-    test('measures an initially narrow container and restores icons when expanded', async ({ mount }) => {
+    test('automatically adapts a custom button rendered in a narrow container', async ({ mount }) => {
       const component = await mount(ChatToolbarFixture, {
-        props: { entry, preset: 'responsive', hostWidth: 600 },
+        props: { entry, preset: 'append', hostWidth: 600 },
       })
       const custom = component.getByRole('button', { name: 'Generate UI', exact: true })
-      await expect(custom.locator('.tr-chat-toolbar-button__icon')).toHaveCount(0)
-      await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeVisible()
-      await expect(component.getByRole('button', { name: 'Wide only', exact: true })).toHaveCount(0)
-
-      await component.update({ props: { entry, preset: 'responsive', hostWidth: 900 } })
       await expect(custom.locator('.tr-chat-toolbar-button__icon')).toHaveCount(1)
-      await expect(component.getByRole('button', { name: 'Wide only', exact: true })).toBeVisible()
+      await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeHidden()
+      await expect(custom).toHaveAttribute('aria-label', 'Generate UI')
+      await expect(custom).toHaveAttribute('title', 'Generate UI')
+
+      await component.update({ props: { entry, preset: 'append', hostWidth: 900 } })
+      await expect(custom.locator('.tr-chat-toolbar-button__icon')).toHaveCount(1)
+      await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeVisible()
     })
 
     test('transforms defaults before applying visibility, duplicate and capability rules', async ({ mount }) => {
