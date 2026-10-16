@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useResizeObserver } from '@vueuse/core'
+import { computed, shallowRef } from 'vue'
 import ChatSender from './ChatSender.vue'
 import type {
   ChatBuiltInModelFeature,
@@ -46,6 +47,13 @@ defineSlots<{
   'sender-footer-right'?: () => unknown
 }>()
 
+const footerRef = shallowRef<HTMLElement>()
+const isNarrow = shallowRef(false)
+
+useResizeObserver(footerRef, ([entry]) => {
+  isNarrow.value = entry.contentRect.width <= 640
+})
+
 function handleInputValue(value: string) {
   emit('update:value', value)
 }
@@ -67,7 +75,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
 </script>
 
 <template>
-  <div class="chat-footer">
+  <div ref="footerRef" class="chat-footer">
     <slot name="composer-before" v-bind="layoutFooterProps" />
     <slot name="layout-footer" v-bind="layoutFooterProps">
       <ChatSender
@@ -78,6 +86,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         :model="props.model"
         :model-options="props.modelOptions"
         :mcp="props.mcp"
+        :is-narrow="isNarrow"
         @submit="handleSubmit"
         @cancel="emit('cancel')"
         @clear="emit('clear')"

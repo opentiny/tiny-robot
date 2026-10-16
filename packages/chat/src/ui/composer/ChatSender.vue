@@ -2,14 +2,16 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import MCPSelector from './MCPSelector.vue'
-import ModelFeatures from './ModelFeatures.vue'
+import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
+import ChatToolbarButton from './ChatToolbarButton.vue'
 import type {
   ChatBuiltInModelFeature,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
   ChatSenderView,
+  ChatSenderToolbarItem,
   ChatSendPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
@@ -22,6 +24,7 @@ const props = defineProps<{
   model?: ChatModelView
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
+  isNarrow: boolean
 }>()
 
 const emit = defineEmits<{
@@ -45,22 +48,57 @@ defineSlots<{
   'sender-footer-right'?: () => unknown
 }>()
 
-const senderProps = computed(() => ({
-  ...props.senderOptions,
-  placeholder:
-    props.senderOptions.placeholder ??
-    (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
-  modelValue: props.value,
-  loading: props.sender.loading,
-  disabled: props.sender.disabled,
-  defaultActions: {
-    ...props.senderOptions.defaultActions,
-    submit: {
-      ...props.senderOptions.defaultActions?.submit,
-      disabled: props.sender.submitDisabled && !props.sender.loading,
+const defaultToolbar: readonly ChatSenderToolbarItem[] = [
+  { type: 'builtin', id: 'thinking' },
+  { type: 'builtin', id: 'search' },
+  { type: 'builtin', id: 'model' },
+  { type: 'builtin', id: 'mcp' },
+]
+
+const toolbarItems = computed(() => {
+  const toolbar = props.senderOptions.toolbar
+  const items =
+    typeof toolbar === 'function' ? toolbar(defaultToolbar, { isNarrow: props.isNarrow }) : (toolbar ?? defaultToolbar)
+  const ids = new Set<string>()
+  return items
+    .filter((item) => {
+      if (item.type === 'custom' && defaultToolbar.some((builtin) => builtin.id === item.id)) return false
+      if (ids.has(item.id)) return false
+      ids.add(item.id)
+      if (item.visible === false) return false
+      if (item.type === 'custom') return true
+      if (item.id === 'mcp') return Boolean(props.mcp)
+      if (item.id === 'model') return Boolean(props.model?.options?.length)
+      return Boolean(props.model)
+    })
+    .map((item) => ({ ...item, disabled: props.sender.disabled || item.disabled === true }))
+})
+
+const senderProps = computed(() => {
+  const { toolbar: _toolbar, ...options } = props.senderOptions
+  return {
+    ...options,
+    placeholder:
+      options.placeholder ??
+      (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
+    modelValue: props.value,
+    loading: props.sender.loading,
+    disabled: props.sender.disabled,
+    defaultActions: {
+      ...options.defaultActions,
+      submit: {
+        ...options.defaultActions?.submit,
+        disabled: props.sender.submitDisabled && !props.sender.loading,
+      },
     },
-  },
-}))
+  }
+})
+
+function handleCustomAction(id: string) {
+  const item = toolbarItems.value.find((item) => item.id === id)
+  if (item?.type !== 'custom' || item.disabled) return
+  return item.onClick()
+}
 
 function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
@@ -114,27 +152,46 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
     </template>
-    <template v-if="$slots['sender-footer'] || model || mcp" #footer>
-      <div v-if="model || mcp" class="model-actions">
-        <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
-        <ModelSelector
-          v-if="model"
-          :model="model"
-          :labels="labels"
-          :append-to="modelOptions?.appendTo"
-          @select-model="handleSelectModel"
-          @update-reasoning-effort="handleReasoningEffortChange"
-        />
-        <MCPSelector
-          v-if="mcp"
-          :mcp="mcp"
-          :labels="labels"
-          @open="handleOpenMcpPanel"
-          @add-server="handleAddServer"
-          @remove-server="handleRemoveServer"
-          @update-server-enabled="handleServerEnabledChange"
-          @update-tool-enabled="handleToolEnabledChange"
-        />
+    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer>
+      <div v-if="toolbarItems.length" class="tr-chat-toolbar">
+        <template v-for="item in toolbarItems" :key="item.id">
+          <ChatToolbarButton
+            v-if="item.type === 'custom'"
+            :label="item.label"
+            :icon="item.icon"
+            :active="item.active"
+            :disabled="item.disabled"
+            @click="handleCustomAction(item.id)"
+          />
+          <ModelSelector
+            v-else-if="item.id === 'model' && model"
+            :model="model"
+            :labels="labels"
+            :disabled="item.disabled"
+            :append-to="modelOptions?.appendTo"
+            @select-model="handleSelectModel"
+            @update-reasoning-effort="handleReasoningEffortChange"
+          />
+          <MCPSelector
+            v-else-if="item.id === 'mcp' && mcp"
+            :mcp="mcp"
+            :labels="labels"
+            :disabled="item.disabled"
+            @open="handleOpenMcpPanel"
+            @add-server="handleAddServer"
+            @remove-server="handleRemoveServer"
+            @update-server-enabled="handleServerEnabledChange"
+            @update-tool-enabled="handleToolEnabledChange"
+          />
+          <ModelFeatureButton
+            v-else-if="model && (item.id === 'thinking' || item.id === 'search')"
+            :id="item.id"
+            :model="model"
+            :labels="labels"
+            :disabled="item.disabled"
+            @update-feature="handleFeatureChange"
+          />
+        </template>
       </div>
       <slot name="sender-footer" />
     </template>
@@ -145,7 +202,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
 </template>
 
 <style scoped>
-.model-actions {
+.tr-chat-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -153,7 +210,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
 }
 
 @container chat-composer (max-width: 640px) {
-  .model-actions {
+  .tr-chat-toolbar {
     flex-wrap: nowrap;
     gap: 6px;
   }
