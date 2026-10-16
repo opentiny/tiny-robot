@@ -44,7 +44,7 @@ For a complete chat application, install `@opentiny/tiny-robot-chat`.
 
 ```bash
 # pnpm is recommended for this project
-pnpm add @opentiny/tiny-robot-chat
+pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
 ```
 
 ## 💬 Usage

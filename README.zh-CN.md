@@ -44,7 +44,7 @@ npx @opentiny/tiny-robot-cli add chat
 
 ```bash
 # 项目推荐使用 pnpm
-pnpm add @opentiny/tiny-robot-chat
+pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
 ```
 
 ## 💬 用法
