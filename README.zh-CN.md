@@ -1,13 +1,13 @@
 <p align="center">
-  <a href="https://opentiny.design/tiny-robot">
-    <img src="docs/public/readme/tiny-robot-wordmark.svg" alt="TinyRobot" width="320" height="64">
+  <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
+    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="100" style="max-width:100%;">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot"><img src="https://img.shields.io/npm/v/@opentiny/tiny-robot.svg" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot"><img src="https://img.shields.io/npm/dw/@opentiny/tiny-robot" alt="npm downloads"></a>
-  <a href="https://github.com/opentiny/tiny-robot"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
+  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/@opentiny/tiny-robot.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/dw/@opentiny/tiny-robot" alt="npm downloads"></a>
+  <a href="https://github.com/opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/Vue-3.x-42b883.svg" alt="Vue 3">
   <img src="https://img.shields.io/badge/TypeScript-Ready-3178c6.svg" alt="TypeScript">
@@ -58,7 +58,7 @@ import '@opentiny/tiny-robot-chat/dist/style.css'
 import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 
 const modelProviders: ChatProviderConfig[] = [
-  { type: 'openai', apiUrl: '/api', models: [{ id: 'assistant', label: '应用助手' }] },
+  { type: 'openai', apiUrl: '/api', models: [{ id: 'deepseek-flash', label: 'DeepSeek Flash' }] },
 ]
 
 const runtime = useChatRuntime({ modelProviders })
