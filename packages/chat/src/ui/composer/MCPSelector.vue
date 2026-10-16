@@ -6,6 +6,7 @@ import type { ChatLabels, ChatMcpView } from '../../types'
 const props = defineProps<{
   mcp: ChatMcpView
   labels: ChatLabels
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -18,6 +19,10 @@ const emit = defineEmits<{
 
 const servers = computed(() => props.mcp.servers ?? [])
 const activeCount = computed(() => servers.value.filter((server) => server.installed && server.enabled).length)
+
+function handleOpen() {
+  if (!props.disabled) emit('open')
+}
 </script>
 
 <template>
@@ -26,9 +31,10 @@ const activeCount = computed(() => servers.value.filter((server) => server.insta
       class="tr-chat-mcp-selector__button"
       :class="{ 'tr-chat-mcp-selector__button--active': activeCount > 0 }"
       type="button"
+      :disabled="disabled"
       :aria-label="labels.mcp"
       :title="labels.mcp"
-      @click="emit('open')"
+      @click="handleOpen"
     >
       <IconPlugin :size="16" class="tr-chat-mcp-selector__icon" />
       <span class="tr-chat-mcp-selector__label">{{ labels.mcp }}</span>
@@ -62,9 +68,14 @@ const activeCount = computed(() => servers.value.filter((server) => server.insta
   cursor: pointer;
 }
 
-.tr-chat-mcp-selector__button:hover {
+.tr-chat-mcp-selector__button:hover:not(:disabled) {
   border-color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-hover);
+}
+
+.tr-chat-mcp-selector__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .tr-chat-mcp-selector__button--active {

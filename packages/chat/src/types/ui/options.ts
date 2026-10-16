@@ -11,7 +11,8 @@ import type {
   LayoutFloatingState,
   ModelSelectorProps,
 } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo } from '../base'
+import type { ChatConversationInfo, ChatIcon } from '../base'
+import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
@@ -141,11 +142,34 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
+export type ChatSenderToolbarItem = Readonly<
+  {
+    visible?: boolean
+    disabled?: boolean
+  } & (
+    | {
+        type: 'builtin'
+        id: ChatBuiltInModelFeature | 'model' | 'mcp'
+      }
+    | {
+        type: 'custom'
+        id: string
+        label: string
+        icon?: ChatIcon
+        active?: boolean
+        onClick: () => void
+      }
+  )
+>
+
 export interface ChatSenderOptions extends Omit<
   SenderProps,
   'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
 > {
   readonly defaultActions?: ChatSenderDefaultActions
+  readonly toolbar?:
+    | readonly ChatSenderToolbarItem[]
+    | ((defaults: readonly ChatSenderToolbarItem[]) => readonly ChatSenderToolbarItem[])
 }
 
 export interface ChatModelOptions {
