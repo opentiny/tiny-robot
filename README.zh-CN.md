@@ -1,7 +1,6 @@
 <p align="center">
   <a href="https://opentiny.design/tiny-robot">
-    <img src="docs/src/public/logo-mini.svg" alt="TinyRobot logo" width="48" height="48" style="vertical-align: middle;">
-    <span style="margin-left: 12px; color: #191919; font-size: 40px; font-weight: 700; vertical-align: middle;">TinyRobot</span>
+    <img src="docs/public/readme/tiny-robot-wordmark.svg" alt="TinyRobot" width="320" height="64">
   </a>
 </p>
 
