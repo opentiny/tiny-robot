@@ -1,40 +1,104 @@
-# TinyRobot
+<div align="center">
 
-<p align="center">
-  <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
-    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="100" style="max-width:100%;">
-  </a>
-</p>
+# 🤖 TinyRobot
 
+**The Vue 3 AI Chat Component Library — Build enterprise-grade AI conversations in minutes, not weeks.**
+
+[![GitHub Stars](https://img.shields.io/github/stars/opentiny/tiny-robot?style=social)](https://github.com/opentiny/tiny-robot/stargazers)
 [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)
+[![npm downloads](https://img.shields.io/npm/dw/@opentiny/tiny-robot)](https://www.npmjs.com/package/@opentiny/tiny-robot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Vue 3](https://img.shields.io/badge/Vue-3.x-42b883.svg)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178c6.svg)](https://www.typescriptlang.org/)
 
-**TinyRobot** is an AI component library built for Vue 3, following the OpenTiny Design system. It provides rich AI interaction components to help developers quickly build enterprise-level AI applications.
-
-## ✨ Features
-
-- 🤖 **Rich AI Components**: Comprehensive set of AI interaction components including chat bubbles, message input, conversation management, and more
-- 🎨 **OpenTiny Design**: Follows OpenTiny Design system for consistent UI/UX
-- 🚀 **Out of the Box**: Get started in minutes with minimal configuration
-- 🎯 **TypeScript Support**: Full TypeScript support with complete type definitions
-- 🌈 **Theme Customization**: Flexible theme system supporting multiple themes and custom styles
-- 📦 **Tree Shaking**: Optimized for tree shaking, import only what you need
-- 🔄 **Streaming Support**: Built-in support for streaming AI responses
-- 💾 **Storage Strategy**: Flexible storage strategies (LocalStorage, IndexedDB, custom)
+[🚀 Live Demo](https://docs.opentiny.design/tiny-robot/examples/assistant) · [📖 Documentation](https://docs.opentiny.design/tiny-robot/) · [💬 Discussions](https://github.com/opentiny/tiny-robot/discussions) · [🐛 Report Bug](https://github.com/opentiny/tiny-robot/issues)
 
 English | [简体中文](https://github.com/opentiny/tiny-robot/blob/HEAD/README.zh-CN.md)
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
+</div>
+
+---
+
+## ❓ Why TinyRobot?
+
+Building AI chat products from scratch means wrestling with **streaming rendering**, **multi-turn state management**, **tool call display**, **Markdown/code rendering**, and **input enhancements** — all before you even ship.
+
+**TinyRobot solves this.** It gives you production-ready AI interaction components for Vue 3, so you can go from idea to working AI app in hours, not weeks.
+
+```vue
+<!-- That's it. A working AI chat in 3 lines. -->
+<tr-bubble role="ai" content="Hello! How can I help you?" placement="start" />
+<tr-bubble role="user" content="Tell me about TinyRobot" placement="end" />
+<tr-sender placeholder="Type your message..." />
+```
+
+## ✨ Features
+
+| | Feature | Description |
+|---|---------|-------------|
+| 🤖 | **Rich AI Components** | Bubble, Sender, Container, Conversations, Prompts, Attachments, Welcome, Suggestion, MCP, and more |
+| 🔄 | **Streaming Support** | Built-in streaming AI response rendering with abort control |
+| 🧠 | **Agent UI** | ThoughtChain, ToolCall display, MCP Server integration — for AI Agent apps |
+| 🎨 | **OpenTiny Design** | Consistent UI/UX following the OpenTiny Design system |
+| 🚀 | **Out of the Box** | Get started in minutes with minimal configuration |
+| 🎯 | **TypeScript** | Full TypeScript support with complete type definitions |
+| 🌈 | **Theme Customization** | Flexible theme system supporting multiple themes and custom styles |
+| 📦 | **Tree Shaking** | Optimized for tree shaking — import only what you need |
+| 💾 | **Storage Strategy** | Flexible storage strategies (LocalStorage, IndexedDB, custom) |
+| 🔌 | **AI Provider** | Built-in OpenAI-compatible provider with composable `useMessage` / `useConversation` |
+
+## 📊 Comparison
+
+How does TinyRobot compare to other AI chat component libraries?
+
+| Feature | TinyRobot | Ant Design X | Element Plus X | TDesign Chat |
+|---------|-----------|-------------|---------------|-------------|
+| **Framework** | Vue 3 | React | Vue 3 | Vue 3 |
+| **Streaming Render** | ✅ | ✅ | ✅ | ✅ |
+| **Tool Call Display** | ✅ | ✅ | ❌ | ❌ |
+| **MCP Protocol** | ✅ | ❌ | ❌ | ❌ |
+| **Agent UI Components** | ✅ | ❌ | ❌ | ❌ |
+| **AI Provider Composables** | ✅ | ✅ | ❌ | ❌ |
+| **Conversation Management** | ✅ | ✅ | ✅ | ✅ |
+| **Theme Customization** | ✅ | ✅ | ✅ | ✅ |
+| **Tree Shaking** | ✅ | ✅ | ✅ | ✅ |
+| **TypeScript** | ✅ | ✅ | ✅ | ✅ |
+| **Skills / Agent Integration** | ✅ | ❌ | ❌ | ❌ |
+| **License** | MIT | MIT | MIT | MIT |
+
+> 💡 **TinyRobot is the only Vue 3 AI component library with built-in MCP protocol support and Agent UI components.**
+
+## 🧩 Components
+
+TinyRobot provides a comprehensive set of AI interaction components:
+
+| Component | Description |
+|-----------|-------------|
+| `TrBubble` | Chat bubble with streaming text, Markdown, code block, and tool call rendering |
+| `TrSender` | Message input with file attachment, voice input, and send actions |
+| `TrContainer` | Chat layout container with drag-and-drop panel support |
+| `TrConversations` | Multi-conversation management sidebar |
+| `TrPrompts` | Preset prompt suggestions for quick input |
+| `TrAttachments` | File attachment preview and management |
+| `TrWelcome` | Welcome screen with suggestions for new conversations |
+| `TrSuggestionPills` | Quick suggestion pills for common actions |
+| `TrSuggestionPopover` | Popover-style suggestions |
+| `TrMcpServerPicker` | MCP server selection and configuration |
+| `TrMcpAddForm` | MCP server add/edit form |
+| `TrThemeProvider` | Theme configuration provider |
+| `TrHistory` | Conversation history display |
+| `TrFeedback` | Message feedback (thumbs up/down) |
+| `TrActionGroup` | Action button group for messages |
 
 ## 📦 Packages
 
 TinyRobot is a monorepo containing the following packages:
 
-| Package                     | Description                                                  | Version                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `@opentiny/tiny-robot`      | Core component library with all AI interaction components    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)           |
-| `@opentiny/tiny-robot-kit`  | Utility functions and AI client tools for model interactions | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit)   |
-| `@opentiny/tiny-robot-svgs` | SVG icon library with all component icons                    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+| Package | Description | Version |
+|---------|-------------|---------|
+| [`@opentiny/tiny-robot`](https://www.npmjs.com/package/@opentiny/tiny-robot) | Core component library with all AI interaction components | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot) |
+| [`@opentiny/tiny-robot-kit`](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) | AI client tools, Vue composables (`useMessage`, `useConversation`), and storage strategies | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) |
+| [`@opentiny/tiny-robot-svgs`](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) | SVG icon library for all components | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
 
 ## 🚀 Quick Start
 
@@ -42,110 +106,114 @@ TinyRobot is a monorepo containing the following packages:
 
 - Node.js >= 20.13.0
 - Vue >= 3.2.0
-- Package manager: npm, yarn, or pnpm
+- Package manager: pnpm (recommended), npm, or yarn
 
-### Installation
-
-**Core package** — `@opentiny/tiny-robot` is the main package.
+### 1. Install
 
 ```bash
-# Using pnpm (recommended)
+# Core package (required)
 pnpm add @opentiny/tiny-robot
 
-# Using npm
-npm install @opentiny/tiny-robot
-
-# Using yarn
-yarn add @opentiny/tiny-robot
+# Kit package (optional — for AI model requests and composables)
+pnpm add @opentiny/tiny-robot-kit
 ```
 
-**Optional packages**:
+### 2. Import Styles
 
-- `@opentiny/tiny-robot-kit` — Only needed if you use AI model request or data-processing features. Add it when required:
-
-  ```bash
-  pnpm add @opentiny/tiny-robot-kit
-  ```
-
-- `@opentiny/tiny-robot-svgs` — Optional. Install separately only if you need to use the SVG icon library standalone or with custom icons:
-
-  ```bash
-  pnpm add @opentiny/tiny-robot-svgs
-  ```
-
-### Basic Usage
-
-#### 1. Import Styles
-
-In your `main.js` or `main.ts`:
+In your `main.ts`:
 
 ```ts
-import { createApp } from 'vue'
-import App from './App.vue'
 import '@opentiny/tiny-robot/dist/style.css'
-
-const app = createApp(App)
-app.mount('#app')
 ```
 
-#### 2. Use Components
+### 3. Use Components
 
 ```vue
 <template>
-  <div class="chat-container">
-    <tr-bubble role="ai" content="Hello! I'm TinyRobot, an AI component library for Vue 3." placement="start" />
-    <tr-bubble role="user" content="That's great! How can I get started?" placement="end" />
-  </div>
+  <tr-container>
+    <tr-bubble role="ai" content="Hello! I'm TinyRobot." placement="start" />
+    <tr-bubble role="user" content="How can I get started?" placement="end" />
+    <tr-sender placeholder="Type your message..." />
+  </tr-container>
 </template>
 
 <script setup>
-import { TrBubble } from '@opentiny/tiny-robot'
+import {
+  TrContainer,
+  TrBubble,
+  TrSender
+} from '@opentiny/tiny-robot'
 </script>
+```
+
+### 4. Use AI Composables (with Kit)
+
+```vue
+<script setup>
+import { useMessage } from '@opentiny/tiny-robot-kit'
+
+const { messages, sendMessage, isLoading } = useMessage({
+  provider: 'openai',
+  model: 'gpt-4o-mini'
+})
+</script>
+
+<template>
+  <tr-container>
+    <tr-bubble
+      v-for="msg in messages"
+      :key="msg.id"
+      :role="msg.role"
+      :content="msg.content"
+      :placement="msg.role === 'user' ? 'end' : 'start'"
+    />
+    <tr-sender @send="sendMessage" :loading="isLoading" />
+  </tr-container>
+</template>
 ```
 
 ## 📚 Documentation
 
-- 📖 [Full Documentation](https://docs.opentiny.design/tiny-robot/) - Complete API reference and guides
-- 🎯 [Quick Start Guide](https://docs.opentiny.design/tiny-robot/guide/quick-start) - Get started in minutes
-- 🎨 [Theme Configuration](https://docs.opentiny.design/tiny-robot/guide/theme-config) - Customize themes
-- 📝 [Update Log](https://docs.opentiny.design/tiny-robot/guide/update-log) - Version history
-- 💡 [Examples](https://docs.opentiny.design/tiny-robot/examples/assistant) - Complete application examples
+| Resource | Link |
+|----------|------|
+| 📖 Full Documentation | [docs.opentiny.design/tiny-robot](https://docs.opentiny.design/tiny-robot/) |
+| 🎯 Quick Start Guide | [Get started in minutes](https://docs.opentiny.design/tiny-robot/guide/quick-start) |
+| 🎨 Theme Configuration | [Customize themes](https://docs.opentiny.design/tiny-robot/guide/theme-config) |
+| 📝 Update Log | [Version history](https://docs.opentiny.design/tiny-robot/guide/update-log) |
+| 💡 Examples | [Complete app examples](https://docs.opentiny.design/tiny-robot/examples/assistant) |
+| 🤖 TinyRobot Skills | [AI-assisted development](https://gitcode.csdn.net/69bb9b7f54b52172bc628048.html) |
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
 
 ## 🏗️ Project Structure
 
-```text
+```
 tiny-robot/
 ├── packages/
 │   ├── components/          # Core component library
-│   │   ├── src/
-│   │   │   ├── bubble/      # Chat bubble components
-│   │   │   ├── sender/      # Message input component
-│   │   │   ├── container/   # Container component
-│   │   │   ├── history/     # Conversation history
-│   │   │   ├── attachments/ # File attachments
-│   │   │   └── ...          # Other components
-│   │   └── package.json
-│   ├── kit/                 # Utility functions and AI tools
-│   │   ├── src/
-│   │   │   ├── providers/   # AI provider implementations
-│   │   │   ├── vue/         # Vue composables
-│   │   │   │   ├── message/ # useMessage composable
-│   │   │   │   └── conversation/ # useConversation composable
-│   │   │   └── storage/     # Storage utilities
-│   │   └── package.json
+│   │   └── src/
+│   │       ├── bubble/      # Chat bubble components
+│   │       ├── sender/      # Message input component
+│   │       ├── container/   # Container component
+│   │       ├── conversations/ # Multi-conversation management
+│   │       ├── prompts/     # Preset prompts
+│   │       ├── attachments/ # File attachments
+│   │       ├── welcome/     # Welcome screen
+│   │       ├── mcp-*/       # MCP server components
+│   │       └── ...          # Other components
+│   ├── kit/                 # AI tools and Vue composables
+│   │   └── src/
+│   │       ├── providers/   # AI provider (OpenAI-compatible)
+│   │       ├── vue/         # useMessage, useConversation
+│   │       └── storage/     # LocalStorage, IndexedDB, custom
 │   ├── svgs/                # SVG icon library
-│   ├── playground/          # Development playground
+│   ├── playground/          # Interactive playground
 │   └── test/                # Test suite
-├── docs/                    # Documentation site
-│   ├── src/                 # Documentation source
-│   └── demos/               # Component demos
-├── scripts/                 # Build and utility scripts
-└── package.json
+├── docs/                    # Documentation site (VitePress)
+└── scripts/                 # Build and utility scripts
 ```
 
 ## 🛠️ Development
-
-### Setup
 
 ```bash
 # Install dependencies
@@ -153,40 +221,43 @@ pnpm install
 
 # Start development server (playground + docs)
 pnpm dev
+
+# Run tests
+pnpm test
+
+# Build all packages
+pnpm build
 ```
-
-### Development Workflow
-
-1. **Start Development Server**:
-   - Run `pnpm dev` in the project root directory
-   - This starts both the playground and documentation site
-   - After modifying components in `packages/components/src/`, changes will be automatically reflected in the documentation page
-
-2. **Documentation**:
-   - Documentation source: `docs/src/`
-   - Component demos: `docs/demos/`
-
-3. **Testing**:
-   - Run `pnpm test` to execute tests
-
-## 📄 License
-
-MIT License - see [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEAD/LICENSE) file for details.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING.md) to understand the recommended workflow, commit message conventions, and how to submit Issues and Pull Requests.
+We love contributions! Whether it's a bug fix, new component, or documentation improvement:
 
-## 📞 Support
+1. Read the [Contributing Guide](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING.md)
+2. Pick a [Good First Issue](https://github.com/opentiny/tiny-robot/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+3. Fork → Branch → PR
 
-- 📖 [Documentation](https://docs.opentiny.design/tiny-robot/)
-- 🐛 [Issue Tracker](https://github.com/opentiny/tiny-robot/issues)
-- 💬 [Discussions](https://github.com/opentiny/tiny-robot/discussions)
+[![Contributors](https://img.shields.io/github/contributors/opentiny/tiny-robot)](https://github.com/opentiny/tiny-robot/graphs/contributors)
 
-## 🙏 Acknowledgments
+## 🌟 Ecosystem
 
-Built with ❤️ by the OpenTiny team.
+TinyRobot is part of the [OpenTiny](https://github.com/opentiny) ecosystem:
+
+- [TinyVue](https://github.com/opentiny/vue) — Enterprise-grade Vue 3 component library
+- [TinyEngine](https://github.com/opentiny/tiny-engine) — Low-code engine for building apps
+- [TinyRobot](https://github.com/opentiny/tiny-robot) — AI chat component library *(you are here)*
+- [OpenTiny NEXT](https://opentiny.design) — Next-gen AI-powered development platform
+
+## 📄 License
+
+[MIT](https://github.com/opentiny/tiny-robot/blob/HEAD/LICENSE) — free for personal and commercial use.
 
 ---
 
-**Note**: This project is part of the [OpenTiny](https://github.com/opentiny) ecosystem.
+<div align="center">
+
+**If TinyRobot helps you build better AI apps, please consider giving us a ⭐!**
+
+[![Star History Chart](https://api.star-history.com/svg?repos=opentiny/tiny-robot&type=Date)](https://star-history.com/#opentiny/tiny-robot&Date)
+
+</div>
