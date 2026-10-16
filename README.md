@@ -5,15 +5,6 @@
 </p>
 
 <p align="center">
-  <a href="https://opentiny.design/tiny-robot">Live Demo</a> ·
-  <a href="https://docs.opentiny.design/tiny-robot/">Documentation</a> ·
-  <a href="https://docs.opentiny.design/tiny-robot/examples/chat-tiny-robot">Examples</a> ·
-  <a href="https://github.com/opentiny/tiny-robot">GitHub</a> ·
-  <a href="https://github.com/opentiny/tiny-robot/discussions">Discussions</a> ·
-  <a href="https://github.com/opentiny/tiny-robot/blob/HEAD/README.zh-CN.md">简体中文</a>
-</p>
-
-<p align="center">
   <a href="https://www.npmjs.com/package/@opentiny/tiny-robot"><img src="https://img.shields.io/npm/v/@opentiny/tiny-robot.svg" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@opentiny/tiny-robot"><img src="https://img.shields.io/npm/dw/@opentiny/tiny-robot" alt="npm downloads"></a>
   <a href="https://github.com/opentiny/tiny-robot"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
