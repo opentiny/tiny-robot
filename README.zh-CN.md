@@ -16,12 +16,18 @@
 **TinyRobot** 是面向 Vue 3 的 AI 工具套件，支持流式对话、工具调用、MCP 集成和可扩展的消息渲染。
 
 <p align="center">
-  <img src="docs/public/readme/tiny-robot-showcase-placeholder.svg" alt="TinyRobot 界面展示占位图" width="1100">
+  <img src="robot-demo.gif" alt="TinyRobot 界面演示" width="1100">
 </p>
 
-## 📦 安装
+## 🧭 能力全景
 
-### 使用 CLI
+<p align="center">
+  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
+</p>
+
+## 📦 安装与接入
+
+### CLI 接入
 
 CLI 可以创建 TinyRobot 项目，也可以向已有 Vue 项目中接入 Chat：
 
@@ -33,23 +39,27 @@ npx @opentiny/tiny-robot-cli add chat
 ```
 
 <p align="center">
-  <img src="docs/public/readme/tiny-robot-cli-demo-placeholder.svg" alt="TinyRobot CLI 演示占位图" width="920">
+  <img src="robot-basic-cli.gif" alt="TinyRobot CLI 演示" width="920">
 </p>
 
 详细选项请查看 [CLI 接入文档](https://docs.opentiny.design/tiny-robot/guide/cli-integration)。
 
-### 安装 Chat 套件
+使用 `add chat` 时，CLI 会生成 `src/tiny-robot-chat/TinyRobotChat.vue`，内部使用 `TrChat` 和 `useChatRuntime` 提供完整的聊天页面。在 `App.vue` 中添加 `<TinyRobotChat />` 即可挂载生成的组件。
 
-如果需要完整的 Chat 应用，请安装 `@opentiny/tiny-robot-chat`。
+### Chat 套件：TrChat
+
+#### 手动安装 Chat 套件
+
+如果需要完整的 Chat 应用，请安装 `@opentiny/tiny-robot-chat`：
 
 ```bash
 # 项目推荐使用 pnpm
 pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
 ```
 
-## 💬 用法
+#### Chat 套件用法
 
-使用 `TrChat` 和 `useChatRuntime` 快速搭建完整聊天页面：
+核心实现如下：
 
 ```vue
 <script setup lang="ts">
@@ -76,6 +86,7 @@ const runtime = useChatRuntime({ modelProviders })
 - **CLI 优先的开发体验**：一条命令创建 Chat 项目，也可以接入已有 Vue 项目
 - **完整 Chat UI**：开箱即用的聊天页面，也支持按需组合界面组件
 - **Runtime 与 UI 解耦**：使用 `TrChat`，或通过 `TrChatUI` 接入已有数据层
+- **分层接入**：可以选择 Chat 套件、独立 Components、Kit 数据层或基于 Kit 的 Skill 能力
 - **工具与 MCP 工作流**：支持流式响应、工具调用、审批、错误处理和 MCP 扩展
 - **Vue 3 + OpenTiny**：TypeScript 优先，支持主题定制和可扩展的数据管理
 

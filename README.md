@@ -16,14 +16,23 @@
 **TinyRobot** is a Vue 3 AI toolkit for streaming conversations, tool calls, MCP integrations, and extensible message rendering.
 
 <p align="center">
-  <img src="docs/public/readme/tiny-robot-showcase-placeholder.svg" alt="TinyRobot UI showcase placeholder" width="1100">
+  <img src="robot-demo.gif" alt="TinyRobot UI showcase" width="1100">
 </p>
 
-## 📦 Installation
+## 🧭 Capability Overview
 
-### Start with the CLI
+<p align="center">
+  <img src="robot-panorama.png" alt="TinyRobot product capability panorama" width="1100">
+</p>
 
-The CLI can create a TinyRobot project or add Chat to an existing Vue project:
+## 📦 Installation and integration
+
+### CLI integration
+
+TinyRobot provides the official CLI tool `@opentiny/tiny-robot-cli` for:
+
+- `create`: Create a complete TinyRobot example project
+- `add`: Quickly add chat capabilities to an existing Vue project
 
 ```bash
 npx @opentiny/tiny-robot-cli create my-app --template basic
@@ -33,23 +42,27 @@ npx @opentiny/tiny-robot-cli add chat
 ```
 
 <p align="center">
-  <img src="docs/public/readme/tiny-robot-cli-demo-placeholder.svg" alt="TinyRobot CLI demo placeholder" width="920">
+  <img src="robot-basic-cli.gif" alt="TinyRobot CLI demo" width="920">
 </p>
 
 See the [CLI integration guide](https://docs.opentiny.design/tiny-robot/guide/cli-integration) for available options.
 
-### Install the Chat package
+When using `add chat`, the CLI generates `src/tiny-robot-chat/TinyRobotChat.vue`, which uses `TrChat` and `useChatRuntime` to provide a complete chat page. Add `<TinyRobotChat />` to your `App.vue` to mount the generated component.
 
-For a complete chat application, install `@opentiny/tiny-robot-chat`.
+### Chat suite: TrChat
+
+#### Install the Chat suite manually
+
+For a complete chat application, install `@opentiny/tiny-robot-chat`:
 
 ```bash
 # pnpm is recommended for this project
 pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
 ```
 
-## 💬 Usage
+#### Chat suite usage
 
-Build a complete chat page with `TrChat` and `useChatRuntime`:
+The core implementation is:
 
 ```vue
 <script setup lang="ts">
@@ -76,6 +89,7 @@ Use `TrChatUI` when you already have your own data and request layer. See the [C
 - **CLI-first development experience**: Create a Chat project with one command or add it to an existing Vue project
 - **Complete Chat UI**: Start with a ready-to-use chat page or compose the interface from primitives
 - **Runtime/UI separation**: Use `TrChat`, or connect `TrChatUI` to your existing data layer
+- **Layered integration**: Choose the Chat suite, standalone Components, Kit data layer, or Kit-powered Skills
 - **Tool and MCP workflows**: Support streaming responses, tool calls, approval, error handling, and MCP extensions
 - **Vue 3 + OpenTiny**: TypeScript-first APIs, theme customization, and extensible data management
 
