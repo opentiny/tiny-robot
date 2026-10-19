@@ -2,7 +2,15 @@
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
 import { computed, h, shallowRef } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { HistoryMenuItem, LayoutAsideResizeValue, LayoutProps, PromptProps } from '@opentiny/tiny-robot'
+import type {
+  ExtensionManagerActionEvent,
+  ExtensionManagerNameClickEvent,
+  ExtensionManagerTabChangeEvent,
+  HistoryMenuItem,
+  LayoutAsideResizeValue,
+  LayoutProps,
+  PromptProps,
+} from '@opentiny/tiny-robot'
 import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
 import ChatLeftAside from './ui/layout/ChatLeftAside.vue'
 import ChatInputRegion from './ui/composer/ChatInputRegion.vue'
@@ -77,12 +85,18 @@ const modelOptions = computed(() => (resolvedOptions.value.model === false ? und
 const visibleMcp = computed(() =>
   resolvedOptions.value.mcp === false || rightAsideLayout.value === false ? undefined : resolvedData.value.mcp,
 )
+const registeredExtensions = computed(() =>
+  resolvedOptions.value.extensions === false || rightAsideLayout.value === false
+    ? undefined
+    : resolvedOptions.value.extensions,
+)
+const hasRegisteredExtensions = computed(() => Boolean(registeredExtensions.value?.tabs.length))
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
   const panels =
     hasRightAsidePanelSlot && effectiveRightAsideLayout.value !== false ? effectiveRightAsideLayout.value.panels : []
 
-  if (!visibleMcp.value) {
+  if (!visibleMcp.value && !hasRegisteredExtensions.value) {
     return panels
   }
 
@@ -90,7 +104,7 @@ const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]
     ...panels,
     {
       id: CHAT_MCP_RIGHT_ASIDE_PANEL_ID,
-      title: resolvedOptions.value.labels.mcp,
+      title: hasRegisteredExtensions.value ? resolvedOptions.value.labels.extensions : resolvedOptions.value.labels.mcp,
     },
   ]
 })
@@ -283,6 +297,12 @@ function handleOpenMcpPanel() {
   if (visibleMcp.value) asideState.toggleRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
 }
 
+function handleOpenExtensionsPanel() {
+  if (visibleMcp.value || hasRegisteredExtensions.value) {
+    asideState.toggleRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
+  }
+}
+
 function handleMcpCreateServer(payload: ChatMcpCreateServerPayload) {
   emit('mcp-create-server', payload)
 }
@@ -321,6 +341,18 @@ function handleMcpServerEnabledChange(payload: { id: string; enabled: boolean })
 
 function handleMcpToolEnabledChange(payload: ChatMcpToolEnabledChangePayload) {
   emit('mcp-tool-enabled-change', payload)
+}
+
+function handleExtensionAction(payload: ExtensionManagerActionEvent) {
+  emit('extension-action', payload)
+}
+
+function handleExtensionNameClick(payload: ExtensionManagerNameClickEvent) {
+  emit('extension-name-click', payload)
+}
+
+function handleExtensionTabChange(payload: ExtensionManagerTabChangeEvent) {
+  emit('extension-tab-change', payload)
 }
 
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
@@ -371,6 +403,7 @@ const composerProps = computed(() => ({
   model: visibleModel.value,
   modelOptions: modelOptions.value,
   mcp: visibleMcp.value,
+  hasRegisteredExtensions: hasRegisteredExtensions.value,
 }))
 
 const composerEvents = {
@@ -382,6 +415,7 @@ const composerEvents = {
   onModelFeatureChange: handleModelFeatureChange,
   onModelReasoningEffortChange: handleModelReasoningEffortChange,
   onOpenMcpPanel: handleOpenMcpPanel,
+  onOpenExtensionsPanel: handleOpenExtensionsPanel,
   onMcpAddServer: handleMcpAddServer,
   onMcpRemoveServer: handleMcpRemoveServer,
   onMcpServerEnabledChange: handleMcpServerEnabledChange,
@@ -397,6 +431,7 @@ const composerTemplateEvents = {
   modelFeatureChange: handleModelFeatureChange,
   modelReasoningEffortChange: handleModelReasoningEffortChange,
   openMcpPanel: handleOpenMcpPanel,
+  openExtensionsPanel: handleOpenExtensionsPanel,
   mcpAddServer: handleMcpAddServer,
   mcpRemoveServer: handleMcpRemoveServer,
   mcpServerEnabledChange: handleMcpServerEnabledChange,
@@ -665,16 +700,29 @@ function renderEmptyStateComposer() {
         :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
       >
         <ChatMcpPanel
-          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
+          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && (visibleMcp || hasRegisteredExtensions)"
           :mcp="visibleMcp"
           :labels="resolvedOptions.labels"
+          :extension-tabs="registeredExtensions?.tabs"
+          :default-active-extension-tab="registeredExtensions?.defaultActiveTab"
+          :extension-overlay-open="registeredExtensions?.overlayOpen"
           @close="asideState.closeRightAside"
           @add-server="handleMcpAddServer"
           @remove-server="handleMcpRemoveServer"
           @update-server-enabled="handleMcpServerEnabledChange"
           @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
           @create-server="handleMcpCreateServer"
-        />
+          @extension-action="handleExtensionAction"
+          @extension-name-click="handleExtensionNameClick"
+          @extension-tab-change="handleExtensionTabChange"
+        >
+          <template v-if="$slots['extension-header-actions']" #extension-header-actions="slotProps">
+            <slot name="extension-header-actions" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots['extension-overlay']" #extension-overlay="slotProps">
+            <slot name="extension-overlay" v-bind="slotProps" />
+          </template>
+        </ChatMcpPanel>
         <ChatRightAside
           v-else
           :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"

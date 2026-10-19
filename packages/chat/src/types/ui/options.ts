@@ -10,6 +10,7 @@ import type {
   LayoutFloatingOptions,
   LayoutFloatingState,
   ModelSelectorProps,
+  ExtensionManagerTab,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '../base'
 import type { ChatUIData } from './data'
@@ -40,6 +41,7 @@ export interface ChatUIOptions {
   sender?: false | Readonly<ChatSenderOptions>
   model?: false | Readonly<ChatModelOptions>
   mcp?: false | Readonly<ChatMcpOptions>
+  extensions?: false | Readonly<ChatExtensionsOptions>
 }
 
 export interface ChatLayoutOptions {
@@ -82,6 +84,7 @@ export interface ChatLabels {
   searchModel: string
   modelEmptyText: string
   mcp: string
+  extensions: string
   mcpInstallServer: string
   mcpRemoveServer: string
   thinkingFeature: string
@@ -152,3 +155,9 @@ export interface ChatModelOptions {
   readonly appendTo?: ModelSelectorProps['appendTo']
 }
 export type ChatMcpOptions = Record<string, never>
+
+export interface ChatExtensionsOptions {
+  readonly tabs: readonly ExtensionManagerTab[]
+  readonly defaultActiveTab?: string
+  readonly overlayOpen?: boolean
+}

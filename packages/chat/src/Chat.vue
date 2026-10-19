@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import type {
+  ExtensionManagerActionEvent,
+  ExtensionManagerNameClickEvent,
+  ExtensionManagerTabChangeEvent,
+} from '@opentiny/tiny-robot'
 import ChatUI from './ChatUI.vue'
 import { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 import type {
@@ -68,6 +73,9 @@ const emit = defineEmits<{
   'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
   'history-action': [payload: ChatHistoryActionPayload]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
+  'extension-action': [payload: ExtensionManagerActionEvent]
+  'extension-name-click': [payload: ExtensionManagerNameClickEvent]
+  'extension-tab-change': [payload: ExtensionManagerTabChangeEvent]
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
@@ -240,6 +248,9 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @mcp-remove-server="handleMcpRemoveServer"
     @mcp-server-enabled-change="handleMcpServerEnabledChange"
     @mcp-tool-enabled-change="handleMcpToolEnabledChange"
+    @extension-action="emit('extension-action', $event)"
+    @extension-name-click="emit('extension-name-click', $event)"
+    @extension-tab-change="emit('extension-tab-change', $event)"
   >
     <template v-if="slots['layout-header']" #layout-header="slotProps">
       <slot name="layout-header" v-bind="slotProps" />
@@ -318,6 +329,12 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     </template>
     <template v-if="slots['sender-footer-right']" #sender-footer-right>
       <slot name="sender-footer-right" />
+    </template>
+    <template v-if="slots['extension-header-actions']" #extension-header-actions="slotProps">
+      <slot name="extension-header-actions" v-bind="slotProps" />
+    </template>
+    <template v-if="slots['extension-overlay']" #extension-overlay="slotProps">
+      <slot name="extension-overlay" v-bind="slotProps" />
     </template>
   </ChatUI>
 </template>

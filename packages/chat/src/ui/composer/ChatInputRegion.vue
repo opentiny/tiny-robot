@@ -20,6 +20,7 @@ const props = defineProps<{
   model?: ChatModelView
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
+  hasRegisteredExtensions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -28,6 +29,7 @@ const emit = defineEmits<{
   clear: []
   'update:value': [value: string]
   openMcpPanel: []
+  openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
@@ -78,11 +80,13 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         :model="props.model"
         :model-options="props.modelOptions"
         :mcp="props.mcp"
+        :has-registered-extensions="props.hasRegisteredExtensions"
         @submit="handleSubmit"
         @cancel="emit('cancel')"
         @clear="emit('clear')"
         @update:value="handleInputValue"
         @open-mcp-panel="emit('openMcpPanel')"
+        @open-extensions-panel="emit('openExtensionsPanel')"
         @model-select="emit('modelSelect', $event)"
         @model-feature-change="emit('modelFeatureChange', $event)"
         @model-reasoning-effort-change="emit('modelReasoningEffortChange', $event)"

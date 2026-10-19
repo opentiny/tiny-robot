@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import MCPSelector from './MCPSelector.vue'
+import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatures from './ModelFeatures.vue'
 import ModelSelector from './ModelSelector.vue'
 import type {
@@ -22,6 +23,7 @@ const props = defineProps<{
   model?: ChatModelView
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
+  hasRegisteredExtensions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +32,7 @@ const emit = defineEmits<{
   clear: []
   'update:value': [value: string]
   openMcpPanel: []
+  openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
@@ -86,6 +89,10 @@ function handleOpenMcpPanel() {
   emit('openMcpPanel')
 }
 
+function handleOpenExtensionsPanel() {
+  emit('openExtensionsPanel')
+}
+
 function handleAddServer(payload: { id: string }) {
   emit('mcpAddServer', payload)
 }
@@ -114,8 +121,8 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
     </template>
-    <template v-if="$slots['sender-footer'] || model || mcp" #footer>
-      <div v-if="model || mcp" class="model-actions">
+    <template v-if="$slots['sender-footer'] || model || mcp || hasRegisteredExtensions" #footer>
+      <div v-if="model || mcp || hasRegisteredExtensions" class="model-actions">
         <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
         <ModelSelector
           v-if="model"
@@ -125,8 +132,9 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
           @select-model="handleSelectModel"
           @update-reasoning-effort="handleReasoningEffortChange"
         />
+        <ExtensionSelector v-if="hasRegisteredExtensions" :labels="labels" @open="handleOpenExtensionsPanel" />
         <MCPSelector
-          v-if="mcp"
+          v-else-if="mcp"
           :mcp="mcp"
           :labels="labels"
           @open="handleOpenMcpPanel"

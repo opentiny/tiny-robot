@@ -8,6 +8,7 @@ import type {
   ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
+  ChatExtensionsOptions,
   ChatLabels,
   ChatLayoutOptions,
   ChatMcpOptions,
@@ -78,6 +79,7 @@ export type ResolvedChatPromptsOptions = Omit<ChatPromptsOptions, 'items'> & {
 export type ResolvedChatSenderOptions = ChatSenderOptions
 export type ResolvedChatModelOptions = ChatModelOptions
 export type ResolvedChatMcpOptions = ChatMcpOptions
+export type ResolvedChatExtensionsOptions = ChatExtensionsOptions
 
 export interface ResolvedChatUIOptions {
   layout: ResolvedChatLayoutOptions
@@ -91,6 +93,7 @@ export interface ResolvedChatUIOptions {
   sender: false | ResolvedChatSenderOptions
   model: false | ResolvedChatModelOptions
   mcp: false | ResolvedChatMcpOptions
+  extensions: false | ResolvedChatExtensionsOptions
 }
 
 export function resolveChatUIOptions(options: ChatUIOptions | undefined): ResolvedChatUIOptions {
@@ -109,6 +112,7 @@ export function resolveChatUIOptions(options: ChatUIOptions | undefined): Resolv
     sender: resolveSender(defaults.sender, options?.sender),
     model: resolveModel(options?.model),
     mcp: resolveMcp(options?.mcp),
+    extensions: resolveExtensions(options?.extensions),
   }
 }
 
@@ -320,6 +324,27 @@ function resolveMcp(options: false | ChatMcpOptions | undefined): false | Resolv
   }
 
   return options ?? {}
+}
+
+function resolveExtensions(
+  options: false | Readonly<ChatExtensionsOptions> | undefined,
+): false | ResolvedChatExtensionsOptions {
+  if (!options) return false
+
+  const seen = new Set<string>()
+  const tabs = options.tabs.filter((tab) => {
+    if (tab.id === CHAT_MCP_RIGHT_ASIDE_PANEL_ID || seen.has(tab.id)) return false
+    seen.add(tab.id)
+    return true
+  })
+
+  if (tabs.length === 0) return false
+
+  return {
+    tabs,
+    defaultActiveTab: tabs.some((tab) => tab.id === options.defaultActiveTab) ? options.defaultActiveTab : undefined,
+    overlayOpen: options.overlayOpen === true,
+  }
 }
 
 function withoutUndefined<T extends object>(value: T | undefined): Partial<T> {
