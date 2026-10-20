@@ -195,6 +195,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       button.className = 'tr-quick-assist__suggestion'
       button.disabled = state.submittingDisabled
       button.textContent = suggestion.label
+      button.title = suggestion.label
       const customAttrs = attrs.suggestion
       setSafeAttributes(button, typeof customAttrs === 'function' ? customAttrs(suggestion) : customAttrs)
       button.addEventListener('click', () => {
