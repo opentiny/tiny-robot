@@ -1,65 +1,77 @@
 <p align="center">
   <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
-    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="100" style="max-width:100%;">
+    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="88" style="max-width:100%;">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/@opentiny/tiny-robot.svg" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/dw/@opentiny/tiny-robot" alt="npm downloads"></a>
-  <a href="https://github.com/opentiny/tiny-robot" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
+  <a href="https://github.com/opentiny/tiny-robot"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/Vue-3.x-42b883.svg" alt="Vue 3">
   <img src="https://img.shields.io/badge/TypeScript-Ready-3178c6.svg" alt="TypeScript">
 </p>
 
-**TinyRobot** 是面向 Vue 3 的 AI 工具套件，支持流式对话、工具调用、MCP 集成和可扩展的消息渲染。
+**TinyRobot** 是一个基于 Vue 3 构建、遵循 OpenTiny Design 设计体系的 AI 组件库与应用开发套件，助力企业快速搭建智能对话与业务助手应用。
 
 <p align="center">
-  <img src="robot-demo.gif" alt="TinyRobot 界面演示" width="1100">
+  <img src="robot-highlights.gif" alt="TinyRobot MCP 工具调用与 Skill 技能扩展演示" width="1100">
 </p>
 
-## 🧭 能力全景
+## ✨ 核心能力
 
-<p align="center">
-  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
-</p>
+核心能力围绕 Chat 套件、可组合组件、数据层和 MCP 扩展展开：
 
-## 📦 安装与接入
+- **Chat 套件**：提供完整聊天界面，集成模型服务接入、消息收发、流式响应和多会话管理，支持主题定制和模型切换。
+- **可组合架构**：通过 Components 和 Kit 按需控制界面、Runtime、消息请求和会话数据。
+- **工具与 MCP**：支持工具调用展示、MCP Server 管理、工具选择和审批流程。
+- **Vue 3 + TypeScript**：遵循 OpenTiny Design 体系，支持按需使用、主题定制和类型安全扩展。
 
-### CLI 接入
+## 🚀 如何使用
 
-CLI 可以创建 TinyRobot 项目，也可以向已有 Vue 项目中接入 Chat：
+TinyRobot 提供三种接入方式：通过 CLI 快速开始，使用完整的 Chat 套件，或按需组合 Components 和 Kit。
+
+### 包说明
+
+TinyRobot 将工程入口、Chat 页面、UI 组件和数据层拆分为多个可独立使用的公开包：
+
+| 包 | 说明 | 版本 |
+| --- | --- | --- |
+| [`@opentiny/tiny-robot`](https://www.npmjs.com/package/@opentiny/tiny-robot) | AI 对话组件库，提供 Bubble、Sender、History、Layout 等组件 | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot) |
+| [`@opentiny/tiny-robot-chat`](https://www.npmjs.com/package/@opentiny/tiny-robot-chat) | Chat 套件，提供完整聊天页面、Runtime、会话和 MCP 能力 | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-chat.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-chat) |
+| [`@opentiny/tiny-robot-kit`](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) | AI 对话工具包，支持消息管理、模型服务接入、多会话管理和数据存储 | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) |
+| [`@opentiny/tiny-robot-cli`](https://www.npmjs.com/package/@opentiny/tiny-robot-cli) | CLI 工具，用于创建项目或向已有 Vue 项目接入 Chat | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-cli.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-cli) |
+| [`@opentiny/tiny-robot-svgs`](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) | SVG 图标库，提供 TinyRobot 组件所需的图标 | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+
+### 1. CLI 快速开始
+
+#### 创建新项目
+
+使用 CLI 创建一个包含 Chat 能力的 Vue 项目：
 
 ```bash
 npx @opentiny/tiny-robot-cli create my-app --template basic
+cd my-app
+pnpm install
+pnpm dev
+```
 
-# 或向已有项目中添加 Chat
+#### 接入已有 Vue 项目
+
+```bash
 npx @opentiny/tiny-robot-cli add chat
 ```
 
-<p align="center">
-  <img src="robot-basic-cli.gif" alt="TinyRobot CLI 演示" width="920">
-</p>
+CLI 会生成 `src/tiny-robot-chat/TinyRobotChat.vue` 和相关配置，不会自动修改 `App.vue`、`src/main.*` 或 `vite.config.*`，也不会自动挂载组件。更多选项和接入方式请查看 [CLI 接入文档](https://docs.opentiny.design/tiny-robot/guide/cli-integration)。
 
-详细选项请查看 [CLI 接入文档](https://docs.opentiny.design/tiny-robot/guide/cli-integration)。
+### 2. 使用完整 Chat 套件
 
-使用 `add chat` 时，CLI 会生成 `src/tiny-robot-chat/TinyRobotChat.vue`，内部使用 `TrChat` 和 `useChatRuntime` 提供完整的聊天页面。在 `App.vue` 中添加 `<TinyRobotChat />` 即可挂载生成的组件。
-
-### Chat 套件：TrChat
-
-#### 手动安装 Chat 套件
-
-如果需要完整的 Chat 应用，请安装 `@opentiny/tiny-robot-chat`：
+如果需要完整的 Chat 应用，可以直接安装：
 
 ```bash
-# 项目推荐使用 pnpm
 pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
 ```
 
-#### Chat 套件用法
-
-核心实现如下：
+使用 `TrChat` 和 `useChatRuntime` 创建聊天页面：
 
 ```vue
 <script setup lang="ts">
@@ -68,7 +80,11 @@ import '@opentiny/tiny-robot-chat/dist/style.css'
 import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 
 const modelProviders: ChatProviderConfig[] = [
-  { type: 'openai', apiUrl: '/api', models: [{ id: 'deepseek-flash', label: 'DeepSeek Flash' }] },
+  {
+    type: 'openai',
+    apiUrl: '/api/chat',
+    models: [{ id: 'deepseek-flash', label: 'DeepSeek Flash' }],
+  },
 ]
 
 const runtime = useChatRuntime({ modelProviders })
@@ -79,55 +95,41 @@ const runtime = useChatRuntime({ modelProviders })
 </template>
 ```
 
-已有自己的数据层和请求层时，可以使用 `TrChatUI`。更多配置请查看 [Chat UI 文档](https://docs.opentiny.design/tiny-robot/suites/chat) 和 [Chat Runtime 文档](https://docs.opentiny.design/tiny-robot/suites/chat-runtime)。
+将 `apiUrl` 替换为实际的模型服务地址或项目后端的转发接口地址，接口需兼容 OpenAI 的聊天接口格式。如果已有请求层和数据层，可以使用 `TrChatUI`，只接入 Chat 界面。
 
-## ✨ 特色亮点
+### 3. 自定义组合
 
-- **CLI 优先的开发体验**：一条命令创建 Chat 项目，也可以接入已有 Vue 项目
-- **完整 Chat UI**：开箱即用的聊天页面，也支持按需组合界面组件
-- **Runtime 与 UI 解耦**：使用 `TrChat`，或通过 `TrChatUI` 接入已有数据层
-- **分层接入**：可以选择 Chat 套件、独立 Components、Kit 数据层或基于 Kit 的 Skill 能力
-- **工具与 MCP 工作流**：支持流式响应、工具调用、审批、错误处理和 MCP 扩展
-- **Vue 3 + OpenTiny**：TypeScript 优先，支持主题定制和可扩展的数据管理
+#### Components
 
-生产环境请通过服务端 BFF 保存 Provider 密钥，不要将长期密钥暴露在浏览器中。
+`@opentiny/tiny-robot` 提供 AI 对话所需的基础组件，可以按需组合页面：
 
-## 🔌 模型与后端接入
+- 消息与输入：`TrBubble`、`TrBubbleList`、`TrSender`、`TrSenderCompat`
+- 页面与扩展：`TrLayout`、`TrContainer`、`TrHistory`、`TrPrompts`、`TrAttachments`、`TrMcpServerPicker`
 
-TinyRobot 将 Chat UI、Runtime 与数据请求层解耦，可以根据项目后端选择合适的接入方式：
+#### Kit
 
-- **OpenAI 兼容接口**：通过 `modelProviders` 配置模型服务。
-- **自定义 Provider**：支持自定义 `responseProvider` 和 Provider 实现，接入已有模型服务或业务 API。
-- **流式响应**：支持 SSE 流式响应及自定义 chunk 处理。
-- **工具与 MCP**：支持工具调用流程和 MCP Server 集成。
-- **会话存储**：支持多会话管理，以及 LocalStorage、IndexedDB 和自定义存储策略。
+`@opentiny/tiny-robot-kit` 提供 AI 对话所需的消息处理、模型请求和会话管理能力，可搭配 TinyRobot 组件或自定义界面使用：
 
-## 📊 竞品对比
+- `useMessage`：管理消息状态、处理流式响应；
+- `useConversation`：管理多个会话及其消息；
+- 会话存储：支持 LocalStorage、IndexedDB 和自定义存储策略；
+- 自定义请求：通过 `responseProvider` 对接模型服务或业务 API。
 
-TinyRobot 与其他 AI 对话组件库的功能对比（仅供选型参考，具体能力以各项目当前版本文档为准）：
+## 🧭 能力全景
 
-| 特性 | TinyRobot | Ant Design X | Element Plus X | TDesign Chat |
-|------|-----------|-------------|---------------|-------------|
-| **框架** | Vue 3 | React | Vue 3 | Vue 3 |
-| **流式渲染** | ✅ | ✅ | ✅ | ✅ |
-| **工具调用展示** | ✅ | ✅ | ❌ | ❌ |
-| **MCP 协议** | ✅ | ❌ | ❌ | ❌ |
-| **Agent UI 组件** | ✅ | ❌ | ❌ | ❌ |
-| **AI Provider 组合式函数** | ✅ | ✅ | ❌ | ❌ |
-| **会话管理** | ✅ | ✅ | ✅ | ✅ |
-| **主题定制** | ✅ | ✅ | ✅ | ✅ |
-| **Tree Shaking** | ✅ | ✅ | ✅ | ✅ |
-| **TypeScript** | ✅ | ✅ | ✅ | ✅ |
-| **Skills / Agent 集成** | ✅ | ❌ | ❌ | ❌ |
-| **开源协议** | MIT | MIT | MIT | MIT |
+<p align="center">
+  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
+</p>
 
-## 📚 文档
+能力全景图展示了 TinyRobot 从 CLI 工程接入，到 Chat、Components、Kit，以及 Skill 技能与 MCP 工具协作的整体能力。
 
-- 📖 [完整文档](https://docs.opentiny.design/tiny-robot/)
-- 🧰 [CLI 接入](https://docs.opentiny.design/tiny-robot/guide/cli-integration)
-- 💬 [Chat UI](https://docs.opentiny.design/tiny-robot/suites/chat)
-- ⚙️ [Chat Runtime](https://docs.opentiny.design/tiny-robot/suites/chat-runtime)
-- 💡 [示例](https://docs.opentiny.design/tiny-robot/examples/chat-tiny-robot)
+## 📚 文档与示例
+
+- [完整文档](https://docs.opentiny.design/tiny-robot/)
+- [快速开始](https://docs.opentiny.design/tiny-robot/guide/quick-start)
+- [CLI 接入](https://docs.opentiny.design/tiny-robot/guide/cli-integration)
+- [Chat 套件](https://docs.opentiny.design/tiny-robot/suites/quick-start)
+- [Chat 示例](https://docs.opentiny.design/tiny-robot/examples/chat-tiny-robot)
 
 ## 🛠️ 开发
 
@@ -153,10 +155,16 @@ MIT 许可证 - 查看 [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEA
 
 欢迎贡献！请阅读[贡献指南](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING_zh.md)了解推荐的工作流程、Commit 规范以及如何提交 Issue 和 Pull Request。
 
-## 💬 支持
+## 📞 支持
 
 - 📖 [文档](https://docs.opentiny.design/tiny-robot/)
 - 🐛 [问题追踪](https://github.com/opentiny/tiny-robot/issues)
 - 💬 [讨论](https://github.com/opentiny/tiny-robot/discussions)
 
-由 [OpenTiny](https://github.com/opentiny) 团队维护。
+## 🙏 致谢
+
+由 OpenTiny 团队用 ❤️ 构建。
+
+---
+
+**注意**：本项目是 [OpenTiny](https://github.com/opentiny) 生态系统的一部分。
