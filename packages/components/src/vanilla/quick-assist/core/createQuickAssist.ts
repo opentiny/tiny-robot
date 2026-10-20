@@ -55,6 +55,9 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (!input.adapter || typeof input.adapter.submit !== 'function') {
     throw new Error('QuickAssist requires an adapter with a submit function')
   }
+  if (input.validateSuggestion !== undefined && typeof input.validateSuggestion !== 'function') {
+    throw new Error('QuickAssist validateSuggestion must be a function')
+  }
   const maxSuggestions = input.maxSuggestions ?? 3
   if (!Number.isInteger(maxSuggestions) || maxSuggestions <= 0) {
     throw new Error('QuickAssist maxSuggestions must be a positive integer')
@@ -629,6 +632,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       const nextRecommendation = createRecommendationResolver({
         suggestions: configuration.suggestions,
         getSuggestions: configuration.getSuggestions,
+        validateSuggestion: configuration.validateSuggestion,
         mergeSuggestions: configuration.mergeSuggestions,
         maxSuggestions: configuration.maxSuggestions,
         messages: configuration.messages,

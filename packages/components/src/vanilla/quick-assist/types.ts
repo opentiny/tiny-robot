@@ -128,6 +128,9 @@ export type SanitizeContext = (
 
 export type GetSuggestions = (context: QuickAssistContext, signal: AbortSignal) => Suggestion[] | Promise<Suggestion[]>
 
+/** Synchronous business validation of each structurally valid remote suggestion. False discards the item. */
+export type ValidateSuggestion = (suggestion: Suggestion, context: QuickAssistContext) => boolean
+
 export type MergeSuggestions = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext) => Suggestion[]
 
 export type BuildPromptInput = {
@@ -176,6 +179,8 @@ export interface QuickAssistOptions {
   sanitizeContext?: SanitizeContext
   suggestions?: QuickAssistSuggestionInput[]
   getSuggestions?: GetSuggestions
+  /** Only validates remote suggestions, before merging. Exceptions fail the remote batch. */
+  validateSuggestion?: ValidateSuggestion
   mergeSuggestions?: MergeSuggestions
   maxSuggestions?: number
   buildPrompt?: BuildPrompt

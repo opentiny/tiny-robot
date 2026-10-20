@@ -7,11 +7,13 @@ import type {
   QuickAssistSuggestionInput,
   Suggestion,
   SuggestionFactory,
+  ValidateSuggestion,
 } from '../types'
 
 export interface RecommendationResolverOptions {
   suggestions?: QuickAssistSuggestionInput[]
   getSuggestions?: GetSuggestions
+  validateSuggestion?: ValidateSuggestion
   mergeSuggestions?: MergeSuggestions
   maxSuggestions: number
   messages: QuickAssistMessages
@@ -58,8 +60,9 @@ function validateSuggestion(value: unknown, index: number): Suggestion {
   if (!value || typeof value !== 'object') throw new Error(`Suggestion ${index} must be an object`)
   const item = value as Partial<Suggestion>
   if (typeof item.id !== 'string' || !item.id.trim()) throw new Error(`Suggestion ${index} has an invalid id`)
-  if (typeof item.label !== 'string') throw new Error(`Suggestion ${index} has an invalid label`)
-  if (typeof item.prompt !== 'string') throw new Error(`Suggestion ${index} has an invalid prompt`)
+  if (typeof item.label !== 'string' || !item.label.trim()) throw new Error(`Suggestion ${index} has an invalid label`)
+  if (typeof item.prompt !== 'string' || !item.prompt.trim())
+    throw new Error(`Suggestion ${index} has an invalid prompt`)
   return copySuggestion({
     id: item.id,
     label: item.label,
@@ -128,7 +131,24 @@ export function createRecommendationResolver(
     // Keep the complete provider result here. A duplicate of a base template
     // may be followed by a useful new item; limiting before merge would hide it
     // from both the default and custom merge strategies.
-    return incoming.map((item, index) => validateSuggestion(item, index))
+    const valid: Suggestion[] = []
+    for (const [index, item] of incoming.entries()) {
+      let suggestion: Suggestion
+      try {
+        suggestion = validateSuggestion(item, index)
+      } catch {
+        // A malformed model result must not discard its valid siblings.
+        continue
+      }
+      if (options.validateSuggestion) {
+        const accepted = options.validateSuggestion(copySuggestion(suggestion), context)
+        if (typeof accepted !== 'boolean') throw new Error('validateSuggestion must return a boolean')
+        if (!accepted) continue
+      }
+      valid.push(suggestion)
+    }
+    if (incoming.length && !valid.length) throw new Error('No valid remote suggestions')
+    return valid
   }
 
   const merge = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext): Suggestion[] => {
