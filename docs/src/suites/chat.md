@@ -173,9 +173,9 @@ function handlePromptClick({ item }: ChatPromptClickPayload) {
   description="输入 @ 选择对象，使用报告模板和常用问题按钮填入内容，编辑后发送；点击“使用说明”查看操作提示。"
 />
 
-示例通过 `sender-header` 展示使用说明；“写报告”填入可编辑文本块和读者选项，“常用问题”填入预设问题。
+示例通过 `ui.sender.toolbar` 配置“写报告”和“常用问题”，分别填入可编辑模板和预设问题；通过 `sender-footer-right` 添加“使用说明”，配合 `sender-header` 展示操作提示。
 
-通过 `ui.sender` 调整输入框、配置提及和模板功能；通过输入区插槽添加自定义按钮，无需重新实现消息发送和取消。
+通过 `ui.sender` 调整输入框、配置提及和模板功能；通过 `ui.sender.toolbar` 或输入区插槽添加自定义按钮，无需重新实现消息发送和取消。
 
 #### 基础设置
 
@@ -241,21 +241,33 @@ function fillReportTemplate() {
 
 > 提及功能不会自动切换模型或助手。默认发送使用输入内容的纯文本；需要处理提及标识或模板字段时，见 [结构化提交数据](../components/sender#结构化数据) 和 [发送前检查](./chat-runtime#发送前检查)。
 
-#### 自定义按钮
+#### 工具栏与自定义按钮
 
-`sender-footer` 在多行输入框底部左侧添加按钮，与模型选择等操作同一区域；`sender-footer-right` 在底部右侧、默认操作按钮前添加内容。这些插槽默认没有自定义内容，使用时不会替换发送和取消按钮。
+`ui.sender.toolbar` 统一配置左侧高频操作按钮，支持数组或函数。`TrChat` 与 `TrChatUI` 使用相同配置。
 
-例如，通过按钮插入上面配置的报告模板：
+<demo
+  vue="../../demos/chat/sender-toolbar.vue"
+  :vueFiles="[
+    '../../demos/chat/sender-toolbar.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="配置左侧按钮与窄屏适配"
+  description="切换复选框调整按钮顺序、显隐和禁用状态；勾选“窄输入区预览”限制预览宽度为 600px，带图标的按钮会自动隐藏文字、保留图标；点击“生成式 UI”可切换高亮状态。"
+/>
 
-```vue
-<TrChat :runtime="runtime" :ui="ui">
-  <template #sender-footer>
-    <button type="button" @click="fillReportTemplate">写报告</button>
-  </template>
-</TrChat>
-```
+- **追加按钮**：使用 `(defaults) => [...defaults, customItem]` 保留内置按钮；自定义按钮配置 `type: 'custom'`、`label`、`icon` 和 `onClick`，通过 `active` 控制高亮。
+- **调整顺序**：函数配置可基于 `defaults` 排序；数组配置完整替换按钮列表，未列出的按钮不显示。
+- **控制显隐**：`visible: false` 隐藏按钮。
+- **控制禁用**：`disabled: true` 禁止点击；设为 `false` 仍受模型能力和输入区禁用状态限制。
+- **适配窄屏**：带图标的按钮在窄输入区自动隐藏文字、保留图标；`label` 仍用于无障碍名称和悬浮提示。
 
-更多配置见 [Mention](../components/sender#mention-配置)、[Template](../components/sender#template-配置) 和 [默认按钮配置](../components/sender#默认按钮配置)，完整插槽列表见 [插槽](#插槽)。
+显隐和禁用不改变功能开关状态。清空、发送和停止按钮通过[默认按钮配置](../components/sender#默认按钮配置)管理。
+
+需要自定义渲染时，使用 `sender-footer` 在左侧工具栏后追加内容，或使用 `sender-footer-right` 在右侧操作按钮前追加内容，详见[插槽](#插槽)。
+
+完整字段和规则见 [Toolbar 配置](#sender-toolbar)。
 
 ### 配置消息展示
 
@@ -936,6 +948,44 @@ const data = computed<ChatUIData>(() => ({
 
 `ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
+#### `sender.toolbar` {#sender-toolbar}
+
+`ui.sender.toolbar` 用于配置左侧工具栏，支持 `readonly ChatSenderToolbarItem[]` 或 `(defaults: readonly ChatSenderToolbarItem[]) => readonly ChatSenderToolbarItem[]`；交互示例见[工具栏与自定义按钮](#工具栏与自定义按钮)。
+
+| 字段 | 内置项 | 自定义项 |
+| --- | --- | --- |
+| `type` | `'builtin'` | `'custom'` |
+| `id` | `'thinking' \| 'search' \| 'model' \| 'mcp'` | 唯一业务 ID，不能使用内置 ID |
+| `visible` | 可选，默认 `true` | 同左 |
+| `disabled` | 可选，默认 `false` | 同左 |
+| `label` | 使用 `labels` 中的文案 | 必填，按钮文案 |
+| `icon` | 使用内置图标 | 可选，Vue 组件或图片地址 |
+| `active` | 读取当前功能状态 | 可选，由业务控制高亮 |
+| `onClick` | 使用现有内置操作 | 必填，`() => void` |
+
+未提供 `toolbar` 时，默认顺序为 `thinking → search → model → mcp`。数组配置完整替换默认列表，未列出的项隐藏。函数配置接收尚未按数据和可见性过滤的只读默认列表，同步返回最终列表，可追加、筛选或排序；请勿修改 `defaults` 或在回调中执行副作用。两种配置均在确定列表后统一应用显示和禁用规则，返回 `[]` 时隐藏整个工具栏。带图标的按钮在窄输入区自动隐藏文字、保留图标；`label` 仍用于无障碍名称和悬浮提示。
+
+```ts
+toolbar: (defaults) => [
+  ...defaults,
+  {
+    type: 'custom',
+    id: 'gui',
+    label: '生成式 UI',
+    icon: IconGenerativeUi,
+    onClick: handleGui,
+  },
+]
+```
+
+`visible: false` 隐藏单项，全部隐藏时移除工具栏容器。ID 必须唯一；重复 ID 仅保留第一项，使用内置 ID 的自定义项不显示。
+
+存在模型数据时，深度思考和联网搜索默认显示，不支持或未选模型时禁用，切换模型不会增减这两个按钮。`ui.model: false` 或没有模型数据时，相关内置项隐藏；模型选择器和 MCP 入口沿用原有数据与布局显示条件。自定义项不依赖模型或 MCP 数据。
+
+`data.sender.disabled`、单项 `disabled` 和内置限制共同决定禁用状态，点击时同样检查；`loading` 不自动禁用整个工具栏。隐藏和禁用不改变功能开关，也不写入请求配置。自定义项由业务回调更新状态；动态配置可使用 `computed`。
+
+`sender-footer` 插槽仍追加在工具栏之后，需要参与混排的按钮应配置到 `toolbar`。清空、发送和停止按钮继续由原有 Sender 管理。工具栏用于默认多行输入框；替换 `layout-footer` 时由业务自行渲染。
+
 ### 插槽
 
 以下插槽适用于 `TrChat` 和 `TrChatUI`。插槽参数中的发送、会话、模型和 MCP 操作，在 `TrChat` 中调用当前 Runtime；在 `TrChatUI` 中触发事件，需要项目处理事件并更新数据。
@@ -1020,6 +1070,7 @@ const data = computed<ChatUIData>(() => ({
 | `ChatPromptsOptions`         | 支持 [Prompts](../components/prompts) 的配置，`items?: PromptProps[]` 用于设置推荐问题。 |
 | `ChatSenderOptions`          | 支持 [Sender](../components/sender) 的配置，不支持 `modelValue`、`defaultValue`、`loading` 和 `disabled`；`defaultActions` 使用 `ChatSenderDefaultActions`。 |
 | `ChatSenderDefaultActions`   | 输入区默认按钮配置，支持 `DefaultActions` 中除 `submit.disabled` 外的配置；提交禁用状态通过 `data.sender.submitDisabled` 设置。 |
+| `ChatSenderToolbarItem`      | 左侧工具栏内置项或自定义项，配置顺序、显示和禁用状态，见[完整配置](#sender-toolbar)。 |
 | `ChatModelOptions`           | 模型选择器弹出面板所在容器的配置。                                          |
 | `ChatMcpOptions`             | 当前为空对象配置。                                                          |
 
