@@ -1,5 +1,12 @@
 import { createContextModule } from '../context'
-import { observeAnchor, getSnapshotRect, positionElement } from '../positioning'
+import {
+  computePosition,
+  getSelectionLineAnchors,
+  observeAnchor,
+  getSnapshotRect,
+  positionElement,
+} from '../positioning'
+import type { SelectionLineAnchors } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
 import { captureSelectionSnapshot, createSelectionController } from '../selection'
 import { createQuickAssistUI } from '../ui'
@@ -53,6 +60,10 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     throw new Error('QuickAssist maxSuggestions must be a positive integer')
   }
   const selectionInput = input.selection ?? {}
+  const forwardOnly = selectionInput.forwardOnly ?? true
+  if (typeof forwardOnly !== 'boolean') {
+    throw new Error('QuickAssist selection.forwardOnly must be a boolean')
+  }
   const maxTextLength = selectionInput.maxTextLength ?? 300
   if (!Number.isInteger(maxTextLength) || maxTextLength <= 0) {
     throw new Error('QuickAssist selection.maxTextLength must be a positive integer')
@@ -66,8 +77,12 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (!Number.isFinite(offset) || offset < 0) {
     throw new Error('QuickAssist trigger.offset must be a non-negative number')
   }
-  if (!['top', 'bottom', 'auto'].includes(triggerInput.placement ?? 'auto')) {
-    throw new Error('QuickAssist trigger.placement must be top, bottom, or auto')
+  if (
+    !['top', 'bottom', 'auto', 'top-start', 'top-end', 'bottom-start', 'bottom-end'].includes(
+      triggerInput.placement ?? 'bottom-end',
+    )
+  ) {
+    throw new Error('Invalid QuickAssist trigger.placement')
   }
   const nearbyInput = input.nearbyContext ?? {}
   const nearbyMaxLength = nearbyInput.maxLength ?? 500
@@ -82,12 +97,12 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     include: [...(input.include ?? [])],
     exclude: [...(input.exclude ?? [])],
     maxSuggestions,
-    selection: { maxTextLength, validate: selectionInput.validate },
+    selection: { forwardOnly, maxTextLength, validate: selectionInput.validate },
     trigger: {
       label: triggerInput.label ?? '智能帮助',
       showDelay,
       offset,
-      placement: triggerInput.placement ?? 'auto',
+      placement: triggerInput.placement ?? 'bottom-end',
     },
     nearbyContext: {
       maxLength: nearbyMaxLength,
@@ -156,23 +171,20 @@ function getVirtualTriggerRect(
   size: { width: number; height: number },
   placement: QuickAssistPlacement,
   offset: number,
+  lineAnchors?: SelectionLineAnchors,
 ): DOMRectReadOnly {
   const view = root.defaultView
-  const viewportWidth = view?.innerWidth ?? root.documentElement.clientWidth
-  const viewportHeight = view?.innerHeight ?? root.documentElement.clientHeight
-  const margin = 8
-  const requested = placement === 'auto' ? 'bottom' : placement
-  const roomBelow = viewportHeight - anchor.bottom - offset - margin
-  const roomAbove = anchor.top - offset - margin
-  const shouldFlip =
-    requested === 'bottom'
-      ? roomBelow < size.height && roomAbove > roomBelow
-      : roomAbove < size.height && roomBelow > roomAbove
-  const side = shouldFlip ? (requested === 'bottom' ? 'top' : 'bottom') : requested
-  const rawLeft = anchor.left + anchor.width / 2 - size.width / 2
-  const left = Math.max(margin, Math.min(rawLeft, viewportWidth - size.width - margin))
-  const rawTop = side === 'top' ? anchor.top - size.height - offset : anchor.bottom + offset
-  const top = Math.max(margin, Math.min(rawTop, viewportHeight - size.height - margin))
+  const { left, top } = computePosition({
+    anchor,
+    lineAnchors,
+    placement,
+    offset,
+    ...size,
+    viewport: {
+      width: view?.innerWidth ?? root.documentElement.clientWidth,
+      height: view?.innerHeight ?? root.documentElement.clientHeight,
+    },
+  })
   return makeRect(root, left, top, size.width, size.height)
 }
 
@@ -229,6 +241,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     positionElement({
       element,
       anchor,
+      lineAnchors: snapshot ? getSelectionLineAnchors(snapshot) : undefined,
       placement: resolved.trigger.placement,
       offset: resolved.trigger.offset,
     })
@@ -318,7 +331,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     const snapshot = snapshotOf(candidate.activation)
     const triggerAtOpen = triggerElement?.getBoundingClientRect() ?? null
     const triggerSize = triggerAtOpen ? { width: triggerAtOpen.width, height: triggerAtOpen.height } : undefined
-    const triggerSide: QuickAssistPlacement = triggerElement?.dataset.placement === 'top' ? 'top' : 'bottom'
+    const triggerPlacement = (triggerElement?.dataset.placement as QuickAssistPlacement) ?? resolved.trigger.placement
     triggerElement = null
     const popover = ui.showPopover({
       session: candidate,
@@ -339,7 +352,14 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       const selectionRect = getSnapshotRect(snapshot)
       if (!selectionRect) return null
       if (!triggerSize) return selectionRect
-      return getVirtualTriggerRect(resolved.root, selectionRect, triggerSize, triggerSide, resolved.trigger.offset)
+      return getVirtualTriggerRect(
+        resolved.root,
+        selectionRect,
+        triggerSize,
+        triggerPlacement,
+        resolved.trigger.offset,
+        getSelectionLineAnchors(snapshot),
+      )
     }
     const positionPopover = (): void => {
       const anchor = getPopoverAnchor()
@@ -425,6 +445,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       const latest = captureSelectionSnapshot(resolved.root)
       if (
         !latest ||
+        (resolved.selection.forwardOnly && latest.direction === 'backward') ||
         latest.text !== snapshot.text ||
         latest.range.startContainer !== snapshot.range.startContainer ||
         latest.range.startOffset !== snapshot.range.startOffset ||
@@ -573,6 +594,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         include: configuration.include,
         exclude: configuration.exclude,
         maxTextLength: configuration.selection.maxTextLength,
+        forwardOnly: configuration.selection.forwardOnly,
         validate: configuration.selection.validate,
       })
       const nextContext = createContextModule({

@@ -1,5 +1,5 @@
-/** A placement preference for the selection trigger and popover. */
-export type QuickAssistPlacement = 'top' | 'bottom' | 'auto'
+/** A placement preference. start/end extend outward from the selected line's left/right edge. */
+export type QuickAssistPlacement = 'top' | 'bottom' | 'auto' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
 
 /** Reasons a visible QuickAssist session can be closed. */
 export type QuickAssistCloseReason =
@@ -28,6 +28,8 @@ export type QuickAssistErrorStage =
 /** The immutable selection data captured at the time a session starts. */
 export interface SelectionSnapshot {
   text: string
+  /** DOM selection direction; absent for snapshots supplied by older integrations. */
+  direction?: 'forward' | 'backward'
   range: Range
   rect: DOMRectReadOnly
   clientRects: DOMRectReadOnly[]
@@ -91,6 +93,8 @@ export interface AIAdapter {
 export type QuickAssistSuggestionInput = Suggestion | SuggestionFactory
 
 export interface QuickAssistSelectionOptions {
+  /** Only accept selections in document order. Defaults to true. */
+  forwardOnly?: boolean
   maxTextLength?: number
   validate?: (snapshot: SelectionSnapshot) => boolean
 }
@@ -100,6 +104,7 @@ export interface QuickAssistTriggerOptions {
   /** Milliseconds to wait after the selection settles before showing the trigger. Defaults to 0. */
   showDelay?: number
   offset?: number
+  /** Preferred position relative to the first/last selected line. Defaults to bottom-end. */
   placement?: QuickAssistPlacement
 }
 

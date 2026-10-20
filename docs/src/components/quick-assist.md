@@ -102,6 +102,28 @@ const quickAssist = createQuickAssist({
 
 <demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
 
+### 划词方向与入口位置
+
+默认仅正向划词触发入口，设置 `selection.forwardOnly: false` 可允许双向划词。方向按文档顺序判断，跨行向后选择仍视为正向，即使结束位置在起始位置左侧；键盘 Shift 选词采用相同规则。自定义 `selection.validate` 不会覆盖方向限制。此规则面向横排中文等常规阅读场景，不按 RTL 或竖排文字的视觉方向判断。
+
+入口默认显示在最后一行选中文字的右下方，入口左边缘对齐文字右边缘。`top` 系列位置使用第一行，`bottom` 系列使用最后一行；同一行的多个内联文本片段合并计算。`start` 表示入口向文字左侧展开（入口右边缘对齐文字左边缘），`end` 表示入口向文字右侧展开（入口左边缘对齐文字右边缘），不带后缀则居中；`auto` 优先在末行下方居中。空间不足时会翻转到另一侧，并使用对应的首行或末行，必要时向视口内调整。
+
+```ts
+const quickAssist = createQuickAssist({
+  adapter,
+  selection: { forwardOnly: true },
+  trigger: { placement: 'bottom-end', offset: 8 },
+})
+
+// updateOptions 中提供的嵌套配置会整体替换原分组。
+quickAssist.updateOptions({
+  selection: { forwardOnly: false },
+  trigger: { placement: 'top-start' },
+})
+```
+
+<demo vue="../../demos/quick-assist/direction-placement.vue" title="划词方向与首末行定位" description="切换方向限制和入口位置，跨行选中文字观察入口对齐。" />
+
 ```ts
 createQuickAssist({
   adapter,
@@ -303,7 +325,7 @@ onBeforeUnmount(() => {
 
 ## 交互与限制
 
-- 划词入口默认出现在选区下方居中，空间不足时会翻转或调整位置；打开输入浮层后仍会根据选区重新定位。
+- 划词默认仅正向触发；入口默认出现在选区末行右下方，空间不足时会翻转或调整位置；打开输入浮层后仍会跟随入口对应的首末行位置。
 - 点击入口后输入框立即打开并聚焦，默认填入选中文字；按 Enter 发送，按 Shift+Enter 换行，输入法组合期间不会误发。
 - 等待业务上下文构造或脱敏时，仍可编辑输入，但暂时不能提交；脱敏完成前不会调用推荐函数。
 - 点击推荐项或手动发送后，组件先关闭划词界面，再调用 `adapter`。
@@ -324,11 +346,12 @@ onBeforeUnmount(() => {
 | `include`                      | `string[]`                                                               | —            | 限定可触发的页面区域                               |
 | `exclude`                      | `string[]`                                                               | —            | 在内置排除规则上追加页面区域                       |
 | `selection.maxTextLength`      | `number`                                                                 | `300`        | 可选文字的最大长度，必须为正整数                   |
+| `selection.forwardOnly`        | `boolean`                                                                | `true`       | 仅正向选词触发；设为 false 允许双向选择             |
 | `selection.validate`           | `(snapshot) => boolean`                                                  | 内置校验     | 替代默认的文本内容校验                             |
 | `trigger.label`                | `string`                                                                 | `智能帮助`   | 划词入口文案                                       |
 | `trigger.showDelay`            | `number`                                                                 | `0`          | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数   |
 | `trigger.offset`               | `number`                                                                 | `8`          | 入口与选区的间距，单位为像素                       |
-| `trigger.placement`            | `'auto' \| 'top' \| 'bottom'`                                            | `'auto'`     | 入口的优先位置；空间不足时调整                     |
+| `trigger.placement`            | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'` | 入口的优先位置；上方按首行、下方按末行，空间不足时调整 |
 | `nearbyContext.maxLength`      | `number`                                                                 | `500`        | 附近文本的最大字符数                               |
 | `nearbyContext.blockSelectors` | `string[]`                                                               | 内置选择器   | 在默认语义块之外增加候选块                         |
 | `getNearbyContext`             | `(snapshot) => string \| undefined`                                      | —            | 自定义附近文本；`snapshot` 含 DOM `Range`          |
