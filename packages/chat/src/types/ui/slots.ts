@@ -65,7 +65,7 @@ export interface ChatSenderSlotProps {
   readonly clear: () => void
 }
 
-export interface ChatExtensionHeaderActionsSlotProps {
+export interface ChatExtensionSlotProps {
   readonly activeTabId: string | undefined
 }
 
@@ -120,6 +120,6 @@ export interface ChatUISlots {
   'sender-header'?: () => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
-  'extension-header-actions'?: (props: ChatExtensionHeaderActionsSlotProps) => unknown
-  'extension-overlay'?: (props: ChatExtensionHeaderActionsSlotProps) => unknown
+  'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown
+  'extension-overlay'?: (props: ChatExtensionSlotProps) => unknown
 }

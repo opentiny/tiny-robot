@@ -33,10 +33,6 @@ const emit = defineEmits<{
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
-  mcpAddServer: [payload: { id: string }]
-  mcpRemoveServer: [payload: { id: string }]
-  mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
-  mcpToolEnabledChange: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 defineSlots<{
@@ -90,10 +86,6 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         @model-select="emit('modelSelect', $event)"
         @model-feature-change="emit('modelFeatureChange', $event)"
         @model-reasoning-effort-change="emit('modelReasoningEffortChange', $event)"
-        @mcp-add-server="emit('mcpAddServer', $event)"
-        @mcp-remove-server="emit('mcpRemoveServer', $event)"
-        @mcp-server-enabled-change="emit('mcpServerEnabledChange', $event)"
-        @mcp-tool-enabled-change="emit('mcpToolEnabledChange', $event)"
       >
         <template v-if="$slots['sender-header']" #sender-header>
           <slot name="sender-header" />

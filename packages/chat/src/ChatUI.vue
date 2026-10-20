@@ -32,7 +32,6 @@ import type {
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
   ChatMcpCreateServerPayload,
-  ChatMcpToolEnabledChangePayload,
   ChatModelFeatureChangePayload,
   ChatModelReasoningEffortChangePayload,
   ChatRightAsidePanelOptions,
@@ -339,10 +338,6 @@ function handleMcpServerEnabledChange(payload: { id: string; enabled: boolean })
   emit('mcp-server-enabled-change', { serverId: payload.id, enabled: payload.enabled })
 }
 
-function handleMcpToolEnabledChange(payload: ChatMcpToolEnabledChangePayload) {
-  emit('mcp-tool-enabled-change', payload)
-}
-
 function handleExtensionAction(payload: ExtensionManagerActionEvent) {
   emit('extension-action', payload)
 }
@@ -416,10 +411,6 @@ const composerEvents = {
   onModelReasoningEffortChange: handleModelReasoningEffortChange,
   onOpenMcpPanel: handleOpenMcpPanel,
   onOpenExtensionsPanel: handleOpenExtensionsPanel,
-  onMcpAddServer: handleMcpAddServer,
-  onMcpRemoveServer: handleMcpRemoveServer,
-  onMcpServerEnabledChange: handleMcpServerEnabledChange,
-  onMcpToolEnabledChange: handleMcpToolEnabledChange,
 }
 
 const composerTemplateEvents = {
@@ -432,10 +423,6 @@ const composerTemplateEvents = {
   modelReasoningEffortChange: handleModelReasoningEffortChange,
   openMcpPanel: handleOpenMcpPanel,
   openExtensionsPanel: handleOpenExtensionsPanel,
-  mcpAddServer: handleMcpAddServer,
-  mcpRemoveServer: handleMcpRemoveServer,
-  mcpServerEnabledChange: handleMcpServerEnabledChange,
-  mcpToolEnabledChange: handleMcpToolEnabledChange,
 }
 
 function renderEmptyStateComposer() {

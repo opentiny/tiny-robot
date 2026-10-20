@@ -484,6 +484,27 @@ const ui: ChatUIOptions = {
 
 完整配置及默认值见 [布局配置](#layout)，面板控制属性见 [TrChat 属性](#trchat-props)。
 
+### 注册更多扩展
+
+通过 `ui.extensions.tabs` 可以向内置扩展管理器注册 Skills 等更多应用页签。已有的 `mcp` 配置无需修改；同时使用时，MCP 和应用页签会显示在同一右侧面板中。
+
+<demo
+  vue="../../demos/chat/extension-tabs.vue"
+  :vueFiles="['../../demos/chat/extension-tabs.vue', '../../demos/chat/useExtensionTabsDemo.ts']"
+  title="注册 Skills 扩展页签"
+  description="通过 ui.extensions.tabs 注册 Skills 页签，并处理安装、开关、导入和详情操作。"
+/>
+
+扩展页签通过以下接口处理交互和自定义内容：
+
+- **事件**：组件触发 `extension-action` 后，应用需要写回安装状态或开关状态。
+- **页头插槽**：通过 `extension-header-actions` 添加导入等页头操作。
+- **二级面板**：将 `ui.extensions.overlayOpen` 设为 `true`，并通过 `extension-overlay` 插槽提供导入表单或详情；显示和关闭状态由应用管理。
+
+`mcp` 是内置保留页签 ID，不能作为应用页签 ID。MCP 服务、工具和自定义添加的配置方式见 [`ChatUIData.mcp`](#chatuidata-mcp)。
+
+完整配置、事件和插槽说明见 [`ui.extensions`](#ui-extensions)。
+
 ### 浮动聊天窗口
 
 将聊天界面显示为可拖动、缩放的浮动窗口。
@@ -846,7 +867,7 @@ const data = computed<ChatUIData>(() => ({
 
 `ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、思考强度选项（`efforts`）、默认强度（`defaultEffort`）、支持的功能和 `metadata`。选择器弹出面板所在的容器由 `ui.model.appendTo` 配置，其他行为见 [ModelSelector](../components/model-selector)。
 
-#### `mcp`
+#### `mcp` {#chatuidata-mcp}
 
 | 字段      | 类型                  | 说明                                                                 |
 | --------- | --------------------- | -------------------------------------------------------------------- |
@@ -856,36 +877,6 @@ const data = computed<ChatUIData>(() => ({
 `ChatMcpServerView` 要求 `id`、`name`、`installed` 和 `enabled`；可选 `description`、`icon`、`category`、`loading`、`error` 与 `metadata`。`ChatMcpToolView` 要求 `id`、`name` 和 `enabled`，可选 `description` 与 `loading`。只有 `ui.mcp` 与 `ui.layout.rightAside` 都未设为 `false` 时，MCP 入口和内置面板才可见。
 
 内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP 服务按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source }`；`config` 是整理后的单个 MCP 服务连接配置，`source` 为 `'form'` 或 `'code'`。Chat 不保存自定义 MCP 服务，应用收到事件后负责保存并更新 `mcp.servers`。服务的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
-
-#### 扩展页签
-
-通过 `ui.extensions.tabs` 向内置扩展管理器注册 Skills 等应用能力。注册至少一个页签后，输入区只显示一个“扩展”入口，MCP 和应用页签在同一面板中展示；未注册应用页签时，原有 MCP 入口和事件保持不变。`mcp` 是保留页签 ID，重复 ID 会被忽略。
-
-```ts
-import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
-
-const ui: ChatUIOptions = {
-  extensions: {
-    defaultActiveTab: 'skills',
-    tabs: [
-      {
-        id: 'skills',
-        label: 'Skills',
-        items: [
-          {
-            id: 'concise-answer',
-            name: 'Concise Answer',
-            installed: true,
-            actions: [{ id: 'toggle', type: 'switch', checked: true }],
-          },
-        ],
-      },
-    ],
-  },
-}
-```
-
-应用通过 `extension-action`、`extension-name-click` 和 `extension-tab-change` 处理页签交互。`extension-header-actions` 插槽可按当前页签添加“导入”等操作。需要在同一右栏显示导入表单或详情时，将 `overlayOpen` 设为 `true`，并通过 `extension-overlay` 插槽提供内容；此时扩展列表会暂时移出可访问树，避免与覆盖内容同时被操作。
 
 #### `request`
 
@@ -919,7 +910,41 @@ const ui: ChatUIOptions = {
 | `sender`     | `false \| ChatSenderOptions`     | 提供的选项覆盖对应的默认输入区选项。                                      | 移除输入区及其插槽。                      |
 | `model`      | `false \| ChatModelOptions`      | 默认 `{}`；只有 `data.model` 存在时显示。                                 | 即使存在模型数据也隐藏选择器。            |
 | `mcp`        | `false \| ChatMcpOptions`        | 默认 `{}`；当前没有额外配置字段。                                         | 即使存在 MCP 数据也隐藏入口和面板。       |
-| `extensions` | `false \| ChatExtensionsOptions` | 注册应用扩展页签，可设置默认页签及覆盖层状态。                            | 不注册应用扩展页签。                      |
+| `extensions` | `false \| ChatExtensionsOptions` | 注册应用扩展页签，可设置默认页签及二级面板状态。                          | 不注册应用扩展页签。                      |
+
+#### `ui.extensions` {#ui-extensions}
+
+通过 `ui.extensions.tabs` 向内置扩展管理器注册 Skills 等应用能力。若同时提供 `mcp`，MCP 和应用页签会在同一面板中展示；未注册应用页签时，扩展管理器只显示 MCP 页签，原有 MCP 事件保持不变。`mcp` 是保留页签 ID，重复 ID 会被忽略。
+
+```ts
+import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
+
+const ui: ChatUIOptions = {
+  extensions: {
+    defaultActiveTab: 'skills',
+    tabs: [
+      {
+        id: 'skills',
+        label: 'Skills',
+        items: [
+          {
+            id: 'concise-answer',
+            name: 'Concise Answer',
+            installed: true,
+            actions: [{ id: 'toggle', type: 'switch', label: '启用简洁回答', checked: true }],
+          },
+        ],
+      },
+    ],
+  },
+}
+```
+
+扩展页签相关接口分为以下三类：
+
+- **事件**：`extension-action` 处理安装、卸载和开关等条目操作；`extension-name-click` 处理名称点击；`extension-tab-change` 处理页签切换。
+- **插槽**：`extension-header-actions` 按当前页签添加“导入”等页头操作；`extension-overlay` 在同一右栏提供导入表单或详情等二级面板内容。
+- **受控配置**：`ui.extensions.overlayOpen` 控制是否显示二级面板。设为 `true` 时，扩展列表会暂时移出可访问树；应用负责将其设回 `false` 以关闭二级面板。
 
 #### `layout`
 
@@ -965,7 +990,7 @@ const ui: ChatUIOptions = {
 | `sender`     | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。                    | [Sender](../components/sender)                      |
 | `model`      | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                            | [ModelSelector](../components/model-selector)       |
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
-| `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换覆盖内容。 | [ExtensionManager](../components/extension-manager) |
+| `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
 `ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
@@ -973,30 +998,30 @@ const ui: ChatUIOptions = {
 
 以下插槽适用于 `TrChat` 和 `TrChatUI`。插槽参数中的发送、会话、模型和 MCP 操作，在 `TrChat` 中调用当前 Runtime；在 `TrChatUI` 中触发事件，需要项目处理事件并更新数据。
 
-| 插槽                                                                               | 插槽参数                              | 说明                                                                                        |
-| ---------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `layout-header`                                                                    | `ChatHeaderSlotProps`                 | 替换页头。                                                                                  |
-| `layout-left-aside`                                                                | `ChatLeftAsideSlotProps`              | 替换左侧展开面板。                                                                          |
-| `layout-left-aside-brand` / `layout-left-aside-actions` / `layout-left-aside-rail` | `ChatLeftAsideSlotProps`              | 分别替换左栏品牌、操作和收起时的操作区域。                                                  |
-| `layout-left-aside-footer`                                                         | `ChatLeftAsideSlotProps`              | 在左栏底部添加内容。                                                                        |
-| `layout-left-aside-content`                                                        | `ChatLeftAsideContentSlotProps`       | 替换左栏内容区，包括默认会话列表。                                                          |
-| `layout-left-aside-history-item-prefix`                                            | `ChatHistoryItemPrefixSlotProps`      | 在历史项前添加内容。                                                                        |
-| `layout-right-aside`                                                               | `ChatRightAsidePanelSlotProps`        | 替换整个右栏及其面板。                                                                      |
-| `layout-right-aside-title`                                                         | `ChatRightAsideTitleSlotProps`        | 替换应用添加的面板标题。                                                                    |
-| `layout-right-aside-panel`                                                         | `ChatRightAsidePanelSlotProps`        | 提供应用添加的面板内容。                                                                    |
-| `layout-main`                                                                      | `ChatMainSlotProps`                   | 替换消息区和空状态内容，保留外层滚动区域；优先于 `layout-empty-state`。                     |
-| `layout-empty-state`                                                               | `ChatEmptyStateSlotProps`             | 替换没有消息时的内容；需要显示默认输入区时，调用 `renderComposer()`。                       |
-| `layout-footer`                                                                    | `ChatSenderSlotProps`                 | 替换默认输入框，需自行连接输入和提交操作；保留 `composer-before` 和 `composer-after`。      |
-| `composer-before`                                                                  | `ChatSenderSlotProps`                 | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
-| `composer-after`                                                                   | `ChatSenderSlotProps`                 | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
-| `sender-header`                                                                    | 无                                    | 在默认输入框内部上方添加内容。                                                              |
-| `sender-footer`                                                                    | 无                                    | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域。                            |
-| `sender-footer-right`                                                              | 无                                    | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容。                                      |
-| `extension-header-actions`                                                         | `ChatExtensionHeaderActionsSlotProps` | 在当前扩展页签标题区添加应用操作。                                                          |
-| `extension-overlay`                                                                | `ChatExtensionHeaderActionsSlotProps` | 在扩展右栏显示由应用管理的导入、详情等覆盖内容。                                            |
-| `header-notice` / `welcome-footer` / `prompts-footer`                              | 无                                    | 扩展对应区域。                                                                              |
-| `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`                 | 在消息周围添加内容。                                                                        |
-| `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps`    | 在消息内容下方添加内容。                                                                    |
+| 插槽                                                                               | 插槽参数                           | 说明                                                                                        |
+| ---------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| `layout-header`                                                                    | `ChatHeaderSlotProps`              | 替换页头。                                                                                  |
+| `layout-left-aside`                                                                | `ChatLeftAsideSlotProps`           | 替换左侧展开面板。                                                                          |
+| `layout-left-aside-brand` / `layout-left-aside-actions` / `layout-left-aside-rail` | `ChatLeftAsideSlotProps`           | 分别替换左栏品牌、操作和收起时的操作区域。                                                  |
+| `layout-left-aside-footer`                                                         | `ChatLeftAsideSlotProps`           | 在左栏底部添加内容。                                                                        |
+| `layout-left-aside-content`                                                        | `ChatLeftAsideContentSlotProps`    | 替换左栏内容区，包括默认会话列表。                                                          |
+| `layout-left-aside-history-item-prefix`                                            | `ChatHistoryItemPrefixSlotProps`   | 在历史项前添加内容。                                                                        |
+| `layout-right-aside`                                                               | `ChatRightAsidePanelSlotProps`     | 替换整个右栏及其面板。                                                                      |
+| `layout-right-aside-title`                                                         | `ChatRightAsideTitleSlotProps`     | 替换应用添加的面板标题。                                                                    |
+| `layout-right-aside-panel`                                                         | `ChatRightAsidePanelSlotProps`     | 提供应用添加的面板内容。                                                                    |
+| `layout-main`                                                                      | `ChatMainSlotProps`                | 替换消息区和空状态内容，保留外层滚动区域；优先于 `layout-empty-state`。                     |
+| `layout-empty-state`                                                               | `ChatEmptyStateSlotProps`          | 替换没有消息时的内容；需要显示默认输入区时，调用 `renderComposer()`。                       |
+| `layout-footer`                                                                    | `ChatSenderSlotProps`              | 替换默认输入框，需自行连接输入和提交操作；保留 `composer-before` 和 `composer-after`。      |
+| `composer-before`                                                                  | `ChatSenderSlotProps`              | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
+| `composer-after`                                                                   | `ChatSenderSlotProps`              | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
+| `sender-header`                                                                    | 无                                 | 在默认输入框内部上方添加内容。                                                              |
+| `sender-footer`                                                                    | 无                                 | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域。                            |
+| `sender-footer-right`                                                              | 无                                 | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容。                                      |
+| `extension-header-actions`                                                         | `ChatExtensionSlotProps`           | 在当前扩展页签标题区添加应用操作。                                                          |
+| `extension-overlay`                                                                | `ChatExtensionSlotProps`           | 在扩展右栏显示由应用管理的导入、详情等二级面板。                                            |
+| `header-notice` / `welcome-footer` / `prompts-footer`                              | 无                                 | 扩展对应区域。                                                                              |
+| `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
+| `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps` | 在消息内容下方添加内容。                                                                    |
 
 ## 类型索引
 
@@ -1057,24 +1082,24 @@ const ui: ChatUIOptions = {
 | `ChatSenderDefaultActions`   | 输入区默认按钮配置，支持 `DefaultActions` 中除 `submit.disabled` 外的配置；提交禁用状态通过 `data.sender.submitDisabled` 设置。                              |
 | `ChatModelOptions`           | 模型选择器弹出面板所在容器的配置。                                                                                                                           |
 | `ChatMcpOptions`             | 当前为空对象配置。                                                                                                                                           |
-| `ChatExtensionsOptions`      | 应用扩展页签、默认页签和覆盖层状态。                                                                                                                         |
+| `ChatExtensionsOptions`      | 应用扩展页签、默认页签和二级面板状态。                                                                                                                       |
 
 #### 插槽参数
 
-| 类型                                  | 字段                                                                                                                                                                                                        |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatHeaderSlotProps`                 | `title`；`isEmpty`；`conversation`；`createConversation()`；`isLeftAsideOpen`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()`；`openRightAside(panel?)`；`closeRightAside()`                    |
-| `ChatLeftAsideSlotProps`              | `conversation`；`isOpen`；`isDock`；`createConversation()`；`switchConversation(id)`；`renameConversation(id, title)`；`deleteConversation(id)`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()` |
-| `ChatLeftAsideContentSlotProps`       | 包含 `ChatLeftAsideSlotProps` 的全部参数，另有 `history?: ChatHistoryData`。                                                                                                                                |
-| `ChatHistoryItemPrefixSlotProps`      | `item: ChatConversationInfo`                                                                                                                                                                                |
-| `ChatRightAsidePanelSlotProps`        | `panelId?`；`panel?`；`panels`；右栏打开、关闭、切换和激活方法；`isRightAsideOpen`                                                                                                                          |
-| `ChatRightAsideTitleSlotProps`        | `panelId?`；`panel?`                                                                                                                                                                                        |
-| `ChatSenderSlotProps`                 | `value`；`loading`；`disabled`；`submitDisabled`；输入更新、提交、取消和清空方法                                                                                                                            |
-| `ChatExtensionHeaderActionsSlotProps` | `activeTabId?: string`                                                                                                                                                                                      |
-| `ChatMainSlotProps`                   | `messages`；`request?`；`conversation`                                                                                                                                                                      |
-| `ChatEmptyStateSlotProps`             | `messages`；`request?`；`conversation`；`isEmpty: true`；`renderComposer()`                                                                                                                                 |
-| `ChatBubbleSlotProps`                 | `messages`；`role?`；`messageIndexes`                                                                                                                                                                       |
-| `ChatBubbleContentFooterSlotProps`    | `messages`；`role?`；`messageIndexes`；`contentIndex?: number`                                                                                                                                              |
+| 类型                               | 字段                                                                                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatHeaderSlotProps`              | `title`；`isEmpty`；`conversation`；`createConversation()`；`isLeftAsideOpen`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()`；`openRightAside(panel?)`；`closeRightAside()`                    |
+| `ChatLeftAsideSlotProps`           | `conversation`；`isOpen`；`isDock`；`createConversation()`；`switchConversation(id)`；`renameConversation(id, title)`；`deleteConversation(id)`；`openLeftAside()`；`closeLeftAside()`；`toggleLeftAside()` |
+| `ChatLeftAsideContentSlotProps`    | 包含 `ChatLeftAsideSlotProps` 的全部参数，另有 `history?: ChatHistoryData`。                                                                                                                                |
+| `ChatHistoryItemPrefixSlotProps`   | `item: ChatConversationInfo`                                                                                                                                                                                |
+| `ChatRightAsidePanelSlotProps`     | `panelId?`；`panel?`；`panels`；右栏打开、关闭、切换和激活方法；`isRightAsideOpen`                                                                                                                          |
+| `ChatRightAsideTitleSlotProps`     | `panelId?`；`panel?`                                                                                                                                                                                        |
+| `ChatSenderSlotProps`              | `value`；`loading`；`disabled`；`submitDisabled`；输入更新、提交、取消和清空方法                                                                                                                            |
+| `ChatExtensionSlotProps`           | `activeTabId?: string`                                                                                                                                                                                      |
+| `ChatMainSlotProps`                | `messages`；`request?`；`conversation`                                                                                                                                                                      |
+| `ChatEmptyStateSlotProps`          | `messages`；`request?`；`conversation`；`isEmpty: true`；`renderComposer()`                                                                                                                                 |
+| `ChatBubbleSlotProps`              | `messages`；`role?`；`messageIndexes`                                                                                                                                                                       |
+| `ChatBubbleContentFooterSlotProps` | `messages`；`role?`；`messageIndexes`；`contentIndex?: number`                                                                                                                                              |
 
 #### 事件参数
 

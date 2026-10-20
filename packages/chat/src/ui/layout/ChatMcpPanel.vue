@@ -13,7 +13,7 @@ import {
   type McpExtensionFormValue,
 } from '@opentiny/tiny-robot'
 import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
-import type { ChatLabels, ChatMcpView } from '../../types'
+import type { ChatExtensionSlotProps, ChatLabels, ChatMcpView } from '../../types'
 import { createChatMcpManagerTab } from './chatMcpManager'
 
 const props = defineProps<{
@@ -25,8 +25,8 @@ const props = defineProps<{
 }>()
 
 defineSlots<{
-  'extension-header-actions'?: (props: { activeTabId: string | undefined }) => unknown
-  'extension-overlay'?: (props: { activeTabId: string | undefined }) => unknown
+  'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown
+  'extension-overlay'?: (props: ChatExtensionSlotProps) => unknown
 }>()
 
 const emit = defineEmits<{
@@ -136,7 +136,8 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
 
 <template>
   <div class="chat-mcp-panel">
-    <template v-if="view === 'list' && !extensionOverlayOpen">
+    <slot v-if="extensionOverlayOpen" name="extension-overlay" :active-tab-id="activeTabId" />
+    <template v-else-if="view === 'list'">
       <div class="chat-mcp-panel__manager">
         <TrExtensionManager
           v-model:active-tab="activeTabId"
@@ -172,7 +173,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
       </div>
     </template>
 
-    <template v-else-if="view !== 'list'">
+    <template v-else>
       <div class="chat-mcp-panel__header">
         <button
           type="button"
@@ -211,7 +212,6 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
         />
       </div>
     </template>
-    <slot v-if="extensionOverlayOpen" name="extension-overlay" :active-tab-id="activeTabId" />
   </div>
 </template>
 

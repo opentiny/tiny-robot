@@ -11,10 +11,12 @@ test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture)
 
-  await expect(component.getByRole('button', { name: '扩展', exact: true })).toBeVisible()
+  const extensionEntry = component.getByRole('button', { name: '扩展', exact: true })
+  await expect(extensionEntry).toBeVisible()
+  await expect(extensionEntry).toContainText('1')
   await expect(component.getByRole('button', { name: 'MCP', exact: true })).toHaveCount(0)
 
-  await component.getByRole('button', { name: '扩展', exact: true }).click()
+  await extensionEntry.click()
   await expect(component.getByRole('tab', { name: 'MCP', exact: true })).toBeVisible()
   await expect(component.getByRole('tab', { name: 'Skills', exact: true })).toBeVisible()
 })
@@ -46,6 +48,19 @@ test('forwards registered tab actions, name clicks, and header actions', async (
   )
 
   await component.getByRole('button', { name: 'Import Skill', exact: true }).click()
-  await expect(component.getByTestId('skill-overlay')).toHaveText('Skill overlay')
+  await expect(component.getByTestId('extension-overlay')).toHaveText('skills overlay')
   await expect(component.getByRole('tab', { name: 'Skills', exact: true })).toHaveCount(0)
+})
+
+test('shows the application secondary panel instead of MCP detail', async ({ mount }) => {
+  const component = await mount(ChatExtensionTabsFixture)
+
+  await component.getByRole('button', { name: '扩展', exact: true }).click()
+  await component.getByRole('button', { name: 'Search MCP', exact: true }).click()
+  await expect(component.getByRole('heading', { name: 'Search MCP', exact: true })).toBeVisible()
+
+  await component.getByTestId('open-extension-overlay').click()
+
+  await expect(component.getByTestId('extension-overlay')).toHaveText('mcp overlay')
+  await expect(component.getByRole('heading', { name: 'Search MCP', exact: true })).toHaveCount(0)
 })

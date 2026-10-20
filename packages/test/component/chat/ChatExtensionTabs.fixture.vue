@@ -51,6 +51,9 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
 
 <template>
   <div style="width: 960px; height: 720px">
+    <button type="button" data-testid="open-extension-overlay" @click="overlayOpen = true">
+      Open extension overlay
+    </button>
     <ChatUI
       :data="{
         mcp: props.withMcp
@@ -74,7 +77,7 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
         <button v-if="activeTabId === 'skills'" type="button" @click="overlayOpen = true">Import Skill</button>
       </template>
       <template #extension-overlay="{ activeTabId }">
-        <span v-if="activeTabId === 'skills' && overlayOpen" data-testid="skill-overlay">Skill overlay</span>
+        <span v-if="overlayOpen" data-testid="extension-overlay">{{ activeTabId }} overlay</span>
       </template>
     </ChatUI>
     <output data-testid="event">{{ event }}</output>

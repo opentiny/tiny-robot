@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import MCPSelector from './MCPSelector.vue'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatures from './ModelFeatures.vue'
 import ModelSelector from './ModelSelector.vue'
@@ -36,10 +35,6 @@ const emit = defineEmits<{
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
-  mcpAddServer: [payload: { id: string }]
-  mcpRemoveServer: [payload: { id: string }]
-  mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
-  mcpToolEnabledChange: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 defineSlots<{
@@ -64,6 +59,9 @@ const senderProps = computed(() => ({
     },
   },
 }))
+const activeMcpCount = computed(
+  () => props.mcp?.servers?.filter((server) => server.installed && server.enabled).length ?? 0,
+)
 
 function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
@@ -92,22 +90,6 @@ function handleOpenMcpPanel() {
 function handleOpenExtensionsPanel() {
   emit('openExtensionsPanel')
 }
-
-function handleAddServer(payload: { id: string }) {
-  emit('mcpAddServer', payload)
-}
-
-function handleRemoveServer(payload: { id: string }) {
-  emit('mcpRemoveServer', payload)
-}
-
-function handleServerEnabledChange(payload: { id: string; enabled: boolean }) {
-  emit('mcpServerEnabledChange', payload)
-}
-
-function handleToolEnabledChange(payload: { serverId: string; toolId: string; enabled: boolean }) {
-  emit('mcpToolEnabledChange', payload)
-}
 </script>
 
 <template>
@@ -132,17 +114,13 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
           @select-model="handleSelectModel"
           @update-reasoning-effort="handleReasoningEffortChange"
         />
-        <ExtensionSelector v-if="hasRegisteredExtensions" :labels="labels" @open="handleOpenExtensionsPanel" />
-        <MCPSelector
-          v-else-if="mcp"
-          :mcp="mcp"
-          :labels="labels"
-          @open="handleOpenMcpPanel"
-          @add-server="handleAddServer"
-          @remove-server="handleRemoveServer"
-          @update-server-enabled="handleServerEnabledChange"
-          @update-tool-enabled="handleToolEnabledChange"
+        <ExtensionSelector
+          v-if="hasRegisteredExtensions"
+          :count="activeMcpCount"
+          :label="labels.extensions"
+          @open="handleOpenExtensionsPanel"
         />
+        <ExtensionSelector v-else-if="mcp" :count="activeMcpCount" :label="labels.mcp" @open="handleOpenMcpPanel" />
       </div>
       <slot name="sender-footer" />
     </template>
