@@ -117,6 +117,7 @@ export interface ExtensionManagerProps {
   tabs: ExtensionManagerTab[]
   activeTab?: string
   defaultActiveTab?: string
+  hideSingleTab?: boolean
   title?: string
   emptyText?: string
 }
