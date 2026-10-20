@@ -3,6 +3,7 @@ import type {
   QuickAssistContext,
   QuickAssistInstance,
   QuickAssistOptions,
+  QuickAssistPlacement,
   Suggestion,
 } from '../../components/src/vanilla'
 
@@ -31,7 +32,7 @@ async function select(page: Page, selector = '#term') {
   })
 }
 
-async function dragSelectText(page: Page, selector: string) {
+async function dragSelectText(page: Page, selector: string, backward = false) {
   const target = page.locator(selector)
   await target.scrollIntoViewIfNeeded()
   const points = await target.evaluate((element) => {
@@ -52,6 +53,7 @@ async function dragSelectText(page: Page, selector: string) {
       end: { x: lastRect.right - 1, y: (lastRect.top + lastRect.bottom) / 2 },
     }
   })
+  if (backward) [points.start, points.end] = [points.end, points.start]
   await page.mouse.move(points.start.x, points.start.y)
   await page.mouse.down()
   await page.mouse.move(points.end.x, points.end.y, { steps: 8 })
@@ -73,6 +75,248 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/quick-assist/index.html')
   await page.waitForFunction(() => typeof window.resetQuickAssist === 'function')
 })
+
+async function selectDirection(page: Page, selector: string, backward: boolean) {
+  await page.locator(selector).evaluate((element, reverse) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+    const nodes: Node[] = []
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node)
+    const first = nodes[0]
+    const last = nodes[nodes.length - 1]
+    window
+      .getSelection()!
+      .setBaseAndExtent(
+        reverse ? last : first,
+        reverse ? last.textContent!.length : 0,
+        reverse ? first : last,
+        reverse ? 0 : last.textContent!.length,
+      )
+    document.dispatchEvent(new Event('selectionchange'))
+  }, backward)
+}
+
+async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom = false) {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.evaluate(
+    ({ placement, bottom }) => {
+      window.resetQuickAssist({ trigger: placement ? { placement } : {} })
+      const element = document.querySelector<HTMLElement>('#mixed')!
+      Object.assign(element.style, {
+        position: 'fixed',
+        left: '240px',
+        top: bottom ? 'auto' : '180px',
+        bottom: bottom ? '10px' : 'auto',
+        width: '500px',
+        margin: '0',
+        lineHeight: '36px',
+      })
+      element.innerHTML =
+        '<span id="first-line">第一行的文字比较长，<b>包含多个片段</b></span><br>' +
+        '<span id="last-line" style="margin-left:60px">末行<b>短文本</b></span>'
+    },
+    { placement, bottom },
+  )
+  await select(page, '#mixed')
+  await expect(page.locator(trigger)).toBeVisible()
+}
+
+async function lineGeometry(page: Page, side: 'top' | 'bottom') {
+  return page.locator(trigger).evaluate((button, side) => {
+    const line = document.querySelector(side === 'top' ? '#first-line' : '#last-line')!
+    const range = document.createRange()
+    range.selectNodeContents(line.firstChild!)
+    const first = range.getBoundingClientRect()
+    range.selectNodeContents(line.querySelector('b')!.firstChild!)
+    const last = range.getBoundingClientRect()
+    return {
+      button: button.getBoundingClientRect().toJSON(),
+      line: {
+        left: first.left,
+        right: last.right,
+        top: Math.min(first.top, last.top),
+        bottom: Math.max(first.bottom, last.bottom),
+      },
+    }
+  }, side)
+}
+
+for (const selector of ['#term', '#mixed']) {
+  test(`direction filtering precedes deduplication for ${selector}`, async ({ page }) => {
+    await selectDirection(page, selector, true)
+    await expect(page.locator(trigger)).toHaveCount(0)
+    await selectDirection(page, selector, false)
+    await expect(page.locator(trigger)).toBeVisible()
+    await selectDirection(page, selector, true)
+    await expect(page.locator(trigger)).toHaveCount(0)
+    await selectDirection(page, selector, false)
+    await expect(page.locator(trigger)).toBeVisible()
+    await page.evaluate(() => window.qa.updateOptions({ selection: { forwardOnly: false } }))
+    await selectDirection(page, selector, true)
+    await expect(page.locator(trigger)).toBeVisible()
+    await page.evaluate(() => window.qa.updateOptions({ selection: { forwardOnly: true } }))
+    await selectDirection(page, selector, true)
+    await expect(page.locator(trigger)).toHaveCount(0)
+  })
+}
+
+test('native backward mouse selection only triggers with forwardOnly disabled', async ({ page }) => {
+  await dragSelectText(page, '#short', true)
+  expect(await page.evaluate(() => window.getSelection()!.toString().length)).toBeGreaterThan(0)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await page.evaluate(() => {
+    window.qa.updateOptions({ selection: { forwardOnly: false } })
+    window.getSelection()!.removeAllRanges()
+  })
+  await dragSelectText(page, '#short', true)
+  await expect(page.locator(trigger)).toBeVisible()
+})
+
+test('keyboard completion inspects backward selections and respects direction filtering', async ({ page }) => {
+  await page.locator('#keyboard-term').evaluate((element) => {
+    document.addEventListener('selectionchange', (event) => event.stopImmediatePropagation(), { capture: true })
+    window.getSelection()!.setBaseAndExtent(element.firstChild!, element.textContent!.length, element.firstChild!, 0)
+  })
+  await page.keyboard.press('Shift')
+  expect(await page.evaluate(() => window.getSelection()!.toString())).not.toBe('')
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await page.evaluate(() => window.qa.updateOptions({ selection: { forwardOnly: false } }))
+  await page.keyboard.press('Shift')
+  await expect(page.locator(trigger)).toBeVisible()
+})
+
+test('reversing the same pending selection cancels delayed display despite custom validation', async ({ page }) => {
+  await page.evaluate(() =>
+    window.resetQuickAssist({ trigger: { showDelay: 300 }, selection: { validate: () => true } }),
+  )
+  await pauseClock(page)
+  await selectDirection(page, '#mixed', false)
+  await selectDirection(page, '#mixed', true)
+  await page.clock.runFor(500)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.some((event) => event.type === 'trigger_show'))).toBe(false)
+})
+
+test('delayed display rechecks direction even without selectionchange delivery', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 300 } }))
+  await pauseClock(page)
+  await selectDirection(page, '#term', false)
+  await page.locator('#term').evaluate((element) => {
+    document.addEventListener('selectionchange', (event) => event.stopImmediatePropagation(), { capture: true })
+    window.getSelection()!.setBaseAndExtent(element.firstChild!, element.textContent!.length, element.firstChild!, 0)
+  })
+  await page.clock.runFor(500)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
+for (const placement of [
+  undefined,
+  'auto',
+  'bottom',
+  'bottom-start',
+  'bottom-end',
+  'top',
+  'top-start',
+  'top-end',
+] as const) {
+  test(`placement ${placement ?? 'default'} aligns with first/last visual line`, async ({ page }) => {
+    await prepareLines(page, placement)
+    const side = placement?.startsWith('top') ? 'top' : 'bottom'
+    const geometry = await lineGeometry(page, side)
+    const { button, line } = geometry
+    if (placement?.endsWith('-start')) expect(button.right).toBeCloseTo(line.left, 0)
+    else if (!placement || placement.endsWith('-end')) expect(button.left).toBeCloseTo(line.right, 0)
+    else expect(Math.abs((button.left + button.right) / 2 - (line.left + line.right) / 2)).toBeLessThanOrEqual(0.5)
+    expect(side === 'top' ? line.top - button.bottom : button.top - line.bottom).toBeCloseTo(8, 0)
+  })
+}
+
+test('flipping bottom-end uses the first line right edge', async ({ page }) => {
+  await prepareLines(page, 'bottom-end', true)
+  await expect(page.locator(trigger)).toHaveAttribute('data-placement', 'top-end')
+  const geometry = await lineGeometry(page, 'top')
+  expect(geometry.button.left).toBeCloseTo(geometry.line.right, 0)
+  expect(geometry.line.top - geometry.button.bottom).toBeCloseTo(8, 0)
+})
+
+test('flipping top-start uses the last line left edge', async ({ page }) => {
+  await prepareLines(page, 'top-start')
+  await page.locator('#mixed').evaluate((element) => {
+    ;(element as HTMLElement).style.top = '8px'
+  })
+  await selectDirection(page, '#mixed', true)
+  await selectDirection(page, '#mixed', false)
+  await expect(page.locator(trigger)).toHaveAttribute('data-placement', 'bottom-start')
+  const { button, line } = await lineGeometry(page, 'bottom')
+  expect(button.right).toBeCloseTo(line.left, 0)
+  expect(button.top - line.bottom).toBeCloseTo(8, 0)
+})
+
+test('natural wrapping and partial text selection anchor to the selected last line', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const lastLine = await page.locator('#mixed').evaluate((element) => {
+    Object.assign((element as HTMLElement).style, { position: 'fixed', left: '240px', top: '180px', width: '240px' })
+    element.textContent = '这是自然换行的测试文字，用来验证跨行选区的末行定位，只选取其中部分文字。'
+    const range = document.createRange()
+    range.setStart(element.firstChild!, 3)
+    range.setEnd(element.firstChild!, 23)
+    const rects = Array.from(range.getClientRects())
+    if (rects.length < 2) throw new Error('Expected a wrapped selection')
+    window.getSelection()!.removeAllRanges()
+    window.getSelection()!.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+    return rects[rects.length - 1].toJSON()
+  })
+  await expect(page.locator(trigger)).toBeVisible()
+  const box = await page.locator(trigger).boundingBox()
+  expect(box!.x).toBeCloseTo(lastLine.right, 0)
+  expect(box!.y - lastLine.bottom).toBeCloseTo(8, 0)
+})
+
+test('multiline forward selection can end to the left of its starting point', async ({ page }) => {
+  await prepareLines(page)
+  await page.evaluate(() => {
+    window.qa.close()
+    const first = document.querySelector('#first-line')!.firstChild!
+    const last = document.querySelector('#last-line b')!.firstChild!
+    window.getSelection()!.setBaseAndExtent(first, 10, last, last.textContent!.length)
+    document.dispatchEvent(new Event('selectionchange'))
+  })
+  await expect(page.locator(trigger)).toBeVisible()
+})
+
+test('popover keeps its last-line trigger anchor after layout changes', async ({ page }) => {
+  await prepareLines(page)
+  await page.locator(trigger).click()
+  await expect(page.locator(popover)).toBeVisible()
+  const before = await page.locator(popover).boundingBox()
+  await page.locator('#mixed').evaluate((element) => {
+    ;(element as HTMLElement).style.left = '280px'
+    element.append(document.createTextNode('')) // Trigger the existing layout observer.
+  })
+  await expect.poll(async () => (await page.locator(popover).boundingBox())!.x).toBeCloseTo(before!.x + 40, 0)
+})
+
+for (const placement of ['bottom-start', 'bottom-end'] as const) {
+  test(`${placement} shifts the outward trigger inside viewport edges`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate((placement) => {
+      window.resetQuickAssist({ trigger: { placement } })
+      const element = document.querySelector<HTMLElement>('#term')!
+      Object.assign(element.style, {
+        position: 'fixed',
+        top: '180px',
+        margin: '0',
+        left: placement === 'bottom-start' ? '0' : 'auto',
+        right: placement === 'bottom-end' ? '0' : 'auto',
+      })
+    }, placement)
+    await select(page)
+    await expect(page.locator(trigger)).toBeVisible()
+    const box = await page.locator(trigger).boundingBox()
+    if (placement === 'bottom-start') expect(box!.x).toBe(8)
+    else expect(box!.x + box!.width).toBe(page.viewportSize()!.width - 8)
+  })
+}
 
 test('manual submission closes before adapter and opens the host chat with context', async ({ page }) => {
   await open(page)

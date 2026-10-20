@@ -34,6 +34,7 @@ export interface ResolvedQuickAssistOptions extends QuickAssistOptions {
   exclude: string[]
   maxSuggestions: number
   selection: {
+    forwardOnly: boolean
     maxTextLength: number
     validate?: NonNullable<QuickAssistOptions['selection']>['validate']
   }

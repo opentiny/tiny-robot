@@ -109,6 +109,7 @@ try {
   if (!standalone) {
     for (const selector of [
       '#qa-delay-text',
+      '#qa-position-text',
       '#qa-recommendations-text',
       '#qa-context-text',
       '#qa-scope-allowed',
@@ -116,6 +117,35 @@ try {
     ]) {
       await expect(page.locator(selector)).toBeVisible()
     }
+    const positionDemo = page.locator('.qa-position-demo')
+    const selectPositionText = async (backward) => {
+      await page.locator('#qa-position-text').scrollIntoViewIfNeeded()
+      await page.locator('#qa-position-text').evaluate((element, reverse) => {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+        const nodes = []
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node)
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        window
+          .getSelection()
+          .setBaseAndExtent(
+            reverse ? last : first,
+            reverse ? last.length : 0,
+            reverse ? first : last,
+            reverse ? 0 : last.length,
+          )
+        document.dispatchEvent(new Event('selectionchange'))
+      }, backward)
+    }
+    await selectPositionText(false)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveAttribute('data-placement', 'bottom-end')
+    await selectPositionText(true)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await positionDemo.getByRole('checkbox').uncheck()
+    await positionDemo.getByRole('combobox').selectOption('top-start')
+    await selectPositionText(true)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveAttribute('data-placement', 'top-start')
+    await page.keyboard.press('Escape')
     const delayText = page.locator('#qa-delay-text')
     await delayText.scrollIntoViewIfNeeded()
     await delayText.evaluate((element) => {
