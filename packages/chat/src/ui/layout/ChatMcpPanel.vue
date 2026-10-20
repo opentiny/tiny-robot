@@ -143,7 +143,8 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
           v-model:active-tab="activeTabId"
           :tabs="tabs"
           :default-active-tab="defaultActiveExtensionTab"
-          title="扩展"
+          hide-single-tab
+          :title="labels.extensions"
           @tab-change="handleTabChange"
           @action="handleAction"
           @name-click="openDetail"

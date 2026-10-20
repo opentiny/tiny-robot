@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import ChatMcpPanelFixture from './ChatMcpPanel.fixture.vue'
 
+test('uses the configured extensions label as the manager title', async ({ mount }) => {
+  const component = await mount(ChatMcpPanelFixture, { props: { extensionLabel: '扩展中心' } })
+
+  await expect(component.locator('.extension-manager__title')).toHaveText('扩展中心')
+})
+
 test('opens installed MCP details and forwards a tool switch', async ({ mount }) => {
   const component = await mount(ChatMcpPanelFixture)
 

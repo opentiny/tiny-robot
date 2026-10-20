@@ -4,8 +4,14 @@ import ChatExtensionTabsFixture from './ChatExtensionTabs.fixture.vue'
 test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture, { props: { withSkills: false } })
 
-  await expect(component.getByRole('button', { name: 'MCP', exact: true })).toBeVisible()
+  const mcpEntry = component.getByRole('button', { name: 'MCP', exact: true })
+  await expect(mcpEntry).toBeVisible()
   await expect(component.getByRole('button', { name: '扩展', exact: true })).toHaveCount(0)
+
+  await mcpEntry.click()
+  await expect(component.locator('.extension-manager__title')).toHaveText('扩展')
+  await expect(component.getByRole('tab', { name: 'MCP', exact: true })).toHaveCount(0)
+  await expect(component.getByRole('button', { name: 'Search MCP', exact: true })).toBeVisible()
 })
 
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {
@@ -26,7 +32,8 @@ test('shows registered tabs when MCP is not configured', async ({ mount }) => {
 
   await component.getByRole('button', { name: '扩展', exact: true }).click()
   await expect(component.getByRole('tab', { name: 'MCP', exact: true })).toHaveCount(0)
-  await expect(component.getByRole('tab', { name: 'Skills', exact: true })).toBeVisible()
+  await expect(component.getByRole('tab', { name: 'Skills', exact: true })).toHaveCount(0)
+  await expect(component.getByRole('button', { name: 'Concise Answer', exact: true })).toBeVisible()
 })
 
 test('forwards registered tab actions, name clicks, and header actions', async ({ mount }) => {

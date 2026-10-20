@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ChatMcpPanel from '../../../chat/src/ui/layout/ChatMcpPanel.vue'
 import { createDefaultChatLabels } from '../../../chat/src/ui/defaults'
 import type { ChatMcpView } from '../../../chat/src/types'
+
+const props = withDefaults(defineProps<{ extensionLabel?: string }>(), {
+  extensionLabel: '扩展',
+})
 
 const mcp: ChatMcpView = {
   servers: [
@@ -14,13 +18,14 @@ const mcp: ChatMcpView = {
   },
 }
 const event = ref('')
+const labels = computed(() => ({ ...createDefaultChatLabels(), extensions: props.extensionLabel }))
 </script>
 
 <template>
   <div style="width: 320px; height: 700px">
     <ChatMcpPanel
       :mcp="mcp"
-      :labels="createDefaultChatLabels()"
+      :labels="labels"
       @create-server="event = JSON.stringify({ kind: 'create', ...$event })"
       @update-tool-enabled="event = JSON.stringify({ kind: 'tool', ...$event })"
       @add-server="event = JSON.stringify({ kind: 'add', ...$event })"
