@@ -49,7 +49,7 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 每个当前标签页都有“已安装”和“可安装”两个可折叠分区。没有匹配项时，`ExtensionManager` 的 `empty` 插槽接收分区标题；没有可显示的标签页时显示 `empty-text`。
 
-<demo vue="../../demos/extension-manager/empty-states.vue" title="分区与管理器空状态" description="分别定制空分区内容，并为没有标签页的管理器提供提示文字。" />
+<demo vue="../../demos/extension-manager/empty-states.vue" title="分区与管理器空状态" description="切换单标签导航的显示，定制空分区内容，并为没有标签页的管理器提供提示文字。" />
 
 ## 交互与状态管理
 
