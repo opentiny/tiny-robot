@@ -5,14 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QuickAssist HTML 接入示例</title>
     <style>
+      :root {
+        color-scheme: light;
+        --qa-page-bg: #f5f7fa;
+        --qa-surface: #fff;
+        --qa-text: #222b36;
+        --qa-muted: #536171;
+        --qa-border: #cbd3dd;
+        --qa-warning-bg: #fff4e5;
+        --qa-warning-text: #744c12;
+        --qa-accent: #1476ff;
+        --tr-container-bg-default: var(--qa-surface);
+        --tr-container-bg-default-2: var(--qa-page-bg);
+        --tr-text-primary: var(--qa-text);
+        --tr-text-secondary: var(--qa-muted);
+        --tr-border-color-default: var(--qa-border);
+        --tr-color-primary: var(--qa-accent);
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --qa-page-bg: #1b1b1f;
+        --qa-surface: #202127;
+        --qa-text: #dfdfe4;
+        --qa-muted: #a2a2a8;
+        --qa-border: #3c3f44;
+        --qa-warning-bg: rgb(234 179 8 / 16%);
+        --qa-warning-text: #f0ca7f;
+        --qa-accent: #a8b1ff;
+      }
       body {
         margin: 0;
         padding: 32px;
-        color: #222b36;
+        color: var(--qa-text);
         font:
           15px/1.7 system-ui,
           sans-serif;
-        background: #f5f7fa;
+        background: var(--qa-page-bg);
       }
       main {
         max-width: 900px;
@@ -21,9 +49,9 @@
       article,
       aside {
         padding: 20px;
-        border: 1px solid #dfe3e8;
+        border: 1px solid var(--qa-border);
         border-radius: 12px;
-        background: #fff;
+        background: var(--qa-surface);
       }
       article {
         margin: 20px 0;
@@ -35,8 +63,8 @@
       [data-ai-selection='false'] {
         padding: 8px 10px;
         border-radius: 6px;
-        color: #744c12;
-        background: #fff4e5;
+        color: var(--qa-warning-text);
+        background: var(--qa-warning-bg);
       }
       aside {
         position: sticky;
@@ -54,14 +82,23 @@
       }
       button {
         padding: 7px 12px;
-        border: 1px solid #cbd3dd;
+        border: 1px solid var(--qa-border);
         border-radius: 6px;
-        background: #fff;
+        background: var(--qa-surface);
+        color: var(--qa-text);
+        font: inherit;
         cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--qa-accent);
+      }
+      button:focus-visible {
+        outline: 2px solid var(--qa-accent);
+        outline-offset: 2px;
       }
       .status {
         min-height: 1.4em;
-        color: #536171;
+        color: var(--qa-muted);
         font-size: 13px;
       }
     </style>
@@ -95,12 +132,39 @@
 
     <script>
       ;(async () => {
+        const root = document.documentElement
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        let parentRoot
+        let previewUmdUrl
+        try {
+          if (window.parent !== window) {
+            parentRoot = window.parent.document.documentElement
+            previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
+          }
+        } catch {
+          // 跨源嵌入时不能读取父页面，使用当前系统主题。
+        }
+        const syncTheme = () => {
+          const dark = parentRoot ? parentRoot.classList.contains('dark') : systemTheme.matches
+          root.dataset.theme = dark ? 'dark' : 'light'
+        }
+        syncTheme()
+        const themeObserver = parentRoot ? new MutationObserver(syncTheme) : undefined
+        if (parentRoot) themeObserver.observe(parentRoot, { attributes: true, attributeFilter: ['class'] })
+        if (!parentRoot) systemTheme.addEventListener('change', syncTheme)
+        window.addEventListener(
+          'pagehide',
+          () => {
+            themeObserver?.disconnect()
+            systemTheme.removeEventListener('change', syncTheme)
+          },
+          { once: true },
+        )
         const output = document.querySelector('#request-output')
         const panel = document.querySelector('#assistant-panel')
         const status = document.querySelector('#event-status')
 
         // 文档预览在 iframe 中运行，资源地址由文档页面提供；单独打开此文件时从仓库构建产物加载。
-        const previewUmdUrl = window.parent === window ? undefined : window.parent.__tinyRobotVanillaDemoUmdUrl
         const localUmdUrl = new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI)
         const script = document.createElement('script')
         script.src = previewUmdUrl ?? localUmdUrl.href

@@ -5,6 +5,52 @@ const standalone = new URL(url).pathname.endsWith('/docs/demos/quick-assist/vani
 const screenshotRoot = process.argv[3]
 const browser = await chromium.launch({ headless: true })
 
+// Check the rendered foreground against ancestor backgrounds, including translucent warning panels.
+async function checkThemeContrast(locator) {
+  await expect
+    .poll(() =>
+      locator.evaluateAll((elements) => {
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = 1
+        const context = canvas.getContext('2d')
+        const rgba = (value) => {
+          context.clearRect(0, 0, 1, 1)
+          context.fillStyle = value
+          context.fillRect(0, 0, 1, 1)
+          return Array.from(context.getImageData(0, 0, 1, 1).data)
+        }
+        const luminance = (rgb) =>
+          rgb.slice(0, 3).reduce((sum, value, index) => {
+            const channel = value / 255
+            return (
+              sum +
+              (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4) *
+                [0.2126, 0.7152, 0.0722][index]
+            )
+          }, 0)
+        return elements.flatMap((element) => {
+          const layers = []
+          for (let node = element; node; node = node.parentElement)
+            layers.unshift(rgba(getComputedStyle(node).backgroundColor))
+          let background = [255, 255, 255]
+          for (const layer of layers)
+            background = background.map(
+              (channel, index) => (layer[index] * layer[3]) / 255 + channel * (1 - layer[3] / 255),
+            )
+          const color = rgba(getComputedStyle(element).color)
+          const foreground = background.map(
+            (channel, index) => (color[index] * color[3]) / 255 + channel * (1 - color[3] / 255),
+          )
+          const light = luminance(foreground)
+          const dark = luminance(background)
+          const contrast = (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05)
+          return contrast < 4.5 ? [`${element.className || element.tagName}: ${contrast.toFixed(2)}`] : []
+        })
+      }),
+    )
+    .toEqual([])
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } })
   const pageErrors = []
@@ -66,6 +112,51 @@ try {
     .toBe(true)
   expect(await paragraph.evaluate(() => typeof window.TinyRobotVanilla?.createQuickAssist)).toBe('function')
   await expect(demo.locator('style[data-tr-quick-assist-style]')).toHaveCount(1)
+  // Exercise live switching in both directions; the HTML iframe must follow its parent.
+  for (const mode of ['dark', 'light', 'dark']) {
+    if (standalone) {
+      await page.emulateMedia({ colorScheme: mode })
+    } else {
+      const dark = await page.locator('html').evaluate((element) => element.classList.contains('dark'))
+      if (dark !== (mode === 'dark')) await page.getByTitle('Toggle theme', { exact: true }).click()
+      await expect(page.locator('html')).toHaveAttribute('data-tr-color-mode', mode)
+      await checkThemeContrast(
+        page.locator(
+          [
+            '.qa-demo__page',
+            '.qa-demo__page [data-sensitive]',
+            '.qa-demo__open',
+            '.qa-position-demo label',
+            '.qa-position-demo select',
+            '#qa-position-text',
+            '.qa-delay-demo button',
+            '#qa-delay-text',
+            '.qa-delay-demo__status',
+            '.qa-feature-demo__hint',
+            '.qa-feature-demo__text',
+            '.qa-feature-demo__allowed',
+            '.qa-feature-demo [data-sensitive]',
+            '.qa-feature-demo [data-qa-ignore]',
+            '.qa-feature-demo button',
+            '.qa-feature-demo__status',
+            '.qa-remote-demo',
+            '.qa-remote-demo select',
+            '.qa-remote-demo__hint',
+            '.qa-validation-demo',
+            '.qa-validation-demo select',
+            '.qa-validation-demo__kept',
+          ].join(', '),
+        ),
+      )
+    }
+    await expect(demo.locator('html')).toHaveAttribute('data-theme', mode)
+    await checkThemeContrast(demo.locator('body, article, [data-sensitive], button, .status'))
+    if (screenshotRoot && !standalone) {
+      await page
+        .locator('.qa-position-demo')
+        .screenshot({ path: `${screenshotRoot}/theme-${mode}.png`, animations: 'disabled' })
+    }
+  }
   if (!standalone) {
     const frame = await page
       .locator('iframe')
@@ -87,6 +178,7 @@ try {
   })
 
   await expect(demo.locator('.tr-quick-assist__trigger')).toBeVisible()
+  await checkThemeContrast(demo.locator('.tr-quick-assist__trigger'))
   if (!standalone) await page.locator('iframe').first().scrollIntoViewIfNeeded()
   const frameRect = standalone ? { x: 0, y: 0 } : await page.locator('iframe').first().boundingBox()
   const triggerRect = await demo
@@ -106,6 +198,7 @@ try {
     })
   }
   await expect(demo.locator('#event-status')).not.toContainText('失败')
+  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__popover button'))
   if (!standalone) {
     for (const selector of [
       '#qa-delay-text',
@@ -225,6 +318,9 @@ try {
     // Exercise the actual adapter with enough messages to overflow the panel.
     const chatDemo = page.locator('.qa-demo')
     await chatDemo.getByRole('button', { name: '打开 AI 对话', exact: true }).click()
+    await checkThemeContrast(
+      chatDemo.locator('.qa-demo__assistant, .qa-demo__assistant-head p, .qa-demo__badge, .qa-demo__empty'),
+    )
     const chatText = chatDemo.locator('.qa-demo__page p').first()
     for (let index = 0; index < 8; index++) {
       await chatText.scrollIntoViewIfNeeded()
