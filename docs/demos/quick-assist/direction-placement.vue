@@ -60,8 +60,10 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 <style scoped>
 .qa-position-demo {
+  color: var(--vp-c-text-1, #213547);
+  background: var(--vp-c-bg, #fff);
   padding: 18px;
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 10px;
   line-height: 1.8;
 }
@@ -97,6 +99,6 @@ onBeforeUnmount(() => quickAssist?.destroy())
 #qa-position-text {
   padding: 14px;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: var(--vp-c-bg-soft, #f5f7fa);
 }
 </style>
