@@ -137,47 +137,43 @@ createQuickAssist({
 
 <demo vue="../../demos/quick-assist/recommendations.vue" title="静态与异步推荐" description="查看推荐加载、合并和点击后直接提交的效果。" />
 
-QuickAssist 支持四种推荐模式：
+通过 `suggestions` 配置的问题称为“静态问题”，可包含根据选区生成文案的模板；与组件内置的默认推荐问题区分。QuickAssist 支持四种推荐模式：
 
 | 配置方式                               | 打开输入浮层后的行为                                                                   |
 | -------------------------------------- | -------------------------------------------------------------------------------------- |
 | 省略 `suggestions` 与 `getSuggestions` | 立即显示“解释”和“适用场景”两个默认模板                                                 |
 | 仅配置 `suggestions`                   | 立即显示静态推荐；显式传 `[]` 表示不显示默认模板                                       |
-| 仅配置 `getSuggestions`                | 立即打开输入区，推荐区域显示加载状态；推荐函数返回后展示结果                           |
-| 两者都配置                             | 先显示静态模板，再合并异步推荐；默认保留模板，按 ID 去重，最后由 `maxSuggestions` 裁剪 |
-
-下面用业务接口示意异步推荐；`/api/quick-assist/suggestions` 是应用自行提供的服务路径。
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  suggestions: [
-    {
-      id: 'explain',
-      label: '解释这个选项',
-      prompt: '请结合当前页面上下文解释这个选项的含义',
-    },
-    {
-      id: 'compare',
-      getLabel: ({ text }) => `比较“${text}”`,
-      getPrompt: ({ text }) => `请结合当前页面上下文比较“${text}”和相关选项`,
-    },
-  ],
-  getSuggestions: async (context, signal) => {
-    const response = await fetch('/api/quick-assist/suggestions', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(context),
-      signal,
-    })
-    if (!response.ok) throw new Error('推荐请求失败')
-    return response.json()
-  },
-  maxSuggestions: 3,
-})
-```
+| 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果           |
+| 两者都配置                             | 先显示静态模板，再合并异步推荐；默认静态在前、远程追加，按 `id` 保留首次出现项，最后由 `maxSuggestions` 裁剪；可用 `mergeSuggestions` 自定义覆盖策略 |
 
 `Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送。手动输入则把编辑后的内容作为 `query`；可用 `buildPrompt` 自定义最终发送内容。
+
+#### 远程推荐覆盖静态问题
+
+如果问题全部由远程接口提供，只需配置 `getSuggestions`，省略 `suggestions`，内置的“解释”和“适用场景”模板就不会显示。如果希望加载期间先显示静态问题，远程返回后整体替换，可显式提供静态模板，并通过 `mergeSuggestions` 只返回远程结果。
+
+下面的示例可切换“仅远程推荐”“远程整体替换”“空结果回退”和“远程优先”四种策略，以及成功、空数组、失败三种响应。示例用延迟模拟远程请求，无需后端即可运行；展开示例源码可查看完整配置。接入业务接口时，将 `getSuggestions` 中的模拟逻辑替换为 `fetch`，传入 `signal` 并返回 `Suggestion[]` 即可。
+
+<demo vue="../../demos/quick-assist/remote-recommendations.vue" title="远程推荐与覆盖策略" description="切换策略和响应后重新划词，观察加载期间的静态问题及远程返回后的结果。" />
+
+“远程整体替换”会在远程成功返回空数组时清空静态推荐；“空结果回退”则保留静态问题。“远程优先”示例中远程与静态的解释问题具有相同 `id`，可以观察远程问题如何覆盖静态问题，同时保留未重复的静态问题。
+
+请求失败时不会调用 `mergeSuggestions`，会保留已显示的静态问题并展示加载失败状态，同时触发 `stage: 'suggestions'` 的错误事件。仅配置远程推荐时没有静态问题可回退，用户仍可手动输入提交。
+
+#### 自定义合并策略 `mergeSuggestions`
+
+`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐成功返回后调用。`base` 是静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；`incoming` 是远程返回的完整推荐数组；`context` 是本次推荐使用的脱敏上下文。回调必须返回 `Suggestion[]`。
+
+默认策略相当于 `[...base, ...incoming]`：静态项优先，同 `id` 的远程项不会覆盖静态项；静态项占满数量上限时，远程项可能不展示。可以按业务需要返回不同顺序：
+
+| 目标 | 回调返回值 |
+| ---- | ---------- |
+| 远程整体替换静态问题 | `incoming` |
+| 远程有结果时替换，否则保留静态问题 | `incoming.length ? incoming : base` |
+| 远程优先，保留未重复的静态问题 | `[...incoming, ...base]` |
+| 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]` |
+
+自定义回调返回后，组件仍会校验推荐格式、按 `id` 保留首次出现项，并应用 `maxSuggestions` 上限（默认 `3`）。因此，远程优先策略也可以用来覆盖静态同 `id` 的问题。
 
 ### 页面上下文与敏感数据
 
@@ -363,7 +359,7 @@ onBeforeUnmount(() => {
 | `sanitizeContext`              | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>` | —            | 返回最终允许外发的完整上下文                       |
 | `suggestions`                  | `QuickAssistSuggestionInput[]`                                           | 默认推荐     | 静态推荐或推荐生成函数                             |
 | `getSuggestions`               | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`             | —            | 使用脱敏后的上下文获取异步推荐                     |
-| `mergeSuggestions`             | `(base, incoming, context) => Suggestion[]`                              | 内置合并     | 自定义推荐合并；最终仍按 `id` 去重并受数量上限约束 |
+| `mergeSuggestions`             | `(base, incoming, context) => Suggestion[]`                              | 静态优先追加 | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
 | `maxSuggestions`               | `number`                                                                 | `3`          | 最多展示的推荐数，必须为正整数                     |
 | `buildPrompt`                  | `(input) => string`                                                      | 内置构造     | 自定义提交内容                                     |
 | `attrs`                        | `QuickAssistAttrs`                                                       | —            | 为组件内部元素追加安全的 DOM 属性                  |
