@@ -80,6 +80,8 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 非受控模式初始化时，即使 `default-active-tab` 无效并改用第一个标签页，也不会额外触发 `update:active-tab`。父组件直接修改受控的 `active-tab` 也不会触发 `tab-change`，因为 `tab-change` 只表示用户选择了标签页。
 
+只有一个标签页且不需要展示切换入口时，可以设置 `hide-single-tab`。该属性只隐藏单标签导航，不会改变当前标签页的状态或内容；当 `tabs` 增加到多个标签页时，导航会自动恢复。
+
 <demo vue="../../demos/extension-manager/controlled-events.vue" title="由父组件控制当前标签页" description="使用 v-model:active-tab 保存当前标签页，并显示父组件收到的最新值。" />
 
 ### 处理操作事件
@@ -147,6 +149,7 @@ import type {
 | `tabs`               | 标签页及其 Extension 数据；每个 tab 和 item 的 `id` 应稳定且唯一。                                                       | `ExtensionManagerTab[]` | —            | 是   |
 | `active-tab`         | 当前标签页，优先于 `default-active-tab`。无效值会显示第一个可用标签页，并触发 `update:active-tab` 通知父组件更新当前值。 | `string`                | —            | 否   |
 | `default-active-tab` | 未设置 `active-tab` 时使用的初始标签页；无效值会自动改为第一个标签页。                                                   | `string`                | —            | 否   |
+| `hide-single-tab`    | 只有一个标签页时隐藏标签导航；多个标签页时始终显示导航。                                                                 | `boolean`               | `false`      | 否   |
 | `title`              | 头部标题；与 `header-actions` 都未提供时不渲染头部。                                                                     | `string`                | —            | 否   |
 | `empty-text`         | 没有可显示的标签页时显示的提示文字。                                                                                     | `string`                | `'暂无内容'` | 否   |
 

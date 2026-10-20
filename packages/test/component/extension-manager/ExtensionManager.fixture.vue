@@ -60,6 +60,7 @@ const createTabs = (): ExtensionManagerTab[] => [
 
 const tabs = ref<ExtensionManagerTab[]>(createTabs())
 const activeTab = ref<string | undefined>('library')
+const hideSingleTab = ref(false)
 const eventLog = ref<string[]>([])
 const showItemSlotManager = ref(false)
 
@@ -134,6 +135,7 @@ const clearTabs = () => {
   <div data-testid="manager-host">
     <ExtensionManager
       :tabs="tabs"
+      :hide-single-tab="hideSingleTab"
       v-model:active-tab="activeTab"
       title="Extension manager"
       @update:active-tab="handleActiveTabUpdate"
@@ -166,6 +168,7 @@ const clearTabs = () => {
   </button>
   <button type="button" data-testid="empty-library" @click="emptyLibrary">Empty library</button>
   <button type="button" data-testid="remove-market-tab" @click="removeMarketTab">Remove market tab</button>
+  <button type="button" data-testid="hide-single-tab" @click="hideSingleTab = true">Hide single tab</button>
   <button type="button" data-testid="clear-tabs" @click="clearTabs">Clear tabs</button>
   <button type="button" data-testid="show-item-slot-manager" @click="showItemSlotManager = true">
     Show item slot manager
