@@ -72,6 +72,8 @@
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
     "build": "vue-tsc && vite build && npm run build:vanilla",
+    "generate:vanilla-theme": "node scripts/vanilla-theme.mjs",
+    "check:vanilla-theme": "node scripts/vanilla-theme.mjs --check",
     "build:vanilla": "vite build --config vite.vanilla.config.ts && tsc -p tsconfig.vanilla.json && api-extractor run --local --config api-extractor.vanilla.json && vite build --config vite.vanilla-umd.config.ts",
     "type-check:vanilla": "tsc --noEmit -p tsconfig.vanilla.json",
     "type-check": "vue-tsc --noEmit"
@@ -111,6 +113,7 @@
     "@vitejs/plugin-vue-jsx": "^4.1.2",
     "dompurify": "^3.3.1",
     "less": "^4.2.2",
+    "postcss": "8.5.28",
     "markdown-it": "^14.1.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",

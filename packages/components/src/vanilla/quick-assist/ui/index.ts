@@ -7,6 +7,7 @@ import type {
   Suggestion,
 } from '../types'
 import type { QuickAssistSession } from '../core/types'
+import { bindVanillaTheme } from '../../theme/service'
 
 export interface QuickAssistUIOptions {
   root: Document
@@ -167,6 +168,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   const messages = { ...DEFAULT_MESSAGES, ...(options.messages ?? {}) }
   const triggerLabel = options.triggerLabel ?? '智能帮助'
   let host: HTMLDivElement | null = null
+  let releaseTheme: (() => void) | undefined
   let visible: HTMLElement | null = null
   let input: HTMLTextAreaElement | null = null
   let submit: HTMLButtonElement | null = null
@@ -183,6 +185,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
     host.className = 'tr-quick-assist'
     host.setAttribute('data-tr-quick-assist', '')
     setSafeAttributes(host, attrs.root)
+    releaseTheme = bindVanillaTheme(host, root)
     getDocumentBody(root).append(host)
     return host
   }
@@ -200,6 +203,8 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
     if (restoreFocus && hadFocus && restoreElement?.isConnected) restoreElement.focus()
     restoreElement = null
     host.remove()
+    releaseTheme?.()
+    releaseTheme = undefined
     host = null
   }
 

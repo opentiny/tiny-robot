@@ -54,7 +54,12 @@ async function checkThemeContrast(locator) {
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } })
   const pageErrors = []
+  const loadErrors = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
+  page.on('requestfailed', (request) => loadErrors.push(`${request.url()}: ${request.failure()?.errorText}`))
+  page.on('response', (response) => {
+    if (response.status() >= 400) loadErrors.push(`${response.status()} ${response.url()}`)
+  })
   await page.goto(url)
   if (!standalone) await page.locator('h3').filter({ hasText: 'HTML 接入' }).first().scrollIntoViewIfNeeded()
 
@@ -74,9 +79,12 @@ try {
         )?.slice(0, 350),
       })),
     )
-    throw new Error(`Docs HTML preview did not render: ${JSON.stringify(frames)}; errors=${pageErrors.join('; ')}`, {
-      cause: error,
-    })
+    throw new Error(
+      `Docs HTML preview did not render: ${JSON.stringify(frames)}; errors=${[...pageErrors, ...loadErrors].join('; ')}`,
+      {
+        cause: error,
+      },
+    )
   }
   await paragraph.scrollIntoViewIfNeeded()
   try {
@@ -404,6 +412,75 @@ try {
       }))
     expect(mobileFrame.height).toBeGreaterThanOrEqual(900)
     expect(mobileFrame.contentHeight).toBeLessThanOrEqual(mobileFrame.height)
+  }
+  if (!standalone) {
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    const themeDemo = page.frameLocator('iframe').nth(1)
+    await expect(themeDemo.locator('html')).toHaveAttribute('data-quick-assist-ready', 'true')
+    const themeContainer = page.locator('.qa-theme-demo .vitepress-demo-plugin__container')
+    const checkThemeFrameLayout = async () => {
+      await expect
+        .poll(() =>
+          themeContainer.evaluate((element) => {
+            const frame = element.querySelector('iframe').getBoundingClientRect()
+            const preview = element.querySelector('.vitepress-demo-plugin-preview').getBoundingClientRect()
+            const description = element.querySelector('.vitepress-demo-plugin-description').getBoundingClientRect()
+            const container = element.getBoundingClientRect()
+            return (
+              frame.bottom <= preview.bottom &&
+              frame.bottom <= description.top &&
+              description.bottom <= container.bottom
+            )
+          }),
+        )
+        .toBe(true)
+    }
+    await checkThemeFrameLayout()
+    const parentMode = await page.locator('html').getAttribute('data-tr-color-mode')
+    for (const mode of ['dark', 'light']) {
+      await themeDemo.locator('#theme-mode').selectOption(mode)
+      await expect(themeDemo.locator('html')).toHaveAttribute('data-cf-theme', mode)
+      await themeDemo.locator('#theme-term').scrollIntoViewIfNeeded()
+      await themeDemo.locator('#theme-term').evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        document.dispatchEvent(new Event('selectionchange'))
+      })
+      await themeDemo.locator('.tr-quick-assist__trigger').click()
+      await expect(themeDemo.locator('.tr-quick-assist__popover')).toHaveCSS(
+        'background-color',
+        mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+      )
+      await checkThemeContrast(
+        themeDemo.locator('body, #theme-text, #theme-status, .tr-quick-assist__input, .tr-quick-assist__suggestion'),
+      )
+      if (screenshotRoot) {
+        await themeContainer.screenshot({ path: `${screenshotRoot}/theme-demo-${mode}.png`, animations: 'disabled' })
+      }
+      await themeDemo.locator('.tr-quick-assist__input').fill('主题示例提交')
+      await themeDemo.locator('.tr-quick-assist__input').press('Enter')
+      await expect(themeDemo.locator('#theme-status')).toHaveText('已提交：主题示例提交')
+      await expect(page.locator('html')).toHaveAttribute('data-tr-color-mode', parentMode)
+    }
+    await themeDemo.locator('#theme-mode').selectOption('auto')
+    for (const mode of ['dark', 'light']) {
+      await page.emulateMedia({ colorScheme: mode })
+      await expect(themeDemo.locator('html')).toHaveAttribute('data-cf-theme', mode)
+      await expect(themeDemo.locator('#theme-status')).toContainText('跟随系统')
+    }
+    await page.setViewportSize({ width: 390, height: 900 })
+    await themeDemo.locator('#theme-mode').selectOption('dark')
+    expect(await themeDemo.locator('html').evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true)
+    await checkThemeFrameLayout()
+    if (screenshotRoot) {
+      await themeContainer.evaluate((element) => {
+        window.scrollBy(0, element.getBoundingClientRect().top - 120)
+      })
+      await themeContainer.screenshot({ path: `${screenshotRoot}/theme-demo-mobile.png`, animations: 'disabled' })
+    }
   }
   if (pageErrors.length) throw new Error(`Docs page errors: ${pageErrors.join('; ')}`)
   console.log(`QuickAssist HTML demo: trigger and popover visible ${standalone ? 'standalone' : 'in the docs iframe'}.`)
