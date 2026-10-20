@@ -76,6 +76,16 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => typeof window.resetQuickAssist === 'function')
 })
 
+test('button borders survive the component library global reset', async ({ page }) => {
+  await select(page)
+  await expect(page.locator(trigger)).toHaveCSS('border', '1px solid rgb(230, 230, 230)')
+  await page.locator(trigger).click()
+  const suggestion = page.locator('.tr-quick-assist__suggestion').first()
+  await expect(suggestion).toHaveCSS('border', '1px solid rgb(230, 230, 230)')
+  await suggestion.hover()
+  await expect(suggestion).toHaveCSS('border-color', 'color(srgb 0.772157 0.772157 0.772157)')
+})
+
 async function selectDirection(page: Page, selector: string, backward: boolean) {
   await page.locator(selector).evaluate((element, reverse) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)

@@ -1,5 +1,6 @@
 import { createQuickAssist } from '../../components/src/vanilla'
 import type { AIRequest, QuickAssistEvent, QuickAssistInstance, QuickAssistOptions } from '../../components/src/vanilla'
+import '../../components/src/styles/root.css'
 import '../../components/src/vanilla/quick-assist/style.css'
 
 declare global {

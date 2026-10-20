@@ -89,6 +89,8 @@ function setSafeAttributes(element: HTMLElement, attributes: QuickAssistAttribut
   }
 }
 
+let sparkleId = 0
+
 function makeSparkle(document: Document): HTMLSpanElement {
   const icon = document.createElement('span')
   icon.className = 'tr-quick-assist__sparkle'
@@ -97,28 +99,60 @@ function makeSparkle(document: Document): HTMLSpanElement {
   svg.setAttribute('viewBox', '0 0 16 16')
   svg.setAttribute('aria-hidden', 'true')
   svg.setAttribute('focusable', 'false')
-  const main = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  main.setAttribute('d', 'M8 1.5l1.2 4.3L13.5 7 9.2 8.2 8 12.5 6.8 8.2 2.5 7l4.3-1.2L8 1.5z')
-  const small = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  small.setAttribute('d', 'M13 10l.5 1.5L15 12l-1.5.5L13 14l-.5-1.5L11 12l1.5-.5L13 10z')
-  svg.append(main, small)
+  const gradientId = `tr-quick-assist-sparkle-${++sparkleId}`
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+  const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient')
+  gradient.id = gradientId
+  gradient.setAttribute('gradientUnits', 'userSpaceOnUse')
+  gradient.setAttribute('x1', '2')
+  gradient.setAttribute('y1', '2')
+  gradient.setAttribute('x2', '14')
+  gradient.setAttribute('y2', '14')
+  for (const [offset, color] of [
+    ['0%', 'var(--tr-quick-assist-icon-gradient-start)'],
+    ['50%', 'var(--tr-quick-assist-icon-gradient-middle)'],
+    ['100%', 'var(--tr-quick-assist-icon-gradient-end)'],
+  ]) {
+    const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
+    stop.setAttribute('offset', offset)
+    stop.setAttribute('stop-color', color)
+    gradient.append(stop)
+  }
+  defs.append(gradient)
+  // Preserve the double-star geometry from the supplied ai.svg.
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute(
+    'd',
+    'M5.21,4.4c.63-.8,1.1-1.72,1.37-2.72l.04-.17c.03-.12.1-.22.19-.28.03-.02.07-.04.1-.06.26-.1.59,0,.68.33l.07.25h0c.76,2.65,2.88,4.7,5.55,5.37.06.02.12.04.17.07.15.1.22.28.21.44,0,.07-.02.14-.05.2-.06.12-.17.22-.32.26-2.75.69-4.92,2.86-5.61,5.62-.11.44-.67.5-.9.17-.03-.05-.06-.1-.07-.17-.61-2.41-2.34-4.37-4.61-5.29-.32-.13-.66-.24-1-.33-.13-.03-.22-.1-.28-.19-.06-.09-.09-.19-.09-.3,0-.07.02-.15.05-.22.02-.05.06-.1.1-.14.04-.04.09-.07.14-.1.03-.01.06-.02.09-.03,1.69-.42,3.15-1.4,4.2-2.73ZM12.49,12.01c.22-.22.39-.5.48-.81v-.05c.04-.1.1-.18.17-.23.21-.14.54-.07.62.23l.02.07c.18.61.67,1.09,1.29,1.25.2.05.3.22.3.39h0c0,.16-.09.32-.27.38-.01,0-.02,0-.04.01-.64.16-1.15.67-1.31,1.31-.09.35-.54.4-.72.13-.03-.04-.05-.08-.06-.13-.14-.56-.55-1.02-1.08-1.23-.08-.03-.15-.06-.23-.08-.2-.05-.3-.22-.3-.39h0c0-.17.1-.34.3-.39.31-.08.6-.24.82-.46Z',
+  )
+  path.setAttribute('fill-rule', 'evenodd')
+  path.setAttribute('fill', `url(#${gradientId})`)
+  svg.append(defs, path)
   icon.append(svg)
   return icon
 }
 
 function makeArrow(document: Document): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('viewBox', '0 0 16 16')
+  svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('aria-hidden', 'true')
   svg.setAttribute('focusable', 'false')
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  circle.setAttribute('cx', '12')
+  circle.setAttribute('cy', '12')
+  circle.setAttribute('r', '11.5')
+  circle.setAttribute('fill', 'none')
+  circle.setAttribute('stroke', 'currentColor')
+  circle.setAttribute('stroke-width', '1')
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   path.setAttribute('d', 'M8 13V3m0 0L4.5 6.5M8 3l3.5 3.5')
+  path.setAttribute('transform', 'translate(4 4)')
   path.setAttribute('fill', 'none')
   path.setAttribute('stroke', 'currentColor')
   path.setAttribute('stroke-linecap', 'round')
   path.setAttribute('stroke-linejoin', 'round')
   path.setAttribute('stroke-width', '1.5')
-  svg.append(path)
+  svg.append(circle, path)
   return svg
 }
 
