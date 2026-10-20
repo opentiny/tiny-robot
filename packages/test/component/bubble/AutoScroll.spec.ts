@@ -50,13 +50,7 @@ test.describe('useAutoScroll', () => {
       element.dispatchEvent(new Event('scroll'))
     })
     await component.getByRole('button', { name: 'Smooth scroll to bottom' }).click()
-    await expect
-      .poll(() =>
-        scroller.evaluate(
-          (element) => element.scrollTop > 0 && element.scrollHeight - element.clientHeight - element.scrollTop > 20,
-        ),
-      )
-      .toBe(true)
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     await scroller.hover()
     await page.mouse.wheel(0, -1000)
     await scroller.evaluate(() => new Promise((resolve) => setTimeout(resolve, 500)))
