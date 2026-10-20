@@ -26,6 +26,14 @@ Core capabilities span the Chat suite, composable components, the data layer, an
 - **Tools and MCP**: Supports tool call display, MCP server management, tool selection, and approval workflows.
 - **Vue 3 + TypeScript**: Follows the OpenTiny Design system, with support for importing only what you need, theme customization, and typed APIs for extensions.
 
+## 🧭 Capability Overview
+
+<p align="center">
+  <img src="robot-panorama.png" alt="TinyRobot product capability overview" width="1100">
+</p>
+
+Combine TinyRobot's capabilities as needed, from project setup and chat interfaces to business extensions.
+
 ## 🚀 How to Use
 
 TinyRobot offers three ways to get started: use the CLI, install the complete Chat suite, or combine Components and Kit as needed.
@@ -114,14 +122,6 @@ Replace `apiUrl` with your model service URL or a backend endpoint that forwards
 - `useConversation`: Manages multiple conversations and their messages.
 - Conversation storage: Supports LocalStorage, IndexedDB, and custom storage strategies.
 - Custom requests: Connects to model services or business APIs through `responseProvider`.
-
-## 🧭 Capability Overview
-
-<p align="center">
-  <img src="robot-panorama.png" alt="TinyRobot product capability overview" width="1100">
-</p>
-
-The overview covers TinyRobot's capabilities, from CLI setup to Chat, Components, and Kit, including collaboration between Skills and MCP tools.
 
 ## 📚 Documentation and Examples
 

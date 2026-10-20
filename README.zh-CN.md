@@ -26,6 +26,14 @@
 - **工具与 MCP**：支持工具调用展示、MCP Server 管理、工具选择和审批流程。
 - **Vue 3 + TypeScript**：遵循 OpenTiny Design 体系，支持按需使用、主题定制和类型安全扩展。
 
+## 🧭 能力全景
+
+<p align="center">
+  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
+</p>
+
+从工程接入、对话构建到业务扩展，按需组合 TinyRobot 的各项能力。
+
 ## 🚀 如何使用
 
 TinyRobot 提供三种接入方式：通过 CLI 快速开始，使用完整的 Chat 套件，或按需组合 Components 和 Kit。
@@ -114,14 +122,6 @@ const runtime = useChatRuntime({ modelProviders })
 - `useConversation`：管理多个会话及其消息；
 - 会话存储：支持 LocalStorage、IndexedDB 和自定义存储策略；
 - 自定义请求：通过 `responseProvider` 对接模型服务或业务 API。
-
-## 🧭 能力全景
-
-<p align="center">
-  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
-</p>
-
-能力全景图展示了 TinyRobot 从 CLI 工程接入，到 Chat、Components、Kit，以及 Skill 技能与 MCP 工具协作的整体能力。
 
 ## 📚 文档与示例
 
