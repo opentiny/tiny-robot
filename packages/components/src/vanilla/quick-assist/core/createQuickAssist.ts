@@ -532,6 +532,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     pointerDown = false
     if (session?.state === 'trigger' && !triggerElement) closeSession('reselection')
   }
+  const onContextMenu = (): void => {
+    if (session?.state === 'trigger') closeSession('outside')
+  }
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && session) {
       event.preventDefault()
@@ -546,6 +549,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     resolved.root.addEventListener('pointerdown', onPointerDown, true)
     resolved.root.addEventListener('pointerup', onPointerUp, true)
     resolved.root.addEventListener('pointercancel', onPointerCancel, true)
+    resolved.root.addEventListener('contextmenu', onContextMenu, true)
     resolved.root.addEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.addEventListener('popstate', onRoute)
     resolved.root.defaultView?.addEventListener('hashchange', onRoute)
@@ -554,6 +558,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     resolved.root.removeEventListener('pointerdown', onPointerDown, true)
     resolved.root.removeEventListener('pointerup', onPointerUp, true)
     resolved.root.removeEventListener('pointercancel', onPointerCancel, true)
+    resolved.root.removeEventListener('contextmenu', onContextMenu, true)
     resolved.root.removeEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.removeEventListener('popstate', onRoute)
     resolved.root.defaultView?.removeEventListener('hashchange', onRoute)

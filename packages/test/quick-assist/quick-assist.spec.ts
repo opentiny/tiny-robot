@@ -119,6 +119,43 @@ for (const reason of ['escape', 'manual', 'outside'] as const) {
   })
 }
 
+for (const method of ['right-click', 'contextmenu'] as const) {
+  test(`${method} hides the trigger without clearing or reactivating the selection`, async ({ page }) => {
+    await select(page)
+    await expect(page.locator(trigger)).toBeVisible()
+    if (method === 'right-click') {
+      await page.locator('#term').click({ button: 'right', position: { x: 10, y: 10 } })
+    } else {
+      const allowed = await page
+        .locator('#term')
+        .evaluate((element) =>
+          element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })),
+        )
+      expect(allowed).toBe(true)
+    }
+    await expect(page.locator(trigger)).toHaveCount(0)
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe('竞价计费')
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event('selectionchange'))
+      document.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'mouse' }))
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ContextMenu' }))
+    })
+    await expect(page.locator(trigger)).toHaveCount(0)
+    await select(page, '#other-term')
+    await expect(page.locator(trigger)).toBeVisible()
+  })
+}
+
+test('contextmenu cancels a pending trigger', async ({ page }) => {
+  await pauseClock(page)
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 800 } }))
+  await select(page)
+  await page.locator('#term').dispatchEvent('contextmenu')
+  await page.clock.runFor(1000)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.some((event) => event.type === 'trigger_show'))).toBe(false)
+})
+
 test('default recommendation labels insert dollar sequences literally', async ({ page }) => {
   const text = "a$&b x$$y c$`d e$'f"
   await page.locator('#term').evaluate((element, value) => (element.textContent = value), text)
