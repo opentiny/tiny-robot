@@ -420,7 +420,7 @@ onBeforeUnmount(() => {
 
 ## CSS 变量
 
-QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。默认值优先使用对应的 TinyRobot 主题变量，未提供主题变量时使用 `var()` 中的回退值。
+QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。部分默认值使用 TinyRobot 主题变量，未提供主题变量时使用 `var()` 中的回退值。
 
 | 变量名                         | 说明                             | 默认值                                                                           |
 | ------------------------------ | -------------------------------- | -------------------------------------------------------------------------------- |
@@ -428,9 +428,13 @@ QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-
 | `--tr-quick-assist-bg-subtle`   | 入口悬停时背景色                 | `var(--tr-container-bg-default-2, #fafafa)`                                        |
 | `--tr-quick-assist-text`        | 主要文字及发送按钮颜色           | `var(--tr-text-primary, #191919)`                                                  |
 | `--tr-quick-assist-muted`       | 输入框占位文字及状态提示文字颜色 | `var(--tr-text-secondary, #595959)`                                                |
-| `--tr-quick-assist-border`      | 边框及滚动条颜色                 | `var(--tr-border-color-default, #dbdbdb)`                                          |
-| `--tr-quick-assist-accent`      | 悬停及键盘聚焦时的强调色         | `var(--tr-color-primary, #1476ff)`                                                 |
-| `--tr-quick-assist-radius`      | 输入浮层圆角                     | `var(--tr-radius-lg, 12px)`                                                        |
+| `--tr-quick-assist-border`      | 边框及滚动条颜色                 | `#e6e6e6`                                          |
+| `--tr-quick-assist-border-hover` | 弹窗及按钮悬停时的边框颜色 | `color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted))` |
+| `--tr-quick-assist-accent`      | 发送按钮悬停及键盘聚焦时的强调色         | `var(--tr-text-primary, #191919)`                                                 |
+| `--tr-quick-assist-icon-gradient-start` | 星光图标渐变起始色（左上） | `#7d00ff` |
+| `--tr-quick-assist-icon-gradient-middle` | 星光图标渐变中间色 | `#b927ff` |
+| `--tr-quick-assist-icon-gradient-end` | 星光图标渐变结束色（右下） | `#ff6bb5` |
+| `--tr-quick-assist-radius`      | 输入浮层圆角                     | `16px`                                                        |
 | `--tr-quick-assist-pill-radius` | 入口、输入区及推荐问题按钮圆角   | `var(--tr-radius-full, 9999px)`                                                    |
-| `--tr-quick-assist-shadow`      | 入口及输入浮层阴影               | `var(--tr-suggestion-popover-box-shadow, 0 8px 28px rgba(0, 0, 0, 0.14))`             |
+| `--tr-quick-assist-shadow`      | 入口及输入浮层阴影               | `0 2px 8px 0 rgba(0, 0, 0, 0.16)`             |
 | `--tr-quick-assist-z-index`     | 组件层级                         | `var(--tr-z-index-popover, 1500)`                                                  |
