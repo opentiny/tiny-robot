@@ -147,7 +147,7 @@ const isWelcomeComposerCentered = computed(
 )
 const layoutStyle = computed(() => ({
   containerType: 'inline-size',
-  '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
+  '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-page-bg-default))',
   '--tr-layout-right-aside-bg': 'var(--tr-chat-ui-right-aside-bg, var(--tr-container-bg-default))',
   '--tr-layout-header-bg': 'var(--tr-chat-ui-header-bg, var(--tr-container-bg-default))',
   '--tr-layout-main-bg': 'var(--tr-chat-ui-main-bg, var(--tr-container-bg-default))',
@@ -403,14 +403,6 @@ const composerTemplateEvents = {
   mcpToolEnabledChange: handleMcpToolEnabledChange,
 }
 
-const composerSlots = {
-  'composer-before': slots['composer-before'],
-  'layout-footer': slots['layout-footer'],
-  'sender-header': slots['sender-header'],
-  'sender-footer': slots['sender-footer'],
-  'sender-footer-right': slots['sender-footer-right'],
-}
-
 function renderEmptyStateComposer() {
   if (!isSenderVisible.value) {
     return null
@@ -422,7 +414,14 @@ function renderEmptyStateComposer() {
       ...composerProps.value,
       ...composerEvents,
     },
-    composerSlots,
+    {
+      'composer-before': slots['composer-before'],
+      'composer-after': slots['composer-after'],
+      'layout-footer': slots['layout-footer'],
+      'sender-header': slots['sender-header'],
+      'sender-footer': slots['sender-footer'],
+      'sender-footer-right': slots['sender-footer-right'],
+    },
   )
 }
 </script>
@@ -434,6 +433,7 @@ function renderEmptyStateComposer() {
     :style="layoutStyle"
     @left-aside-open-change="asideState.handleLeftAsideOpenChange"
     @right-aside-open-change="asideState.handleRightAsideOpenChange"
+    @left-aside-resize="asideState.handleLeftAsideResize"
     @right-aside-resize="handleRightAsideResize"
     @update:floating-state="handleFloatingStateUpdate"
     @floating-drag-start="handleFloatingDragStart"
@@ -584,6 +584,9 @@ function renderEmptyStateComposer() {
                 <template v-if="$slots['composer-before']" #composer-before="slotProps">
                   <slot name="composer-before" v-bind="slotProps" />
                 </template>
+                <template v-if="$slots['composer-after']" #composer-after="slotProps">
+                  <slot name="composer-after" v-bind="slotProps" />
+                </template>
                 <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
                   <slot name="layout-footer" v-bind="slotProps" />
                 </template>
@@ -624,10 +627,14 @@ function renderEmptyStateComposer() {
       <div
         v-if="isDefaultComposerVisible && (!isEmpty || !isWelcomeComposerCentered)"
         class="chat-panel-content chat-panel-content--footer"
+        :class="{ 'has-composer-after': $slots['composer-after'] }"
       >
         <ChatInputRegion v-bind="composerProps" v-on="composerTemplateEvents">
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
             <slot name="composer-before" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots['composer-after']" #composer-after="slotProps">
+            <slot name="composer-after" v-bind="slotProps" />
           </template>
           <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
             <slot name="layout-footer" v-bind="slotProps" />
@@ -741,6 +748,10 @@ function renderEmptyStateComposer() {
 
 .chat-panel-content--footer {
   padding: 0 24px 24px;
+}
+
+.chat-panel-content--footer.has-composer-after {
+  padding-bottom: 8px;
 }
 
 .chat-scroll-actions {

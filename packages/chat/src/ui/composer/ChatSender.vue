@@ -57,7 +57,7 @@ const senderProps = computed(() => ({
     ...props.senderOptions.defaultActions,
     submit: {
       ...props.senderOptions.defaultActions?.submit,
-      disabled: props.sender.submitDisabled,
+      disabled: props.sender.submitDisabled && !props.sender.loading,
     },
   },
 }))

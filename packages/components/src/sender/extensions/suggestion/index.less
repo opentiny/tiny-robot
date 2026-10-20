@@ -12,7 +12,7 @@
  */
 .suggestion-autocomplete {
   display: inline-block;
-  height: 16px;
+  height: auto;
   pointer-events: none;
   user-select: none;
   color: var(--tr-suggestion-autocomplete-color);
@@ -33,14 +33,15 @@
    * 虚线边框，提示用户可按 Tab 应用补全
    */
   .tab-hint {
-    display: inline;
+    display: inline-block;
     margin-left: 8px;
     padding: 4px 6px;
     border: 1px dashed var(--tr-suggestion-tab-hint-border);
     border-radius: 4px;
     font-size: 12px;
+    line-height: 1;
     color: var(--tr-suggestion-tab-hint-color);
     background: var(--tr-suggestion-tab-hint-bg);
-    vertical-align: middle;
+    vertical-align: baseline;
   }
 }
