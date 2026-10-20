@@ -71,8 +71,28 @@ onBeforeUnmount(() => quickAssist?.destroy())
   gap: 16px;
   align-items: center;
 }
-select {
-  padding: 4px 8px;
+.qa-position-demo__controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.qa-position-demo__controls select {
+  appearance: auto;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--vp-c-border, #cbd3dd);
+  border-radius: 6px;
+  background: var(--vp-c-bg, #fff);
+  color: var(--vp-c-text-1, #213547);
+  font: inherit;
+  cursor: pointer;
+}
+.qa-position-demo__controls select:hover {
+  border-color: var(--vp-c-brand-1, #2175c4);
+}
+.qa-position-demo__controls select:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1, #2175c4);
+  outline-offset: 2px;
 }
 #qa-position-text {
   padding: 14px;
