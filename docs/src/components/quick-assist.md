@@ -341,6 +341,62 @@ onBeforeUnmount(() => {
 
 在全局布局组件统一创建可覆盖多页面；如果 QuickAssist 只属于某个视图，则在该视图的挂载/卸载边界创建和销毁。
 
+### 主题配置
+
+独立入口内置亮暗配色，默认跟随 `html[data-tr-color-mode]`，识别 `light`、`dark`，属性缺失或无效时使用亮色。已有 TinyRobot `ThemeProvider` 默认无需额外配置。
+
+其他系统只需在应用初始化时指定主题来源，无需向组件传入 `theme`：
+
+```ts
+import { configureVanillaTheme } from '@opentiny/tiny-robot/vanilla'
+
+configureVanillaTheme({
+  source: { type: 'attribute', attribute: 'data-cf-theme' },
+})
+```
+
+`source` 支持以下配置，来源元素须在调用时存在：
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `type` | `'attribute' \| 'class'` | 必填 | 按属性值或 class 判断主题；省略整个 `source` 时默认使用属性来源 |
+| `selector` | `string` | `'html'` | 主题来源元素的 CSS 选择器，取首个匹配元素 |
+| `attribute` | `string` | `'data-tr-color-mode'` | 仅 `attribute` 类型：监听的属性名 |
+| `values.light` | `string` | `'light'` | 仅 `attribute` 类型：亮色对应的属性值 |
+| `values.dark` | `string` | `'dark'` | 仅 `attribute` 类型：暗色对应的属性值 |
+| `darkClass` | `string` | `'dark'` | 仅 `class` 类型：暗色 class 名，按完整 token 匹配 |
+| `lightClass` | `string` | — | 仅 `class` 类型：可选亮色 class 名；亮暗同时存在时暗色优先 |
+| `defaultMode` | `'light' \| 'dark'` | `'light'` | 属性值未知、class 均未匹配或来源元素被移除时的回退模式 |
+
+<div class="qa-theme-demo">
+
+<demo html="../../demos/quick-assist/theme.html" title="主题切换" description="切换亮色、暗色或跟随系统，再选中文字查看入口和浮层；本示例使用独立文档，不影响其他示例。" />
+
+</div>
+
+也可以跟随 class，或直接指定颜色模式：
+
+```ts
+configureVanillaTheme({ source: { type: 'class' } }) // 跟随 html.dark，否则亮色
+configureVanillaTheme({ colorMode: 'dark' }) // 固定暗色，也支持 light
+configureVanillaTheme({ colorMode: 'auto' }) // 跟随操作系统
+configureVanillaTheme({}) // 恢复默认 TinyRobot 主题来源
+```
+
+配置按 `Document` 共享，对已有及后续组件生效，主题变化不会清空正在编辑的问题。每次调用与内置默认值合并，不累积上次配置；`source` 与 `colorMode` 不能同时设置。
+
+UMD 使用相同 API，脚本加载完成后调用即可：
+
+```js
+TinyRobotVanilla.configureVanillaTheme({
+  source: { type: 'attribute', attribute: 'data-cf-theme' },
+})
+```
+
+配色优先级为：**组件变量覆盖 → 宿主 `--tr-*` 变量 → 内置配色**。如果加载了 TinyRobot 全量样式，需同步其颜色模式；只使用组件自带配色时，加载 Vanilla CSS 即可（UMD 自动注入）。
+
+浮层挂载在 `body` 下，局部主题来源只同步亮暗状态，不会复制局部品牌变量。自定义变量应放在 `html`、`body` 或组件根节点的全局样式中。iframe 需通过 `configureVanillaTheme(config, iframeDocument)` 配置其自身文档。
+
 ## 交互与限制
 
 - 划词默认仅正向触发；入口默认出现在选区末行右下方，空间不足时会翻转或调整位置；打开输入浮层后仍会跟随入口对应的首末行位置。
@@ -387,7 +443,6 @@ onBeforeUnmount(() => {
 
 `attrs.suggestion` 可以是属性对象，也可以是按推荐项返回属性对象的函数。事件处理器、`style`、写入 HTML 的属性、`value`、`disabled`、`type`、`id` 等会被忽略；`class` 只能追加，不能覆盖组件内部行为。
 
-样式限制在 `.tr-quick-assist` 命名空间内。组件变量以 `--tr-quick-assist-*` 命名，并映射现有 TinyRobot 设计变量；未提供应用主题变量时，使用组件自身的默认值。ESM 模式须显式加载 CSS；UMD 入口会自动注入样式。
 
 ## Methods
 

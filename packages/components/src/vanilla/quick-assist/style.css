@@ -2,19 +2,29 @@
    component library's global variables.css. Every semantic value has a local
    fallback for that use case. */
 .tr-quick-assist {
-  --tr-quick-assist-bg: var(--tr-container-bg-default, #fff);
-  --tr-quick-assist-bg-subtle: var(--tr-container-bg-default-2, #fafafa);
-  --tr-quick-assist-text: var(--tr-text-primary, #191919);
-  --tr-quick-assist-muted: var(--tr-text-secondary, #595959);
-  --tr-quick-assist-border: #e6e6e6;
+  --tr-quick-assist-bg: var(--tr-container-bg-default, var(--tr-vanilla-default-container-bg-default));
+  --tr-quick-assist-bg-subtle: var(--tr-container-bg-default-2, var(--tr-vanilla-default-container-bg-default-2));
+  --tr-quick-assist-text: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-muted: var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary));
+  --tr-quick-assist-border: var(--tr-assist-border-color, var(--tr-vanilla-default-assist-border-color));
   --tr-quick-assist-border-hover: color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted));
-  --tr-quick-assist-accent: var(--tr-text-primary, #191919);
-  --tr-quick-assist-icon-gradient-start: #7d00ff;
-  --tr-quick-assist-icon-gradient-middle: #b927ff;
-  --tr-quick-assist-icon-gradient-end: #ff6bb5;
+  --tr-quick-assist-hover-bg: var(--tr-container-bg-hover, var(--tr-vanilla-default-container-bg-hover));
+  --tr-quick-assist-accent: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-icon-gradient-start: var(
+    --tr-assist-icon-gradient-start,
+    var(--tr-vanilla-default-assist-icon-gradient-start)
+  );
+  --tr-quick-assist-icon-gradient-middle: var(
+    --tr-assist-icon-gradient-middle,
+    var(--tr-vanilla-default-assist-icon-gradient-middle)
+  );
+  --tr-quick-assist-icon-gradient-end: var(
+    --tr-assist-icon-gradient-end,
+    var(--tr-vanilla-default-assist-icon-gradient-end)
+  );
   --tr-quick-assist-radius: 16px;
   --tr-quick-assist-pill-radius: var(--tr-radius-full, 9999px);
-  --tr-quick-assist-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+  --tr-quick-assist-shadow: var(--tr-assist-box-shadow, var(--tr-vanilla-default-assist-box-shadow));
   --tr-quick-assist-z-index: var(--tr-z-index-popover, 1500);
   position: fixed;
   inset: 0;
@@ -60,13 +70,14 @@
 
 .tr-quick-assist button.tr-quick-assist__trigger:hover {
   border-color: var(--tr-quick-assist-border-hover);
-  background: var(--tr-quick-assist-bg-subtle);
+  background: linear-gradient(var(--tr-quick-assist-bg-subtle), var(--tr-quick-assist-bg-subtle))
+    var(--tr-quick-assist-bg);
 }
 
 .tr-quick-assist button.tr-quick-assist__trigger:focus-visible,
 .tr-quick-assist button.tr-quick-assist__submit:focus-visible,
 .tr-quick-assist button.tr-quick-assist__suggestion:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tr-quick-assist-accent) 75%, #fff);
+  outline: 2px solid var(--tr-quick-assist-accent);
   outline-offset: 2px;
 }
 
@@ -179,7 +190,7 @@
 }
 
 .tr-quick-assist button.tr-quick-assist__submit:disabled {
-  color: var(--tr-text-disabled, #c2c2c2);
+  color: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
   cursor: not-allowed;
   opacity: 0.72;
 }
@@ -210,7 +221,8 @@
 
 .tr-quick-assist button.tr-quick-assist__suggestion:hover {
   border-color: var(--tr-quick-assist-border-hover);
-  background: var(--tr-container-bg-hover, #f5f5f5);
+  background: linear-gradient(var(--tr-quick-assist-hover-bg), var(--tr-quick-assist-hover-bg))
+    var(--tr-quick-assist-bg);
 }
 
 .tr-quick-assist__status {
@@ -220,7 +232,7 @@
 }
 
 .tr-quick-assist__status[data-state='error'] {
-  color: var(--tr-color-error, #f23030);
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error));
 }
 
 @media (max-width: 360px) {
