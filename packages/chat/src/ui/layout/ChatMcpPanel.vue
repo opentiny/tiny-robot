@@ -144,7 +144,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
           :tabs="tabs"
           :default-active-tab="defaultActiveExtensionTab"
           hide-single-tab
-          :title="labels.extensions"
+          :title="extensionTabs?.length ? labels.extensions : labels.mcp"
           @tab-change="handleTabChange"
           @action="handleAction"
           @name-click="openDetail"

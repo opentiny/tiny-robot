@@ -9,7 +9,7 @@ test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
   await expect(component.getByRole('button', { name: '扩展', exact: true })).toHaveCount(0)
 
   await mcpEntry.click()
-  await expect(component.locator('.extension-manager__title')).toHaveText('扩展')
+  await expect(component.locator('.extension-manager__title')).toHaveText('MCP')
   await expect(component.getByRole('tab', { name: 'MCP', exact: true })).toHaveCount(0)
   await expect(component.getByRole('button', { name: 'Search MCP', exact: true })).toBeVisible()
 })
@@ -31,6 +31,7 @@ test('shows registered tabs when MCP is not configured', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture, { props: { withMcp: false } })
 
   await component.getByRole('button', { name: '扩展', exact: true }).click()
+  await expect(component.locator('.extension-manager__title')).toHaveText('扩展')
   await expect(component.getByRole('tab', { name: 'MCP', exact: true })).toHaveCount(0)
   await expect(component.getByRole('tab', { name: 'Skills', exact: true })).toHaveCount(0)
   await expect(component.getByRole('button', { name: 'Concise Answer', exact: true })).toBeVisible()
