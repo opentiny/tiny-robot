@@ -18,10 +18,10 @@ import type {
   ChatUIOptions,
 } from '@opentiny/tiny-robot-chat'
 
-function createInstalledSkillActions(name: string, checked = true, uninstallable = true): ExtensionCardAction[] {
+function createInstalledSkillActions(name: string, checked = true): ExtensionCardAction[] {
   return [
     { id: 'toggle', type: 'switch', label: `启用${name}`, checked },
-    ...(uninstallable ? [{ id: 'uninstall', type: 'button', label: '卸载', danger: true } as const] : []),
+    { id: 'uninstall', type: 'button', label: '卸载', danger: true },
   ]
 }
 
@@ -39,7 +39,7 @@ const initialSkills: ExtensionManagerTab[] = [
         name: '简洁回答',
         description: '随应用内置，让回答保持简短并突出结论。',
         installed: true,
-        actions: createInstalledSkillActions('简洁回答', true, false),
+        actions: createInstalledSkillActions('简洁回答'),
       },
       {
         id: 'release-notes',
