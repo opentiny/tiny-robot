@@ -2,14 +2,16 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
-import ModelFeatures from './ModelFeatures.vue'
+import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
+import ChatToolbarButton from './ChatToolbarButton.vue'
 import type {
   ChatBuiltInModelFeature,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
   ChatSenderView,
+  ChatSenderToolbarItem,
   ChatSendPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
@@ -43,25 +45,59 @@ defineSlots<{
   'sender-footer-right'?: () => unknown
 }>()
 
-const senderProps = computed(() => ({
-  ...props.senderOptions,
-  placeholder:
-    props.senderOptions.placeholder ??
-    (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
-  modelValue: props.value,
-  loading: props.sender.loading,
-  disabled: props.sender.disabled,
-  defaultActions: {
-    ...props.senderOptions.defaultActions,
-    submit: {
-      ...props.senderOptions.defaultActions?.submit,
-      disabled: props.sender.submitDisabled && !props.sender.loading,
+const defaultToolbar: readonly ChatSenderToolbarItem[] = [
+  { type: 'builtin', id: 'thinking' },
+  { type: 'builtin', id: 'search' },
+  { type: 'builtin', id: 'model' },
+  { type: 'builtin', id: 'mcp' },
+]
+
+const toolbarItems = computed(() => {
+  const toolbar = props.senderOptions.toolbar
+  const items = typeof toolbar === 'function' ? toolbar(defaultToolbar) : (toolbar ?? defaultToolbar)
+  const ids = new Set<string>()
+  return items
+    .filter((item) => {
+      if (item.type === 'custom' && defaultToolbar.some((builtin) => builtin.id === item.id)) return false
+      if (ids.has(item.id)) return false
+      ids.add(item.id)
+      if (item.visible === false) return false
+      if (item.type === 'custom') return true
+      if (item.id === 'mcp') return Boolean(props.mcp || props.hasRegisteredExtensions)
+      if (item.id === 'model') return Boolean(props.model?.options?.length)
+      return Boolean(props.model)
+    })
+    .map((item) => ({ ...item, disabled: props.sender.disabled || item.disabled === true }))
+})
+
+const senderProps = computed(() => {
+  const { toolbar: _toolbar, ...options } = props.senderOptions
+  return {
+    ...options,
+    placeholder:
+      options.placeholder ??
+      (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
+    modelValue: props.value,
+    loading: props.sender.loading,
+    disabled: props.sender.disabled,
+    defaultActions: {
+      ...options.defaultActions,
+      submit: {
+        ...options.defaultActions?.submit,
+        disabled: props.sender.submitDisabled && !props.sender.loading,
+      },
     },
-  },
-}))
+  }
+})
 const activeMcpCount = computed(
   () => props.mcp?.servers?.filter((server) => server.installed && server.enabled).length ?? 0,
 )
+
+function handleCustomAction(id: string) {
+  const item = toolbarItems.value.find((item) => item.id === id)
+  if (item?.type !== 'custom' || item.disabled) return
+  return item.onClick()
+}
 
 function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
@@ -90,6 +126,14 @@ function handleOpenMcpPanel() {
 function handleOpenExtensionsPanel() {
   emit('openExtensionsPanel')
 }
+
+function handleOpenExtensionPanel() {
+  if (props.hasRegisteredExtensions) {
+    handleOpenExtensionsPanel()
+  } else {
+    handleOpenMcpPanel()
+  }
+}
 </script>
 
 <template>
@@ -103,24 +147,42 @@ function handleOpenExtensionsPanel() {
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
     </template>
-    <template v-if="$slots['sender-footer'] || model || mcp || hasRegisteredExtensions" #footer>
-      <div v-if="model || mcp || hasRegisteredExtensions" class="model-actions">
-        <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
-        <ModelSelector
-          v-if="model"
-          :model="model"
-          :labels="labels"
-          :append-to="modelOptions?.appendTo"
-          @select-model="handleSelectModel"
-          @update-reasoning-effort="handleReasoningEffortChange"
-        />
-        <ExtensionSelector
-          v-if="hasRegisteredExtensions"
-          :count="activeMcpCount"
-          :label="labels.extensions"
-          @open="handleOpenExtensionsPanel"
-        />
-        <ExtensionSelector v-else-if="mcp" :count="activeMcpCount" :label="labels.mcp" @open="handleOpenMcpPanel" />
+    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer>
+      <div v-if="toolbarItems.length" class="tr-chat-toolbar">
+        <template v-for="item in toolbarItems" :key="item.id">
+          <ChatToolbarButton
+            v-if="item.type === 'custom'"
+            :label="item.label"
+            :icon="item.icon"
+            :active="item.active"
+            :disabled="item.disabled"
+            @click="handleCustomAction(item.id)"
+          />
+          <ModelSelector
+            v-else-if="item.id === 'model' && model"
+            :model="model"
+            :labels="labels"
+            :disabled="item.disabled"
+            :append-to="modelOptions?.appendTo"
+            @select-model="handleSelectModel"
+            @update-reasoning-effort="handleReasoningEffortChange"
+          />
+          <ExtensionSelector
+            v-else-if="item.id === 'mcp' && (mcp || hasRegisteredExtensions)"
+            :count="activeMcpCount"
+            :label="hasRegisteredExtensions ? labels.extensions : labels.mcp"
+            :disabled="item.disabled"
+            @open="handleOpenExtensionPanel"
+          />
+          <ModelFeatureButton
+            v-else-if="model && (item.id === 'thinking' || item.id === 'search')"
+            :id="item.id"
+            :model="model"
+            :labels="labels"
+            :disabled="item.disabled"
+            @update-feature="handleFeatureChange"
+          />
+        </template>
       </div>
       <slot name="sender-footer" />
     </template>
@@ -131,7 +193,7 @@ function handleOpenExtensionsPanel() {
 </template>
 
 <style scoped>
-.model-actions {
+.tr-chat-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -139,7 +201,7 @@ function handleOpenExtensionsPanel() {
 }
 
 @container chat-composer (max-width: 640px) {
-  .model-actions {
+  .tr-chat-toolbar {
     flex-wrap: nowrap;
     gap: 6px;
   }

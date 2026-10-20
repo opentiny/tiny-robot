@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 
-withDefaults(defineProps<{ label: string; count?: number }>(), {
+const props = withDefaults(defineProps<{ label: string; count?: number; disabled?: boolean }>(), {
   count: 0,
+  disabled: false,
 })
 
 const emit = defineEmits<{ open: [] }>()
+
+function handleOpen() {
+  if (!props.disabled) emit('open')
+}
 </script>
 
 <template>
@@ -14,9 +19,10 @@ const emit = defineEmits<{ open: [] }>()
       class="tr-chat-extension-selector__button"
       :class="{ 'tr-chat-extension-selector__button--active': count > 0 }"
       type="button"
+      :disabled="disabled"
       :aria-label="label"
       :title="label"
-      @click="emit('open')"
+      @click="handleOpen"
     >
       <IconPlugin :size="16" class="tr-chat-extension-selector__icon" />
       <span class="tr-chat-extension-selector__label">{{ label }}</span>
@@ -50,15 +56,20 @@ const emit = defineEmits<{ open: [] }>()
   cursor: pointer;
 }
 
+.tr-chat-extension-selector__button:hover:not(:disabled) {
+  border-color: var(--tr-border-color-hover);
+  background: var(--tr-container-bg-hover);
+}
+
+.tr-chat-extension-selector__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .tr-chat-extension-selector__button--active {
   border-color: var(--tr-border-color-hover);
   color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-default-2);
-}
-
-.tr-chat-extension-selector__button:hover {
-  border-color: var(--tr-border-color-hover);
-  background: var(--tr-container-bg-hover);
 }
 
 .tr-chat-extension-selector__icon {
