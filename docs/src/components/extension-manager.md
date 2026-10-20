@@ -25,9 +25,9 @@ pageClass: demo-container-page-bg
 
 <demo vue="../../demos/extension-manager/basic.vue" title="管理 MCP 与 Skills" description="切换 MCP 开关、安装 Skills，或卸载并重新安装 MCP，观察条目在分区之间移动。" />
 
-## 常用用法
+## 浏览与展示
 
-### 浏览、筛选和自动分区
+### 筛选与自动分区
 
 组件会读取当前标签页中各条目的 `tags`，生成标签筛选选项。当前标签页没有可用标签时，组件隐藏标签筛选器，但仍显示关键词搜索。
 
@@ -37,9 +37,7 @@ pageClass: demo-container-page-bg
 
 <demo vue="../../demos/extension-manager/browse-and-filter.vue" title="浏览、筛选与自动分区" description="切换标签页、选择标签或输入关键词，观察筛选后的已安装和可安装分区。" />
 
-## 状态与反馈
-
-### 进度
+### 进度反馈
 
 Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制；使用 `'indeterminate'` 表示不确定进度。
 
@@ -51,9 +49,9 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 <demo vue="../../demos/extension-manager/empty-states.vue" title="分区与管理器空状态" description="分别定制空分区内容，并为没有标签页的管理器提供提示文字。" />
 
-## 交互与状态管理
+## 状态管理与事件
 
-### 状态所有权
+### 状态管理分工
 
 `ExtensionManager` 同时处理外部数据、可由父组件控制的值，以及组件自身的界面状态。接入时需要先明确每项数据由谁更新。用户点击“安装”、切换开关或点击名称时，组件不会直接修改 `tabs` 或条目数据。
 
@@ -81,6 +79,10 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 非受控模式初始化时，即使 `default-active-tab` 无效并改用第一个标签页，也不会额外触发 `update:active-tab`。父组件直接修改受控的 `active-tab` 也不会触发 `tab-change`，因为 `tab-change` 只表示用户选择了标签页。
 
 <demo vue="../../demos/extension-manager/controlled-events.vue" title="由父组件控制当前标签页" description="使用 v-model:active-tab 保存当前标签页，并显示父组件收到的最新值。" />
+
+只有一个标签页且不需要展示切换入口时，可以设置 `hide-single-tab`。该属性只隐藏单标签导航，不会改变当前标签页的状态或内容；当 `tabs` 增加到多个标签页时，导航会自动恢复。
+
+<demo vue="../../demos/extension-manager/single-tab-navigation.vue" title="隐藏单标签导航" description="切换 hide-single-tab，观察标签导航隐藏后标题和内容保持不变。" />
 
 ### 处理操作事件
 
@@ -147,6 +149,7 @@ import type {
 | `tabs`               | 标签页及其 Extension 数据；每个 tab 和 item 的 `id` 应稳定且唯一。                                                       | `ExtensionManagerTab[]` | —            | 是   |
 | `active-tab`         | 当前标签页，优先于 `default-active-tab`。无效值会显示第一个可用标签页，并触发 `update:active-tab` 通知父组件更新当前值。 | `string`                | —            | 否   |
 | `default-active-tab` | 未设置 `active-tab` 时使用的初始标签页；无效值会自动改为第一个标签页。                                                   | `string`                | —            | 否   |
+| `hide-single-tab`    | 只有一个标签页时隐藏标签导航；多个标签页时始终显示导航。                                                                 | `boolean`               | `false`      | 否   |
 | `title`              | 头部标题；与 `header-actions` 都未提供时不渲染头部。                                                                     | `string`                | —            | 否   |
 | `empty-text`         | 没有可显示的标签页时显示的提示文字。                                                                                     | `string`                | `'暂无内容'` | 否   |
 
