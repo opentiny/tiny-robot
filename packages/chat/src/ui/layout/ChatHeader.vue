@@ -43,10 +43,6 @@ function openRightAside() {
 </script>
 
 <template>
-  <div v-if="$slots.notice" class="chat-notice">
-    <slot name="notice"></slot>
-  </div>
-
   <slot
     :title="title"
     :is-empty="isEmpty"
@@ -90,21 +86,11 @@ function openRightAside() {
 </template>
 
 <style scoped>
-.chat-notice {
-  margin-bottom: 16px;
-}
-
-.chat-notice :deep(> *) {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-}
-
 .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--tr-chat-ui-header-gap, 8px);
 }
 
 .chat-header__aside-cell,

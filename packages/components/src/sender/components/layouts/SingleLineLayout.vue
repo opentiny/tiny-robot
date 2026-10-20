@@ -2,6 +2,7 @@
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
 import EditorContent from '../editor-content/index.vue'
+import SenderHeader from './SenderHeader.vue'
 import { DefaultActionButtons, WordCounter } from '../../../sender-actions/index'
 
 const { editor, hasContent, loading, showWordLimit, maxLength } = useSenderContext()
@@ -11,9 +12,9 @@ const slotScope = useSlotScope()
 <template>
   <div class="tr-sender-single-layout">
     <!-- Header 插槽 -->
-    <div v-if="$slots.header" class="tr-sender-header">
+    <SenderHeader>
       <slot name="header" />
-    </div>
+    </SenderHeader>
 
     <!-- 输入区域容器 -->
     <div class="tr-sender-container">

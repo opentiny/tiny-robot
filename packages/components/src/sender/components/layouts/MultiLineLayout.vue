@@ -3,6 +3,7 @@ import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
 import EditorContent from '../editor-content/index.vue'
 import Footer from '../footer/index.vue'
+import SenderHeader from './SenderHeader.vue'
 
 const context = useSenderContext()
 const slotScope = useSlotScope()
@@ -11,9 +12,9 @@ const slotScope = useSlotScope()
 <template>
   <div class="tr-sender-multi-layout">
     <!-- Header 插槽 -->
-    <div v-if="$slots.header" class="tr-sender-header">
+    <SenderHeader>
       <slot name="header" />
-    </div>
+    </SenderHeader>
 
     <!-- 主输入行 -->
     <div class="tr-sender-main">

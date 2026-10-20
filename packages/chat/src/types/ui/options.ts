@@ -19,6 +19,7 @@ import type { ChatUIData } from './data'
 export type ChatCssSize = string | number
 
 export interface ChatUIProps {
+  isEmpty?: boolean
   inputValue?: string
   defaultInputValue?: string
   data?: Readonly<ChatUIData>
@@ -31,6 +32,7 @@ export interface ChatUIProps {
 }
 
 export interface ChatUIOptions {
+  anchor?: false | Readonly<ChatAnchorOptions>
   layout?: Readonly<ChatLayoutOptions>
   brand?: Readonly<ChatBrandOptions>
   labels?: Readonly<Partial<ChatLabels>>
@@ -43,6 +45,12 @@ export interface ChatUIOptions {
   model?: false | Readonly<ChatModelOptions>
   mcp?: false | Readonly<ChatMcpOptions>
   extensions?: false | Readonly<ChatExtensionsOptions>
+}
+
+export interface ChatAnchorOptions {
+  visible?: boolean
+  /** Viewport width in pixels; intentionally independent of the Chat panel width. */
+  minWidth?: number
 }
 
 export interface ChatLayoutOptions {

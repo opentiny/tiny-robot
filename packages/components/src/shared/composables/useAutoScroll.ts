@@ -60,6 +60,7 @@ export interface LegacyUseAutoScrollOptions extends AutoScrollBehaviorOptions {
 }
 
 export interface UseAutoScrollReturn {
+  pause: () => void
   scrollToBottom: (behavior?: ScrollBehavior) => Promise<void>
   arrivedState: UseScrollReturn['arrivedState']
 }
@@ -116,6 +117,16 @@ export function useAutoScroll(
   const isFollowing = ref(true)
   let scheduledFrame: number | null = null
   const stopWatches = new Set<WatchHandle>()
+  let scrollRevision = 0
+
+  const pause = () => {
+    scrollRevision++
+    isFollowing.value = false
+    if (scheduledFrame !== null) cancelAnimationFrame(scheduledFrame)
+    scheduledFrame = null
+    stopWatches.forEach((stop) => stop())
+    stopWatches.clear()
+  }
 
   const targetElement = () => unrefElement(scrollRef)
   const contentElement = () => (contentRef ? unrefElement(contentRef) : null)
@@ -134,11 +145,13 @@ export function useAutoScroll(
   }
 
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
+    const revision = ++scrollRevision
     isFollowing.value = true
     const el = toValue(targetElement)
     if (!el) return
 
     await nextTick()
+    if (revision !== scrollRevision || el !== toValue(targetElement)) return
     el.scrollTo({ top: el.scrollHeight, behavior })
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
@@ -180,7 +193,8 @@ export function useAutoScroll(
       const el = toValue(targetElement)
       if (!el) return
 
-      if (isNearBottom(el as HTMLElement)) {
+      // A directory jump may start inside the bottom threshold; upward frames must not resume a paused follow.
+      if (isNearBottom(el as HTMLElement) && (isFollowing.value || newY > oldY)) {
         isFollowing.value = true
       } else if (newY < oldY) {
         isFollowing.value = false
@@ -234,6 +248,7 @@ export function useAutoScroll(
   })
 
   return {
+    pause,
     scrollToBottom,
     arrivedState,
   }

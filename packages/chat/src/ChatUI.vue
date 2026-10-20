@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
-import { computed, h, shallowRef } from 'vue'
-import { TrLayout } from '@opentiny/tiny-robot'
+import { computed, h, nextTick, onBeforeUpdate, shallowRef } from 'vue'
+import { TrAnchor, TrLayout } from '@opentiny/tiny-robot'
 import type {
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
@@ -44,14 +44,32 @@ import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './types'
 
 const props = withDefaults(defineProps<ChatUIProps>(), {
   rightAsideOpen: undefined,
+  isEmpty: undefined,
 })
 
 const emit = defineEmits<ChatUIEmits>()
 const slots = defineSlots<ChatUISlots>()
+// Slot membership is not reactive; refresh its snapshot for mounted renderComposer consumers.
+const currentSlots = shallowRef({ ...slots })
+onBeforeUpdate(() => {
+  const nextSlots = { ...slots }
+  const currentKeys = Object.keys(currentSlots.value) as Array<keyof ChatUISlots>
+  const nextKeys = Object.keys(nextSlots) as Array<keyof ChatUISlots>
+  if (currentKeys.length !== nextKeys.length || nextKeys.some((name) => currentSlots.value[name] !== nextSlots[name])) {
+    currentSlots.value = nextSlots
+  }
+})
+const composerRef = shallowRef<InstanceType<typeof ChatInputRegion> | null>(null)
+
+async function focusInput(): Promise<boolean> {
+  await nextTick()
+  return composerRef.value?.focusInput() ?? false
+}
 
 const isControlledInput = props.inputValue !== undefined
 const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')
 const scrollTarget = shallowRef<HTMLElement | null>(null)
+const messagesRef = shallowRef<InstanceType<typeof ChatMessages> | null>(null)
 const breakpoints = useBreakpoints({
   mobile: 0,
   desktop: 960,
@@ -66,10 +84,12 @@ const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
-const hasRightAsidePanelSlot = Boolean(slots['layout-right-aside'] || slots['layout-right-aside-panel'])
+const hasRightAsidePanelSlot = computed(() =>
+  Boolean(currentSlots.value['layout-right-aside'] || currentSlots.value['layout-right-aside-panel']),
+)
 
-const hasLegacyLeftAsideSlot = Boolean(slots['layout-left-aside'])
-const hasLayoutEmptyStateSlot = Boolean(slots['layout-empty-state'])
+const hasLegacyLeftAsideSlot = computed(() => Boolean(currentSlots.value['layout-left-aside']))
+const hasLayoutEmptyStateSlot = computed(() => Boolean(currentSlots.value['layout-empty-state']))
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
@@ -93,7 +113,9 @@ const hasRegisteredExtensions = computed(() => Boolean(registeredExtensions.valu
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
   const panels =
-    hasRightAsidePanelSlot && effectiveRightAsideLayout.value !== false ? effectiveRightAsideLayout.value.panels : []
+    hasRightAsidePanelSlot.value && effectiveRightAsideLayout.value !== false
+      ? effectiveRightAsideLayout.value.panels
+      : []
 
   if (!visibleMcp.value && !hasRegisteredExtensions.value) {
     return panels
@@ -128,6 +150,9 @@ const asideState = useChatAsideState({
 })
 
 defineExpose({
+  setInputValue: handleInputValue,
+  clearInput: () => handleInputValue(''),
+  focusInput,
   openRightAside: asideState.openRightAside,
   closeRightAside: asideState.closeRightAside,
   toggleRightAside: asideState.toggleRightAside,
@@ -143,9 +168,21 @@ const bubbleRoleConfigs = computed(
 const visibleMessages = computed(() =>
   resolvedData.value.bubble.messages.filter((message) => !isMessageHidden(message.role)),
 )
-const isEmpty = computed(() => visibleMessages.value.length === 0)
-const hasLayoutMainSlot = Boolean(slots['layout-main'])
-const isCustomEmptyStateActive = computed(() => isEmpty.value && hasLayoutEmptyStateSlot && !hasLayoutMainSlot)
+const isEmpty = computed(() => props.isEmpty ?? visibleMessages.value.length === 0)
+const hasLayoutMainSlot = computed(() => Boolean(currentSlots.value['layout-main']))
+const isAnchorEnabled = computed(() => {
+  const anchor = props.ui?.anchor
+  return Boolean(
+    anchor &&
+    anchor.visible !== false &&
+    viewportWidth.value >= (anchor.minWidth ?? 768) &&
+    !isEmpty.value &&
+    !hasLayoutMainSlot.value,
+  )
+})
+const isCustomEmptyStateActive = computed(
+  () => isEmpty.value && hasLayoutEmptyStateSlot.value && !hasLayoutMainSlot.value,
+)
 const isEmptyStateCentered = computed(() => isEmpty.value && resolvedOptions.value.layout.emptyState === 'center')
 
 const isDefaultComposerVisible = computed(() => isSenderVisible.value && !isCustomEmptyStateActive.value)
@@ -156,8 +193,9 @@ const isWelcomeComposerCentered = computed(
     isSenderVisible.value &&
     resolvedOptions.value.welcome !== false &&
     resolvedOptions.value.layout.composer.welcome === 'center' &&
-    !hasLayoutMainSlot,
+    !hasLayoutMainSlot.value,
 )
+const isFooterComposerVisible = computed(() => isDefaultComposerVisible.value && !isWelcomeComposerCentered.value)
 const layoutStyle = computed(() => ({
   containerType: 'inline-size',
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-page-bg-default))',
@@ -165,9 +203,9 @@ const layoutStyle = computed(() => ({
   '--tr-layout-header-bg': 'var(--tr-chat-ui-header-bg, var(--tr-container-bg-default))',
   '--tr-layout-main-bg': 'var(--tr-chat-ui-main-bg, var(--tr-container-bg-default))',
   '--tr-layout-footer-bg': 'var(--tr-chat-ui-footer-bg, var(--tr-container-bg-default))',
-  '--tr-chat-ui-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth),
-  '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding),
-  '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
+  '--tr-chat-ui-default-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth),
+  '--tr-chat-ui-default-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding),
+  '--tr-chat-ui-default-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
 }))
 
 const layoutProps = computed<LayoutProps>(() => {
@@ -197,7 +235,7 @@ function toCssSize(value: string | number) {
 }
 
 function isMessageHidden(role: string | undefined) {
-  return role ? Boolean(bubbleRoleConfigs.value[role]?.hidden) : false
+  return role ? (bubbleRoleConfigs.value[role]?.hidden ?? role === 'system') : false
 }
 
 function handleCreateConversation() {
@@ -435,14 +473,15 @@ function renderEmptyStateComposer() {
     {
       ...composerProps.value,
       ...composerEvents,
+      ref: composerRef,
     },
     {
-      'composer-before': slots['composer-before'],
-      'composer-after': slots['composer-after'],
-      'layout-footer': slots['layout-footer'],
-      'sender-header': slots['sender-header'],
-      'sender-footer': slots['sender-footer'],
-      'sender-footer-right': slots['sender-footer-right'],
+      'composer-before': currentSlots.value['composer-before'],
+      'composer-after': currentSlots.value['composer-after'],
+      'layout-footer': currentSlots.value['layout-footer'],
+      'sender-header': currentSlots.value['sender-header'],
+      'sender-footer': currentSlots.value['sender-footer'],
+      'sender-footer-right': currentSlots.value['sender-footer-right'],
     },
   )
 }
@@ -538,9 +577,6 @@ function renderEmptyStateComposer() {
           @toggle-left-aside="asideState.toggleLeftAside"
           @open-right-aside="asideState.openRightAside"
         >
-          <template v-if="$slots['header-notice']" #notice>
-            <slot name="header-notice" />
-          </template>
           <template v-if="$slots['layout-header']" #default>
             <slot
               name="layout-header"
@@ -564,6 +600,10 @@ function renderEmptyStateComposer() {
       <section class="chat-panel">
         <div ref="scrollTarget" class="chat-main-scroll-host">
           <ChatMessages
+            ref="messagesRef"
+            :conversation-id="resolvedData.conversation.activeId"
+            :request="resolvedData.request"
+            :anchor-enabled="isAnchorEnabled"
             :messages="resolvedData.bubble.messages"
             :scroll-target="scrollTarget"
             :options="resolvedOptions.bubble"
@@ -602,7 +642,12 @@ function renderEmptyStateComposer() {
               <slot name="prompts-footer" />
             </template>
             <template v-if="!isCustomEmptyStateActive && isWelcomeComposerCentered" #welcome-composer>
-              <ChatInputRegion class="chat-welcome-composer" v-bind="composerProps" v-on="composerTemplateEvents">
+              <ChatInputRegion
+                ref="composerRef"
+                class="chat-welcome-composer"
+                v-bind="composerProps"
+                v-on="composerTemplateEvents"
+              >
                 <template v-if="$slots['composer-before']" #composer-before="slotProps">
                   <slot name="composer-before" v-bind="slotProps" />
                 </template>
@@ -637,21 +682,42 @@ function renderEmptyStateComposer() {
             </template>
           </ChatMessages>
         </div>
+        <TrAnchor
+          v-if="isAnchorEnabled && scrollTarget"
+          :items="messagesRef?.anchorItems ?? []"
+          :scroll-container="scrollTarget"
+          target-feedback-class="tr-chat-anchor-target-active"
+          :target-feedback-duration="1800"
+          @select="messagesRef?.pauseAutoScroll()"
+        />
       </section>
 
-      <div class="chat-scroll-actions">
-        <ScrollToBottom :target="scrollTarget" :label="resolvedOptions.labels.scrollToBottom" />
+      <div v-if="!isFooterComposerVisible" class="chat-scroll-actions chat-scroll-actions--main">
+        <ScrollToBottom
+          :target="scrollTarget"
+          :label="resolvedOptions.labels.scrollToBottom"
+          @activate="messagesRef?.scrollToBottom('smooth')"
+        />
       </div>
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
     <template #footer>
       <div
-        v-if="isDefaultComposerVisible && (!isEmpty || !isWelcomeComposerCentered)"
+        v-if="isFooterComposerVisible"
         class="chat-panel-content chat-panel-content--footer"
         :class="{ 'has-composer-after': $slots['composer-after'] }"
       >
-        <ChatInputRegion v-bind="composerProps" v-on="composerTemplateEvents">
+        <ChatInputRegion ref="composerRef" v-bind="composerProps" v-on="composerTemplateEvents">
+          <template #scroll-actions>
+            <div class="chat-scroll-actions">
+              <ScrollToBottom
+                :target="scrollTarget"
+                :label="resolvedOptions.labels.scrollToBottom"
+                @activate="messagesRef?.scrollToBottom('smooth')"
+              />
+            </div>
+          </template>
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
             <slot name="composer-before" v-bind="slotProps" />
           </template>
@@ -750,7 +816,6 @@ function renderEmptyStateComposer() {
   position: relative;
   height: 100%;
   box-sizing: border-box;
-  padding: var(--tr-chat-ui-panel-padding);
 }
 
 .chat-main-scroll-host {
@@ -764,41 +829,55 @@ function renderEmptyStateComposer() {
   display: flex;
   box-sizing: border-box;
   flex-direction: column;
-  gap: var(--tr-chat-ui-panel-gap);
+  gap: var(--tr-chat-ui-panel-gap, var(--tr-chat-ui-default-panel-gap));
   width: 100%;
-  max-width: var(--tr-chat-ui-content-max-width);
+  max-width: var(--tr-chat-ui-content-max-width, var(--tr-chat-ui-default-content-max-width));
   min-height: 0;
   margin: 0 auto;
 }
 
 .chat-welcome-composer {
   width: 100%;
-  margin-top: 16px;
+  margin-top: var(--tr-chat-ui-welcome-composer-gap, 16px);
   text-align: left;
 }
 
 .chat-panel-content--header {
-  padding: 24px 24px 0;
+  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 0);
+}
+
+.chat-panel-content--main {
+  padding: var(
+    --tr-chat-ui-main-padding,
+    var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
+      var(--tr-chat-ui-content-padding-inline, 24px)
+  );
 }
 
 .chat-panel-content--footer {
-  padding: 0 24px 24px;
+  padding: var(--tr-chat-ui-footer-padding, 0 var(--tr-chat-ui-content-padding-inline, 24px) 24px);
 }
 
 .chat-panel-content--footer.has-composer-after {
-  padding-bottom: 8px;
+  padding: var(--tr-chat-ui-footer-padding, 0 var(--tr-chat-ui-content-padding-inline, 24px) 8px);
 }
 
 .chat-scroll-actions {
   position: absolute;
-  left: var(--tr-chat-ui-panel-padding);
-  right: var(--tr-chat-ui-panel-padding);
-  bottom: var(--tr-chat-ui-panel-padding);
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
   display: flex;
-  justify-content: flex-end;
-  max-width: var(--tr-chat-ui-content-max-width);
-  margin: 0 auto;
+  justify-content: var(--tr-chat-scroll-button-align, flex-end);
   pointer-events: none;
+}
+
+.chat-scroll-actions--main {
+  box-sizing: border-box;
+  bottom: var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding));
+  max-width: var(--tr-chat-ui-content-max-width, var(--tr-chat-ui-default-content-max-width));
+  padding-inline: var(--tr-chat-ui-content-padding-inline, 24px);
+  margin: 0 auto;
 }
 
 .chat-scroll-actions :deep(.tr-chat-scroll-to-bottom) {
@@ -819,11 +898,24 @@ function renderEmptyStateComposer() {
 
 @media (max-width: 959px) {
   .chat-panel-content--header {
-    padding: 16px 16px 0;
+    padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
   }
 
-  .chat-panel-content--footer {
-    padding: 0 16px 16px;
+  .chat-panel-content--main {
+    padding: var(
+      --tr-chat-ui-main-padding,
+      var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
+        var(--tr-chat-ui-content-padding-inline, 16px)
+    );
+  }
+
+  .chat-scroll-actions--main {
+    padding-inline: var(--tr-chat-ui-content-padding-inline, 16px);
+  }
+
+  .chat-panel-content--footer,
+  .chat-panel-content--footer.has-composer-after {
+    padding: var(--tr-chat-ui-footer-padding, 0 var(--tr-chat-ui-content-padding-inline, 16px) 16px);
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
@@ -44,6 +44,21 @@ defineSlots<{
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }>()
+
+const senderRef = shallowRef<InstanceType<typeof TrSender> | null>(null)
+
+async function focusInput(): Promise<boolean> {
+  const sender = senderRef.value
+  const editor = sender?.editor
+  if (!sender || !editor || props.sender.disabled || editor.isDestroyed) return false
+
+  sender.focus()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+  return senderRef.value === sender && !props.sender.disabled && !editor.isDestroyed && editor.isFocused
+}
+
+defineExpose({ focusInput })
 
 const defaultToolbar: readonly ChatSenderToolbarItem[] = [
   { type: 'builtin', id: 'thinking' },
@@ -138,6 +153,7 @@ function handleOpenExtensionPanel() {
 
 <template>
   <TrSender
+    ref="senderRef"
     v-bind="senderProps"
     @update:model-value="handleUpdateSenderValue"
     @submit="handleSubmit"

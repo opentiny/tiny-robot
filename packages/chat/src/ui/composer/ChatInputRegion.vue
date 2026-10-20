@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import ChatSender from './ChatSender.vue'
 import type {
   ChatBuiltInModelFeature,
@@ -36,6 +36,7 @@ const emit = defineEmits<{
 }>()
 
 defineSlots<{
+  'scroll-actions'?: () => unknown
   'composer-before'?: (props: ChatSenderSlotProps) => unknown
   'composer-after'?: (props: ChatSenderSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
@@ -43,6 +44,9 @@ defineSlots<{
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }>()
+
+const senderRef = shallowRef<InstanceType<typeof ChatSender> | null>(null)
+defineExpose({ focusInput: () => senderRef.value?.focusInput() ?? Promise.resolve(false) })
 
 function handleInputValue(value: string) {
   emit('update:value', value)
@@ -66,9 +70,11 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
 
 <template>
   <div class="chat-footer">
+    <slot name="scroll-actions" />
     <slot name="composer-before" v-bind="layoutFooterProps" />
     <slot name="layout-footer" v-bind="layoutFooterProps">
       <ChatSender
+        ref="senderRef"
         :sender="props.sender"
         :value="props.value"
         :sender-options="props.senderOptions"
@@ -107,5 +113,8 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
   position: relative;
   flex-shrink: 0;
   container: chat-composer / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-chat-ui-composer-gap, 0px);
 }
 </style>

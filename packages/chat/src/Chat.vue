@@ -35,6 +35,7 @@ import type {
 } from './types'
 
 interface ChatUIActions {
+  focusInput: () => Promise<boolean>
   openRightAside: (panel?: ChatRightAsidePanelId) => void
   closeRightAside: () => void
   toggleRightAside: (panel?: ChatRightAsidePanelId) => void
@@ -46,6 +47,7 @@ const chatUIRef = ref<ChatUIActions | null>(null)
 const props = withDefaults(
   defineProps<{
     runtime: ChatRuntime
+    isEmpty?: boolean
     ui?: ChatUIOptions
     title?: string
     floatingState?: LayoutFloatingState
@@ -57,6 +59,7 @@ const props = withDefaults(
   }>(),
   {
     rightAsideOpen: undefined,
+    isEmpty: undefined,
   },
 )
 
@@ -94,6 +97,9 @@ const adapter = useChatRuntimeAdapter({
 
 defineExpose({
   send: adapter.send,
+  setInputValue: adapter.setInputValue,
+  clearInput: () => adapter.setInputValue(''),
+  focusInput: () => chatUIRef.value?.focusInput() ?? Promise.resolve(false),
   openRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.openRightAside(panel),
   closeRightAside: () => chatUIRef.value?.closeRightAside(),
   toggleRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.toggleRightAside(panel),
@@ -209,6 +215,7 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
 
 <template>
   <ChatUI
+    :is-empty="props.isEmpty"
     ref="chatUIRef"
     :data="adapter.data.value"
     :ui="props.ui"
@@ -299,9 +306,6 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     </template>
     <template v-if="slots['composer-after']" #composer-after="slotProps">
       <slot name="composer-after" v-bind="slotProps" />
-    </template>
-    <template v-if="slots['header-notice']" #header-notice>
-      <slot name="header-notice" />
     </template>
     <template v-if="slots['welcome-footer']" #welcome-footer>
       <slot name="welcome-footer" />

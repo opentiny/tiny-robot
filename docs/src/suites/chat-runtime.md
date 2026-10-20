@@ -680,7 +680,7 @@ const history = useChatHistoryData({
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；可添加项目所需的额外字段，字段值类型为 `unknown`。 |
 | `ChatConversation`                           | 包含 `ChatConversationInfo` 的全部字段，另有消息列表 `messages: readonly ChatMessageItem[]`、请求状态 `requestState: ChatRequestState` 和处理状态 `processingState?: ChatProcessingState`。 |
-| `ChatMessageItem`                            | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
+| `ChatMessageItem`                            | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`renderKey?: string`；`streamState?: 'streaming' \| 'finished' \| 'unknown'`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
 | `ChatMessageContent`                         | `string \| ChatMessagePart[]`                                                                                                                                                                                                                                                |
 | `ChatMessagePart` | 消息内容的一部分；`type: string` 标识内容种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
 | `ChatStructuredDataItem` | 提交的结构化数据项；`type: string` 标识数据种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
@@ -689,6 +689,8 @@ const history = useChatHistoryData({
 | `ChatSendPayload`                            | `text: string`；`structuredData?: ChatStructuredData`                                                                                                                                                                                                                        |
 | `ChatRequestState`                           | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`                                                                                                                                                                                                  |
 | `ChatProcessingState`                        | `'requesting' \| 'completing' \| string`                                                                                                                                                                                                                                     |
+
+消息对象和服务端 ID 都可能变化时，请提供稳定的 `renderKey`。`streamState` 用于标记消息是否仍在处理中；自定义渲染器的接入见 [Renderer 上下文](./chat#自定义-renderer-上下文)。
 
 #### 模型与 MCP
 
