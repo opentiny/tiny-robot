@@ -162,7 +162,7 @@ createQuickAssist({
 
 #### 自定义合并策略 `mergeSuggestions`
 
-`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐成功返回后调用。`base` 是静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；`incoming` 是远程返回的完整推荐数组；`context` 是本次推荐使用的脱敏上下文。回调必须返回 `Suggestion[]`。
+`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐成功返回并通过校验后调用。`base` 是静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；`incoming` 是过滤无效项后、尚未去重或裁剪的远程推荐数组；`context` 是本次推荐使用的脱敏上下文。回调必须返回 `Suggestion[]`。
 
 默认策略相当于 `[...base, ...incoming]`：静态项优先，同 `id` 的远程项不会覆盖静态项；静态项占满数量上限时，远程项可能不展示。可以按业务需要返回不同顺序：
 
@@ -174,6 +174,28 @@ createQuickAssist({
 | 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]` |
 
 自定义回调返回后，组件仍会校验推荐格式、按 `id` 保留首次出现项，并应用 `maxSuggestions` 上限（默认 `3`）。因此，远程优先策略也可以用来覆盖静态同 `id` 的问题。
+
+#### 远程问题校验 `validateSuggestion`
+
+组件先检查远程响应是否为数组，再逐项检查 `id`、`label`、`prompt` 是否为非空字符串（纯空白也无效）。格式无效项会被过滤，不影响同批其他有效问题。静态问题及自定义合并结果也会进行格式校验，配置或合并结果无效时会报错。
+
+可选的同步回调 `validateSuggestion(suggestion, context): boolean` 在基础校验后、合并前逐项执行，仅用于远程问题：
+
+| 参数或返回值 | 含义 |
+| ------------ | ---- |
+| `suggestion` | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
+| `context` | 本次推荐使用的脱敏上下文，可读取 `text`、页面、附近文本和业务字段 |
+| 返回 `true` / `false` | 保留 / 丢弃该问题 |
+
+下面的独立示例并列展示远程原始问题、逐项过滤原因和最终展示问题。选中“竞价计费”后打开智能帮助，查看同一批问题的校验结果；切换“启用业务校验”后重新划词，可对比哪些问题被保留。基础格式校验始终执行，不受该开关影响。
+
+<demo vue="../../demos/quick-assist/suggestion-validation.vue" title="远程问题校验前后对比" description="对比原始问题与最终问题，查看空白、超长、不相关问题的过滤原因，以及全部无效时的静态回退。" />
+
+示例业务规则限制标题不超过 40 字、问题不超过 1000 字，并要求问题包含选中文字，可按产品需要替换；组件本身不设置文字长度上限。切换为“全部异常问题”可观察全部无效时的静态问题回退，展开源码可查看完整的 `validateSuggestion` 配置。
+
+响应不是数组、非空响应全部被过滤、回调抛出异常或返回非布尔值（包括 `Promise`）时，整批远程推荐失败，不会调用 `mergeSuggestions`，会保留静态问题并触发 `stage: 'suggestions'` 的错误事件。仅远程模式仍可手动输入提交。接口主动返回 `[]` 则属于成功的空结果，继续按合并策略处理，与全部被过滤的情况区分。
+
+`ValidateSuggestion` 类型可从 `@opentiny/tiny-robot/vanilla` 导入。AI 原始输出的 JSON 解析、字段映射和缺失 `id` 的生成应在业务 `getSuggestions` 中完成，组件接收统一的 `Suggestion[]`。
 
 ### 页面上下文与敏感数据
 
@@ -359,6 +381,7 @@ onBeforeUnmount(() => {
 | `sanitizeContext`              | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>` | —            | 返回最终允许外发的完整上下文                       |
 | `suggestions`                  | `QuickAssistSuggestionInput[]`                                           | 默认推荐     | 静态推荐或推荐生成函数                             |
 | `getSuggestions`               | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`             | —            | 使用脱敏后的上下文获取异步推荐                     |
+| `validateSuggestion`           | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`        | 基础格式校验 | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion) |
 | `mergeSuggestions`             | `(base, incoming, context) => Suggestion[]`                              | 静态优先追加 | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
 | `maxSuggestions`               | `number`                                                                 | `3`          | 最多展示的推荐数，必须为正整数                     |
 | `buildPrompt`                  | `(input) => string`                                                      | 内置构造     | 自定义提交内容                                     |

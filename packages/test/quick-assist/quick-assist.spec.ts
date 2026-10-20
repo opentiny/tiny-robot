@@ -654,6 +654,127 @@ test('async results append and deduplicate templates', async ({ page }) => {
   await expect(page.getByRole('button', { name: '不应替换', exact: true })).toHaveCount(0)
 })
 
+test('remote validation filters malformed and rejected items before merging with sanitized context', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const checked: string[] = []
+    window.resetQuickAssist({
+      suggestions: [{ id: 'static', label: '静态问题', prompt: '静态内容' }],
+      sanitizeContext: (context) => ({ ...context, text: '脱敏文本' }),
+      getSuggestions: () =>
+        [
+          null,
+          { id: '', label: '无效标识', prompt: '问题' },
+          { id: 'blank-label', label: '  ', prompt: '问题' },
+          { id: 'blank-prompt', label: '空问题', prompt: '\n' },
+          { id: 'missing', label: '缺少问题' },
+          { id: 'rejected', label: '业务拒绝', prompt: '不相关内容' },
+          { id: 'accepted', label: '有效推荐', prompt: '关于脱敏文本的问题' },
+        ] as Suggestion[],
+      validateSuggestion: (suggestion, context) => {
+        checked.push(suggestion.id)
+        document.documentElement.dataset.validatedIds = JSON.stringify(checked)
+        const accepted = context.text === '脱敏文本' && suggestion.prompt.includes(context.text)
+        suggestion.label = '校验不应修改展示内容'
+        return accepted
+      },
+      mergeSuggestions: (base, incoming) => {
+        if (incoming.length !== 1 || incoming[0].id !== 'accepted') throw new Error('merge received invalid items')
+        return [...incoming, ...base]
+      },
+    })
+  })
+  await open(page)
+  await expect(page.getByRole('button', { name: '有效推荐', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '静态问题', exact: true })).toBeVisible()
+  expect(await page.locator('html').getAttribute('data-validated-ids')).toBe('["rejected","accepted"]')
+  expect(await page.evaluate(() => window.qaEvents.some((event) => event.type === 'error'))).toBe(false)
+  await page.getByRole('button', { name: '有效推荐', exact: true }).click()
+  expect(await page.evaluate(() => window.qaRequests[0].prompt)).toBe('关于脱敏文本的问题')
+})
+
+for (const failure of [
+  'malformed',
+  'rejected',
+  'exception',
+  'async-validator',
+  'non-array',
+  'invalid-merge',
+] as const) {
+  test(`remote validation ${failure} preserves static questions and reports an error`, async ({ page }) => {
+    await page.evaluate((failure) => {
+      window.resetQuickAssist({
+        suggestions: [{ id: 'static', label: '静态问题', prompt: '静态内容' }],
+        getSuggestions: () => {
+          if (failure === 'non-array') return {} as Suggestion[]
+          if (failure === 'malformed') return [{ id: 'bad', label: '', prompt: '问题' }]
+          return [{ id: 'remote', label: '远程问题', prompt: '远程内容' }]
+        },
+        validateSuggestion: () => {
+          if (failure === 'exception') throw new Error('业务校验失败')
+          if (failure === 'async-validator') return Promise.resolve(true) as unknown as boolean
+          return failure !== 'rejected'
+        },
+        mergeSuggestions: () => {
+          document.documentElement.dataset.invalidMergeCalled = 'true'
+          if (failure === 'invalid-merge') return [{ id: 'bad', label: '合并结果', prompt: ' ' }]
+          throw new Error('must not merge failed recommendations')
+        },
+      })
+    }, failure)
+    await open(page)
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.qaEvents.some((event) => event.type === 'error' && event.stage === 'suggestions')),
+      )
+      .toBe(true)
+    await expect(page.getByRole('button', { name: '静态问题', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '远程问题', exact: true })).toHaveCount(0)
+    expect(await page.locator('html').getAttribute('data-invalid-merge-called')).toBe(
+      failure === 'invalid-merge' ? 'true' : null,
+    )
+    await page.getByRole('button', { name: '静态问题', exact: true }).click()
+    expect(await page.evaluate(() => window.qaRequests[0].prompt)).toBe('静态内容')
+  })
+}
+
+test('explicit empty remote results still merge without calling validation', async ({ page }) => {
+  await page.evaluate(() =>
+    window.resetQuickAssist({
+      suggestions: [{ id: 'static', label: '静态问题', prompt: '静态内容' }],
+      getSuggestions: () => [],
+      validateSuggestion: () => {
+        throw new Error('empty results must not be validated')
+      },
+      mergeSuggestions: (_base, incoming) => incoming,
+    }),
+  )
+  await open(page)
+  await expect(page.locator(`${popover} [data-state="empty"]`)).toBeVisible()
+  await expect(page.getByRole('button', { name: '静态问题', exact: true })).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.some((event) => event.type === 'error'))).toBe(false)
+})
+
+test('remote-only all-invalid recommendations allow manual submission and validation can be updated', async ({
+  page,
+}) => {
+  await page.evaluate(() =>
+    window.resetQuickAssist({
+      getSuggestions: () => [{ id: 'remote', label: '远程问题', prompt: '远程内容' }],
+      validateSuggestion: () => false,
+    }),
+  )
+  await open(page)
+  await expect(page.locator(`${popover} [data-state="error"]`)).toBeVisible()
+  await page.locator(`${popover} textarea`).fill('手动问题')
+  await page.locator(`${popover} textarea`).press('Enter')
+  expect(await page.evaluate(() => window.qaRequests[0].prompt)).toBe('手动问题')
+  await page.evaluate(() => window.qa.updateOptions({ validateSuggestion: () => true }))
+  await open(page)
+  await expect(page.getByRole('button', { name: '远程问题', exact: true })).toBeVisible()
+})
+
 test('sanitize completes before provider and removes URL query and hash by default', async ({ page }) => {
   await page.evaluate(() => {
     history.replaceState({}, '', '?token=URL_SECRET#secret')
