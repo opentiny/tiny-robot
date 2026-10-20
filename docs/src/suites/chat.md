@@ -498,7 +498,7 @@ const ui: ChatUIOptions = {
 
 ### 注册更多扩展
 
-通过 `ui.extensions.tabs` 可以向内置扩展管理器注册 Skills 等更多应用页签。已有的 `mcp` 配置无需修改；同时使用时，MCP 和应用页签会显示在同一右侧面板中。面板中只有一个页签时会省略标签导航，直接显示该页签的内容。
+通过 `ui.extensions.tabs` 可以向内置扩展管理器注册 Skills 等更多应用页签。已有的 `mcp` 配置无需修改；同时使用时，MCP 和应用页签会显示在同一右侧面板中。
 
 <demo
   vue="../../demos/chat/extension-tabs.vue"
@@ -926,7 +926,7 @@ const data = computed<ChatUIData>(() => ({
 
 #### `ui.extensions` {#ui-extensions}
 
-通过 `ui.extensions.tabs` 向内置扩展管理器注册 Skills 等应用能力。若同时提供 `mcp`，MCP 和应用页签会在同一面板中展示；面板中只有一个页签时会省略标签导航，直接显示该页签的内容。原有 MCP 事件保持不变。`mcp` 是保留页签 ID，重复 ID 会被忽略。
+通过 `ui.extensions.tabs` 向内置扩展管理器注册 Skills 等应用能力。若同时提供 `mcp`，MCP 和应用页签会在同一面板中展示。原有 MCP 事件保持不变。`mcp` 是保留页签 ID，重复 ID 会被忽略。
 
 ```ts
 import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
