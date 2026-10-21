@@ -5,8 +5,9 @@ import { createDefaultChatLabels } from '../../../chat/src/ui/defaults'
 import type { ChatMcpView } from '../../../chat/src/types'
 import type { ExtensionManagerTab } from '../../../components/src'
 
-const props = withDefaults(defineProps<{ extensionLabel?: string; withSkills?: boolean }>(), {
+const props = withDefaults(defineProps<{ extensionLabel?: string; withMcp?: boolean; withSkills?: boolean }>(), {
   extensionLabel: '扩展',
+  withMcp: true,
   withSkills: false,
 })
 
@@ -27,7 +28,7 @@ const extensionTabs: ExtensionManagerTab[] = [{ id: 'skills', label: 'Skills', i
 <template>
   <div style="width: 320px; height: 700px">
     <ChatMcpPanel
-      :mcp="mcp"
+      :mcp="props.withMcp ? mcp : undefined"
       :labels="labels"
       :extension-tabs="props.withSkills ? extensionTabs : undefined"
       @create-server="event = JSON.stringify({ kind: 'create', ...$event })"

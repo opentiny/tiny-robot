@@ -76,6 +76,13 @@ watch(selectedServer, (server) => {
   if (view.value === 'detail' && !server) view.value = 'list'
 })
 
+watch(
+  () => props.mcp,
+  (mcp) => {
+    if (!mcp) view.value = 'list'
+  },
+)
+
 function openAddForm() {
   formValue.value = { name: '', type: 'sse', url: '' }
   view.value = 'add'
