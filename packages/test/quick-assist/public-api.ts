@@ -3,6 +3,10 @@ import {
   type AIAdapter,
   type AIRequest,
   type QuickAssistContext,
+  type QuickAssistActivationInput,
+  type QuickAssistActivationView,
+  type QuickAssistAnchorShortcut,
+  type QuickAssistSelectionSource,
   type QuickAssistInstance,
   type QuickAssistOptions,
   type SelectionSnapshot,
@@ -22,3 +26,15 @@ export const options: QuickAssistOptions = {
   validateSuggestion,
 }
 export const create: (options: QuickAssistOptions) => QuickAssistInstance = createQuickAssist
+
+// Public activation contracts must resolve through the published package declaration entry.
+export const validateActivation = (view: QuickAssistActivationView): boolean => view.text.length > 0
+export function activatePublic(
+  instance: QuickAssistInstance,
+  input: QuickAssistActivationInput | QuickAssistAnchorShortcut,
+) {
+  instance.activate(input)
+}
+export function registerPublic(instance: QuickAssistInstance, source: QuickAssistSelectionSource): () => void {
+  return instance.registerSource(source)
+}
