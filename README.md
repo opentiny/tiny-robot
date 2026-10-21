@@ -11,6 +11,8 @@
   <img src="https://img.shields.io/badge/TypeScript-Ready-3178c6.svg" alt="TypeScript">
 </p>
 
+English | [简体中文](https://github.com/opentiny/tiny-robot/blob/HEAD/README.zh-CN.md)
+
 **TinyRobot** is an AI component library and application development suite built with Vue 3 and following the OpenTiny Design system. It helps enterprises quickly build intelligent chat applications and business assistants.
 
 <p align="center">

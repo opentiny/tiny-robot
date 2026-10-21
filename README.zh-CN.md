@@ -11,6 +11,8 @@
   <img src="https://img.shields.io/badge/TypeScript-Ready-3178c6.svg" alt="TypeScript">
 </p>
 
+[English](https://github.com/opentiny/tiny-robot/blob/HEAD/README.md) | 简体中文
+
 **TinyRobot** 是一个基于 Vue 3 构建、遵循 OpenTiny Design 设计体系的 AI 组件库与应用开发套件，助力企业快速搭建智能对话与业务助手应用。
 
 <p align="center">
