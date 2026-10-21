@@ -61,6 +61,7 @@ export interface DefaultChatUIOptions {
   sender: ChatSenderOptions
   model: Record<string, never>
   mcp: Record<string, never>
+  extensions: false
 }
 
 export function createDefaultChatLabels(): ChatLabels {
@@ -78,6 +79,7 @@ export function createDefaultChatLabels(): ChatLabels {
     modelEmptyText: '暂无模型',
     rightAsideTitle: '详情',
     mcp: 'MCP',
+    extensions: '扩展',
     mcpInstallServer: '安装',
     mcpRemoveServer: '卸载',
     thinkingFeature: '深度思考',
@@ -151,6 +153,7 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
     },
     model: {},
     mcp: {},
+    extensions: false,
   }
 }
 
