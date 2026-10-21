@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ref, shallowRef } from 'vue'
 import type {
   ChatConversation,
@@ -91,6 +91,34 @@ describe('useChatRuntimeAdapter error channels', () => {
 })
 
 describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
+  it('rejects a submission whose conversation changes before the draft microtask', async () => {
+    const send = vi.fn(async () => true)
+    const current = createRuntime('conversation-1', send)
+    const adapter = useChatRuntimeAdapter({ runtime: current.runtime, onActionError: () => undefined })
+    adapter.setInputValue('bound draft')
+    const pending = adapter.send({ text: 'bound draft' })
+    current.activeConversation.value = {
+      id: 'conversation-2',
+      title: 'conversation-2',
+      messages: [],
+      requestState: 'idle',
+    }
+    await expect(pending).resolves.toBe(false)
+    expect(send).not.toHaveBeenCalled()
+    expect(adapter.inputValue.value).toBe('')
+  })
+
+  it('rejects a submission whose runtime changes before the draft microtask', async () => {
+    const firstSend = vi.fn(async () => true)
+    const first = createRuntime('conversation-1', firstSend)
+    const second = createRuntime('conversation-1')
+    const runtime = shallowRef(first.runtime)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    const pending = adapter.send({ text: 'bound draft' })
+    runtime.value = second.runtime
+    await expect(pending).resolves.toBe(false)
+    expect(firstSend).not.toHaveBeenCalled()
+  })
   it('clears the draft when the runtime changes with the same active conversation id', () => {
     const first = createRuntime('conversation-1')
     const second = createRuntime('conversation-1')

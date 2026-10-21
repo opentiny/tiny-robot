@@ -1,6 +1,8 @@
 import { toRaw } from 'vue'
 import type { ChatMessageItem, ChatRequestView } from '../../types'
 
+export type ChatStreamMessageState = 'history' | 'current' | 'unknown'
+
 export function createMessageIdentity(scope: string) {
   const objects = new WeakMap<ChatMessageItem, number>()
   let nextId = 0
@@ -17,12 +19,17 @@ export function createMessageIdentity(scope: string) {
 export function resolveStreamState(
   message: ChatMessageItem,
   request?: ChatRequestView,
-  isLatest = false,
+  messageState: ChatStreamMessageState = 'history',
 ): NonNullable<ChatMessageItem['streamState']> {
   if (message.streamState) return message.streamState
-  if (message.loading === true) return 'streaming'
-  if (message.loading === false || message.role === 'user' || message.role === 'system') return 'finished'
-  if (request?.state === 'processing' && isLatest) return 'unknown'
+  if (request && ['completed', 'aborted', 'paused', 'error'].includes(request.state)) return 'finished'
+  if (message.role === 'user' || message.role === 'system') return 'finished'
+  if (request?.state === 'processing') {
+    if (messageState === 'current' && !['calling-tools', 'pausing'].includes(request.processingState ?? '')) {
+      return 'streaming'
+    }
+    return messageState === 'unknown' ? 'unknown' : 'finished'
+  }
   return 'finished'
 }
 

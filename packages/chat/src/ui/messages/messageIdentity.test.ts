@@ -45,16 +45,28 @@ describe('Chat message identity', () => {
 describe('Chat stream state', () => {
   it('keeps history finished when streaming fields are absent', () => {
     expect(resolveStreamState({ role: 'assistant' })).toBe('finished')
-    expect(resolveStreamState({ role: 'assistant' }, { state: 'processing' }, false)).toBe('finished')
-    expect(resolveStreamState({ role: 'assistant' }, { state: 'completed' }, true)).toBe('finished')
+    expect(resolveStreamState({ role: 'assistant' }, { state: 'processing' }, 'history')).toBe('finished')
+    expect(resolveStreamState({ role: 'assistant' }, { state: 'completed' }, 'current')).toBe('finished')
   })
 
-  it('separates explicit streams, completed messages and insufficient active state', () => {
-    expect(resolveStreamState({ loading: true })).toBe('streaming')
-    expect(resolveStreamState({ loading: false }, { state: 'processing' }, true)).toBe('finished')
-    expect(resolveStreamState({ role: 'assistant' }, { state: 'processing' }, true)).toBe('unknown')
+  it('keeps explicit state first and ignores loading for automatic state', () => {
+    expect(resolveStreamState({ streamState: 'streaming', loading: false })).toBe('streaming')
     expect(resolveStreamState({ streamState: 'unknown', loading: false })).toBe('unknown')
     expect(resolveStreamState({ streamState: 'finished', loading: true })).toBe('finished')
+    expect(resolveStreamState({ loading: true }, { state: 'processing' }, 'history')).toBe('finished')
+    expect(resolveStreamState({ loading: false }, { state: 'processing' }, 'current')).toBe('streaming')
+    expect(resolveStreamState({}, { state: 'processing' }, 'unknown')).toBe('unknown')
+  })
+
+  it('finishes user, system, tool-stage and completed request messages', () => {
+    expect(resolveStreamState({ role: 'user' }, { state: 'processing' }, 'current')).toBe('finished')
+    expect(resolveStreamState({ role: 'system' }, { state: 'processing' }, 'current')).toBe('finished')
+    expect(resolveStreamState({}, { state: 'processing', processingState: 'calling-tools' }, 'current')).toBe(
+      'finished',
+    )
+    for (const state of ['completed', 'aborted', 'paused', 'error'] as const) {
+      expect(resolveStreamState({}, { state }, 'current')).toBe('finished')
+    }
   })
 })
 

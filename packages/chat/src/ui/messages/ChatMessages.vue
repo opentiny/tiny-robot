@@ -16,6 +16,7 @@ import {
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { CHAT_RENDER_ENVIRONMENT } from '../../composables/useChatRenderContext'
 import { createMessageIdentity, getMessageAnchorText, resolveStreamState } from './messageIdentity'
+import { useChatStreamState } from './useChatStreamState'
 import type { ChatRequestView } from '../../types'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
 import type {
@@ -65,11 +66,17 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 const lastMessage = computed(() => props.messages.at(-1))
 const contentRef = ref<HTMLElement | null>(null)
 const messageIdentity = createMessageIdentity(`chat-${getCurrentInstance()!.uid}`)
+const getMessageStreamState = useChatStreamState(
+  () => props.messages,
+  () => props.request,
+  () => props.conversationId,
+  messageIdentity,
+)
 const bubbleMessages = computed<ChatMessageItem[]>(() =>
-  props.messages.map((message, index) => ({
+  props.messages.map((message) => ({
     ...message,
     renderKey: messageIdentity(message, props.conversationId),
-    streamState: resolveStreamState(message, props.request, index === props.messages.length - 1),
+    streamState: resolveStreamState(message, props.request, getMessageStreamState(message)),
   })),
 )
 provide(CHAT_RENDER_ENVIRONMENT, {

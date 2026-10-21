@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, markRaw, shallowRef } from 'vue'
 import TrChatUI from '../../../chat/src/ChatUI.vue'
-import type { ChatMessageItem, ChatUIOptions } from '../../../chat/src/types'
+import type { ChatMessageItem, ChatRequestState, ChatUIOptions } from '../../../chat/src/types'
 import RenderContextProbe from './RenderContextProbe.vue'
 
 const props = withDefaults(
@@ -21,6 +21,10 @@ const props = withDefaults(
 )
 const thread = shallowRef('thread-a')
 const senderHeader = shallowRef(false)
+const requests = shallowRef<Record<string, { state: ChatRequestState }>>({
+  'thread-a': { state: 'idle' },
+  'thread-b': { state: 'processing' },
+})
 const messages = shallowRef<ChatMessageItem[]>(
   Array.from({ length: 6 }, (_, index) => [
     {
@@ -44,7 +48,7 @@ const messages = shallowRef<ChatMessageItem[]>(
 const data = computed(() => ({
   conversation: { activeId: thread.value },
   bubble: { messages: messages.value },
-  request: { state: 'processing' as const },
+  request: requests.value[thread.value],
 }))
 const ui = computed<ChatUIOptions>(() => ({
   anchor: props.anchor ? {} : false,
@@ -89,6 +93,43 @@ function grow() {
 function finish() {
   messages.value = messages.value.map<ChatMessageItem>((message) => ({ ...message, streamState: 'finished' }))
 }
+
+function startAutomaticStream() {
+  requests.value = { ...requests.value, 'thread-a': { state: 'processing' } }
+  messages.value = [
+    ...messages.value,
+    { id: 'automatic', renderKey: 'automatic', role: 'assistant', content: 'first', loading: false },
+  ]
+}
+
+function growAutomaticStream() {
+  messages.value = messages.value.map((message) =>
+    message.renderKey === 'automatic'
+      ? { ...message, id: 'automatic-server', content: `${message.content} update` }
+      : message,
+  )
+}
+
+function growAutomaticTable() {
+  messages.value = messages.value.map((message) =>
+    message.renderKey === 'automatic'
+      ? {
+          ...message,
+          id: 'automatic-server',
+          content: `${message.content}\n| column | value |\n| --- | --- |\n| row | update |`,
+        }
+      : message,
+  )
+}
+
+function finishAutomaticStream() {
+  requests.value = { ...requests.value, 'thread-a': { state: 'completed' } }
+}
+
+function switchAutomaticStream() {
+  thread.value = 'thread-b'
+  messages.value = [...messages.value, { id: 'other', role: 'assistant', content: 'other' }]
+}
 </script>
 
 <template>
@@ -96,6 +137,11 @@ function finish() {
     <button data-testid="grow" @click="grow">Grow</button>
     <button data-testid="finish" @click="finish">Finish</button>
     <button data-testid="thread" @click="thread = 'thread-b'">Switch</button>
+    <button data-testid="auto-start" @click="startAutomaticStream">Start automatic stream</button>
+    <button data-testid="auto-grow" @click="growAutomaticStream">Grow automatic stream</button>
+    <button data-testid="auto-table" @click="growAutomaticTable">Grow automatic table</button>
+    <button data-testid="auto-finish" @click="finishAutomaticStream">Finish automatic stream</button>
+    <button data-testid="auto-switch" @click="switchAutomaticStream">Switch automatic stream</button>
     <button data-testid="sender-header" @click="senderHeader = !senderHeader">Toggle sender header</button>
     <TrChatUI
       :data="data"

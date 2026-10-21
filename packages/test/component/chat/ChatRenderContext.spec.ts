@@ -22,6 +22,28 @@ test('Renderer context preserves identity through copies and exposes the real sc
   await expect(last).not.toHaveAttribute('data-key', key!)
 })
 
+test('Renderer context infers automatic streaming only from a tracked request', async ({ mount }) => {
+  const component = await mount(ChatRenderContext)
+  await component.getByTestId('auto-start').click()
+  const automatic = component.locator('.context-probe').filter({ hasText: 'first' })
+  await expect(automatic).toHaveAttribute('data-state', 'streaming')
+  const instance = await automatic.getAttribute('data-instance')
+  await component.getByTestId('auto-grow').click()
+  await expect(automatic).toContainText('first update')
+  await expect(automatic).toHaveAttribute('data-instance', instance!)
+  await expect(automatic).toHaveAttribute('data-state', 'streaming')
+  await component.getByTestId('auto-table').click()
+  await expect(automatic).toContainText('column')
+  await expect(automatic).toHaveAttribute('data-state', 'streaming')
+  await component.getByTestId('auto-finish').click()
+  await expect(automatic).toHaveAttribute('data-state', 'finished')
+  await component.getByTestId('auto-switch').click()
+  await expect(component.locator('.context-probe').filter({ hasText: 'other' })).toHaveAttribute(
+    'data-state',
+    'unknown',
+  )
+})
+
 test('Anchor uses display questions, targets only the first split and retains caller attributes', async ({
   mount,
   page,

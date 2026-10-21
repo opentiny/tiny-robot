@@ -18,7 +18,10 @@ export type {
   LayoutFloatingState,
 } from '@opentiny/tiny-robot'
 
-export type { UseChatRuntimeFromConversationOptions } from './runtime/useChatRuntimeFromConversation'
+export type {
+  KitRuntimeSendPayload,
+  UseChatRuntimeFromConversationOptions,
+} from './runtime/useChatRuntimeFromConversation'
 export type { UseChatRuntimeMcpAdapter, UseChatRuntimeOptions } from './runtime/useChatRuntime'
 export type { ChatErrorPluginContext, ErrorStatePluginOptions } from './runtime/plugins/errorStatePlugin'
 export type { UseChatRuntimeAdapterOptions } from './composables/useChatRuntimeAdapter'
