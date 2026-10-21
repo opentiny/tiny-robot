@@ -144,7 +144,7 @@ function hasValidGeometry(snapshot: SelectionSnapshot): boolean {
   )
 }
 
-function isDefaultTextValid(text: string, maxTextLength: number): boolean {
+export function isDefaultTextValid(text: string, maxTextLength: number): boolean {
   const trimmed = text.trim()
   if (!trimmed || trimmed.length > maxTextLength) return false
   if (NUMERIC_RE.test(trimmed) || PUNCTUATION_RE.test(trimmed.replace(/\s+/gu, ''))) return false

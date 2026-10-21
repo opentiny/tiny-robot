@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
 
 # QuickAssist 智能帮助
 
-QuickAssist 是一个与框架无关的智能帮助组件，可以用在需要在页面中进行轻量AI交互的场景。当前提供了“划词”触发和输入交互，用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
+QuickAssist 是一个与框架无关的智能帮助组件，可以用在需要在页面中进行轻量AI交互的场景。当前提供了“划词”和主动 API 两种触发方式，以及输入交互，用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
 
 ## 安装与引入
 
@@ -139,11 +139,11 @@ createQuickAssist({
 
 通过 `suggestions` 配置的问题称为“静态问题”，可包含根据选区生成文案的模板；与组件内置的默认推荐问题区分。QuickAssist 支持四种推荐模式：
 
-| 配置方式                               | 打开输入浮层后的行为                                                                   |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| 省略 `suggestions` 与 `getSuggestions` | 立即显示“解释”和“适用场景”两个默认模板                                                 |
-| 仅配置 `suggestions`                   | 立即显示静态推荐；显式传 `[]` 表示不显示默认模板                                       |
-| 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果           |
+| 配置方式                               | 打开输入浮层后的行为                                                                                                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 省略 `suggestions` 与 `getSuggestions` | 立即显示“解释”和“适用场景”两个默认模板                                                                                                               |
+| 仅配置 `suggestions`                   | 立即显示静态推荐；显式传 `[]` 表示不显示默认模板                                                                                                     |
+| 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果                                                                       |
 | 两者都配置                             | 先显示静态模板，再合并异步推荐；默认静态在前、远程追加，按 `id` 保留首次出现项，最后由 `maxSuggestions` 裁剪；可用 `mergeSuggestions` 自定义覆盖策略 |
 
 `Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送。手动输入则把编辑后的内容作为 `query`；可用 `buildPrompt` 自定义最终发送内容。
@@ -166,12 +166,12 @@ createQuickAssist({
 
 默认策略相当于 `[...base, ...incoming]`：静态项优先，同 `id` 的远程项不会覆盖静态项；静态项占满数量上限时，远程项可能不展示。可以按业务需要返回不同顺序：
 
-| 目标 | 回调返回值 |
-| ---- | ---------- |
-| 远程整体替换静态问题 | `incoming` |
-| 远程有结果时替换，否则保留静态问题 | `incoming.length ? incoming : base` |
-| 远程优先，保留未重复的静态问题 | `[...incoming, ...base]` |
-| 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]` |
+| 目标                                   | 回调返回值                          |
+| -------------------------------------- | ----------------------------------- |
+| 远程整体替换静态问题                   | `incoming`                          |
+| 远程有结果时替换，否则保留静态问题     | `incoming.length ? incoming : base` |
+| 远程优先，保留未重复的静态问题         | `[...incoming, ...base]`            |
+| 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]`            |
 
 自定义回调返回后，组件仍会校验推荐格式、按 `id` 保留首次出现项，并应用 `maxSuggestions` 上限（默认 `3`）。因此，远程优先策略也可以用来覆盖静态同 `id` 的问题。
 
@@ -181,11 +181,11 @@ createQuickAssist({
 
 可选的同步回调 `validateSuggestion(suggestion, context): boolean` 在基础校验后、合并前逐项执行，仅用于远程问题：
 
-| 参数或返回值 | 含义 |
-| ------------ | ---- |
-| `suggestion` | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
-| `context` | 本次推荐使用的脱敏上下文，可读取 `text`、页面、附近文本和业务字段 |
-| 返回 `true` / `false` | 保留 / 丢弃该问题 |
+| 参数或返回值          | 含义                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `suggestion`          | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
+| `context`             | 本次推荐使用的脱敏上下文，可读取 `text`、页面、附近文本和业务字段                                                        |
+| 返回 `true` / `false` | 保留 / 丢弃该问题                                                                                                        |
 
 下面的独立示例并列展示远程原始问题、逐项过滤原因和最终展示问题。选中“竞价计费”后打开智能帮助，查看同一批问题的校验结果；切换“启用业务校验”后重新划词，可对比哪些问题被保留。基础格式校验始终执行，不受该开关影响。
 
@@ -262,6 +262,179 @@ const quickAssist = createQuickAssist({
 ::: tip 支持范围
 当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
 :::
+
+### 主动激活：按钮与自定义选区
+
+通过 `activate()` 可以主动提供文本和锚点，复用“智能帮助入口 → 输入浮层 → 推荐与提交”的流程。默认先展示入口；传入 `open: 'popover'` 可跳过入口，直接打开并聚焦输入框。它不会直接显示 AI 答案。
+
+示例默认勾选“直接显示输入框”：点击术语按钮直接提问，悬停或键盘聚焦指标卡片可查看指标专属推荐；浮层打开后可移入其中操作。取消勾选即可对比先显示入口的流程。提交后，下方展示实际收到的内容与来源。
+
+<demo vue="../../demos/quick-assist/activation.vue" title="主动激活与自定义定位" description="点击与悬停触发，切换直接输入，并对比实例默认推荐和本次专属推荐。" />
+
+最简单的方式是传入一个 DOM 元素作为锚点：
+
+```ts
+const explainButton = document.querySelector<HTMLButtonElement>('#explain')!
+
+explainButton.addEventListener('click', () => {
+  quickAssist.activate({
+    text: '需要解释的代码或业务术语',
+    anchor: explainButton,
+    open: 'popover', // 直接打开输入框；省略时先显示智能帮助入口
+    // source 默认是 manual；可选 meta 会进入上下文脱敏管道。
+    meta: { feature: 'code-explanation' },
+  })
+})
+```
+
+`open: 'popover'` 立即进入输入浮层，跳过 `trigger.showDelay`，不产生 `trigger_show` 或 `trigger_click` 事件，仍产生 `selection` 和 `popover_show`。上下文构造或脱敏未完成时可以编辑，但暂不能发送。`open` 只影响本次激活，普通页面划词不变。
+
+**为本次激活单独提供推荐**，无需 `updateOptions()`，也不影响其他区域：
+
+```ts
+quickAssist.activate({
+  source: 'editor',
+  text: selectedCode,
+  anchor: codeElement,
+  open: 'popover',
+  suggestions: [
+    {
+      id: 'explain-code',
+      getLabel: () => '解释这段代码',
+      getPrompt: (context) => `请解释以下代码：\n${context.text}`,
+    },
+    {
+      id: 'review-code',
+      getLabel: () => '检查潜在问题',
+      getPrompt: (context) => `请检查以下代码是否存在潜在问题：\n${context.text}`,
+    },
+  ],
+})
+```
+
+| 本次激活参数                          | 行为                                             |
+| ------------------------------------- | ------------------------------------------------ |
+| 不传 `suggestions` / `getSuggestions` | 使用实例默认推荐配置                             |
+| `suggestions: [...]`                  | 替换本次的静态推荐；不调用实例的远程推荐         |
+| `suggestions: []`                     | 不显示推荐，保留手动提问                         |
+| `getSuggestions: fn`                  | 使用本次的异步推荐函数，可与本次静态推荐一起配置 |
+| `getSuggestions: null`                | 本次禁用远程推荐，静态推荐仍按对应配置展示       |
+
+推荐项的结构与实例级 `suggestions` 一致，支持固定问题与 `getLabel` / `getPrompt` 工厂。工厂与远程函数均在上下文脱敏后执行，数量限制、远程校验、合并策略仍使用实例配置；关闭或新激活会中止旧请求、忽略旧结果。固定项在激活时复制，后续不会因原数组被修改而变化。
+
+元素移除、祖先隐藏或尺寸塌缩时会清理当前会话；实例停用或销毁后调用 `activate()` 不生效。显式再次调用可以重新打开已关闭的内容。
+
+需要将入口放在编辑器选区、图表或自定义画布旁时，使用完整形式：
+
+```ts
+quickAssist.activate({
+  source: 'editor',
+  text: selectedCode,
+  anchorElement: editorContainer,
+  getRect: () => getCurrentSelectionRect(),
+  verify: () => isCapturedSelectionStillValid(),
+  getNearbyText: () => capturedNearbyCode,
+  onInvalidate(notify) {
+    // notify 表示需要复检；verify 与 getRect 有效则重定位，否则关闭。
+    return subscribeToSelectionAndLayoutChanges(notify)
+  },
+  meta: { language: 'typescript', fileName: 'price.ts' },
+})
+```
+
+`getCurrentSelectionRect` 等函数由宿主实现，以上是接口示意。矩形使用**相对浏览器视口的 CSS 像素坐标**，与 `getBoundingClientRect()` 一致；选区不可见或失效时返回 `null`，零宽但有高度的 caret 矩形也有效。编辑器的内部坐标需要加上容器的视口坐标，并由宿主判断编辑器自身的裁剪范围。
+
+`onInvalidate` 从接受激活时开始订阅，覆盖 `showDelay`、入口和输入浮层阶段，关闭时调用返回的清理函数。未提供该订阅时，仅在滚动、窗口 resize、延迟显示等检查时发现失效；模型或布局变化需由宿主通知，或主动 `close()`。
+
+`text`、`meta` 和 `getNearbyText()` 的结果在激活时捕获；附近文本受 `nearbyContext.maxLength` 限制，业务上下文和脱敏仍在打开输入浮层后执行。`meta` 仅放可 JSON 序列化的业务字段。不要传 DOM、编辑器实例、Range 或访问密钥。
+
+主动激活遵循非空、最大文本长度和几何校验；`include` / `exclude`、`selection.forwardOnly`、旧的 `selection.validate` 与 `getNearbyContext` 仅作用于原生 DOM 划词。宿主应自行决定哪些自定义区域可以激活。代码场景可通过 `selection.validateActivation` 替换默认的纯数字/符号/URL 等文本规则，但不能绕过长度和几何限制：
+
+```ts
+quickAssist.updateOptions({
+  selection: {
+    maxTextLength: 2000,
+    validateActivation: ({ text }) => text.trim().length > 0,
+  },
+})
+```
+
+### Monaco 选中代码后主动解释
+
+这个示例使用真实 Monaco 编辑器。鼠标拖选并松开，或用 Shift + 方向键完成选区后，页面自动读取编辑器模型并调用 `activate()`，把“智能帮助”入口定位到选区末端；点击入口后可发送“解释这段代码”。关闭后，同一选区不会因无关 keyup 立即重开，清空后重新选择即可再次触发。代码解释和问题检查通过本次 `activate({ suggestions })` 配置，实例继续使用默认推荐。下方示例助手显示实际收到的请求，本例不调用模型。
+
+<demo vue="../../demos/quick-assist/monaco.vue" title="Monaco 主动选区解释" description="选词完成后自动调用通用 API，不依赖编辑器桥接器。" />
+
+核心接线如下，完整可运行代码见示例源码。Monaco 需要由应用自行安装，并在浏览器挂载后创建：
+
+```ts
+let lastIdentity: string | undefined
+
+function explainSelection() {
+  const selection = editor.getSelection()
+  const model = editor.getModel()
+  const container = editor.getDomNode()
+  if (!selection || selection.isEmpty() || !model || !container) return
+
+  const text = model.getValueInRange(selection)
+  const version = model.getVersionId()
+  const identity = `${model.uri}:${version}:${selection.selectionStartLineNumber}:${selection.selectionStartColumn}:${selection.positionLineNumber}:${selection.positionColumn}`
+  if (identity === lastIdentity) return
+  lastIdentity = identity
+  const end = selection.getEndPosition()
+
+  quickAssist.activate({
+    source: 'monaco',
+    text,
+    suggestions: [
+      {
+        id: 'explain-code',
+        getLabel: () => '解释这段代码',
+        getPrompt: (context) => `请解释以下代码：\n${context.text}`,
+      },
+    ],
+    anchorElement: container,
+    meta: { language: model.getLanguageId() },
+    verify: () => editor.getModel() === model && model.getVersionId() === version,
+    getRect() {
+      const position = editor.getScrolledVisiblePosition(end)
+      const layout = editor.getLayoutInfo()
+      if (
+        !container.isConnected ||
+        !container.getClientRects().length ||
+        !position ||
+        position.left < layout.contentLeft ||
+        position.left > layout.contentLeft + layout.contentWidth ||
+        position.top < 0 ||
+        position.top + position.height > layout.height
+      )
+        return null
+      const box = container.getBoundingClientRect()
+      return new DOMRect(box.left + position.left, box.top + position.top, 0, position.height)
+    },
+  })
+}
+
+// 选择完成后调度，让 Monaco 先处理完事件；自动调用对相同选区去重。
+const activateWhenSettled = () => requestAnimationFrame(() => explainSelection())
+// 简化接线。完整示例还处理拖选期间的门控、指针取消和卸载时取消调度。
+const disposables = [
+  editor.onMouseUp(activateWhenSettled),
+  editor.onKeyUp((event) => {
+    if (!event.browserEvent.isComposing) activateWhenSettled()
+  }),
+  editor.onDidChangeCursorSelection(() => {
+    if (editor.getSelection()?.isEmpty()) lastIdentity = undefined
+    quickAssist.close()
+  }),
+  editor.onDidChangeModelContent(() => quickAssist.close()),
+  editor.onDidScrollChange(() => quickAssist.close()),
+  editor.onDidLayoutChange(() => quickAssist.close()),
+]
+// 卸载时 disposables.forEach(item => item.dispose())，并销毁助手、编辑器和模型。
+```
+
+普通页面仍默认排除 Monaco、CodeMirror 和输入框；主动调用不依赖解除这些过滤规则。此处的自动激活由示例页面接线实现，当前未提供官方 Monaco / CodeMirror 自动桥接器。
 
 ### 生命周期与路由
 
@@ -357,16 +530,16 @@ configureVanillaTheme({
 
 `source` 支持以下配置，来源元素须在调用时存在：
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `type` | `'attribute' \| 'class'` | 必填 | 按属性值或 class 判断主题；省略整个 `source` 时默认使用属性来源 |
-| `selector` | `string` | `'html'` | 主题来源元素的 CSS 选择器，取首个匹配元素 |
-| `attribute` | `string` | `'data-tr-color-mode'` | 仅 `attribute` 类型：监听的属性名 |
-| `values.light` | `string` | `'light'` | 仅 `attribute` 类型：亮色对应的属性值 |
-| `values.dark` | `string` | `'dark'` | 仅 `attribute` 类型：暗色对应的属性值 |
-| `darkClass` | `string` | `'dark'` | 仅 `class` 类型：暗色 class 名，按完整 token 匹配 |
-| `lightClass` | `string` | — | 仅 `class` 类型：可选亮色 class 名；亮暗同时存在时暗色优先 |
-| `defaultMode` | `'light' \| 'dark'` | `'light'` | 属性值未知、class 均未匹配或来源元素被移除时的回退模式 |
+| 字段           | 类型                     | 默认值                 | 说明                                                            |
+| -------------- | ------------------------ | ---------------------- | --------------------------------------------------------------- |
+| `type`         | `'attribute' \| 'class'` | 必填                   | 按属性值或 class 判断主题；省略整个 `source` 时默认使用属性来源 |
+| `selector`     | `string`                 | `'html'`               | 主题来源元素的 CSS 选择器，取首个匹配元素                       |
+| `attribute`    | `string`                 | `'data-tr-color-mode'` | 仅 `attribute` 类型：监听的属性名                               |
+| `values.light` | `string`                 | `'light'`              | 仅 `attribute` 类型：亮色对应的属性值                           |
+| `values.dark`  | `string`                 | `'dark'`               | 仅 `attribute` 类型：暗色对应的属性值                           |
+| `darkClass`    | `string`                 | `'dark'`               | 仅 `class` 类型：暗色 class 名，按完整 token 匹配               |
+| `lightClass`   | `string`                 | —                      | 仅 `class` 类型：可选亮色 class 名；亮暗同时存在时暗色优先      |
+| `defaultMode`  | `'light' \| 'dark'`      | `'light'`              | 属性值未知、class 均未匹配或来源元素被移除时的回退模式          |
 
 <div class="qa-theme-demo">
 
@@ -412,47 +585,51 @@ TinyRobotVanilla.configureVanillaTheme({
 
 ## Props
 
-| 属性名                         | 类型                                                                     | 默认值       | 说明                                               |
-| ------------------------------ | ------------------------------------------------------------------------ | ------------ | -------------------------------------------------- |
-| `root`                         | `Document`                                                               | `document`   | 所在文档；不接受 `ShadowRoot`                      |
-| `enabled`                      | `boolean`                                                                | `true`       | 是否启用划词监听                                   |
-| `adapter`                      | `AIAdapter`                                                              | —            | 必填；由 `submit(request)` 交给应用已有的对话能力  |
-| `include`                      | `string[]`                                                               | —            | 限定可触发的页面区域                               |
-| `exclude`                      | `string[]`                                                               | —            | 在内置排除规则上追加页面区域                       |
-| `selection.maxTextLength`      | `number`                                                                 | `300`        | 可选文字的最大长度，必须为正整数                   |
-| `selection.forwardOnly`        | `boolean`                                                                | `true`       | 仅正向选词触发；设为 false 允许双向选择             |
-| `selection.validate`           | `(snapshot) => boolean`                                                  | 内置校验     | 替代默认的文本内容校验                             |
-| `trigger.label`                | `string`                                                                 | `智能帮助`   | 划词入口文案                                       |
-| `trigger.showDelay`            | `number`                                                                 | `0`          | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数   |
-| `trigger.offset`               | `number`                                                                 | `8`          | 入口与选区的间距，单位为像素                       |
-| `trigger.placement`            | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'` | 入口的优先位置；上方按首行、下方按末行，空间不足时调整 |
-| `nearbyContext.maxLength`      | `number`                                                                 | `500`        | 附近文本的最大字符数                               |
-| `nearbyContext.blockSelectors` | `string[]`                                                               | 内置选择器   | 在默认语义块之外增加候选块                         |
-| `getNearbyContext`             | `(snapshot) => string \| undefined`                                      | —            | 自定义附近文本；`snapshot` 含 DOM `Range`          |
-| `getContext`                   | `(context, signal) => Record \| Promise<Record>`                         | —            | 返回业务字段，合并到 `businessContext`             |
-| `sanitizeContext`              | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>` | —            | 返回最终允许外发的完整上下文                       |
-| `suggestions`                  | `QuickAssistSuggestionInput[]`                                           | 默认推荐     | 静态推荐或推荐生成函数                             |
-| `getSuggestions`               | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`             | —            | 使用脱敏后的上下文获取异步推荐                     |
-| `validateSuggestion`           | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`        | 基础格式校验 | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion) |
-| `mergeSuggestions`             | `(base, incoming, context) => Suggestion[]`                              | 静态优先追加 | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
-| `maxSuggestions`               | `number`                                                                 | `3`          | 最多展示的推荐数，必须为正整数                     |
-| `buildPrompt`                  | `(input) => string`                                                      | 内置构造     | 自定义提交内容                                     |
-| `attrs`                        | `QuickAssistAttrs`                                                       | —            | 为组件内部元素追加安全的 DOM 属性                  |
-| `messages`                     | `QuickAssistMessages`                                                    | 内置中文文案 | 覆盖界面文案和默认推荐的展示文字                   |
-| `onEvent`                      | `(event) => void`                                                        | —            | 事件回调；回调异常不会打断组件清理                 |
+| 属性名                         | 类型                                                                                        | 默认值         | 说明                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`                         | `Document`                                                                                  | `document`     | 所在文档；不接受 `ShadowRoot`                                                                                                                  |
+| `enabled`                      | `boolean`                                                                                   | `true`         | 是否启用划词监听                                                                                                                               |
+| `adapter`                      | `AIAdapter`                                                                                 | —              | 必填；由 `submit(request)` 交给应用已有的对话能力                                                                                              |
+| `include`                      | `string[]`                                                                                  | —              | 限定可触发的页面区域                                                                                                                           |
+| `exclude`                      | `string[]`                                                                                  | —              | 在内置排除规则上追加页面区域                                                                                                                   |
+| `selection.maxTextLength`      | `number`                                                                                    | `300`          | 可选文字的最大长度，必须为正整数                                                                                                               |
+| `selection.forwardOnly`        | `boolean`                                                                                   | `true`         | 仅正向选词触发；设为 false 允许双向选择                                                                                                        |
+| `selection.validateActivation` | `(view: QuickAssistActivationView) => boolean`                                              | 默认文本规则   | 仅自定义激活的文本校验，不接收 DOM Range                                                                                                       |
+| `selection.validate`           | `(snapshot) => boolean`                                                                     | 内置校验       | 替代默认的文本内容校验                                                                                                                         |
+| `trigger.label`                | `string`                                                                                    | `智能帮助`     | 划词入口文案                                                                                                                                   |
+| `trigger.showDelay`            | `number`                                                                                    | `0`            | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数                                                                                               |
+| `trigger.offset`               | `number`                                                                                    | `8`            | 入口与选区的间距，单位为像素                                                                                                                   |
+| `trigger.placement`            | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'` | 入口的优先位置；上方按首行、下方按末行，空间不足时调整                                                                                         |
+| `nearbyContext.maxLength`      | `number`                                                                                    | `500`          | 附近文本的最大字符数                                                                                                                           |
+| `nearbyContext.blockSelectors` | `string[]`                                                                                  | 内置选择器     | 在默认语义块之外增加候选块                                                                                                                     |
+| `getNearbyContext`             | `(snapshot) => string \| undefined`                                                         | —              | 自定义附近文本；`snapshot` 含 DOM `Range`                                                                                                      |
+| `getContext`                   | `(context, signal) => Record \| Promise<Record>`                                            | —              | 返回业务字段，合并到 `businessContext`                                                                                                         |
+| `sanitizeContext`              | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>`                    | —              | 返回最终允许外发的完整上下文                                                                                                                   |
+| `suggestions`                  | `QuickAssistSuggestionInput[]`                                                              | 默认推荐       | 静态推荐或推荐生成函数                                                                                                                         |
+| `getSuggestions`               | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`                                | —              | 使用脱敏后的上下文获取异步推荐                                                                                                                 |
+| `validateSuggestion`           | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`                          | 基础格式校验   | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion)                                                 |
+| `mergeSuggestions`             | `(base, incoming, context) => Suggestion[]`                                                 | 静态优先追加   | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
+| `maxSuggestions`               | `number`                                                                                    | `3`            | 最多展示的推荐数，必须为正整数                                                                                                                 |
+| `buildPrompt`                  | `(input) => string`                                                                         | 内置构造       | 自定义提交内容                                                                                                                                 |
+| `attrs`                        | `QuickAssistAttrs`                                                                          | —              | 为组件内部元素追加安全的 DOM 属性                                                                                                              |
+| `messages`                     | `QuickAssistMessages`                                                                       | 内置中文文案   | 覆盖界面文案和默认推荐的展示文字                                                                                                               |
+| `onEvent`                      | `(event) => void`                                                                           | —              | 事件回调；回调异常不会打断组件清理                                                                                                             |
 
 `attrs.suggestion` 可以是属性对象，也可以是按推荐项返回属性对象的函数。事件处理器、`style`、写入 HTML 的属性、`value`、`disabled`、`type`、`id` 等会被忽略；`class` 只能追加，不能覆盖组件内部行为。
 
-
 ## Methods
 
-| 方法名          | 参数                                   | 说明                                                                 |
-| --------------- | -------------------------------------- | -------------------------------------------------------------------- |
-| `enable`        | —                                      | 启动划词和全局事件监听；重复调用无副作用                             |
-| `disable`       | —                                      | 关闭当前输入浮层并停止监听；之后可再次调用 `enable()`                |
-| `close`         | —                                      | 关闭当前会话，不销毁实例                                             |
-| `updateOptions` | `partial: Partial<QuickAssistOptions>` | 关闭当前会话、废弃旧异步结果并重建配置；顶层浅合并，嵌套对象整体替换 |
-| `destroy`       | —                                      | 关闭并释放监听器与 DOM；重复调用无副作用                             |
+| 方法名           | 参数                                                      | 说明                                                                 |
+| ---------------- | --------------------------------------------------------- | -------------------------------------------------------------------- |
+| `activate`       | `QuickAssistActivationInput \| QuickAssistAnchorShortcut` | 提供文本和锚点，显示智能帮助入口；详见主动激活示例                   |
+| `registerSource` | `QuickAssistSelectionSource`                              | 注册自动来源，返回注销函数，随实例启停联动                           |
+| `enable`         | —                                                         | 启动划词和全局事件监听；重复调用无副作用                             |
+| `disable`        | —                                                         | 关闭当前输入浮层并停止监听；之后可再次调用 `enable()`                |
+| `close`          | —                                                         | 关闭当前会话，不销毁实例                                             |
+| `updateOptions`  | `partial: Partial<QuickAssistOptions>`                    | 关闭当前会话、废弃旧异步结果并重建配置；顶层浅合并，嵌套对象整体替换 |
+| `destroy`        | —                                                         | 关闭并释放监听器与 DOM；重复调用无副作用                             |
+
+`registerSource()` 是已实现的高级接口，用于多个自定义事件源的统一启停、注销和来源级去重；它不会自动读取编辑器选区或生成坐标。上面的按钮、指标和 Monaco 示例直接使用 `activate()`，无需注册来源。没有多来源管理需求时，不必使用此方法。
 
 `root` 创建后不可更换；`updateOptions({ root: anotherDocument })` 会抛出错误，应先销毁旧实例再创建新实例。更新时省略 `enabled` 会保留实例当前启用/停用状态；显式传入时使用新值。
 
@@ -477,19 +654,19 @@ TinyRobotVanilla.configureVanillaTheme({
 
 QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。部分默认值使用 TinyRobot 主题变量，未提供主题变量时使用 `var()` 中的回退值。
 
-| 变量名                         | 说明                             | 默认值                                                                           |
-| ------------------------------ | -------------------------------- | -------------------------------------------------------------------------------- |
-| `--tr-quick-assist-bg`          | 入口、输入浮层及按钮的基础背景色   | `var(--tr-container-bg-default, #fff)`                                             |
-| `--tr-quick-assist-bg-subtle`   | 入口悬停时背景色                 | `var(--tr-container-bg-default-2, #fafafa)`                                        |
-| `--tr-quick-assist-text`        | 主要文字及发送按钮颜色           | `var(--tr-text-primary, #191919)`                                                  |
-| `--tr-quick-assist-muted`       | 输入框占位文字及状态提示文字颜色 | `var(--tr-text-secondary, #595959)`                                                |
-| `--tr-quick-assist-border`      | 边框及滚动条颜色                 | `#e6e6e6`                                          |
-| `--tr-quick-assist-border-hover` | 弹窗及按钮悬停时的边框颜色 | `color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted))` |
-| `--tr-quick-assist-accent`      | 发送按钮悬停及键盘聚焦时的强调色         | `var(--tr-text-primary, #191919)`                                                 |
-| `--tr-quick-assist-icon-gradient-start` | 星光图标渐变起始色（左上） | `#7d00ff` |
-| `--tr-quick-assist-icon-gradient-middle` | 星光图标渐变中间色 | `#b927ff` |
-| `--tr-quick-assist-icon-gradient-end` | 星光图标渐变结束色（右下） | `#ff6bb5` |
-| `--tr-quick-assist-radius`      | 输入浮层圆角                     | `16px`                                                        |
-| `--tr-quick-assist-pill-radius` | 入口、输入区及推荐问题按钮圆角   | `var(--tr-radius-full, 9999px)`                                                    |
-| `--tr-quick-assist-shadow`      | 入口及输入浮层阴影               | `0 2px 8px 0 rgba(0, 0, 0, 0.16)`             |
-| `--tr-quick-assist-z-index`     | 组件层级                         | `var(--tr-z-index-popover, 1500)`                                                  |
+| 变量名                                   | 说明                             | 默认值                                                                            |
+| ---------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| `--tr-quick-assist-bg`                   | 入口、输入浮层及按钮的基础背景色 | `var(--tr-container-bg-default, #fff)`                                            |
+| `--tr-quick-assist-bg-subtle`            | 入口悬停时背景色                 | `var(--tr-container-bg-default-2, #fafafa)`                                       |
+| `--tr-quick-assist-text`                 | 主要文字及发送按钮颜色           | `var(--tr-text-primary, #191919)`                                                 |
+| `--tr-quick-assist-muted`                | 输入框占位文字及状态提示文字颜色 | `var(--tr-text-secondary, #595959)`                                               |
+| `--tr-quick-assist-border`               | 边框及滚动条颜色                 | `#e6e6e6`                                                                         |
+| `--tr-quick-assist-border-hover`         | 弹窗及按钮悬停时的边框颜色       | `color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted))` |
+| `--tr-quick-assist-accent`               | 发送按钮悬停及键盘聚焦时的强调色 | `var(--tr-text-primary, #191919)`                                                 |
+| `--tr-quick-assist-icon-gradient-start`  | 星光图标渐变起始色（左上）       | `#7d00ff`                                                                         |
+| `--tr-quick-assist-icon-gradient-middle` | 星光图标渐变中间色               | `#b927ff`                                                                         |
+| `--tr-quick-assist-icon-gradient-end`    | 星光图标渐变结束色（右下）       | `#ff6bb5`                                                                         |
+| `--tr-quick-assist-radius`               | 输入浮层圆角                     | `16px`                                                                            |
+| `--tr-quick-assist-pill-radius`          | 入口、输入区及推荐问题按钮圆角   | `var(--tr-radius-full, 9999px)`                                                   |
+| `--tr-quick-assist-shadow`               | 入口及输入浮层阴影               | `0 2px 8px 0 rgba(0, 0, 0, 0.16)`                                                 |
+| `--tr-quick-assist-z-index`              | 组件层级                         | `var(--tr-z-index-popover, 1500)`                                                 |
