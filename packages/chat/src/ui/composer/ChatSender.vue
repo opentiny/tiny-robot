@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import MCPSelector from './MCPSelector.vue'
+import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
 import ChatToolbarButton from './ChatToolbarButton.vue'
@@ -24,6 +24,7 @@ const props = defineProps<{
   model?: ChatModelView
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
+  hasRegisteredExtensions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -32,13 +33,10 @@ const emit = defineEmits<{
   clear: []
   'update:value': [value: string]
   openMcpPanel: []
+  openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
-  mcpAddServer: [payload: { id: string }]
-  mcpRemoveServer: [payload: { id: string }]
-  mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
-  mcpToolEnabledChange: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 defineSlots<{
@@ -65,7 +63,7 @@ const toolbarItems = computed(() => {
       ids.add(item.id)
       if (item.visible === false) return false
       if (item.type === 'custom') return true
-      if (item.id === 'mcp') return Boolean(props.mcp)
+      if (item.id === 'mcp') return Boolean(props.mcp || props.hasRegisteredExtensions)
       if (item.id === 'model') return Boolean(props.model?.options?.length)
       return Boolean(props.model)
     })
@@ -91,6 +89,9 @@ const senderProps = computed(() => {
     },
   }
 })
+const activeMcpCount = computed(
+  () => props.mcp?.servers?.filter((server) => server.installed && server.enabled).length ?? 0,
+)
 
 function handleCustomAction(id: string) {
   const item = toolbarItems.value.find((item) => item.id === id)
@@ -122,20 +123,16 @@ function handleOpenMcpPanel() {
   emit('openMcpPanel')
 }
 
-function handleAddServer(payload: { id: string }) {
-  emit('mcpAddServer', payload)
+function handleOpenExtensionsPanel() {
+  emit('openExtensionsPanel')
 }
 
-function handleRemoveServer(payload: { id: string }) {
-  emit('mcpRemoveServer', payload)
-}
-
-function handleServerEnabledChange(payload: { id: string; enabled: boolean }) {
-  emit('mcpServerEnabledChange', payload)
-}
-
-function handleToolEnabledChange(payload: { serverId: string; toolId: string; enabled: boolean }) {
-  emit('mcpToolEnabledChange', payload)
+function handleOpenExtensionPanel() {
+  if (props.hasRegisteredExtensions) {
+    handleOpenExtensionsPanel()
+  } else {
+    handleOpenMcpPanel()
+  }
 }
 </script>
 
@@ -170,16 +167,12 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
             @select-model="handleSelectModel"
             @update-reasoning-effort="handleReasoningEffortChange"
           />
-          <MCPSelector
-            v-else-if="item.id === 'mcp' && mcp"
-            :mcp="mcp"
-            :labels="labels"
+          <ExtensionSelector
+            v-else-if="item.id === 'mcp' && (mcp || hasRegisteredExtensions)"
+            :count="activeMcpCount"
+            :label="hasRegisteredExtensions ? labels.extensions : labels.mcp"
             :disabled="item.disabled"
-            @open="handleOpenMcpPanel"
-            @add-server="handleAddServer"
-            @remove-server="handleRemoveServer"
-            @update-server-enabled="handleServerEnabledChange"
-            @update-tool-enabled="handleToolEnabledChange"
+            @open="handleOpenExtensionPanel"
           />
           <ModelFeatureButton
             v-else-if="model && (item.id === 'thinking' || item.id === 'search')"

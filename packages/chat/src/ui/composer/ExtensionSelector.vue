@@ -1,24 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import type { ChatLabels, ChatMcpView } from '../../types'
 
-const props = defineProps<{
-  mcp: ChatMcpView
-  labels: ChatLabels
-  disabled?: boolean
-}>()
+const props = withDefaults(defineProps<{ label: string; count?: number; disabled?: boolean }>(), {
+  count: 0,
+  disabled: false,
+})
 
-const emit = defineEmits<{
-  open: []
-  addServer: [payload: { id: string }]
-  removeServer: [payload: { id: string }]
-  updateServerEnabled: [payload: { id: string; enabled: boolean }]
-  updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
-}>()
-
-const servers = computed(() => props.mcp.servers ?? [])
-const activeCount = computed(() => servers.value.filter((server) => server.installed && server.enabled).length)
+const emit = defineEmits<{ open: [] }>()
 
 function handleOpen() {
   if (!props.disabled) emit('open')
@@ -26,32 +14,32 @@ function handleOpen() {
 </script>
 
 <template>
-  <div class="tr-chat-mcp-selector">
+  <div class="tr-chat-extension-selector">
     <button
-      class="tr-chat-mcp-selector__button"
-      :class="{ 'tr-chat-mcp-selector__button--active': activeCount > 0 }"
+      class="tr-chat-extension-selector__button"
+      :class="{ 'tr-chat-extension-selector__button--active': count > 0 }"
       type="button"
       :disabled="disabled"
-      :aria-label="labels.mcp"
-      :title="labels.mcp"
+      :aria-label="label"
+      :title="label"
       @click="handleOpen"
     >
-      <IconPlugin :size="16" class="tr-chat-mcp-selector__icon" />
-      <span class="tr-chat-mcp-selector__label">{{ labels.mcp }}</span>
-      <span v-if="activeCount > 0" class="tr-chat-mcp-selector__count">
-        {{ activeCount }}
+      <IconPlugin :size="16" class="tr-chat-extension-selector__icon" />
+      <span class="tr-chat-extension-selector__label">{{ label }}</span>
+      <span v-if="count > 0" class="tr-chat-extension-selector__count">
+        {{ count }}
       </span>
     </button>
   </div>
 </template>
 
 <style scoped>
-.tr-chat-mcp-selector {
+.tr-chat-extension-selector {
   display: inline-flex;
   align-items: center;
 }
 
-.tr-chat-mcp-selector__button {
+.tr-chat-extension-selector__button {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -68,27 +56,27 @@ function handleOpen() {
   cursor: pointer;
 }
 
-.tr-chat-mcp-selector__button:hover:not(:disabled) {
+.tr-chat-extension-selector__button:hover:not(:disabled) {
   border-color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-hover);
 }
 
-.tr-chat-mcp-selector__button:disabled {
+.tr-chat-extension-selector__button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.tr-chat-mcp-selector__button--active {
+.tr-chat-extension-selector__button--active {
   border-color: var(--tr-border-color-hover);
   color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-default-2);
 }
 
-.tr-chat-mcp-selector__icon {
+.tr-chat-extension-selector__icon {
   flex-shrink: 0;
 }
 
-.tr-chat-mcp-selector__count {
+.tr-chat-extension-selector__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -102,17 +90,17 @@ function handleOpen() {
 }
 
 @container chat-composer (max-width: 640px) {
-  .tr-chat-mcp-selector__button {
+  .tr-chat-extension-selector__button {
     justify-content: center;
     width: 32px;
     padding: 0;
   }
 
-  .tr-chat-mcp-selector__label {
+  .tr-chat-extension-selector__label {
     display: none;
   }
 
-  .tr-chat-mcp-selector__count {
+  .tr-chat-extension-selector__count {
     position: absolute;
     right: -4px;
     top: -4px;
