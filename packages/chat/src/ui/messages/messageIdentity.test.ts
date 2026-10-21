@@ -11,6 +11,25 @@ describe('Chat message identity', () => {
     expect(identify({ id: 'server' }, 'a')).toBe(identify({ id: 'server', content: 'updated' }, 'a'))
   })
 
+  it('falls back from empty render keys to stable message IDs', () => {
+    const identify = createMessageIdentity('chat')
+    const key = identify({ renderKey: '', id: 'first' }, 'a')
+    expect(key).toBe(identify({ id: 'first', content: 'updated' }, 'a'))
+    expect(identify({ renderKey: '', id: 'second' }, 'a')).not.toBe(key)
+  })
+
+  it.each([{ renderKey: '' }, { id: '' }, { renderKey: '', id: '' }])(
+    'uses object identity for empty identifiers %j',
+    (identifiers) => {
+      const identify = createMessageIdentity('chat')
+      const message = { ...identifiers }
+      const key = identify(message, 'a')
+      expect(identify({ ...identifiers }, 'a')).not.toBe(key)
+      expect(identify(message, 'a')).toBe(key)
+      expect(identify(reactive(message), 'a')).toBe(key)
+    },
+  )
+
   it('isolates conversations and Chat instances, and recognizes raw/proxied originals', () => {
     const identify = createMessageIdentity('chat-a')
     const message = { content: 'hello' }

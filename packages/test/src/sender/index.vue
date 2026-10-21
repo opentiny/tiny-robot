@@ -11,14 +11,10 @@ import type {
   TemplateItem,
 } from '@opentiny/tiny-robot'
 
-type TemplateCursorPosition = 'before' | 'start' | 'end' | 'after'
-
 declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
-      moveCursorToTemplate: (index: number, position: TemplateCursorPosition) => boolean
-      isCursorAtTemplate: (index: number, position: TemplateCursorPosition) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -231,23 +227,18 @@ const extensions = computed(() => {
   return exts
 })
 
-const getTemplatePosition = (index: number, position: TemplateCursorPosition) => {
+const moveCursorBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
-  if (!editor) return null
+  if (!editor) return false
 
   let currentIndex = 0
   let templatePosition: number | null = null
 
-  editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
+  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
     if (node.type.name === 'templateBlock') {
       if (currentIndex === index) {
-        templatePosition = {
-          before: pos,
-          start: pos + 1,
-          end: pos + node.nodeSize - 1,
-          after: pos + node.nodeSize,
-        }[position]
+        templatePosition = pos
         return false
       }
       currentIndex += 1
@@ -255,35 +246,13 @@ const getTemplatePosition = (index: number, position: TemplateCursorPosition) =>
     return true
   })
 
-  return templatePosition
+  if (templatePosition === null) return false
+
+  editor.commands.setTextSelection(templatePosition)
+  editor.commands.focus(templatePosition)
+
+  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
 }
-
-const isCursorAtTemplate = (index: number, position: TemplateCursorPosition) => {
-  const exposedEditor = senderRef.value?.editor
-  const editor = exposedEditor?.value ?? exposedEditor
-  const target = getTemplatePosition(index, position)
-  return (
-    !!editor &&
-    target !== null &&
-    editor.view.hasFocus() &&
-    editor.state.selection.empty &&
-    editor.state.selection.from === target
-  )
-}
-
-const moveCursorToTemplate = (index: number, position: TemplateCursorPosition) => {
-  const exposedEditor = senderRef.value?.editor
-  const editor = exposedEditor?.value ?? exposedEditor
-  const target = getTemplatePosition(index, position)
-  if (!editor || target === null) return false
-
-  // 同步聚焦后设置选区，避免延迟 focus 与真实键盘操作交错。
-  editor.view.focus()
-  editor.commands.setTextSelection(target)
-  return isCursorAtTemplate(index, position)
-}
-
-const moveCursorBeforeTemplate = (index: number) => moveCursorToTemplate(index, 'before')
 
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
@@ -302,8 +271,6 @@ const pressDeleteBeforeTemplate = (index: number) => {
 onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
-    moveCursorToTemplate,
-    isCursorAtTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }

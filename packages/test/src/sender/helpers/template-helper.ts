@@ -145,30 +145,6 @@ export function createTemplateTestHelper(page: Page) {
       await block.click()
     },
 
-    async expectTemplateCursor(index: number, position: 'before' | 'start' | 'end' | 'after') {
-      await expect
-        .poll(() =>
-          page.evaluate(
-            ({ index, position }) => {
-              return window.__senderTestApi?.isCursorAtTemplate(index, position) ?? false
-            },
-            { index, position },
-          ),
-        )
-        .toBe(true)
-    },
-
-    async focusTemplateAt(index: number, position: 'before' | 'start' | 'end' | 'after') {
-      const moved = await page.evaluate(
-        ({ index, position }) => {
-          return window.__senderTestApi?.moveCursorToTemplate(index, position) ?? false
-        },
-        { index, position },
-      )
-      expect(moved).toBe(true)
-      await this.expectTemplateCursor(index, position)
-    },
-
     /**
      * 从模板块左侧触发 Delete，避免依赖外层键盘时序
      */

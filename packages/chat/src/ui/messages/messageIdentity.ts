@@ -5,7 +5,7 @@ export function createMessageIdentity(scope: string) {
   const objects = new WeakMap<ChatMessageItem, number>()
   let nextId = 0
   return (message: ChatMessageItem, conversationId?: string | null): string => {
-    const key = message.renderKey != null ? ['key', message.renderKey] : message.id != null ? ['id', message.id] : null
+    const key = message.renderKey ? ['key', message.renderKey] : message.id ? ['id', message.id] : null
     if (key) return JSON.stringify([scope, conversationId ?? null, ...key])
 
     const original = toRaw(message)
