@@ -14,7 +14,7 @@
 **TinyRobot** 是一个基于 Vue 3 构建、遵循 OpenTiny Design 设计体系的 AI 组件库与应用开发套件，助力企业快速搭建智能对话与业务助手应用。
 
 <p align="center">
-  <img src="robot-highlights.gif" alt="TinyRobot MCP 工具调用与 Skill 技能扩展演示" width="1100">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-highlights.gif" alt="TinyRobot MCP 工具调用与 Skill 技能扩展演示" width="1100">
 </p>
 
 ## ✨ 核心能力
@@ -29,7 +29,7 @@
 ## 🧭 能力全景
 
 <p align="center">
-  <img src="robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-panorama.png" alt="TinyRobot 产品能力全景图" width="1100">
 </p>
 
 从工程接入、对话构建到业务扩展，按需组合 TinyRobot 的各项能力。

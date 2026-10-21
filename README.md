@@ -14,7 +14,7 @@
 **TinyRobot** is an AI component library and application development suite built with Vue 3 and following the OpenTiny Design system. It helps enterprises quickly build intelligent chat applications and business assistants.
 
 <p align="center">
-  <img src="robot-highlights.gif" alt="TinyRobot MCP tool calls and Skill extensions demo" width="1100">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-highlights.gif" alt="TinyRobot MCP tool calls and Skill extensions demo" width="1100">
 </p>
 
 ## ✨ Core Capabilities
@@ -29,7 +29,7 @@ Core capabilities span the Chat suite, composable components, the data layer, an
 ## 🧭 Capability Overview
 
 <p align="center">
-  <img src="robot-panorama.png" alt="TinyRobot product capability overview" width="1100">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-panorama.png" alt="TinyRobot product capability overview" width="1100">
 </p>
 
 Combine TinyRobot's capabilities as needed, from project setup and chat interfaces to business extensions.
