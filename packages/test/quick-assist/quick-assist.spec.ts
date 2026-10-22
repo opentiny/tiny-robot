@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
-import type { QuickAssistInstance, QuickAssistOptions, Suggestion } from '../../components/src/vanilla'
+import type {
+  QuickAssistContext,
+  QuickAssistInstance,
+  QuickAssistOptions,
+  Suggestion,
+} from '../../components/src/vanilla'
 
 declare global {
   interface Window {
@@ -385,6 +390,292 @@ test('sanitize completes before provider and removes URL query and hash by defau
   const request = await page.evaluate(() => window.qaRequests[0])
   expect(request.context.businessContext).toEqual({ safe: true })
   expect(request.context.page?.url).not.toContain('token')
+})
+
+test('sanitized context is isolated from factories, providers, merge and prompt hooks', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.evaluate(() => {
+    let sanitized: QuickAssistContext
+    const assertSafe = (context: QuickAssistContext) => {
+      if (
+        context.text !== '竞价计费' ||
+        context.selection?.text !== '竞价计费' ||
+        (context.businessContext?.nested as { safe: boolean }).safe !== true ||
+        (context.meta?.values as string[])[0] !== 'safe'
+      ) {
+        throw new Error('A previous hook mutated this context')
+      }
+    }
+    const mutate = (context: QuickAssistContext) => {
+      context.text = 'MUTATED'
+      context.selection!.text = 'MUTATED'
+      ;(context.businessContext!.nested as { safe: boolean }).safe = false
+      ;(context.meta!.values as string[])[0] = 'MUTATED'
+    }
+    window.resetQuickAssist({
+      sanitizeContext: (context) => {
+        sanitized = { ...context, businessContext: { nested: { safe: true } }, meta: { values: ['safe'] } }
+        return sanitized
+      },
+      suggestions: [
+        {
+          id: 'factory',
+          getLabel: (context) => {
+            assertSafe(context)
+            mutate(context)
+            return '隔离任务'
+          },
+          getPrompt: (context) => {
+            assertSafe(context)
+            mutate(context)
+            return '隔离问题'
+          },
+        },
+      ],
+      getSuggestions: async (context) => {
+        assertSafe(context)
+        mutate(sanitized)
+        // Keep a reference after the async provider finishes, too.
+        window.resolveSuggestion = () => mutate(context)
+        await Promise.resolve()
+        return []
+      },
+      mergeSuggestions: (base, _incoming, context) => {
+        assertSafe(context)
+        mutate(context)
+        return base
+      },
+      buildPrompt: ({ context }) => {
+        assertSafe(context)
+        mutate(context)
+        return '独立 prompt'
+      },
+    })
+  })
+  await open(page)
+  await expect(page.locator(`${popover} [data-state="loading"]`)).toHaveCount(0)
+  await page.evaluate(() => window.resolveSuggestion())
+  await page.locator(`${popover} textarea`).press('Enter')
+  await expect(page.locator('#chat')).toBeVisible()
+  const request = await page.evaluate(() => window.qaRequests[0])
+  expect(request.context.text).toBe('竞价计费')
+  expect(request.context.selection?.text).toBe('竞价计费')
+  expect(request.context.businessContext).toEqual({ nested: { safe: true } })
+  expect(request.context.meta).toEqual({ values: ['safe'] })
+  expect(request.prompt).toBe('独立 prompt')
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'error'))).toEqual([])
+  expect(errors).toEqual([])
+})
+
+for (const invalid of [
+  'array',
+  'empty',
+  'null',
+  'date',
+  'source',
+  'text',
+  'selection',
+  'page',
+  'nearbyText',
+  'businessContext',
+  'meta',
+  'uncloneable',
+]) {
+  test(`invalid sanitizer result (${invalid}) blocks providers and submission`, async ({ page }) => {
+    await page.evaluate((invalid) => {
+      window.resetQuickAssist({
+        sanitizeContext: (context) => {
+          const values: Record<string, unknown> = {
+            array: [],
+            empty: {},
+            null: null,
+            date: new Date(),
+            source: { ...context, source: 1 },
+            text: { ...context, text: null },
+            selection: { ...context, selection: {} },
+            page: { ...context, page: { url: 1 } },
+            nearbyText: { ...context, nearbyText: [] },
+            businessContext: { ...context, businessContext: [] },
+            meta: { ...context, meta: new Date() },
+            uncloneable: { ...context, meta: { fn() {} } },
+          }
+          return values[invalid] as QuickAssistContext
+        },
+        getSuggestions: () => {
+          throw new Error('SHOULD_NOT_RUN')
+        },
+      })
+    }, invalid)
+    await open(page)
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.qaEvents.filter((event) => event.type === 'error').map((event) => event.stage)),
+      )
+      .toEqual(['sanitize'])
+    await expect(page.locator(`${popover} .tr-quick-assist__submit`)).toBeDisabled()
+    await page.locator(`${popover} textarea`).press('Enter')
+    expect(await page.evaluate(() => window.qaRequests)).toEqual([])
+  })
+}
+
+test('shared-memory context is rejected across views, collections, cycles and realms', async ({ page }) => {
+  await page.route('**/quick-assist/index.html', async (route) => {
+    const response = await route.fetch()
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        'cross-origin-opener-policy': 'same-origin',
+        'cross-origin-embedder-policy': 'require-corp',
+      },
+    })
+  })
+  await page.goto('/quick-assist/index.html')
+  await page.waitForFunction(() => typeof window.resetQuickAssist === 'function')
+  expect(await page.evaluate(() => crossOriginIsolated)).toBe(true)
+  const pageErrors: string[] = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  for (const kind of [
+    'buffer',
+    'typed-array',
+    'data-view',
+    'map-key',
+    'map-value',
+    'set',
+    'array',
+    'cycle',
+    'error-cause',
+    'iframe',
+    'wasm-memory',
+  ]) {
+    await page.evaluate((kind) => {
+      const buffer = new SharedArrayBuffer(1)
+      const bytes = new Uint8Array(buffer)
+      let data: unknown = buffer
+      if (kind === 'typed-array') data = bytes
+      if (kind === 'data-view') data = new DataView(buffer)
+      if (kind === 'map-key') data = new Map([[buffer, 'value']])
+      if (kind === 'map-value') data = new Map([['key', bytes]])
+      if (kind === 'set') data = new Set([bytes])
+      if (kind === 'array') data = [{ nested: bytes }]
+      if (kind === 'cycle') {
+        const cycle = new Map<unknown, unknown>()
+        cycle.set('self', cycle)
+        cycle.set('nested', new Set([bytes]))
+        data = cycle
+      }
+      if (kind === 'error-cause') data = new Error('nested buffer', { cause: bytes })
+      if (kind === 'wasm-memory') data = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true })
+      if (kind === 'iframe') {
+        const iframe = document.createElement('iframe')
+        document.body.append(iframe)
+        const view = iframe.contentWindow as Window & typeof globalThis
+        data = new view.Map([['nested', new view.Uint8Array(new view.SharedArrayBuffer(1))]])
+        iframe.remove()
+      }
+      window.resetQuickAssist({
+        sanitizeContext: (context) => ({ ...context, businessContext: { data } }),
+        getSuggestions: () => {
+          throw new Error('SHOULD_NOT_RUN')
+        },
+      })
+    }, kind)
+    await open(page)
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.qaEvents.filter((event) => event.type === 'error').map((event) => event.stage)),
+      )
+      .toEqual(['sanitize'])
+    expect(
+      await page.evaluate(() =>
+        window.qaEvents.filter((event) => event.type === 'error').map((event) => event.error.message),
+      ),
+    ).toEqual(['QuickAssistContext must not contain SharedArrayBuffer or views of shared memory'])
+    await expect(page.locator(`${popover} .tr-quick-assist__submit`)).toBeDisabled()
+    await page.locator(`${popover} textarea`).press('Enter')
+    expect(await page.evaluate(() => window.qaRequests.length)).toBe(0)
+  }
+  expect(pageErrors).toEqual([])
+})
+
+test('ordinary buffers and circular collections remain isolated and submit successfully', async ({ page }) => {
+  await page.evaluate(() => {
+    const cycle = new Map<string, unknown>()
+    cycle.set('self', cycle)
+    cycle.set('values', new Set(['safe']))
+    window.resetQuickAssist({
+      adapter: {
+        submit: (request) => {
+          window.qaRequests.push(request)
+        },
+      },
+      sanitizeContext: (context) => ({
+        ...context,
+        businessContext: { bytes: new Uint8Array(new ArrayBuffer(1)), cycle },
+      }),
+      getSuggestions: (context) => {
+        const business = context.businessContext!
+        ;(business.bytes as Uint8Array)[0] = 42
+        const values = (business.cycle as Map<string, unknown>).get('values') as Set<string>
+        values.add('changed')
+        return []
+      },
+    })
+  })
+  await open(page)
+  await expect(page.locator(`${popover} [data-state="loading"]`)).toHaveCount(0)
+  await page.locator(`${popover} textarea`).press('Enter')
+  await expect.poll(() => page.evaluate(() => window.qaRequests.length)).toBe(1)
+  expect(
+    await page.evaluate(() => {
+      const business = window.qaRequests[0].context.businessContext!
+      const cycle = business.cycle as Map<string, unknown>
+      return {
+        byte: (business.bytes as Uint8Array)[0],
+        circular: cycle.get('self') === cycle,
+        values: [...(cycle.get('values') as Set<string>)],
+      }
+    }),
+  ).toEqual({ byte: 0, circular: true, values: ['safe'] })
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'error'))).toEqual([])
+})
+
+test('sanitizer may remove every optional context field', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ sanitizeContext: () => ({ source: 'safe', text: 'safe' }) }))
+  await open(page)
+  await page.locator(`${popover} textarea`).press('Enter')
+  await expect(page.locator('#chat')).toBeVisible()
+  expect(await page.evaluate(() => window.qaRequests[0].context)).toEqual({ source: 'safe', text: 'safe' })
+})
+
+test('throwing suggestion attributes report callback errors and preserve manual submission', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.evaluate(() =>
+    window.resetQuickAssist({
+      attrs: {
+        suggestion: () => {
+          throw new Error('attrs boom')
+        },
+      },
+    }),
+  )
+  await open(page)
+  await expect(page.locator(`${popover} .tr-quick-assist__suggestion`)).toHaveCount(2)
+  await expect(page.locator(`${popover} .tr-quick-assist__submit`)).toBeEnabled()
+  const events = await page.evaluate(() =>
+    window.qaEvents
+      .filter((event) => event.type === 'error')
+      .map((event) => ({ stage: event.stage, sessionId: event.sessionId, message: event.error.message })),
+  )
+  expect(events).toHaveLength(2)
+  for (const event of events) expect(event).toEqual({ stage: 'callback', sessionId: 1, message: 'attrs boom' })
+  await page.locator(`${popover} textarea`).fill('继续手动提问')
+  await page.locator(`${popover} .tr-quick-assist__submit`).click()
+  await expect(page.locator('#chat')).toBeVisible()
+  expect(await page.evaluate(() => window.qaRequests[0].prompt)).toBe('继续手动提问')
+  expect(errors).toEqual([])
 })
 
 test('Escape, outside, route and lifecycle close reliably', async ({ page }) => {

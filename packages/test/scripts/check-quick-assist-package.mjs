@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -27,7 +27,12 @@ assert.equal(metadata.exports?.['./dist/*'], './dist/*')
 assert.equal(metadata.exports?.['./package.json'], './package.json')
 assert.equal(metadata.typesVersions?.['*']?.vanilla?.[0], 'dist/vanilla/index.d.ts')
 await assert.rejects(readFile(new URL('vanilla/package.json', packageURL)), { code: 'ENOENT' })
-await readFile(new URL('dist/vanilla/index.d.ts', packageURL))
+const declarations = await readFile(new URL('dist/vanilla/index.d.ts', packageURL), 'utf8')
+assert.ok(!/\bfrom\s*['"]\./u.test(declarations), 'Vanilla declarations must not depend on relative modules')
+assert.ok(
+  !/\bimport\s*\(\s*['"]\./u.test(declarations),
+  'Vanilla declarations must not depend on relative import types',
+)
 await readFile(new URL('dist/vanilla/style.css', packageURL))
 
 if (!process.argv[2]) {
@@ -77,6 +82,44 @@ execFileSync(
 )
 
 // Importing the ESM artifact must work without a browser or a Vue runtime.
+// Compile an isolated ESM consumer against the same public package, including
+// an extracted tarball when supplied. Reading .d.ts files cannot catch broken
+// re-exports under Node's mandatory-extension resolution rules.
+const typeConsumerRoot = await mkdtemp(join(tmpdir(), 'quickassist-types-check-'))
+await mkdir(join(typeConsumerRoot, 'node_modules', '@opentiny'), { recursive: true })
+await symlink(fileURLToPath(packageURL), join(typeConsumerRoot, 'node_modules', '@opentiny', 'tiny-robot'), 'dir')
+await writeFile(join(typeConsumerRoot, 'package.json'), JSON.stringify({ type: 'module' }))
+await writeFile(
+  join(typeConsumerRoot, 'index.ts'),
+  `import { createQuickAssist, type QuickAssistOptions, type AIRequest } from '@opentiny/tiny-robot/vanilla';
+const options: QuickAssistOptions = { adapter: { submit(request: AIRequest) { console.log(request.context.text); } } };
+createQuickAssist(options).destroy();
+`,
+)
+for (const resolution of ['nodenext', 'node16']) {
+  for (const skipLibCheck of [false, true]) {
+    execFileSync(
+      process.execPath,
+      [
+        require.resolve('typescript/lib/tsc.js'),
+        '--noEmit',
+        '--strict',
+        '--moduleResolution',
+        resolution,
+        '--module',
+        resolution,
+        '--target',
+        'es2022',
+        '--lib',
+        'es2022,dom',
+        ...(skipLibCheck ? ['--skipLibCheck'] : []),
+        'index.ts',
+      ],
+      { cwd: typeConsumerRoot, stdio: 'pipe' },
+    )
+  }
+}
+
 const esm = await import(new URL('dist/vanilla/index.js', packageURL).href)
 assert.equal(typeof esm.createQuickAssist, 'function')
 const umd = await readFile(new URL('dist/vanilla/vanilla.umd.js', packageURL), 'utf8')
@@ -89,4 +132,4 @@ const css = await readFile(new URL('dist/vanilla/style.css', packageURL), 'utf8'
 assert.ok(css.includes('.tr-quick-assist'), 'Missing scoped QuickAssist CSS')
 assert.ok(!/(?:^|\})\s*:root\b/m.test(css), 'QuickAssist CSS must not install global tokens')
 await readFile(new URL('dist/vanilla/index.d.ts', packageURL))
-console.log('QuickAssist public paths, ESM/UMD import safety, CSS and declarations passed.')
+console.log('QuickAssist public paths, ESM/UMD import safety, CSS and NodeNext/Node16 consumer types passed.')

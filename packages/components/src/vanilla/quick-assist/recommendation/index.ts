@@ -1,3 +1,4 @@
+import { copyContext } from '../context/value'
 import type { QuickAssistRecommendationModule } from '../core/types'
 import type {
   GetSuggestions,
@@ -107,8 +108,8 @@ export function createRecommendationResolver(
         let label: string
         let prompt: string
         try {
-          label = input.getLabel(context)
-          prompt = input.getPrompt(context)
+          label = input.getLabel(copyContext(context))
+          prompt = input.getPrompt(copyContext(context))
         } catch (error) {
           throw error instanceof Error ? error : new Error(String(error))
         }

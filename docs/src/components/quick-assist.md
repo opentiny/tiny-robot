@@ -171,6 +171,10 @@ const quickAssist = createQuickAssist({
 
 可以通过 `getContext` 添加业务字段，通过 `getNearbyContext` 定制附近文本，并通过 `sanitizeContext` 返回最终允许外发的完整上下文。`sanitizeContext` 在业务上下文构造后执行；脱敏完成前不会调用推荐函数或 `adapter`。
 
+- `sanitizeContext` 返回值必须保留 `source`、`text` 两个字符串字段，其余字段可删除。
+- 上下文中不要放函数、DOM 对象或共享内存数据，否则会报错并阻止提交。
+- 推荐函数和 `buildPrompt` 收到上下文副本，修改副本不会改变最终提交的上下文。
+
 下面使用虚构租户编号演示脱敏。输入框可能保留选中的原文，因此还需通过 `buildPrompt` 对最终发送的问题脱敏；此例的宿主仅发送 `prompt` 和 `context`。
 
 ```ts

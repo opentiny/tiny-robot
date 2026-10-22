@@ -13,6 +13,7 @@ export interface QuickAssistUIOptions {
   attrs?: QuickAssistAttrs
   messages?: QuickAssistMessages
   triggerLabel?: string
+  onCallbackError?: (sessionId: number, error: unknown) => void
 }
 
 export interface QuickAssistUIController {
@@ -196,7 +197,15 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       button.disabled = state.submittingDisabled
       button.textContent = suggestion.label
       const customAttrs = attrs.suggestion
-      setSafeAttributes(button, typeof customAttrs === 'function' ? customAttrs(suggestion) : customAttrs)
+      const renderingSession = activeSession
+      try {
+        setSafeAttributes(button, typeof customAttrs === 'function' ? customAttrs(suggestion) : customAttrs)
+      } catch (error) {
+        // Reporting must not re-enter rendering or leave submission disabled.
+        if (activeSession) options.onCallbackError?.(activeSession.id, error)
+      }
+      // A host error listener may synchronously close or replace this session.
+      if (!suggestionList || activeSession !== renderingSession) return
       button.addEventListener('click', () => {
         if (activeSession) activeSession.inputValue = input?.value ?? activeSession.inputValue
         onSuggestionClick?.(suggestion)

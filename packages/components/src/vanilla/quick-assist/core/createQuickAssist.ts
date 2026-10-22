@@ -1,3 +1,5 @@
+import { QuickAssistStageError } from './errors'
+import { copyContext } from '../context/value'
 import { createContextModule } from '../context'
 import { observeAnchor, getSnapshotRect, positionElement } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
@@ -15,7 +17,6 @@ import type {
 import type {
   AIRequest,
   QuickAssistCloseReason,
-  QuickAssistContext,
   QuickAssistEvent,
   QuickAssistErrorStage,
   QuickAssistInstance,
@@ -99,16 +100,6 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
 
 function asError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value))
-}
-
-class QuickAssistStageError extends Error {
-  constructor(
-    readonly stage: 'context' | 'sanitize',
-    cause: unknown,
-  ) {
-    super(asError(cause).message)
-    this.name = 'QuickAssistStageError'
-  }
 }
 
 function stageOf(error: unknown): QuickAssistErrorStage {
@@ -274,7 +265,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     let prompt: string
     try {
       prompt = buildPrompt
-        ? buildPrompt({ query: normalizedQuery, context: candidate.context, suggestion })
+        ? buildPrompt({ query: normalizedQuery, context: copyContext(candidate.context), suggestion })
         : (suggestion?.prompt ?? normalizedQuery)
     } catch (error) {
       candidate.submitStarted = false
@@ -282,13 +273,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       return
     }
     if (!isCurrent(candidate)) return
-    const context: QuickAssistContext = {
-      ...candidate.context,
-      ...(candidate.context.selection ? { selection: { ...candidate.context.selection } } : {}),
-      ...(candidate.context.page ? { page: { ...candidate.context.page } } : {}),
-      ...(candidate.context.businessContext ? { businessContext: { ...candidate.context.businessContext } } : {}),
-      ...(candidate.context.meta ? { meta: { ...candidate.context.meta } } : {}),
-    }
+    const context = copyContext(candidate.context)
     const frozenSuggestion = suggestion
       ? { ...suggestion, ...(suggestion.meta ? { meta: { ...suggestion.meta } } : {}) }
       : undefined
@@ -382,7 +367,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         candidate.context = context
         let base: Suggestion[]
         try {
-          base = recommendationModule.resolveBase(context)
+          base = recommendationModule.resolveBase(copyContext(context))
         } catch (error) {
           ui.update({ loading: false, submittingDisabled: false, error: true })
           positionPopover()
@@ -393,12 +378,12 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         ui.update({ suggestions: base, loading: hasProvider, submittingDisabled: false, error: false })
         positionPopover()
         if (!resolved.getSuggestions) return
-        const asyncSuggestions = recommendationModule.resolveAsync?.(context, candidate.controller.signal)
+        const asyncSuggestions = recommendationModule.resolveAsync?.(copyContext(context), candidate.controller.signal)
         if (!asyncSuggestions) return
         return Promise.resolve(asyncSuggestions)
           .then((incoming) => {
             if (!isCurrent(candidate)) return
-            const merged = recommendationModule.merge(base, incoming, context)
+            const merged = recommendationModule.merge(base, incoming, copyContext(context))
             candidate.suggestions = merged
             ui.update({ suggestions: merged, loading: false, submittingDisabled: false, error: false })
             positionPopover()
@@ -585,19 +570,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
               }
             }
           : undefined,
-        sanitizeContext: configuration.sanitizeContext
-          ? async (context, signal) => {
-              try {
-                const sanitized = await configuration.sanitizeContext?.(context, signal)
-                if (!sanitized || typeof sanitized !== 'object') {
-                  throw new Error('sanitizeContext must return a QuickAssistContext object')
-                }
-                return sanitized
-              } catch (error) {
-                throw new QuickAssistStageError('sanitize', error)
-              }
-            }
-          : undefined,
+        sanitizeContext: configuration.sanitizeContext,
       })
       const nextRecommendation = createRecommendationResolver({
         suggestions: configuration.suggestions,
@@ -611,6 +584,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         attrs: configuration.attrs,
         messages: configuration.messages,
         triggerLabel: configuration.trigger.label,
+        onCallbackError: (sessionId, error) => emitError(sessionId, 'callback', error),
       })
       return {
         selection: nextSelection,

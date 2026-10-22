@@ -1,3 +1,5 @@
+import { QuickAssistStageError } from '../core/errors'
+import { copyContext } from './value'
 import type { QuickAssistContextModule } from '../core/types'
 import type {
   GetBusinessContext,
@@ -232,14 +234,15 @@ export function createContextModule(options: ContextModuleOptions): QuickAssistC
         }
       }
       if (options.sanitizeContext) {
-        const sanitized = await options.sanitizeContext(context, signal)
-        throwIfAborted(signal)
-        if (!sanitized || typeof sanitized !== 'object') {
-          throw new Error('sanitizeContext must return a QuickAssistContext object')
+        try {
+          const sanitized = await options.sanitizeContext(context, signal)
+          throwIfAborted(signal)
+          return copyContext(sanitized)
+        } catch (error) {
+          throw new QuickAssistStageError('sanitize', error)
         }
-        context = sanitized
       }
-      return context
+      return copyContext(context)
     },
   }
 }

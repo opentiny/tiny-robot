@@ -4,7 +4,7 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./dist/vanilla",
+    "declarationDir": "./.temp/vanilla-types",
     "rootDir": "./src/vanilla",
     "jsx": "preserve"
   },
