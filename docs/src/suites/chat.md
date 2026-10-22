@@ -52,6 +52,7 @@ const ui: ChatUIOptions = {
 | 配置                       | 用途和可选值                                                                                                       | 默认值               |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------- |
 | `contentMaxWidth`          | 消息、欢迎区和输入区的最大内容宽度；支持数字或 CSS 长度，如 `640`、`'80%'`                                         | `980`，数字单位为 px |
+| `showScrollToBottom`       | 是否显示内置回到底部按钮；分享等场景可设为 `false`                                                                  | `true`               |
 | `leftAside`                | 左侧栏配置对象；设为 `false` 隐藏整个左侧栏                                                                        | 显示侧栏，默认收起   |
 | `leftAside.width`          | 左侧栏展开宽度，单位为 px                                                                                          | `300`                |
 | `leftAside.collapsedWidth` | 左侧栏收起宽度，单位为 px                                                                                          | `56`                 |
@@ -1180,12 +1181,12 @@ toolbar: (defaults) => [
 | `layout-right-aside-panel`                                                         | `ChatRightAsidePanelSlotProps`     | 提供应用添加的面板内容。                                                                    |
 | `layout-main`                                                                      | `ChatMainSlotProps`                | 替换消息区和空状态内容，保留外层滚动区域；优先于 `layout-empty-state`。                     |
 | `layout-empty-state`                                                               | `ChatEmptyStateSlotProps`          | 替换没有消息时的内容；需要显示默认输入区时，调用 `renderComposer()`。                       |
-| `layout-footer`                                                                    | `ChatSenderSlotProps`              | 替换默认输入框，需自行连接输入和提交操作；保留 `composer-before` 和 `composer-after`。      |
+| `layout-footer`                                                                    | `ChatSenderSlotProps`              | 完整替换默认 Sender；使用后默认输入框及其内部插槽不渲染，需自行连接输入和提交操作；保留 `composer-before` 和 `composer-after`。 |
 | `composer-before`                                                                  | `ChatSenderSlotProps`              | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
 | `composer-after`                                                                   | `ChatSenderSlotProps`              | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
 | `sender-header`                                                                    | 无                                 | 在默认输入框内部上方添加内容。                                                              |
-| `sender-footer`                                                                    | 无                                 | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域。                            |
-| `sender-footer-right`                                                              | 无                                 | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容。                                      |
+| `sender-footer`                                                                    | `SenderSlotScope`                  | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域；提供插入、聚焦和状态方法。  |
+| `sender-footer-right`                                                              | `SenderSlotScope`                  | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容；提供插入、聚焦和状态方法。            |
 | `welcome-footer` / `prompts-footer`                                                | 无                                 | 扩展对应区域。                                                                              |
 | `extension-header-actions` / `extension-overlay`                                   | `ChatExtensionSlotProps`           | 为注册的应用扩展页签添加页头操作或二级面板内容。                                          |
 | `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
@@ -1307,7 +1308,7 @@ const context = useChatRenderContext(props)
 
 | 类型                                                     | 字段                                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `ChatSendPayload`                                        | `text: string`；`structuredData?: ChatStructuredData`                                                   |
+| `ChatSendPayload`                                        | `text: string`；`structuredData?: ChatStructuredData`；`externalPayloads?: SenderExternalPayload[]`    |
 | `ChatStructuredData`                                     | `ChatStructuredDataItem[]`                                                                              |
 | `ChatStructuredDataItem`                                 | `type: string` 用于标识数据种类；其他字段按该种类提供，字段值类型为 `unknown`。                         |
 | `ChatHistoryActionPayload`                               | `action: HistoryMenuItem`；`conversation: ChatConversationInfo`；`defaultPrevented`；`preventDefault()` |

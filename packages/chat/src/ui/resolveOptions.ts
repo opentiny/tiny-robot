@@ -24,6 +24,7 @@ import type {
 } from '../types'
 
 export interface ResolvedChatLayoutOptions {
+  showScrollToBottom: boolean
   surface: ResolvedChatSurfaceOptions
   emptyState: 'start' | 'center'
   composer: ResolvedChatComposerLayoutOptions
@@ -128,6 +129,7 @@ function resolveLayout(
   options: ChatLayoutOptions | undefined,
 ): ResolvedChatLayoutOptions {
   return {
+    showScrollToBottom: options?.showScrollToBottom ?? defaults.showScrollToBottom,
     surface: {
       mode: options?.surface?.mode ?? defaults.surface.mode,
       floatingOptions: options?.surface?.floatingOptions,

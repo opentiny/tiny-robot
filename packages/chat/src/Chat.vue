@@ -334,11 +334,11 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['sender-actions-inline']" #sender-actions-inline="slotProps">
       <slot name="sender-actions-inline" v-bind="slotProps" />
     </template>
-    <template v-if="slots['sender-footer']" #sender-footer>
-      <slot name="sender-footer" />
+    <template v-if="slots['sender-footer']" #sender-footer="slotProps">
+      <slot name="sender-footer" v-bind="slotProps" />
     </template>
-    <template v-if="slots['sender-footer-right']" #sender-footer-right>
-      <slot name="sender-footer-right" />
+    <template v-if="slots['sender-footer-right']" #sender-footer-right="slotProps">
+      <slot name="sender-footer-right" v-bind="slotProps" />
     </template>
     <template v-if="slots['extension-header-actions']" #extension-header-actions="slotProps">
       <slot name="extension-header-actions" v-bind="slotProps" />

@@ -1,4 +1,5 @@
-import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
+import type { ChatConversationInfo, ChatMessageItem } from '../base'
+import type { ChatSendPayload } from '../commands'
 import type { ChatRightAsidePanelId, ChatRightAsidePanelOptions } from './options'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
 import type { BubbleMessage, SenderSlotScope } from '@opentiny/tiny-robot'
@@ -60,7 +61,7 @@ export interface ChatSenderSlotProps {
   readonly disabled: boolean
   readonly submitDisabled: boolean
   readonly setInputValue: (value: string) => void
-  readonly submit: (payload: { text: string; structuredData?: ChatStructuredData }) => void
+  readonly submit: (payload: ChatSendPayload) => void
   readonly cancel: () => void
   readonly clear: () => void
 }
@@ -119,8 +120,8 @@ export interface ChatUISlots {
   'sender-header'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
-  'sender-footer'?: () => unknown
-  'sender-footer-right'?: () => unknown
+  'sender-footer'?: (scope: SenderSlotScope) => unknown
+  'sender-footer-right'?: (scope: SenderSlotScope) => unknown
   'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown
   'extension-overlay'?: (props: ChatExtensionSlotProps) => unknown
 }

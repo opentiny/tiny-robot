@@ -54,6 +54,8 @@ export interface ChatAnchorOptions {
 }
 
 export interface ChatLayoutOptions {
+  /** Show the built-in scroll-to-bottom button in the main or footer region. */
+  readonly showScrollToBottom?: boolean
   readonly composer?: Readonly<ChatComposerLayoutOptions>
   readonly surface?: Readonly<ChatSurfaceOptions>
   readonly emptyState?: 'start' | 'center'

@@ -14,8 +14,9 @@ const props = withDefaults(
     disabled?: boolean
     systemOnly?: boolean
     hideSender?: boolean
+    showScrollToBottom?: boolean
   }>(),
-  { entry: 'ui', path: 'footer', mode: 'single', controlledEmpty: undefined },
+  { entry: 'ui', path: 'footer', mode: 'single', controlledEmpty: undefined, showScrollToBottom: true },
 )
 const chat = shallowRef<ChatInputActions | null>(null)
 const present = shallowRef(false)
@@ -58,7 +59,12 @@ const runtime: ChatRuntime = {
   },
 }
 const ui = computed<ChatUIOptions>(() => ({
-  layout: { leftAside: false, rightAside: false, composer: { welcome: props.path === 'center' ? 'center' : 'footer' } },
+  layout: {
+    leftAside: false,
+    rightAside: false,
+    showScrollToBottom: props.showScrollToBottom,
+    composer: { welcome: props.path === 'center' ? 'center' : 'footer' },
+  },
   sender: props.hideSender ? false : { mode: props.mode, toolbar: [], extensions },
   bubble: { bubbleList: { roleConfigs: { assistant: { placement: 'start' } } } },
 }))
@@ -111,12 +117,16 @@ async function focusInput() {
       <template v-if="present" #sender-header
         ><span v-if="visible" data-testid="tag">{{ label }}</span></template
       >
-      <template v-if="present" #sender-footer
-        ><span data-testid="footer-tag">{{ label }}</span></template
-      >
-      <template v-if="present" #sender-footer-right
-        ><span data-testid="right-tag">{{ label }}</span></template
-      >
+      <template v-if="present" #sender-footer="{ insert, disabled }">
+        <span data-testid="footer-tag">{{ label }}</span>
+        <button data-testid="footer-insert" :disabled="disabled" @mousedown.prevent @click="insert('footer input')">
+          Insert
+        </button>
+      </template>
+      <template v-if="present" #sender-footer-right="{ disabled }">
+        <span data-testid="right-tag">{{ label }}</span>
+        <button data-testid="footer-scope-state" :disabled="disabled">Footer state</button>
+      </template>
     </component>
   </div>
 </template>

@@ -668,11 +668,11 @@ function renderEmptyStateComposer() {
                 <template v-if="$slots['sender-actions-inline']" #sender-actions-inline="slotProps">
                   <slot name="sender-actions-inline" v-bind="slotProps" />
                 </template>
-                <template v-if="$slots['sender-footer']" #sender-footer>
-                  <slot name="sender-footer" />
+                <template v-if="$slots['sender-footer']" #sender-footer="slotProps">
+                  <slot name="sender-footer" v-bind="slotProps" />
                 </template>
-                <template v-if="$slots['sender-footer-right']" #sender-footer-right>
-                  <slot name="sender-footer-right" />
+                <template v-if="$slots['sender-footer-right']" #sender-footer-right="slotProps">
+                  <slot name="sender-footer-right" v-bind="slotProps" />
                 </template>
               </ChatInputRegion>
             </template>
@@ -700,7 +700,10 @@ function renderEmptyStateComposer() {
         />
       </section>
 
-      <div v-if="!isFooterComposerVisible" class="chat-scroll-actions chat-scroll-actions--main">
+      <div
+        v-if="resolvedOptions.layout.showScrollToBottom && !isFooterComposerVisible"
+        class="chat-scroll-actions chat-scroll-actions--main"
+      >
         <ScrollToBottom
           :target="scrollTarget"
           :label="resolvedOptions.labels.scrollToBottom"
@@ -717,7 +720,7 @@ function renderEmptyStateComposer() {
         :class="{ 'has-composer-after': $slots['composer-after'] }"
       >
         <ChatInputRegion ref="composerRef" v-bind="composerProps" v-on="composerTemplateEvents">
-          <template #scroll-actions>
+          <template v-if="resolvedOptions.layout.showScrollToBottom" #scroll-actions>
             <div class="chat-scroll-actions">
               <ScrollToBottom
                 :target="scrollTarget"
@@ -744,11 +747,11 @@ function renderEmptyStateComposer() {
           <template v-if="$slots['sender-actions-inline']" #sender-actions-inline="slotProps">
             <slot name="sender-actions-inline" v-bind="slotProps" />
           </template>
-          <template v-if="$slots['sender-footer']" #sender-footer>
-            <slot name="sender-footer" />
+          <template v-if="$slots['sender-footer']" #sender-footer="slotProps">
+            <slot name="sender-footer" v-bind="slotProps" />
           </template>
-          <template v-if="$slots['sender-footer-right']" #sender-footer-right>
-            <slot name="sender-footer-right" />
+          <template v-if="$slots['sender-footer-right']" #sender-footer-right="slotProps">
+            <slot name="sender-footer-right" v-bind="slotProps" />
           </template>
         </ChatInputRegion>
       </div>

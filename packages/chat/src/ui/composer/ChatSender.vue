@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSlotScope } from '@opentiny/tiny-robot'
+import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
@@ -44,8 +44,8 @@ defineSlots<{
   'sender-header'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
-  'sender-footer'?: () => unknown
-  'sender-footer-right'?: () => unknown
+  'sender-footer'?: (scope: SenderSlotScope) => unknown
+  'sender-footer-right'?: (scope: SenderSlotScope) => unknown
 }>()
 
 const senderRef = shallowRef<InstanceType<typeof TrSender> | null>(null)
@@ -121,8 +121,8 @@ function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
 }
 
-function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData']) {
-  emit('submit', { text, structuredData })
+function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData'], extra?: SenderSubmitExtra) {
+  emit('submit', { text, structuredData, externalPayloads: extra?.externalPayloads })
 }
 
 function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: boolean }) {
@@ -176,7 +176,7 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     <template v-if="$slots['sender-actions-inline']" #actions-inline="slotProps">
       <slot name="sender-actions-inline" v-bind="getSenderSlotScope(slotProps)" />
     </template>
-    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer>
+    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer="slotProps">
       <div v-if="toolbarItems.length" class="tr-chat-toolbar">
         <template v-for="item in toolbarItems" :key="item.id">
           <ChatToolbarButton
@@ -213,10 +213,10 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
           />
         </template>
       </div>
-      <slot name="sender-footer" />
+      <slot name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
     </template>
-    <template v-if="$slots['sender-footer-right']" #footer-right>
-      <slot name="sender-footer-right" />
+    <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
+      <slot name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
     </template>
   </TrSender>
 </template>

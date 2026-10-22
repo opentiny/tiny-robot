@@ -97,6 +97,7 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
 
   return {
     layout: {
+      showScrollToBottom: true,
       surface: {
         mode: 'normal',
       },

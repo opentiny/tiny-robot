@@ -18,6 +18,8 @@ for (const path of ['custom', 'center', 'footer'] as const) {
       if (mode === 'multiple') {
         await expect(component.getByTestId('footer-tag')).toHaveText('Auto')
         await expect(component.getByTestId('right-tag')).toHaveText('Auto')
+        await expect(component.getByTestId('footer-insert')).toBeEnabled()
+        await expect(component.getByTestId('footer-scope-state')).toBeEnabled()
       }
       await component.getByTestId('update').click()
       await expect(component.getByTestId('tag')).toHaveText('Updated')
@@ -113,4 +115,11 @@ test('inherited CSS variables override layout defaults', async ({ mount }) => {
   await expect(component.locator('.chat-panel-content--main')).toHaveCSS('padding', '9px')
   await expect(component.locator('.chat-panel-content--footer')).toHaveCSS('padding', '11px 13px 15px')
   await expect(component.locator('.chat-panel-content--footer')).toHaveCSS('max-width', '700px')
+})
+
+test('layout.showScrollToBottom controls the built-in button and defaults to visible', async ({ mount }) => {
+  const component = await mount(ChatEnhancements)
+  await expect(component.locator('.chat-scroll-actions')).toHaveCount(1)
+  await component.update({ props: { showScrollToBottom: false } })
+  await expect(component.locator('.chat-scroll-actions')).toHaveCount(0)
 })
