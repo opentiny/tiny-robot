@@ -52,6 +52,9 @@ jobs:
       - name: Build components
         run: pnpm build
 
+      - name: Test npm and pnpm package installation
+        run: pnpm test:package-install
+
       - name: Build docs
         run: pnpm -F docs build
 
