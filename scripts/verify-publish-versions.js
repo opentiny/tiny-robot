@@ -8,8 +8,26 @@ export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion
   const packages = readPublishPackages(rootDir).map(({ name, packageJson }) => ({
     name,
     version: packageJson.version,
+    packageJson,
   }))
   const version = packages[0].version
+
+  for (const pkg of packages) {
+    for (const [dependency, spec] of Object.entries(pkg.packageJson.peerDependencies ?? {})) {
+      if (typeof spec === 'string' && spec.startsWith('workspace:')) {
+        throw new Error(`${pkg.name} peerDependencies.${dependency} must not use ${spec} when publishing`)
+      }
+    }
+  }
+
+  const component = packages.find((pkg) => pkg.name === '@opentiny/tiny-robot')
+  const runtimePeer = component.packageJson.peerDependencies?.['@opentiny/tiny-robot-kit']
+  const expectedRuntimePeer = `^${component.version}`
+  if (runtimePeer !== expectedRuntimePeer) {
+    throw new Error(
+      `${component.name} peer @opentiny/tiny-robot-kit uses ${String(runtimePeer)}; expected ${expectedRuntimePeer}`,
+    )
+  }
 
   for (const pkg of packages.slice(1)) {
     if (pkg.version !== version) {

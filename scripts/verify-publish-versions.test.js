@@ -22,8 +22,12 @@ function createFixture(versions) {
 
   for (const [name, relativePath] of Object.entries(packagePaths)) {
     const packageFile = path.join(root, relativePath)
+    const packageJson = { name, version: versions[name] }
+    if (name === '@opentiny/tiny-robot') {
+      packageJson.peerDependencies = { '@opentiny/tiny-robot-kit': `^${versions[name]}` }
+    }
     fs.mkdirSync(path.dirname(packageFile), { recursive: true })
-    fs.writeFileSync(packageFile, `${JSON.stringify({ name, version: versions[name] }, null, 2)}\n`)
+    fs.writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`)
   }
 
   return root
@@ -76,10 +80,7 @@ test('publish verification rejects a numeric prerelease channel unusable by npm'
   const root = createFixture(synchronizedVersions('1.2.3-0'))
 
   try {
-    assert.throws(
-      () => verifyPublishVersions({ rootDir: root, distTag: '0' }),
-      /unusable npm dist-tag.*0/i,
-    )
+    assert.throws(() => verifyPublishVersions({ rootDir: root, distTag: '0' }), /unusable npm dist-tag.*0/i)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -118,6 +119,40 @@ test('publish verification rejects a dist-tag that does not match the package ve
 
   try {
     assert.throws(() => verifyPublishVersions({ rootDir: root, distTag: 'alpha' }), /dist-tag alpha.*requires beta/i)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects workspace protocols before publication', () => {
+  const root = createFixture(synchronizedVersions('1.0.0-rc.3'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.peerDependencies = { '@opentiny/tiny-robot-kit': 'workspace:^' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'rc' }),
+      /@opentiny\/tiny-robot.*peerDependencies.*@opentiny\/tiny-robot-kit.*workspace:\^/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects a stale runtime peer range', () => {
+  const root = createFixture(synchronizedVersions('1.0.0-rc.3'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.peerDependencies = { '@opentiny/tiny-robot-kit': '^1.0.0-rc.2' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'rc' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-kit.*\^1\.0\.0-rc\.2.*\^1\.0\.0-rc\.3/i,
+    )
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

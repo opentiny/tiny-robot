@@ -3,19 +3,31 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { assertPublishVersion, readPublishPackages, replaceTopLevelVersion } from './publish-version-utils.js'
+import {
+  assertPublishVersion,
+  readPublishPackages,
+  replaceDependencyVersion,
+  replaceTopLevelVersion,
+} from './publish-version-utils.js'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 export function setPublishVersion({ rootDir: targetRootDir = rootDir, version, writeFile = fs.writeFileSync } = {}) {
   const { distTag } = assertPublishVersion(version)
   const packages = readPublishPackages(targetRootDir)
-  const replacements = packages.map(({ packageFile, relativePath, source }) => ({
-    packageFile,
-    relativePath,
-    source,
-    updated: replaceTopLevelVersion(source, version, relativePath),
-  }))
+  const replacements = packages.map(({ name, packageFile, relativePath, source }) => {
+    let updated = replaceTopLevelVersion(source, version, relativePath)
+    if (name === '@opentiny/tiny-robot') {
+      updated = replaceDependencyVersion(
+        updated,
+        'peerDependencies',
+        '@opentiny/tiny-robot-kit',
+        `^${version}`,
+        relativePath,
+      )
+    }
+    return { packageFile, relativePath, source, updated }
+  })
   const changed = replacements.filter(({ source, updated }) => source !== updated)
 
   if (changed.length === 0) return { version, distTag, updated: 0 }
@@ -35,14 +47,18 @@ export function setPublishVersion({ rootDir: targetRootDir = rootDir, version, w
         writeFile(replacement.packageFile, replacement.source, 'utf8')
       } catch (rollbackError) {
         rollbackErrors.push(
-          replacement.relativePath + ': ' + (rollbackError instanceof Error ? rollbackError.message : String(rollbackError)),
+          replacement.relativePath +
+            ': ' +
+            (rollbackError instanceof Error ? rollbackError.message : String(rollbackError)),
         )
       }
     }
 
     const reason = error instanceof Error ? error.message : String(error)
     const rollbackMessage =
-      rollbackErrors.length === 0 ? ' All written files were restored.' : ' Rollback failed: ' + rollbackErrors.join('; ')
+      rollbackErrors.length === 0
+        ? ' All written files were restored.'
+        : ' Rollback failed: ' + rollbackErrors.join('; ')
     throw new Error('Failed to update package versions: ' + reason + '.' + rollbackMessage)
   }
 
