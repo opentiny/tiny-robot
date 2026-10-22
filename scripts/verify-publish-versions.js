@@ -28,6 +28,19 @@ export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion
       }
     }
 
+    for (const [dependency, spec] of Object.entries(pkg.packageJson.optionalDependencies ?? {})) {
+      if (
+        packageVersions.has(dependency) &&
+        typeof spec === 'string' &&
+        spec.startsWith('workspace:') &&
+        Object.hasOwn(pkg.packageJson.devDependencies ?? {}, dependency)
+      ) {
+        throw new Error(
+          `${pkg.name} optionalDependencies.${dependency} is shadowed by devDependencies and cannot be converted by Lerna`,
+        )
+      }
+    }
+
     const internalDependencies = new Map()
     for (const section of PUBLISHED_DEPENDENCY_SECTIONS) {
       for (const [dependency, spec] of Object.entries(pkg.packageJson[section] ?? {})) {
