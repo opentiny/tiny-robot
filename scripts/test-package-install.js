@@ -71,19 +71,21 @@ function assertInstalledManifests(consumerDirectory) {
 
 function installWith(packageManager, tarballs, temporaryRoot) {
   const consumerDirectory = path.join(temporaryRoot, `${packageManager}-consumer`)
+  const dependencies = Object.fromEntries([...tarballs].map(([name, tarball]) => [name, `file:${tarball}`]))
+  const packageJson = {
+    name: `${packageManager}-package-install-smoke-test`,
+    private: true,
+    dependencies,
+  }
+
   fs.mkdirSync(consumerDirectory)
-  fs.writeFileSync(
-    path.join(consumerDirectory, 'package.json'),
-    `${JSON.stringify(
-      {
-        name: `${packageManager}-package-install-smoke-test`,
-        private: true,
-        dependencies: Object.fromEntries([...tarballs].map(([name, tarball]) => [name, `file:${tarball}`])),
-      },
-      null,
-      2,
-    )}\n`,
-  )
+  fs.writeFileSync(path.join(consumerDirectory, 'package.json'), `${JSON.stringify(packageJson, null, 2)}\n`)
+  if (packageManager === 'pnpm') {
+    const overrides = Object.entries(dependencies)
+      .map(([name, spec]) => `  ${JSON.stringify(name)}: ${JSON.stringify(spec)}`)
+      .join('\n')
+    fs.writeFileSync(path.join(consumerDirectory, 'pnpm-workspace.yaml'), `overrides:\n${overrides}\n`)
+  }
 
   const args =
     packageManager === 'npm'
