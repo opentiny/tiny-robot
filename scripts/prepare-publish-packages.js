@@ -3,15 +3,11 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { PUBLISHED_DEPENDENCY_SECTIONS, readPublishPackages } from './publish-version-utils.js'
-
-function publishedRange(spec, version) {
-  const workspaceRange = spec.slice('workspace:'.length)
-
-  if (workspaceRange === '' || workspaceRange === '*') return version
-  if (workspaceRange === '^' || workspaceRange === '~') return workspaceRange + version
-  return workspaceRange
-}
+import {
+  PUBLISHED_DEPENDENCY_SECTIONS,
+  readPublishPackages,
+  resolvePublishedDependencyRange,
+} from './publish-version-utils.js'
 
 export function preparePublishPackages({ rootDir = process.cwd(), writeFile = fs.writeFileSync } = {}) {
   const packages = readPublishPackages(rootDir)
@@ -31,7 +27,7 @@ export function preparePublishPackages({ rootDir = process.cwd(), writeFile = fs
           throw new Error(`${pkg.name} ${section}.${dependency} must reference a published workspace package`)
         }
 
-        packageJson[section][dependency] = publishedRange(spec, version)
+        packageJson[section][dependency] = resolvePublishedDependencyRange(spec, version)
         changed = true
       }
     }

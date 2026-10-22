@@ -158,6 +158,41 @@ test('publish verification rejects a stale runtime peer range', () => {
   }
 })
 
+test('publish verification rejects a workspace dependency declared in multiple published sections', () => {
+  const root = createFixture(synchronizedVersions('1.0.0'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.dependencies = { '@opentiny/tiny-robot-svgs': 'workspace:*' }
+  component.optionalDependencies = { '@opentiny/tiny-robot-svgs': 'workspace:*' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'latest' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-svgs.*dependencies.*optionalDependencies/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects an internal dependency range that excludes the published version', () => {
+  const root = createFixture(synchronizedVersions('1.0.0'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.dependencies = { '@opentiny/tiny-robot-svgs': '^2.0.0' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'latest' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-svgs.*\^2\.0\.0.*1\.0\.0/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('publish verifier CLI fails before publication when package versions diverge', () => {
   const versions = synchronizedVersions('0.5.3')
   versions['@opentiny/tiny-robot-chat'] = '0.5.2'

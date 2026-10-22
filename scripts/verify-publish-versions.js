@@ -2,7 +2,14 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { assertPublishVersion, readPublishPackages } from './publish-version-utils.js'
+import semver from 'semver'
+
+import {
+  assertPublishVersion,
+  PUBLISHED_DEPENDENCY_SECTIONS,
+  readPublishPackages,
+  resolvePublishedDependencyRange,
+} from './publish-version-utils.js'
 
 export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion, distTag } = {}) {
   const packages = readPublishPackages(rootDir).map(({ name, packageJson }) => ({
@@ -11,11 +18,48 @@ export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion
     packageJson,
   }))
   const version = packages[0].version
+  const { distTag: requiredDistTag } = assertPublishVersion(version)
+  const packageVersions = new Map(packages.map((pkg) => [pkg.name, pkg.version]))
 
   for (const pkg of packages) {
     for (const [dependency, spec] of Object.entries(pkg.packageJson.peerDependencies ?? {})) {
       if (typeof spec === 'string' && spec.startsWith('workspace:')) {
         throw new Error(`${pkg.name} peerDependencies.${dependency} must not use ${spec} when publishing`)
+      }
+    }
+
+    const internalDependencies = new Map()
+    for (const section of PUBLISHED_DEPENDENCY_SECTIONS) {
+      for (const [dependency, spec] of Object.entries(pkg.packageJson[section] ?? {})) {
+        const dependencyVersion = packageVersions.get(dependency)
+        if (!dependencyVersion) continue
+
+        const declarations = internalDependencies.get(dependency) ?? []
+        declarations.push({ section, spec })
+        internalDependencies.set(dependency, declarations)
+      }
+    }
+
+    for (const [dependency, declarations] of internalDependencies) {
+      if (declarations.length > 1) {
+        throw new Error(
+          `${pkg.name} declares ${dependency} in multiple published dependency sections: ${declarations
+            .map(({ section }) => section)
+            .join(', ')}`,
+        )
+      }
+
+      const [{ section, spec }] = declarations
+      const dependencyVersion = packageVersions.get(dependency)
+      if (typeof spec !== 'string') {
+        throw new Error(`${pkg.name} ${section}.${dependency} must use a string version range`)
+      }
+
+      const publishedRange = resolvePublishedDependencyRange(spec, dependencyVersion)
+      if (!semver.validRange(publishedRange) || !semver.satisfies(dependencyVersion, publishedRange)) {
+        throw new Error(
+          `${pkg.name} ${section}.${dependency} uses ${spec}, which does not include published version ${dependencyVersion}`,
+        )
       }
     }
   }
@@ -41,7 +85,6 @@ export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion
     throw new Error('Expected version ' + expectedVersion + ' from Git tag, but packages use ' + version)
   }
 
-  const { distTag: requiredDistTag } = assertPublishVersion(version)
   if (distTag && distTag !== requiredDistTag) {
     throw new Error(
       'Publish dist-tag ' + distTag + ' does not match version ' + version + '; version requires ' + requiredDistTag,

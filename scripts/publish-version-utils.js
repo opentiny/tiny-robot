@@ -165,6 +165,15 @@ export function assertPublishVersion(version) {
   return { version, distTag: channel }
 }
 
+export function resolvePublishedDependencyRange(spec, version) {
+  if (!spec.startsWith('workspace:')) return spec
+
+  const workspaceRange = spec.slice('workspace:'.length)
+  if (workspaceRange === '' || workspaceRange === '*') return version
+  if (workspaceRange === '^' || workspaceRange === '~') return workspaceRange + version
+  return workspaceRange
+}
+
 export function readPublishPackages(rootDir) {
   return PUBLISH_PACKAGES.map(([expectedName, relativePath]) => {
     const packageFile = path.join(rootDir, relativePath)
