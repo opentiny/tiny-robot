@@ -91,6 +91,65 @@ describe('useChatRuntimeAdapter error channels', () => {
 })
 
 describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
+  it('restores a rejected draft when send creates the first conversation', async () => {
+    const activeConversation = shallowRef<ChatConversation | null>(null)
+    const runtime: ChatRuntime = {
+      conversations: ref([]),
+      activeConversation,
+      composer: {},
+      actions: {
+        send: async () => {
+          activeConversation.value = { id: 'created', title: 'created', messages: [], requestState: 'idle' }
+          return false
+        },
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('retry')
+
+    await expect(adapter.send({ text: 'retry' })).resolves.toBe(false)
+    expect(adapter.inputValue.value).toBe('retry')
+  })
+
+  it('preserves text entered while a send creates the first conversation', async () => {
+    const activeConversation = shallowRef<ChatConversation | null>(null)
+    let finish!: () => void
+    const wait = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const runtime: ChatRuntime = {
+      conversations: ref([]),
+      activeConversation,
+      composer: {},
+      actions: {
+        send: async () => {
+          await wait
+          activeConversation.value = { id: 'created', title: 'created', messages: [], requestState: 'idle' }
+          return false
+        },
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('retry')
+    const sending = adapter.send({ text: 'retry' })
+    await Promise.resolve()
+    adapter.setInputValue('new draft')
+    finish()
+
+    await expect(sending).resolves.toBe(false)
+    expect(adapter.inputValue.value).toBe('new draft')
+  })
+
   it('rejects a submission whose conversation changes before the draft microtask', async () => {
     const send = vi.fn(async () => true)
     const current = createRuntime('conversation-1', send)

@@ -480,6 +480,8 @@ function renderEmptyStateComposer() {
       'composer-after': currentSlots.value['composer-after'],
       'layout-footer': currentSlots.value['layout-footer'],
       'sender-header': currentSlots.value['sender-header'],
+      'sender-content': currentSlots.value['sender-content'],
+      'sender-actions-inline': currentSlots.value['sender-actions-inline'],
       'sender-footer': currentSlots.value['sender-footer'],
       'sender-footer-right': currentSlots.value['sender-footer-right'],
     },
@@ -660,6 +662,12 @@ function renderEmptyStateComposer() {
                 <template v-if="$slots['sender-header']" #sender-header>
                   <slot name="sender-header" />
                 </template>
+                <template v-if="$slots['sender-content']" #sender-content="slotProps">
+                  <slot name="sender-content" v-bind="slotProps" />
+                </template>
+                <template v-if="$slots['sender-actions-inline']" #sender-actions-inline="slotProps">
+                  <slot name="sender-actions-inline" v-bind="slotProps" />
+                </template>
                 <template v-if="$slots['sender-footer']" #sender-footer>
                   <slot name="sender-footer" />
                 </template>
@@ -729,6 +737,12 @@ function renderEmptyStateComposer() {
           </template>
           <template v-if="$slots['sender-header']" #sender-header>
             <slot name="sender-header" />
+          </template>
+          <template v-if="$slots['sender-content']" #sender-content="slotProps">
+            <slot name="sender-content" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots['sender-actions-inline']" #sender-actions-inline="slotProps">
+            <slot name="sender-actions-inline" v-bind="slotProps" />
           </template>
           <template v-if="$slots['sender-footer']" #sender-footer>
             <slot name="sender-footer" />

@@ -117,6 +117,24 @@ test.describe('useAutoScroll', () => {
     await expect.poll(() => distanceToBottom(scroller)).toBeGreaterThan(100)
   })
 
+  test('keeps following paused after a downward jump into the bottom threshold', async ({ mount }) => {
+    const component = await mount(AutoScrollFixture)
+    const scroller = component.getByTestId('observed-scroll')
+
+    await expectAtBottom(scroller)
+    await component.getByRole('button', { name: 'Pause auto scroll' }).click()
+    await scroller.evaluate((element) => {
+      element.scrollTop = element.scrollHeight - element.clientHeight - 10
+      element.dispatchEvent(new Event('scroll'))
+    })
+    await expect.poll(() => distanceToBottom(scroller)).toBe(10)
+    const before = await scroller.evaluate((element) => element.scrollTop)
+
+    await component.getByRole('button', { name: 'Grow observed content' }).click()
+    await expect(scroller).toHaveJSProperty('scrollHeight', 840)
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(before)
+  })
+
   test('keeps the deprecated source signature when the target ref also has a scrollRef property', async ({ mount }) => {
     const component = await mount(AutoScrollFixture)
     const scroller = component.getByTestId('legacy-scroll')

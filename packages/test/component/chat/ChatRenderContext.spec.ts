@@ -74,6 +74,19 @@ test('Anchor reuses caller target IDs and preserves callbacks for every split', 
   await expect(user.locator('[data-anchor-id="business-user-0-0"]')).toHaveClass(/tr-chat-anchor-target-active/)
 })
 
+test('Anchor gives every message in a consecutive user group its own target', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const component = await mount(ChatRenderContext, { props: { consecutiveUsers: true } })
+  const items = component.locator('.tr-anchor__item')
+  const targets = component.locator('.tr-chat-anchor-target[data-anchor-id]')
+
+  await expect(items).toHaveCount(2)
+  await expect(targets).toHaveCount(2)
+  expect(await items.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-item-id')))).toEqual(
+    await targets.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-anchor-id'))),
+  )
+})
+
 test('Anchor combines callback attributes and injects only the first split target', async ({ mount, page }) => {
   await page.setViewportSize({ width: 1200, height: 800 })
   const component = await mount(ChatRenderContext, { props: { callbackAttributes: true } })

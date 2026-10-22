@@ -1,4 +1,4 @@
-import { computed, shallowRef, toValue, watch } from 'vue'
+import { computed, nextTick, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
 import type {
@@ -31,6 +31,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
+  let sendingFromEmptyConversation = false
 
   watch(
     runtime,
@@ -59,10 +60,14 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         return false
       }
       try {
+        sendingFromEmptyConversation = conversationId === null
         return await actionRuntime.actions.send(payload)
       } catch (error) {
         options.onActionError({ action: 'send', payload, error })
         return false
+      } finally {
+        await nextTick()
+        sendingFromEmptyConversation = false
       }
     }
   }
@@ -88,6 +93,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         nextId !== previousId &&
         runtime.value.conversationNavigationRevision === undefined
       ) {
+        if (sendingFromEmptyConversation && previousId === null && nextId !== null) return
         invalidateDraftForNavigation()
       }
     },

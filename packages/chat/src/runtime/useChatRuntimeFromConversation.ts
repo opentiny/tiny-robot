@@ -48,14 +48,17 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
   const creatingConversationForSend = shallowRef(false)
+  let awaitingCustomCreation = false
   const occupiedTargets = shallowRef(new Set<string>())
   let previousConversationId = conversation.activeConversationId.value
   watch(
     conversation.activeConversationId,
     (id) => {
       if (id !== previousConversationId) {
+        const createdForCustomSend = awaitingCustomCreation && previousConversationId === null && id !== null
         previousConversationId = id
-        if (!creatingConversationForSend.value) conversationNavigationRevision.value++
+        if (createdForCustomSend) awaitingCustomCreation = false
+        else if (!creatingConversationForSend.value) conversationNavigationRevision.value++
       }
     },
     { flush: 'sync' },
@@ -91,10 +94,11 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
 
     return (
       Boolean(sourceComposer.submitDisabled?.value) ||
-      !areEnabledMcpToolsReady(sourceComposer.mcp) ||
-      noUsableModel ||
       occupiedTargets.value.has(targetKey) ||
-      Boolean(active && !active.engine.canStartTurn.value)
+      (!send &&
+        (!areEnabledMcpToolsReady(sourceComposer.mcp) ||
+          noUsableModel ||
+          Boolean(active && !active.engine.canStartTurn.value)))
     )
   })
   const composer: ChatRuntime['composer'] = {
@@ -170,9 +174,10 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       return (
         !composer.disabled?.value &&
         !sourceComposer.submitDisabled?.value &&
-        areEnabledMcpToolsReady(composer.mcp) &&
-        (!model || Boolean(selectedModel && !selectedModel.disabled)) &&
-        (!targetEngine || targetEngine.canStartTurn.value)
+        (Boolean(send) ||
+          (areEnabledMcpToolsReady(composer.mcp) &&
+            (!model || Boolean(selectedModel && !selectedModel.disabled)) &&
+            (!targetEngine || targetEngine.canStartTurn.value)))
       )
     }
     try {
@@ -217,8 +222,13 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       }
 
       if (send) {
-        const result = await send(effectivePayload)
-        return result !== false
+        if (targetConversationId === null) awaitingCustomCreation = true
+        try {
+          const result = await send(effectivePayload)
+          return result !== false
+        } finally {
+          awaitingCustomCreation = false
+        }
       }
       if (targetConversationId === null) {
         creatingConversationForSend.value = true

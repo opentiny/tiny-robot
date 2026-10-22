@@ -328,6 +328,12 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['sender-header']" #sender-header>
       <slot name="sender-header" />
     </template>
+    <template v-if="slots['sender-content']" #sender-content="slotProps">
+      <slot name="sender-content" v-bind="slotProps" />
+    </template>
+    <template v-if="slots['sender-actions-inline']" #sender-actions-inline="slotProps">
+      <slot name="sender-actions-inline" v-bind="slotProps" />
+    </template>
     <template v-if="slots['sender-footer']" #sender-footer>
       <slot name="sender-footer" />
     </template>

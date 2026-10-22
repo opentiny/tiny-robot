@@ -1,7 +1,7 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
 import type { ChatRightAsidePanelId, ChatRightAsidePanelOptions } from './options'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
-import type { BubbleMessage } from '@opentiny/tiny-robot'
+import type { BubbleMessage, SenderSlotScope } from '@opentiny/tiny-robot'
 import type { VNode } from 'vue'
 
 export interface ChatHeaderSlotProps {
@@ -117,6 +117,8 @@ export interface ChatUISlots {
   'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
   'sender-header'?: () => unknown
+  'sender-content'?: (props: { editor: unknown }) => unknown
+  'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
   'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown

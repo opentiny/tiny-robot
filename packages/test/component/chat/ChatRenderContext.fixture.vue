@@ -7,6 +7,7 @@ import RenderContextProbe from './RenderContextProbe.vue'
 const props = withDefaults(
   defineProps<{
     anchor?: boolean
+    consecutiveUsers?: boolean
     customMain?: boolean
     callerAnchors?: boolean
     callbackAttributes?: boolean
@@ -26,24 +27,29 @@ const requests = shallowRef<Record<string, { state: ChatRequestState }>>({
   'thread-b': { state: 'processing' },
 })
 const messages = shallowRef<ChatMessageItem[]>(
-  Array.from({ length: 6 }, (_, index) => [
-    {
-      id: `user-${index}`,
-      role: 'user',
-      content: [
-        { type: 'text', text: `Question ${index}` },
-        { type: 'text', text: 'part two' },
-      ],
-      state: { content: `Displayed question ${index}` },
-    },
-    {
-      id: `answer-${index}`,
-      renderKey: `answer-${index}`,
-      role: 'assistant',
-      content: 'Answer',
-      ...(index === 5 ? { streamState: 'streaming' as const } : {}),
-    },
-  ]).flat(),
+  props.consecutiveUsers
+    ? [
+        { id: 'adjacent-user-1', role: 'user', content: 'Adjacent question one' },
+        { id: 'adjacent-user-2', role: 'user', content: 'Adjacent question two' },
+      ]
+    : Array.from({ length: 6 }, (_, index) => [
+        {
+          id: `user-${index}`,
+          role: 'user',
+          content: [
+            { type: 'text', text: `Question ${index}` },
+            { type: 'text', text: 'part two' },
+          ],
+          state: { content: `Displayed question ${index}` },
+        },
+        {
+          id: `answer-${index}`,
+          renderKey: `answer-${index}`,
+          role: 'assistant',
+          content: 'Answer',
+          ...(index === 5 ? { streamState: 'streaming' as const } : {}),
+        },
+      ]).flat(),
 )
 const data = computed(() => ({
   conversation: { activeId: thread.value },
@@ -60,7 +66,10 @@ const ui = computed<ChatUIOptions>(() => ({
   },
   sender: props.hideSender ? false : {},
   bubble: {
-    bubbleList: { contentRenderMode: 'split' },
+    bubbleList: {
+      contentRenderMode: 'split',
+      ...(props.consecutiveUsers ? { groupStrategy: 'consecutive' as const } : {}),
+    },
     bubbleProvider: {
       fallbackContentRenderer: markRaw(RenderContextProbe),
       boxAttributes:

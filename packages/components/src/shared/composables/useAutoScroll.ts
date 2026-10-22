@@ -115,12 +115,14 @@ export function useAutoScroll(
   const { scrollOnMount = true, bottomThreshold = 20, scrollThrottle = 0, enabled = true } = options ?? {}
 
   const isFollowing = ref(true)
+  let explicitlyPaused = false
   let scheduledFrame: number | null = null
   const stopWatches = new Set<WatchHandle>()
   let scrollRevision = 0
 
   const pause = () => {
     scrollRevision++
+    explicitlyPaused = true
     isFollowing.value = false
     if (scheduledFrame !== null) cancelAnimationFrame(scheduledFrame)
     scheduledFrame = null
@@ -146,6 +148,7 @@ export function useAutoScroll(
 
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
     const revision = ++scrollRevision
+    explicitlyPaused = false
     isFollowing.value = true
     const el = toValue(targetElement)
     if (!el) return
@@ -193,7 +196,7 @@ export function useAutoScroll(
       const el = toValue(targetElement)
       if (!el) return
 
-      // A directory jump may start inside the bottom threshold; upward frames must not resume a paused follow.
+      if (explicitlyPaused) return
       if (isNearBottom(el as HTMLElement) && (isFollowing.value || newY > oldY)) {
         isFollowing.value = true
       } else if (newY < oldY) {

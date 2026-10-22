@@ -74,15 +74,52 @@ describe('useChatRuntimeFromConversation', () => {
     await expect(runtime.actions.send({ text: 'hello' })).rejects.toBe(failure)
   })
 
-  it('applies busy and paused engine gates to custom and default sends', async () => {
+  it('applies engine availability gates only to default sends', async () => {
     for (const custom of [true, false]) {
       const harness = createHarness('a', false)
       const send = vi.fn(async () => true)
       const runtime = useChatRuntimeFromConversation({ conversation: harness.api, ...(custom ? { send } : {}) })
-      expect(runtime.composer.submitDisabled?.value).toBe(true)
-      await expect(runtime.actions.send({ text: 'blocked' })).resolves.toBe(false)
-      expect(send).not.toHaveBeenCalled()
+      expect(runtime.composer.submitDisabled?.value).toBe(!custom)
+      await expect(runtime.actions.send({ text: 'blocked' })).resolves.toBe(custom)
+      expect(send).toHaveBeenCalledTimes(custom ? 1 : 0)
     }
+  })
+
+  it('allows custom sends without a selected model', async () => {
+    const harness = createHarness()
+    const model = {
+      options: ref([]),
+      selectedId: ref(null),
+      features: ref({}),
+      select: vi.fn(),
+      setFeature: vi.fn(),
+      setReasoningEffort: vi.fn(),
+    }
+    const send = vi.fn(async () => true)
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api, send, composer: { model } })
+
+    await expect(runtime.actions.send({ text: 'route elsewhere' })).resolves.toBe(true)
+    expect(send).toHaveBeenCalledOnce()
+  })
+
+  it('does not count a custom send-created first conversation as navigation', async () => {
+    const harness = createHarness('')
+    harness.activeConversationId.value = null
+    let finish!: (accepted: boolean) => void
+    const pending = new Promise<boolean>((resolve) => {
+      finish = resolve
+    })
+    const send = vi.fn(async () => {
+      harness.api.createConversation({ id: 'created' })
+      return pending
+    })
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api, send })
+    const sending = runtime.actions.send({ text: 'first' })
+    await Promise.resolve()
+    expect(runtime.conversationNavigationRevision?.value).toBe(0)
+    finish(false)
+    await expect(sending).resolves.toBe(false)
+    expect(runtime.conversationNavigationRevision?.value).toBe(0)
   })
 
   it('honors beforeSend branches and releases an occupied target on every exit', async () => {

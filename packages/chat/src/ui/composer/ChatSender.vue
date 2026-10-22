@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
+import type { SenderSlotScope } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
@@ -41,6 +42,8 @@ const emit = defineEmits<{
 
 defineSlots<{
   'sender-header'?: () => unknown
+  'sender-content'?: (props: { editor: unknown }) => unknown
+  'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }>()
@@ -149,6 +152,10 @@ function handleOpenExtensionPanel() {
     handleOpenMcpPanel()
   }
 }
+
+function getSenderSlotScope(scope: unknown): SenderSlotScope {
+  return scope as SenderSlotScope
+}
 </script>
 
 <template>
@@ -162,6 +169,12 @@ function handleOpenExtensionPanel() {
   >
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
+    </template>
+    <template v-if="$slots['sender-content']" #content="slotProps">
+      <slot name="sender-content" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['sender-actions-inline']" #actions-inline="slotProps">
+      <slot name="sender-actions-inline" v-bind="getSenderSlotScope(slotProps)" />
     </template>
     <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer>
       <div v-if="toolbarItems.length" class="tr-chat-toolbar">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
+import type { SenderSlotScope } from '@opentiny/tiny-robot'
 import ChatSender from './ChatSender.vue'
 import type {
   ChatBuiltInModelFeature,
@@ -41,6 +42,8 @@ defineSlots<{
   'composer-after'?: (props: ChatSenderSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'sender-header'?: () => unknown
+  'sender-content'?: (props: { editor: unknown }) => unknown
+  'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }>()
@@ -95,6 +98,12 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
       >
         <template v-if="$slots['sender-header']" #sender-header>
           <slot name="sender-header" />
+        </template>
+        <template v-if="$slots['sender-content']" #sender-content="slotProps">
+          <slot name="sender-content" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots['sender-actions-inline']" #sender-actions-inline="slotProps">
+          <slot name="sender-actions-inline" v-bind="slotProps" />
         </template>
         <template v-if="$slots['sender-footer']" #sender-footer>
           <slot name="sender-footer" />

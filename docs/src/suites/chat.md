@@ -1217,7 +1217,7 @@ const context = useChatRenderContext(props)
 
 消息对象和服务端 ID 都可能变化时，请提供唯一且稳定的 `renderKey`。使用 `messageKey` 和 `contentIndex` 可区分渲染内容，无需解析 `messageKey`。
 
-`message.streamState` 可显式指定流状态。未指定时根据 `loading` 和请求状态判断：历史消息默认按已结束处理；当前请求中的最新消息状态不足时为 `unknown`。
+`message.streamState` 可显式指定流状态。未指定时根据当前请求的可追踪归属判断：历史消息默认按已结束处理；当前请求中的最新消息状态不足时为 `unknown`。`loading` 不决定流状态。
 
 渲染器的定义与注册见 [Bubble 自定义渲染器](../components/bubble#实现自定义渲染器) 和 [Provider 配置](../components/bubble#通过-bubbleprovider-配置渲染器)。
 

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
+import type { SenderSlotScope } from '../../types/slots'
 import EditorContent from '../editor-content/index.vue'
 import SenderHeader from './SenderHeader.vue'
 import { DefaultActionButtons, WordCounter } from '../../../sender-actions/index'
 
 const { editor, hasContent, loading, showWordLimit, maxLength } = useSenderContext()
 const slotScope = useSlotScope()
+
+defineSlots<{
+  header?: () => unknown
+  prefix?: () => unknown
+  content?: (props: { editor: unknown }) => unknown
+  'actions-inline'?: (scope: SenderSlotScope) => unknown
+}>()
 </script>
 
 <template>

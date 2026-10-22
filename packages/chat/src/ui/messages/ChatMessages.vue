@@ -117,10 +117,25 @@ const boxAttributes: BubbleBoxAttributesResolver = (messages, content, contentIn
 const contentAttributes: BubbleContentAttributesResolver = (message, content, contentIndex) => {
   const configured = props.options.bubbleProvider?.contentAttributes
   const attributes = typeof configured === 'function' ? configured(message, content, contentIndex) : configured
-  return {
-    ...attributes,
-    key: attributes?.key ?? JSON.stringify([(message as ChatMessageItem).renderKey, contentIndex]),
-  }
+  const item = message as ChatMessageItem
+  const messageIndex = bubbleMessages.value.indexOf(item)
+  const isAdditionalAnchorTarget =
+    props.anchorEnabled &&
+    props.options.bubbleList.groupStrategy === 'consecutive' &&
+    item.role === 'user' &&
+    messageIndex > 0 &&
+    bubbleMessages.value[messageIndex - 1]?.role === 'user' &&
+    (contentIndex ?? 0) === 0
+  const boxAttributes = isAdditionalAnchorTarget ? resolveBoxAttributes([item], content, 0) : undefined
+  return mergeProps(attributes ?? {}, {
+    ...(isAdditionalAnchorTarget
+      ? {
+          class: 'tr-chat-anchor-target',
+          'data-anchor-id': boxAttributes?.['data-anchor-id'] ?? item.renderKey,
+        }
+      : {}),
+    key: (attributes?.key as string | number | symbol | undefined) ?? JSON.stringify([item.renderKey, contentIndex]),
+  })
 }
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,

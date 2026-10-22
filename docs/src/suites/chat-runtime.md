@@ -481,7 +481,7 @@ const adapter = useChatRuntimeAdapter({
 | `titleGenerator` | 生成默认发送自动创建的会话标题               | `(text: string) => string`                                                                                            | 否   | 与 `useChatRuntime` 相同                   |
 | `beforeSend`     | 发送前检查                                   | `ChatBeforeSend`                                                                                                      | 否   | 不执行自定义检查                           |
 | `send`           | 自行处理会话创建、消息保存和请求，允许空文本 | `(payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`；仅严格返回 `false` 表示拒绝 | 否   | 使用已有 Kit 会话执行默认发送              |
-| `composer`       | 提供输入区状态、模型和 MCP 操作              | `ChatComposerRuntime`                                                                                                 | 否   | `{}`；默认发送会根据模型和工具状态限制提交 |
+| `composer`       | 提供输入区状态、模型和 MCP 操作              | `ChatComposerRuntime`                                                                                                 | 否   | `{}`；默认发送会根据模型、工具和 Engine 状态限制提交；自定义 `send` 仅受输入区禁用状态及显式 `submitDisabled` 限制 |
 
 ### 错误记录配置
 
