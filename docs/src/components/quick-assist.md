@@ -36,7 +36,7 @@ QuickAssist 的运行时代码不依赖 Vue、Angular 等框架或其他界面�
 将 `node_modules/@opentiny/tiny-robot/dist/vanilla/vanilla.umd.js` 部署到应用的静态资源目录或者CDN，通过全局对象 `TinyRobotVanilla` 调用。此文件是整个无框架组件集合的入口；以后新增组件也会从同一全局对象导出。下例中以jsdelivr cdn地址为例：
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.5.2-alpha.19/dist/vanilla/vanilla.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.5.2-alpha.21/dist/vanilla/vanilla.umd.js"></script>
 <script>
   const quickAssist = window.TinyRobotVanilla.createQuickAssist({
     adapter: {
