@@ -318,6 +318,8 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 <demo vue="../../demos/bubble/tools.vue" title="工具调用渲染器" description="使用内置 Tool 与 Tools 渲染器展示工具调用状态和结果。" />
 
+工具描述超过一行时会自动截断，鼠标悬停在描述上可以通过原生提示查看完整内容。
+
 #### 实现自定义渲染器
 
 **Content 渲染器**
