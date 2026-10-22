@@ -116,6 +116,37 @@ describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
     expect(adapter.inputValue.value).toBe('retry')
   })
 
+  it('restores a draft when first-conversation send throws after creation', async () => {
+    const activeConversation = shallowRef<ChatConversation | null>(null)
+    const sendError = new Error('send failed')
+    const runtime: ChatRuntime = {
+      conversations: ref([]),
+      activeConversation,
+      composer: {},
+      actions: {
+        send: async () => {
+          activeConversation.value = { id: 'created', title: 'created', messages: [], requestState: 'idle' }
+          throw sendError
+        },
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const observedErrors: ChatRuntimeActionErrorPayload[] = []
+    const adapter = useChatRuntimeAdapter({
+      runtime,
+      onActionError: (payload) => observedErrors.push(payload),
+    })
+    adapter.setInputValue('retry')
+
+    await expect(adapter.send({ text: 'retry' })).resolves.toBe(false)
+    expect(adapter.inputValue.value).toBe('retry')
+    expect(observedErrors).toEqual([{ action: 'send', payload: { text: 'retry' }, error: sendError }])
+  })
+
   it('preserves text entered while a send creates the first conversation', async () => {
     const activeConversation = shallowRef<ChatConversation | null>(null)
     let finish!: () => void
