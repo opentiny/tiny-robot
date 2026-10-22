@@ -62,6 +62,7 @@ jobs:
           name: build-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             packages/components/dist
+            packages/chat/dist
             packages/kit/dist
             packages/svgs/dist
             docs/dist
