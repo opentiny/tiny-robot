@@ -72,3 +72,45 @@ test('rejects a workspace dependency that is not a published package', () => {
     fs.rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('continues restoring manifests and reports every rollback failure', () => {
+  const root = createFixture()
+  const componentFile = path.join(root, 'packages/components/package.json')
+  const chatFile = path.join(root, 'packages/chat/package.json')
+  const kitFile = path.join(root, 'packages/kit/package.json')
+
+  for (const [packageFile, dependency] of [
+    [chatFile, '@opentiny/tiny-robot'],
+    [kitFile, '@opentiny/tiny-robot-svgs'],
+  ]) {
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    packageJson.dependencies = { [dependency]: 'workspace:*' }
+    fs.writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`)
+  }
+
+  const originals = new Map(
+    [componentFile, chatFile, kitFile].map((packageFile) => [packageFile, fs.readFileSync(packageFile, 'utf8')]),
+  )
+  let writes = 0
+
+  try {
+    assert.throws(
+      () =>
+        preparePublishPackages({
+          rootDir: root,
+          writeFile(packageFile, source, encoding) {
+            writes += 1
+            if (writes === 3) throw new Error('write failed')
+            if (writes === 4) throw new Error('restore failed')
+            fs.writeFileSync(packageFile, source, encoding)
+          },
+        }),
+      /write failed.*rollback failed.*restore failed/i,
+    )
+
+    assert.equal(fs.readFileSync(componentFile, 'utf8'), originals.get(componentFile))
+    assert.equal(fs.readFileSync(chatFile, 'utf8'), originals.get(chatFile))
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})

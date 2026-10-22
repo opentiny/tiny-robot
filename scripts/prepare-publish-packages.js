@@ -52,10 +52,20 @@ export function preparePublishPackages({ rootDir = process.cwd(), writeFile = fs
       writeFile(replacement.packageFile, replacement.updated, 'utf8')
     }
   } catch (error) {
+    const rollbackErrors = []
     for (const replacement of written.reverse()) {
-      writeFile(replacement.packageFile, replacement.source, 'utf8')
+      try {
+        writeFile(replacement.packageFile, replacement.source, 'utf8')
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `${replacement.packageFile}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+        )
+      }
     }
-    throw error
+
+    const reason = error instanceof Error ? error.message : String(error)
+    const rollbackMessage = rollbackErrors.length === 0 ? '' : ` Rollback failed: ${rollbackErrors.join('; ')}`
+    throw new Error(`Failed to prepare publish packages: ${reason}.${rollbackMessage}`)
   }
 
   return { updated: replacements.length }
