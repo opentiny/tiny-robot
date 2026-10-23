@@ -15,6 +15,7 @@ declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
+      moveCursorAfterTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -227,7 +228,7 @@ const extensions = computed(() => {
   return exts
 })
 
-const moveCursorBeforeTemplate = (index: number) => {
+const moveCursorToTemplate = (index: number, after: boolean) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
   if (!editor) return false
@@ -235,10 +236,10 @@ const moveCursorBeforeTemplate = (index: number) => {
   let currentIndex = 0
   let templatePosition: number | null = null
 
-  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
+  editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
       if (currentIndex === index) {
-        templatePosition = pos
+        templatePosition = after ? pos + node.nodeSize : pos
         return false
       }
       currentIndex += 1
@@ -251,8 +252,12 @@ const moveCursorBeforeTemplate = (index: number) => {
   editor.commands.setTextSelection(templatePosition)
   editor.commands.focus(templatePosition)
 
-  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
+  const adjacentNode = after ? editor.state.selection.$from.nodeBefore : editor.state.selection.$from.nodeAfter
+  return adjacentNode?.type?.name === 'templateBlock'
 }
+
+const moveCursorBeforeTemplate = (index: number) => moveCursorToTemplate(index, false)
+const moveCursorAfterTemplate = (index: number) => moveCursorToTemplate(index, true)
 
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
@@ -271,6 +276,7 @@ const pressDeleteBeforeTemplate = (index: number) => {
 onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
+    moveCursorAfterTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }

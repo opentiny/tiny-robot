@@ -55,14 +55,18 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
 
   test('TC-BS-05: 从模板块右侧按 Backspace 应该进入模板块', async () => {
     await templateHelper.setSimpleTemplate()
-    await helper.getEditor().click()
-    await templateHelper.wait(100)
-    await helper.getEditor().press('End')
-    await templateHelper.pressArrowLeft(3)
+    await templateHelper.focusAfterTemplate(0)
     await templateHelper.pressBackspace()
 
     await templateHelper.expectTemplateCount(1)
     await templateHelper.expectTemplateText(0, '张三')
+    await test.expect
+      .poll(() =>
+        templateHelper.getTemplateContent(0).evaluate((element) => {
+          return element.contains(window.getSelection()?.anchorNode ?? null)
+        }),
+      )
+      .toBe(true)
   })
 
   test('TC-BS-06: 从右侧删除空模板块需要多次操作', async () => {
