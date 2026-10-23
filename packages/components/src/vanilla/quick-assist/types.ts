@@ -1,5 +1,5 @@
-/** A placement preference for the selection trigger and popover. */
-export type QuickAssistPlacement = 'top' | 'bottom' | 'auto'
+/** A placement preference. start/end extend outward from the selected line's left/right edge. */
+export type QuickAssistPlacement = 'top' | 'bottom' | 'auto' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
 
 /** Reasons a visible QuickAssist session can be closed. */
 export type QuickAssistCloseReason =
@@ -28,6 +28,8 @@ export type QuickAssistErrorStage =
 /** The immutable selection data captured at the time a session starts. */
 export interface SelectionSnapshot {
   text: string
+  /** DOM selection direction; absent for snapshots supplied by older integrations. */
+  direction?: 'forward' | 'backward'
   range: Range
   rect: DOMRectReadOnly
   clientRects: DOMRectReadOnly[]
@@ -46,6 +48,66 @@ export interface QuickAssistActivation {
   rect?: DOMRectReadOnly
   anchorElement?: Element | null
   selection?: SelectionSnapshot
+}
+
+/** 只读激活视图：传给通用钩子，保证不含 Range；旧 SelectionSnapshot 契约不复用。 */
+export interface QuickAssistActivationView {
+  source: string
+  text: string
+  direction?: 'forward' | 'backward'
+  anchorElement?: Element | null
+  identity?: string
+  meta?: Record<string, unknown>
+}
+
+/** Options for this activation only; instance defaults are left unchanged. */
+export interface QuickAssistActivationOptions {
+  /** Defaults to trigger. popover opens the input immediately, bypassing showDelay and the entry button. */
+  open?: 'trigger' | 'popover'
+  /** Replace this session's static suggestions; [] hides them. Supplying this also opts out of the instance provider. */
+  suggestions?: QuickAssistSuggestionInput[]
+  /** Session provider. Omitted with suggestions uses no provider; otherwise inherits the instance. null disables it. */
+  getSuggestions?: GetSuggestions | null
+}
+
+/**
+ * 一次激活的活几何句柄：DOM 选区与编辑器选区统一到这个形状。
+ * getRect 每次调用返回选区当前锚点矩形（viewport 坐标）；返回 null 表示
+ * 选区已失效或不可见（编辑器裁剪区域内不可见同样视为无效）。
+ */
+export interface QuickAssistActivationInput extends QuickAssistActivationView, QuickAssistActivationOptions {
+  getRect: () => DOMRectReadOnly | null
+  /**
+   * 可选：失效订阅。桥接器接入编辑器生命周期（dispose、模型切换、内容变化、
+   * 容器移除/布局变化等），事件到来时回调；返回取消订阅函数。
+   * 运行时在会话建立（handleActivation）时即安装本订阅——覆盖 showDelay
+   * 延迟阶段。到达后统一重评估：verify + getRect 通过则重定位，否则关闭。
+   */
+  onInvalidate?: (callback: () => void) => () => void
+  /** 可选：showDelay 到期时的一致性校验；缺省用 getRect() !== null。 */
+  verify?: () => boolean
+  /** 可选：nearbyText 提供者。实现方必须在 emit 时冻结快照，不能延迟读取活状态。 */
+  getNearbyText?: () => string | undefined
+}
+
+/** 可注册的触发源。name 仅作业务标签；会话归属由运行时 token 决定。 */
+export interface QuickAssistSelectionSource {
+  name: string
+  /** emit(input) 触发会话；emit(null) 清除本源当前会话。 */
+  activate: (emit: (input: QuickAssistActivationInput | null) => void) => void
+  deactivate: () => void
+}
+
+/**
+ * 便捷形式：给一个元素做锚点。内部经 observeElementLiveness 构造 DOM 锚点
+ * （ResizeObserver + 祖先链 childList MutationObserver），元素 remove() 或
+ * 尺寸塌缩无需依赖 scroll/resize 即可触发失效。
+ */
+export interface QuickAssistAnchorShortcut extends QuickAssistActivationOptions {
+  text: string
+  anchor: Element
+  source?: string
+  meta?: Record<string, unknown>
 }
 
 /** Context passed to recommendation providers and the host adapter. */
@@ -91,8 +153,12 @@ export interface AIAdapter {
 export type QuickAssistSuggestionInput = Suggestion | SuggestionFactory
 
 export interface QuickAssistSelectionOptions {
+  /** Only accept selections in document order. Defaults to true. */
+  forwardOnly?: boolean
   maxTextLength?: number
   validate?: (snapshot: SelectionSnapshot) => boolean
+  /** Synthetic activations only; replaces default text rules, not size/geometry checks. */
+  validateActivation?: (view: QuickAssistActivationView) => boolean
 }
 
 export interface QuickAssistTriggerOptions {
@@ -100,6 +166,7 @@ export interface QuickAssistTriggerOptions {
   /** Milliseconds to wait after the selection settles before showing the trigger. Defaults to 0. */
   showDelay?: number
   offset?: number
+  /** Preferred position relative to the first/last selected line. Defaults to bottom-end. */
   placement?: QuickAssistPlacement
 }
 
@@ -122,6 +189,16 @@ export type SanitizeContext = (
 ) => QuickAssistContext | Promise<QuickAssistContext>
 
 export type GetSuggestions = (context: QuickAssistContext, signal: AbortSignal) => Suggestion[] | Promise<Suggestion[]>
+
+/**
+ * Synchronous business validation of each structurally valid remote suggestion.
+ * False discards the item. If a non-empty provider response has no valid items
+ * after structural and business validation, the remote batch fails: static
+ * suggestions remain available and an error event is emitted at stage 'suggestions'.
+ * Throwing or returning a non-boolean also fails the batch. An explicit empty
+ * provider response ([]) is successful and proceeds to mergeSuggestions.
+ */
+export type ValidateSuggestion = (suggestion: Suggestion, context: QuickAssistContext) => boolean
 
 export type MergeSuggestions = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext) => Suggestion[]
 
@@ -171,6 +248,8 @@ export interface QuickAssistOptions {
   sanitizeContext?: SanitizeContext
   suggestions?: QuickAssistSuggestionInput[]
   getSuggestions?: GetSuggestions
+  /** Only validates remote suggestions, before merging. Exceptions fail the remote batch. */
+  validateSuggestion?: ValidateSuggestion
   mergeSuggestions?: MergeSuggestions
   maxSuggestions?: number
   buildPrompt?: BuildPrompt
@@ -180,6 +259,10 @@ export interface QuickAssistOptions {
 }
 
 export interface QuickAssistInstance {
+  /** Explicitly show an entry for supplied text and a viewport anchor. Disabled instances ignore calls. */
+  activate: (input: QuickAssistActivationInput | QuickAssistAnchorShortcut) => void
+  /** Register an automatic source; unregistering closes only its own session. */
+  registerSource: (source: QuickAssistSelectionSource) => () => void
   enable: () => void
   disable: () => void
   close: () => void

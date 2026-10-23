@@ -2,15 +2,29 @@
    component library's global variables.css. Every semantic value has a local
    fallback for that use case. */
 .tr-quick-assist {
-  --tr-quick-assist-bg: var(--tr-container-bg-default, #fff);
-  --tr-quick-assist-bg-subtle: var(--tr-container-bg-default-2, #fafafa);
-  --tr-quick-assist-text: var(--tr-text-primary, #191919);
-  --tr-quick-assist-muted: var(--tr-text-secondary, #595959);
-  --tr-quick-assist-border: var(--tr-border-color-default, #dbdbdb);
-  --tr-quick-assist-accent: var(--tr-color-primary, #1476ff);
-  --tr-quick-assist-radius: var(--tr-radius-lg, 12px);
+  --tr-quick-assist-bg: var(--tr-container-bg-default, var(--tr-vanilla-default-container-bg-default));
+  --tr-quick-assist-bg-subtle: var(--tr-container-bg-default-2, var(--tr-vanilla-default-container-bg-default-2));
+  --tr-quick-assist-text: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-muted: var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary));
+  --tr-quick-assist-border: var(--tr-assist-border-color, var(--tr-vanilla-default-assist-border-color));
+  --tr-quick-assist-border-hover: color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted));
+  --tr-quick-assist-hover-bg: var(--tr-container-bg-hover, var(--tr-vanilla-default-container-bg-hover));
+  --tr-quick-assist-accent: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-icon-gradient-start: var(
+    --tr-assist-icon-gradient-start,
+    var(--tr-vanilla-default-assist-icon-gradient-start)
+  );
+  --tr-quick-assist-icon-gradient-middle: var(
+    --tr-assist-icon-gradient-middle,
+    var(--tr-vanilla-default-assist-icon-gradient-middle)
+  );
+  --tr-quick-assist-icon-gradient-end: var(
+    --tr-assist-icon-gradient-end,
+    var(--tr-vanilla-default-assist-icon-gradient-end)
+  );
+  --tr-quick-assist-radius: 16px;
   --tr-quick-assist-pill-radius: var(--tr-radius-full, 9999px);
-  --tr-quick-assist-shadow: var(--tr-suggestion-popover-box-shadow, 0 8px 28px rgba(0, 0, 0, 0.14));
+  --tr-quick-assist-shadow: var(--tr-assist-box-shadow, var(--tr-vanilla-default-assist-box-shadow));
   --tr-quick-assist-z-index: var(--tr-z-index-popover, 1500);
   position: fixed;
   inset: 0;
@@ -31,15 +45,16 @@
   pointer-events: auto;
 }
 
-.tr-quick-assist__trigger {
+.tr-quick-assist button.tr-quick-assist__trigger {
   position: fixed;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 30px;
+  gap: 6px;
+  min-width: 96px;
+  min-height: 28px;
   max-width: min(220px, calc(100vw - 16px));
-  padding: 5px 11px 5px 9px;
-  border: 1px solid color-mix(in srgb, var(--tr-quick-assist-border) 70%, transparent);
+  padding: 5px 12px;
+  border: 1px solid var(--tr-quick-assist-border);
   border-radius: var(--tr-quick-assist-pill-radius);
   background: var(--tr-quick-assist-bg);
   box-shadow: var(--tr-quick-assist-shadow);
@@ -48,19 +63,31 @@
   font: inherit;
   font-size: var(--tr-font-size-xs, 12px);
   font-weight: var(--tr-font-weight-medium, 500);
+  line-height: 16px;
   white-space: nowrap;
   user-select: none;
 }
 
-.tr-quick-assist__trigger:hover {
-  border-color: var(--tr-quick-assist-accent);
-  background: var(--tr-quick-assist-bg-subtle);
+.tr-quick-assist__trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tr-quick-assist__trigger:focus-visible,
-.tr-quick-assist__submit:focus-visible,
-.tr-quick-assist__suggestion:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--tr-quick-assist-accent) 75%, #fff);
+.tr-quick-assist__trigger > .tr-quick-assist__sparkle {
+  flex-shrink: 0;
+}
+
+.tr-quick-assist button.tr-quick-assist__trigger:hover {
+  border-color: var(--tr-quick-assist-border-hover);
+  background: linear-gradient(var(--tr-quick-assist-bg-subtle), var(--tr-quick-assist-bg-subtle))
+    var(--tr-quick-assist-bg);
+}
+
+.tr-quick-assist button.tr-quick-assist__trigger:focus-visible,
+.tr-quick-assist button.tr-quick-assist__submit:focus-visible,
+.tr-quick-assist button.tr-quick-assist__suggestion:focus-visible {
+  outline: 2px solid var(--tr-quick-assist-accent);
   outline-offset: 2px;
 }
 
@@ -70,47 +97,47 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  color: #a929ff;
   line-height: 1;
-  text-shadow: 0 0 8px rgba(169, 41, 255, 0.22);
 }
 
 .tr-quick-assist__sparkle svg {
   width: 16px;
   height: 16px;
-  fill: currentColor;
 }
 
 .tr-quick-assist__popover {
   position: fixed;
   display: flex;
   flex-direction: column;
-  width: min(330px, calc(100vw - 16px));
+  width: min(272px, calc(100vw - 16px));
+  min-height: 108px;
   max-height: min(440px, calc(100vh - 16px));
-  padding: 12px;
+  padding: 15px;
   overflow: auto;
-  border: 1px solid color-mix(in srgb, var(--tr-quick-assist-border) 70%, transparent);
+  border: 1px solid var(--tr-quick-assist-border);
   border-radius: var(--tr-quick-assist-radius);
-  background: linear-gradient(
-    145deg,
-    var(--tr-quick-assist-bg) 0%,
-    color-mix(in srgb, var(--tr-quick-assist-bg) 88%, #f3eaff) 100%
-  );
+  background: var(--tr-quick-assist-bg);
   box-shadow: var(--tr-quick-assist-shadow);
   color: var(--tr-quick-assist-text);
   overscroll-behavior: contain;
   scrollbar-color: var(--tr-quick-assist-border) transparent;
 }
 
+.tr-quick-assist__popover:hover {
+  border-color: var(--tr-quick-assist-border-hover);
+}
+
 .tr-quick-assist__composer {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 5px 6px 5px 9px;
+  flex-shrink: 0;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 7px 7px 15px;
   border: 1px solid var(--tr-quick-assist-border);
   border-radius: var(--tr-quick-assist-pill-radius);
-  background: color-mix(in srgb, var(--tr-quick-assist-bg) 92%, #f5f5f5);
+  background: var(--tr-quick-assist-bg);
 }
 
 .tr-quick-assist__composer .tr-quick-assist__sparkle {
@@ -133,7 +160,7 @@
   flex: 1 1 auto;
   min-height: 24px;
   max-height: 92px;
-  padding: 3px 0;
+  padding: 0;
   resize: none;
   overflow-y: auto;
   border: 0;
@@ -141,41 +168,39 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  line-height: 1.5;
+  line-height: 24px;
 }
 
 .tr-quick-assist__input::placeholder {
   color: var(--tr-quick-assist-muted);
 }
 
-.tr-quick-assist__submit {
+.tr-quick-assist button.tr-quick-assist__submit {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border: 1px solid var(--tr-quick-assist-text);
+  border: 0;
   border-radius: 50%;
   background: var(--tr-quick-assist-bg);
   color: var(--tr-quick-assist-text);
   cursor: pointer;
 }
 
-.tr-quick-assist__submit svg {
-  width: 17px;
-  height: 17px;
+.tr-quick-assist button.tr-quick-assist__submit svg {
+  width: 24px;
+  height: 24px;
 }
 
-.tr-quick-assist__submit:hover:not(:disabled) {
-  border-color: var(--tr-quick-assist-accent);
+.tr-quick-assist button.tr-quick-assist__submit:hover:not(:disabled) {
   color: var(--tr-quick-assist-accent);
 }
 
-.tr-quick-assist__submit:disabled {
-  border-color: var(--tr-quick-assist-border);
-  color: var(--tr-text-disabled, #c2c2c2);
+.tr-quick-assist button.tr-quick-assist__submit:disabled {
+  color: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
   cursor: not-allowed;
   opacity: 0.72;
 }
@@ -183,31 +208,31 @@
 .tr-quick-assist__suggestions {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.tr-quick-assist__suggestion {
+.tr-quick-assist button.tr-quick-assist__suggestion {
   max-width: 100%;
-  padding: 6px 11px;
+  padding: 5px 11px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--tr-quick-assist-border) 75%, transparent);
+  border: 1px solid var(--tr-quick-assist-border);
   border-radius: var(--tr-quick-assist-pill-radius);
   background: var(--tr-quick-assist-bg);
-  box-shadow: var(--tr-suggestion-pill-button-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.04));
-  color: var(--tr-quick-assist-text);
+  color: var(--tr-quick-assist-muted);
   cursor: pointer;
   font: inherit;
   font-size: var(--tr-font-size-xs, 12px);
-  line-height: 1.3;
+  line-height: 16px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tr-quick-assist__suggestion:hover {
-  border-color: var(--tr-quick-assist-accent);
-  background: var(--tr-container-bg-hover, #f5f5f5);
+.tr-quick-assist button.tr-quick-assist__suggestion:hover {
+  border-color: var(--tr-quick-assist-border-hover);
+  background: linear-gradient(var(--tr-quick-assist-hover-bg), var(--tr-quick-assist-hover-bg))
+    var(--tr-quick-assist-bg);
 }
 
 .tr-quick-assist__status {
@@ -217,7 +242,7 @@
 }
 
 .tr-quick-assist__status[data-state='error'] {
-  color: var(--tr-color-error, #f23030);
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error));
 }
 
 @media (max-width: 360px) {
@@ -229,13 +254,13 @@
     gap: 5px;
   }
 
-  .tr-quick-assist__suggestion {
+  .tr-quick-assist button.tr-quick-assist__suggestion {
     max-width: 100%;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .tr-quick-assist__trigger,
+  .tr-quick-assist button.tr-quick-assist__trigger,
   .tr-quick-assist__popover {
     animation: tr-quick-assist-fade-in 120ms ease-out;
   }

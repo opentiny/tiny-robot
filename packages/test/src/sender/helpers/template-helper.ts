@@ -156,6 +156,14 @@ export function createTemplateTestHelper(page: Page) {
       expect(handled).toBe(true)
     },
 
+    /** 精确定位到模板块右侧，避免依赖行尾和按键步数。 */
+    async focusAfterTemplate(index: number) {
+      const positioned = await page.evaluate((templateIndex) => {
+        return window.__senderTestApi?.moveCursorAfterTemplate(templateIndex) ?? false
+      }, index)
+      expect(positioned).toBe(true)
+    },
+
     /**
      * 聚焦到模板块内容末尾
      */
@@ -224,7 +232,7 @@ export function createTemplateTestHelper(page: Page) {
     async selectText(range?: { from?: number; to?: number }) {
       if (!range) {
         // 全选
-        await page.keyboard.press('Control+A')
+        await page.keyboard.press('ControlOrMeta+A')
       } else {
         throw new Error('selectText(range) is not implemented yet')
       }
