@@ -36,6 +36,7 @@ import type {
   ChatModelReasoningEffortChangePayload,
   ChatRightAsidePanelOptions,
   ChatSendPayload,
+  SenderDragPayload,
   ChatUIEmits,
   ChatUIProps,
   ChatUISlots,
@@ -364,6 +365,26 @@ function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChang
   emit('model-reasoning-effort-change', payload)
 }
 
+function handleSenderDragEnter(payload: SenderDragPayload) {
+  emit('sender-drag-enter', payload)
+}
+
+function handleSenderDragOver(payload: SenderDragPayload) {
+  emit('sender-drag-over', payload)
+}
+
+function handleSenderDragLeave(payload: SenderDragPayload) {
+  emit('sender-drag-leave', payload)
+}
+
+function handleSenderDrop(payload: SenderDragPayload) {
+  emit('sender-drop', payload)
+}
+
+function handleSenderPaste(event: ClipboardEvent) {
+  emit('sender-paste', event)
+}
+
 function handleMcpAddServer(payload: { id: string }) {
   emit('mcp-add-server', { serverId: payload.id })
 }
@@ -447,6 +468,11 @@ const composerEvents = {
   onModelSelect: handleModelSelect,
   onModelFeatureChange: handleModelFeatureChange,
   onModelReasoningEffortChange: handleModelReasoningEffortChange,
+  onSenderDragEnter: handleSenderDragEnter,
+  onSenderDragOver: handleSenderDragOver,
+  onSenderDragLeave: handleSenderDragLeave,
+  onSenderDrop: handleSenderDrop,
+  onSenderPaste: handleSenderPaste,
   onOpenMcpPanel: handleOpenMcpPanel,
   onOpenExtensionsPanel: handleOpenExtensionsPanel,
 }
@@ -459,6 +485,11 @@ const composerTemplateEvents = {
   modelSelect: handleModelSelect,
   modelFeatureChange: handleModelFeatureChange,
   modelReasoningEffortChange: handleModelReasoningEffortChange,
+  senderDragEnter: handleSenderDragEnter,
+  senderDragOver: handleSenderDragOver,
+  senderDragLeave: handleSenderDragLeave,
+  senderDrop: handleSenderDrop,
+  senderPaste: handleSenderPaste,
   openMcpPanel: handleOpenMcpPanel,
   openExtensionsPanel: handleOpenExtensionsPanel,
 }

@@ -10,6 +10,7 @@ import type {
   ChatSenderSlotProps,
   ChatSenderView,
   ChatSendPayload,
+  SenderDragPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
@@ -34,6 +35,11 @@ const emit = defineEmits<{
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
+  senderDragEnter: [payload: SenderDragPayload]
+  senderDragOver: [payload: SenderDragPayload]
+  senderDragLeave: [payload: SenderDragPayload]
+  senderDrop: [payload: SenderDragPayload]
+  senderPaste: [event: ClipboardEvent]
 }>()
 
 defineSlots<{
@@ -95,6 +101,11 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         @model-select="emit('modelSelect', $event)"
         @model-feature-change="emit('modelFeatureChange', $event)"
         @model-reasoning-effort-change="emit('modelReasoningEffortChange', $event)"
+        @sender-drag-enter="emit('senderDragEnter', $event)"
+        @sender-drag-over="emit('senderDragOver', $event)"
+        @sender-drag-leave="emit('senderDragLeave', $event)"
+        @sender-drop="emit('senderDrop', $event)"
+        @sender-paste="emit('senderPaste', $event)"
       >
         <template v-if="$slots['sender-header']" #sender-header>
           <slot name="sender-header" />

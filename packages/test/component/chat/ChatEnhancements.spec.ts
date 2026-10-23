@@ -96,6 +96,23 @@ test('missing input reports unsuccessful focus', async ({ mount }) => {
   await expect(component.getByTestId('focus-result')).toHaveText('false')
 })
 
+test('Sender drag and paste events are exposed by TrChat', async ({ mount }) => {
+  const component = await mount(ChatEnhancements, { props: { entry: 'runtime' } })
+  const editor = component.locator('.ProseMirror')
+  await editor.evaluate((element) => {
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(new File(['image'], 'demo.png', { type: 'image/png' }))
+    element.dispatchEvent(new DragEvent('dragenter', { bubbles: true, dataTransfer }))
+    element.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }))
+    element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }))
+    element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: new DataTransfer() }))
+  })
+  await expect(component.getByTestId('sender-drag-target')).toContainText('tr-sender')
+  await expect(component.getByTestId('sender-drag-over-prevented')).toHaveText('true')
+  await expect(component.getByTestId('sender-drop-files')).toHaveText('demo.png')
+  await expect(component.getByTestId('sender-paste-count')).toHaveText('1')
+})
+
 test('hidden system messages keep the default welcome and can be overridden by an existing empty conversation', async ({
   mount,
 }) => {

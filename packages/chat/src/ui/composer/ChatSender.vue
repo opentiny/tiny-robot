@@ -14,6 +14,7 @@ import type {
   ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
+  SenderDragPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
@@ -38,6 +39,11 @@ const emit = defineEmits<{
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
+  senderDragEnter: [payload: SenderDragPayload]
+  senderDragOver: [payload: SenderDragPayload]
+  senderDragLeave: [payload: SenderDragPayload]
+  senderDrop: [payload: SenderDragPayload]
+  senderPaste: [event: ClipboardEvent]
 }>()
 
 defineSlots<{
@@ -145,6 +151,11 @@ function handleOpenExtensionsPanel() {
   emit('openExtensionsPanel')
 }
 
+function handleSenderDrag(event: DragEvent, emitEvent: (payload: SenderDragPayload) => void) {
+  const target = event.currentTarget
+  if (target instanceof HTMLElement) emitEvent({ event, target })
+}
+
 function handleOpenExtensionPanel() {
   if (props.hasRegisteredExtensions) {
     handleOpenExtensionsPanel()
@@ -166,6 +177,11 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     @submit="handleSubmit"
     @cancel="emit('cancel')"
     @clear="emit('clear')"
+    @dragenter.capture="handleSenderDrag($event, (payload) => emit('senderDragEnter', payload))"
+    @dragover.capture="handleSenderDrag($event, (payload) => emit('senderDragOver', payload))"
+    @dragleave.capture="handleSenderDrag($event, (payload) => emit('senderDragLeave', payload))"
+    @drop.capture="handleSenderDrag($event, (payload) => emit('senderDrop', payload))"
+    @paste.capture="emit('senderPaste', $event)"
   >
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
@@ -224,14 +240,18 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
 <style scoped>
 .tr-chat-toolbar {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.tr-chat-toolbar > :not(.tr-chat-model-selector) {
+  flex: 0 0 auto;
 }
 
 @container chat-composer (max-width: 640px) {
   .tr-chat-toolbar {
-    flex-wrap: nowrap;
     gap: 6px;
   }
 }

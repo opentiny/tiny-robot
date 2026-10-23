@@ -25,6 +25,10 @@ const label = shallowRef('Auto')
 const focusResult = shallowRef<boolean | null>(null)
 const input = shallowRef('')
 const sends = shallowRef(0)
+const senderDragTarget = shallowRef('')
+const senderDragOverPrevented = shallowRef(false)
+const senderDropFiles = shallowRef('')
+const senderPasteCount = shallowRef(0)
 const extensionCreates = shallowRef(0)
 const extensionDestroys = shallowRef(0)
 const editor = shallowRef<{ view: { composing: boolean } } | null>(null)
@@ -96,6 +100,10 @@ async function focusInput() {
     <button data-testid="composition" @click="composing = editor?.view.composing ?? false">Read composition</button>
     <output data-testid="focus-result">{{ focusResult }}</output>
     <output data-testid="sends">{{ sends }}</output>
+    <output data-testid="sender-drag-target">{{ senderDragTarget }}</output>
+    <output data-testid="sender-drag-over-prevented">{{ senderDragOverPrevented }}</output>
+    <output data-testid="sender-drop-files">{{ senderDropFiles }}</output>
+    <output data-testid="sender-paste-count">{{ senderPasteCount }}</output>
     <output data-testid="extension-creates">{{ extensionCreates }}</output>
     <output data-testid="extension-destroys">{{ extensionDestroys }}</output>
     <output data-testid="composing">{{ composing }}</output>
@@ -106,6 +114,14 @@ async function focusInput() {
       :ui="ui"
       :is-empty="controlledEmpty"
       @update:input-value="input = $event"
+      @sender-drag-enter="senderDragTarget = $event.target.className"
+      @sender-drag-over="($event.event.preventDefault(), (senderDragOverPrevented = $event.event.defaultPrevented))"
+      @sender-drop="
+        senderDropFiles = Array.from($event.event.dataTransfer?.files ?? [])
+          .map((file) => file.name)
+          .join(',')
+      "
+      @sender-paste="senderPasteCount++"
     >
       <template #layout-header="{ isEmpty }"
         ><output data-testid="empty">{{ isEmpty }}</output></template

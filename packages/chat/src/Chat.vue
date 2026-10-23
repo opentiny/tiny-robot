@@ -27,6 +27,7 @@ import type {
   ChatHistoryData,
   ChatRightAsidePanelId,
   ChatSwitchConversationPayload,
+  SenderDragPayload,
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
@@ -82,6 +83,11 @@ const emit = defineEmits<{
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'update:right-aside-open': [value: boolean]
@@ -168,6 +174,26 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
 }
 
+function handleSenderDragEnter(payload: SenderDragPayload) {
+  emit('sender-drag-enter', payload)
+}
+
+function handleSenderDragOver(payload: SenderDragPayload) {
+  emit('sender-drag-over', payload)
+}
+
+function handleSenderDragLeave(payload: SenderDragPayload) {
+  emit('sender-drag-leave', payload)
+}
+
+function handleSenderDrop(payload: SenderDragPayload) {
+  emit('sender-drop', payload)
+}
+
+function handleSenderPaste(event: ClipboardEvent) {
+  emit('sender-paste', event)
+}
+
 function handleLeftAsideOpenChange(payload: ChatAsideOpenChangePayload) {
   emit('left-aside-open-change', payload)
 }
@@ -232,6 +258,11 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @prompt-click="handlePromptClick"
     @bubble-state-change="handleBubbleStateChange"
     @bubble-event="handleBubbleEvent"
+    @sender-drag-enter="handleSenderDragEnter"
+    @sender-drag-over="handleSenderDragOver"
+    @sender-drag-leave="handleSenderDragLeave"
+    @sender-drop="handleSenderDrop"
+    @sender-paste="handleSenderPaste"
     @left-aside-open-change="handleLeftAsideOpenChange"
     @right-aside-open-change="handleRightAsideOpenChange"
     @update:right-aside-open="handleUpdateRightAsideOpen"

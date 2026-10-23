@@ -212,6 +212,27 @@ function handlePromptClick({ item }: ChatPromptClickPayload) {
 
 通过 `ui.sender` 调整输入框、配置提及和模板功能；通过 `ui.sender.toolbar` 或输入区插槽添加自定义按钮，无需重新实现消息发送和取消。
 
+#### 接收拖入和粘贴的文件
+
+`TrChat` 和 `TrChatUI` 会将 Sender 上的文件拖拽与粘贴事件交给宿主。宿主需在 `sender-drag-over` 中对原生 `event` 调用 `preventDefault()`，浏览器才会触发放置事件并交付文件。
+
+<demo
+  vue="../../demos/chat/file-drop-paste.vue"
+  :vueFiles="['../../demos/chat/file-drop-paste.vue']"
+  title="接收拖入和粘贴的图片"
+  description="拖动图片到输入框，或复制图片后粘贴；示例接收文件并显示文件名，不会上传。"
+/>
+
+```vue
+<TrChatUI
+  @sender-drag-over="({ event }) => event.preventDefault()"
+  @sender-drop="({ event }) => handleFiles(event.dataTransfer?.files)"
+  @sender-paste="(event) => handleFiles(event.clipboardData?.files)"
+/>
+```
+
+拖拽事件参数包含原生 `event` 和 Sender 根节点 `target`。可在 `sender-drag-enter` 与 `sender-drag-leave` 控制拖拽提示层；粘贴事件收到 `ClipboardEvent`。上传校验、状态和请求由宿主负责。
+
 #### 回填、清空与聚焦
 
 可从外部填入提示词、清空文本或聚焦输入框。回填不会自动发送，清空文本不会移除附件或已选 Skill。
@@ -809,6 +830,8 @@ const data = computed<ChatUIData>(() => ({
 
 `TrChat` 会直接处理提交、取消、会话切换、模型选择和 MCP 开关操作，调用 Runtime 对应方法；这些事件不会再次向外发出。
 
+Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件，详见[接收拖入和粘贴的文件](#接收拖入和粘贴的文件)。
+
 | 事件                                                                | 参数                                                                               | 触发时机                                                                |
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `runtime-action-error`                                              | `ChatRuntimeActionErrorPayload`                                                    | Runtime 操作失败；send 错误详情仍从所属消息读取。                       |
@@ -820,6 +843,8 @@ const data = computed<ChatUIData>(() => ({
 | `extension-tab-change`                                              | `ExtensionManagerTabChangeEvent`                                                   | 扩展管理器切换页签。                                                    |
 | `bubble-state-change`                                               | `ChatBubbleStateChangePayload`                                                     | 气泡内部状态变化。                                                      |
 | `bubble-event`                                                      | `ChatBubbleEventPayload`                                                           | 气泡内容发出自定义事件。                                                |
+| `sender-drag-enter` / `sender-drag-over` / `sender-drag-leave` / `sender-drop` | `SenderDragPayload` | Sender 上对应的原生文件拖拽事件；放置文件需在 `sender-drag-over` 中调用 `event.preventDefault()`。 |
+| `sender-paste`                                                      | `ClipboardEvent`                                                                  | Sender 收到粘贴事件。                                                   |
 | `left-aside-open-change` / `right-aside-open-change`                | `ChatAsideOpenChangePayload`                                                       | 侧栏状态变化。                                                          |
 | `update:right-aside-open`                                           | `boolean`                                                                          | 通知应用更新右栏开闭状态。                                              |
 | `update:active-right-aside-panel-id`                                | `ChatRightAsidePanelId \| undefined`                                               | 通知应用更新当前右栏面板。                                              |
@@ -883,6 +908,8 @@ const data = computed<ChatUIData>(() => ({
 | `model-select`                                                      | `ChatModelSelectPayload`                                                           | 更新 `data.model.selectedId`。                                        |
 | `model-feature-change`                                              | `ChatModelFeatureChangePayload`                                                    | 更新能力开关；异步时可同步 `pendingFeatureIds`。                      |
 | `model-reasoning-effort-change`                                     | `ChatModelReasoningEffortChangePayload`                                            | 更新思考强度。                                                        |
+| `sender-drag-enter` / `sender-drag-over` / `sender-drag-leave` / `sender-drop` | `SenderDragPayload` | Sender 上对应的原生文件拖拽事件；放置文件需在 `sender-drag-over` 中调用 `event.preventDefault()`。 |
+| `sender-paste`                                                      | `ClipboardEvent`                                                                  | Sender 收到粘贴事件。                                                   |
 | `mcp-add-server` / `mcp-remove-server`                              | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload`                           | 更新 MCP 服务列表。                                                   |
 | `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                                                       | 创建并接入自定义 MCP 服务。                                           |
 | `mcp-server-enabled-change`                                         | `ChatMcpServerEnabledChangePayload`                                                | 更新 MCP 服务启用状态。                                               |
@@ -1315,6 +1342,7 @@ const context = useChatRenderContext(props)
 | `ChatSwitchConversationPayload`                          | `conversationId: string`                                                                                |
 | `ChatRenameConversationPayload`                          | `conversationId: string`；`title: string`                                                               |
 | `ChatPromptClickPayload`                                 | `event: MouseEvent`；`item: PromptProps`                                                                |
+| `SenderDragPayload`                                      | `event: DragEvent`；`target: HTMLElement`                                                               |
 | `ChatModelSelectPayload`                                 | `modelId: string \| null`                                                                               |
 | `ChatModelFeatureChangePayload`                          | `featureId: 'thinking' \| 'search'`；`enabled: boolean`                                                 |
 | `ChatModelReasoningEffortChangePayload`                  | `effort: string \| null`                                                                                |
