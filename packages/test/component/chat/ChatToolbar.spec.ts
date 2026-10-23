@@ -108,6 +108,16 @@ for (const entry of ['ui', 'runtime'] as const) {
       await expect(custom.locator('.tr-chat-toolbar-button__label')).toBeVisible()
     })
 
+    test('keeps toolbar actions on one row in a narrow sender footer', async ({ mount }) => {
+      const component = await mount(ChatToolbarFixture, { props: { entry, preset: 'mixed', hostWidth: 360 } })
+      const toolbar = component.locator('.tr-chat-toolbar')
+      const rows = await toolbar
+        .locator(':scope > *')
+        .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)))
+
+      expect(new Set(rows).size).toBe(1)
+    })
+
     test('transforms defaults before applying visibility, duplicate and capability rules', async ({ mount }) => {
       const component = await mount(ChatToolbarFixture, { props: { entry, preset: 'transform' } })
       const toolbar = component.locator('.tr-chat-toolbar')

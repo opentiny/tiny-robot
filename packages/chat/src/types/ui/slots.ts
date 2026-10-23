@@ -1,7 +1,8 @@
-import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
+import type { ChatConversationInfo, ChatMessageItem } from '../base'
+import type { ChatSendPayload } from '../commands'
 import type { ChatRightAsidePanelId, ChatRightAsidePanelOptions } from './options'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
-import type { BubbleMessage } from '@opentiny/tiny-robot'
+import type { BubbleMessage, SenderSlotScope } from '@opentiny/tiny-robot'
 import type { VNode } from 'vue'
 
 export interface ChatHeaderSlotProps {
@@ -60,7 +61,7 @@ export interface ChatSenderSlotProps {
   readonly disabled: boolean
   readonly submitDisabled: boolean
   readonly setInputValue: (value: string) => void
-  readonly submit: (payload: { text: string; structuredData?: ChatStructuredData }) => void
+  readonly submit: (payload: ChatSendPayload) => void
   readonly cancel: () => void
   readonly clear: () => void
 }
@@ -110,7 +111,6 @@ export interface ChatUISlots {
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'composer-before'?: (props: ChatSenderSlotProps) => unknown
   'composer-after'?: (props: ChatSenderSlotProps) => unknown
-  'header-notice'?: () => unknown
   'welcome-footer'?: () => unknown
   'prompts-footer'?: () => unknown
   'bubble-prefix'?: (props: ChatBubbleSlotProps) => unknown
@@ -118,8 +118,10 @@ export interface ChatUISlots {
   'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
   'sender-header'?: () => unknown
-  'sender-footer'?: () => unknown
-  'sender-footer-right'?: () => unknown
+  'sender-content'?: (props: { editor: unknown }) => unknown
+  'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
+  'sender-footer'?: (scope: SenderSlotScope) => unknown
+  'sender-footer-right'?: (scope: SenderSlotScope) => unknown
   'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown
   'extension-overlay'?: (props: ChatExtensionSlotProps) => unknown
 }

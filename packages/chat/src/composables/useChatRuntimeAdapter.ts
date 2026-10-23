@@ -1,4 +1,4 @@
-import { computed, shallowRef, toValue, watch } from 'vue'
+import { computed, nextTick, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
 import type {
@@ -31,6 +31,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
+  let sendingFromEmptyConversation = false
 
   watch(
     runtime,
@@ -45,80 +46,36 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     { flush: 'sync' },
   )
 
-  const sendsInFlight = new WeakMap<ChatRuntime, number>()
-
-  function getSendsInFlight(targetRuntime: ChatRuntime) {
-    return sendsInFlight.get(targetRuntime) ?? 0
-  }
-
-  function incrementSendsInFlight(targetRuntime: ChatRuntime) {
-    sendsInFlight.set(targetRuntime, getSendsInFlight(targetRuntime) + 1)
-  }
-
-  function decrementSendsInFlight(targetRuntime: ChatRuntime) {
-    const nextCount = getSendsInFlight(targetRuntime) - 1
-    if (nextCount === 0) {
-      sendsInFlight.delete(targetRuntime)
-    } else {
-      sendsInFlight.set(targetRuntime, nextCount)
-    }
-  }
-
-  async function send(payload: ChatSendPayload) {
+  function prepareSend() {
     const actionRuntime = runtime.value
-    const getActionConversationId = () => actionRuntime.activeConversation.value?.id ?? null
-    const getActionNavigationRevision = () => actionRuntime.conversationNavigationRevision?.value
-    const startConversationId = getActionConversationId()
-    const startNavigationRevision = getActionNavigationRevision()
-    incrementSendsInFlight(actionRuntime)
-
-    let actionResult: boolean | undefined
-    let synchronousConversationId = startConversationId
-    try {
-      let action: Promise<boolean> | undefined
+    const conversationId = actionRuntime.activeConversation.value?.id ?? null
+    const navigationRevision = actionRuntime.conversationNavigationRevision?.value
+    return async (payload: ChatSendPayload) => {
+      const currentConversationId = actionRuntime.activeConversation.value?.id ?? null
+      if (
+        runtime.value !== actionRuntime ||
+        currentConversationId !== conversationId ||
+        actionRuntime.conversationNavigationRevision?.value !== navigationRevision
+      ) {
+        return false
+      }
       try {
-        action = actionRuntime.actions.send(payload)
+        sendingFromEmptyConversation = conversationId === null
+        return await actionRuntime.actions.send(payload)
       } catch (error) {
         options.onActionError({ action: 'send', payload, error })
+        return false
+      } finally {
+        await nextTick()
+        sendingFromEmptyConversation = false
       }
-
-      synchronousConversationId = getActionConversationId()
-
-      if (action) {
-        try {
-          actionResult = await action
-        } catch (error) {
-          options.onActionError({ action: 'send', payload, error })
-        }
-      }
-    } finally {
-      decrementSendsInFlight(actionRuntime)
     }
-
-    if (runtime.value !== actionRuntime) {
-      return actionResult ?? false
-    }
-
-    const endConversationId = getActionConversationId()
-    const navigationChanged = getActionNavigationRevision() !== startNavigationRevision
-    const selfCreatedConversation =
-      startConversationId === null &&
-      synchronousConversationId !== null &&
-      endConversationId === synchronousConversationId
-
-    if (
-      navigationChanged ||
-      (startNavigationRevision === undefined && endConversationId !== startConversationId && !selfCreatedConversation)
-    ) {
-      invalidateDraftForNavigation()
-    }
-
-    return actionResult ?? false
   }
 
   const input = useChatDraft({
     allowEmptyText: true,
-    send,
+    send: (payload) => prepareSend()(payload),
+    prepareSend,
   })
 
   function invalidateDraftForNavigation() {
@@ -134,8 +91,9 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       if (
         conversationNavigationRevision.value === undefined &&
         nextId !== previousId &&
-        getSendsInFlight(runtime.value) === 0
+        runtime.value.conversationNavigationRevision === undefined
       ) {
+        if (sendingFromEmptyConversation && previousId === null && nextId !== null) return
         invalidateDraftForNavigation()
       }
     },
