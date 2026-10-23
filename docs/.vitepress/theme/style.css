@@ -35,6 +35,17 @@ body,
   margin: 0;
 }
 
+/* HTML 快速帮助演示需要足够的高度展示正文和划词浮层。 */
+.VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
+  min-height: 540px !important;
+}
+
+@media (max-width: 640px) {
+  .VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
+    min-height: 900px !important;
+  }
+}
+
 /* 暗色模式下的 Demo 插件样式 */
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;
