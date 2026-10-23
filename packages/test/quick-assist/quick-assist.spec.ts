@@ -519,6 +519,43 @@ for (const invalid of [
   })
 }
 
+for (const stage of ['context', 'sanitize'] as const) {
+  for (const kind of ['function', 'dom', 'proxy']) {
+    test(`non-cloneable ${kind} reports actionable ${stage} error and blocks submission`, async ({ page }) => {
+      await page.evaluate(
+        ({ stage, kind }) => {
+          const value =
+            kind === 'function' ? () => undefined : kind === 'dom' ? document.createElement('div') : new Proxy({}, {})
+          window.resetQuickAssist({
+            getContext: () => ({ nested: { value } }),
+            sanitizeContext: stage === 'sanitize' ? (context) => context : undefined,
+            getSuggestions: () => {
+              throw new Error('SHOULD_NOT_RUN')
+            },
+          })
+        },
+        { stage, kind },
+      )
+      await open(page)
+      await expect
+        .poll(() =>
+          page.evaluate(() => window.qaEvents.filter((event) => event.type === 'error').map((event) => event.stage)),
+        )
+        .toEqual([stage])
+      const messages = await page.evaluate(() =>
+        window.qaEvents.filter((event) => event.type === 'error').map((event) => event.error.message),
+      )
+      expect(messages).toHaveLength(1)
+      expect(messages[0]).toContain('QuickAssistContext must contain only structured-cloneable data')
+      expect(messages[0]).toContain('no functions, DOM nodes or reactive proxies')
+      expect(messages[0]).toContain('DataCloneError')
+      await expect(page.locator(`${popover} .tr-quick-assist__submit`)).toBeDisabled()
+      await page.locator(`${popover} textarea`).press('Enter')
+      expect(await page.evaluate(() => window.qaRequests.length)).toBe(0)
+    })
+  }
+}
+
 test('shared-memory context is rejected across views, collections, cycles and realms', async ({ page }) => {
   await page.route('**/quick-assist/index.html', async (route) => {
     const response = await route.fetch()
