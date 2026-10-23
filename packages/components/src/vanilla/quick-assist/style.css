@@ -68,6 +68,16 @@
   user-select: none;
 }
 
+.tr-quick-assist__trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-quick-assist__trigger > .tr-quick-assist__sparkle {
+  flex-shrink: 0;
+}
+
 .tr-quick-assist button.tr-quick-assist__trigger:hover {
   border-color: var(--tr-quick-assist-border-hover);
   background: linear-gradient(var(--tr-quick-assist-bg-subtle), var(--tr-quick-assist-bg-subtle))

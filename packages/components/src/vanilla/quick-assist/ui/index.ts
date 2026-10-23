@@ -265,8 +265,12 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       button.type = 'button'
       button.className = 'tr-quick-assist__trigger'
       button.setAttribute('aria-label', triggerLabel)
+      button.title = triggerLabel
       button.dataset.source = activation.source
-      button.append(makeSparkle(root), root.createTextNode(triggerLabel))
+      const label = root.createElement('span')
+      label.className = 'tr-quick-assist__trigger-label'
+      label.textContent = triggerLabel
+      button.append(makeSparkle(root), label)
       setSafeAttributes(button, attrs.trigger)
       // Keep the browser selection intact until click opens the composer.
       // Focusing this button on pointerdown can collapse Selection first.

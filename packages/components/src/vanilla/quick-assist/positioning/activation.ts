@@ -56,9 +56,11 @@ export function expandShortcut(input: QuickAssistAnchorShortcut, root: Document)
     anchorElement: element,
     getRect: () => {
       if (!element.isConnected) return null
+      // Visibility is inherited but descendants may explicitly restore it.
+      if (root.defaultView?.getComputedStyle(element).visibility === 'hidden') return null
       for (let current: Element | null = element; current; current = current.parentElement) {
         const style = root.defaultView?.getComputedStyle(current)
-        if (current.hasAttribute('hidden') || style?.display === 'none' || style?.visibility === 'hidden') return null
+        if (current.hasAttribute('hidden') || style?.display === 'none') return null
       }
       const rect = element.getBoundingClientRect()
       return rect.width > 0 && rect.height > 0 ? rect : null

@@ -190,7 +190,14 @@ export type SanitizeContext = (
 
 export type GetSuggestions = (context: QuickAssistContext, signal: AbortSignal) => Suggestion[] | Promise<Suggestion[]>
 
-/** Synchronous business validation of each structurally valid remote suggestion. False discards the item. */
+/**
+ * Synchronous business validation of each structurally valid remote suggestion.
+ * False discards the item. If a non-empty provider response has no valid items
+ * after structural and business validation, the remote batch fails: static
+ * suggestions remain available and an error event is emitted at stage 'suggestions'.
+ * Throwing or returning a non-boolean also fails the batch. An explicit empty
+ * provider response ([]) is successful and proceeds to mergeSuggestions.
+ */
 export type ValidateSuggestion = (suggestion: Suggestion, context: QuickAssistContext) => boolean
 
 export type MergeSuggestions = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext) => Suggestion[]
