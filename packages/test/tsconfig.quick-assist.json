@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "ES2022.Error", "DOM", "DOM.Iterable"]
   },
   "include": ["quick-assist/**/*.ts"]
 }
