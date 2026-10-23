@@ -1,5 +1,5 @@
 import { QuickAssistStageError } from './errors'
-import { copyContext } from '../context/value'
+import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
 import {
   computePosition,
@@ -707,10 +707,10 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       const frozen: QuickAssistActivationInput = {
         ...input,
         text,
-        meta: input.meta ? JSON.parse(JSON.stringify(input.meta)) : undefined,
+        meta: input.meta ? snapshotContextData(input.meta) : undefined,
         suggestions: input.suggestions?.map((suggestion) => ({
           ...suggestion,
-          ...('meta' in suggestion && suggestion.meta ? { meta: JSON.parse(JSON.stringify(suggestion.meta)) } : {}),
+          ...('meta' in suggestion && suggestion.meta ? { meta: snapshotContextData(suggestion.meta) } : {}),
         })),
       }
       if (!getActivationRect(frozen, resolved.root) || !isSourceCurrent()) return

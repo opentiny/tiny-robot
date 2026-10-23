@@ -126,7 +126,8 @@ export function createRecommendationResolver(
   const resolveAsync = async (context: QuickAssistContext, signal: AbortSignal): Promise<Suggestion[]> => {
     if (!options.getSuggestions) return []
     if (signal.aborted) return []
-    const incoming = await options.getSuggestions(context, signal)
+    const snapshot = copyContext(context)
+    const incoming = await options.getSuggestions(copyContext(snapshot), signal)
     if (signal.aborted) return []
     if (!Array.isArray(incoming)) throw new Error('getSuggestions must return an array')
     // Keep the complete provider result here. A duplicate of a base template
@@ -142,7 +143,7 @@ export function createRecommendationResolver(
         continue
       }
       if (options.validateSuggestion) {
-        const accepted = options.validateSuggestion(copySuggestion(suggestion), context)
+        const accepted = options.validateSuggestion(copySuggestion(suggestion), copyContext(snapshot))
         if (typeof accepted !== 'boolean') throw new Error('validateSuggestion must return a boolean')
         if (!accepted) continue
       }
