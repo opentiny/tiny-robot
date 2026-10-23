@@ -71,7 +71,9 @@ export function useBubbleContentRenderer(
       }
       return typeof attrs === 'function' ? attrs(msg, content, contentIndex) : attrs
     })()
-    const match = toValue(contentRendererMatches).find((match) => match.find(msg, content, contentIndex))
+    const match = toValue(contentRendererMatches).find((match) =>
+      match.find(msg, content, contentIndex, { resolvedMessageContent: resolvedContent }),
+    )
     if (match) {
       return {
         renderer: match.renderer,
