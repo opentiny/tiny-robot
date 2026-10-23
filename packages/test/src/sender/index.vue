@@ -238,11 +238,12 @@ const moveCursorToTemplate = (index: number, after: boolean) => {
 
   editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
-      if (currentIndex === index) {
+      const matches = currentIndex === index
+      currentIndex += 1
+      if (matches) {
         templatePosition = after ? pos + node.nodeSize : pos
         return false
       }
-      currentIndex += 1
     }
     return true
   })
