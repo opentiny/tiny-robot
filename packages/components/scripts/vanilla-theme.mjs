@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import postcss from 'postcss'
 
@@ -142,4 +142,4 @@ export function vanillaThemePlugin() {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) generateVanillaTheme()
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) generateVanillaTheme()

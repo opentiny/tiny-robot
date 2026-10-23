@@ -1,5 +1,6 @@
 /**
  * Phase 0 spike spec：运行 spike-editors.html 的检查项并输出结果。
+ * 手动运行：QUICK_ASSIST_SPIKE=1 pnpm -F tiny-robot-test exec playwright test quick-assist/spike-editors.spec.ts
  *
  * 断言只钉住“方案可行性”的判定性布尔值；详细数值通过 console 输出，
  * 由开发者整理进 spike-notes.md。本文件是一次性产物（Phase 0），
@@ -25,6 +26,7 @@ declare global {
 const NAMES = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'] as const
 
 test('editor spike', async ({ page }) => {
+  test.skip(process.env.QUICK_ASSIST_SPIKE !== '1', 'Phase 0 editor spike; set QUICK_ASSIST_SPIKE=1 to run manually')
   await page.goto('/quick-assist/spike-editors.html')
   await page.waitForFunction(() => window.__spikeReady === true)
   const results: Record<string, CheckResult> = {}
