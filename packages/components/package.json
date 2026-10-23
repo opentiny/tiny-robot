@@ -35,14 +35,45 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "sideEffects": ["**/*.css"],
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vanilla": {
+      "types": "./dist/vanilla/index.d.ts",
+      "default": "./dist/vanilla/index.js"
+    },
+    "./vanilla/style.css": "./dist/vanilla/style.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "vanilla": [
+        "dist/vanilla/index.d.ts"
+      ],
+      "vanilla/*": [
+        "dist/vanilla/*"
+      ],
+      "*": [
+        "*"
+      ]
+    }
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "dist",
     "README*"
   ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
-    "build": "vue-tsc && vite build",
+    "build": "vue-tsc && vite build && npm run build:vanilla",
+    "build:vanilla": "vite build --config vite.vanilla.config.ts && tsc -p tsconfig.vanilla.json && api-extractor run --local --config api-extractor.vanilla.json && vite build --config vite.vanilla-umd.config.ts",
+    "type-check:vanilla": "tsc --noEmit -p tsconfig.vanilla.json",
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
@@ -70,6 +101,7 @@
     "unicode-segmenter": "^0.14.5"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.52.3",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@types/dom-speech-recognition": "^0.0.6",
     "@types/lodash-es": "^4.17.12",
