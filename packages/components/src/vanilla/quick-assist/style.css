@@ -1,3 +1,11 @@
+/* Keep this rule in the shipped stylesheet so retained selection paint also
+   works on ESM hosts with a CSP that disallows inline styles. Explicit text
+   color keeps the gray selection readable on both light and dark pages. */
+::highlight(tr-quick-assist-selection-retained) {
+  background-color: #d9d9d9;
+  color: #191919;
+}
+
 /* QuickAssist is intentionally local: the host may use this file without the
    component library's global variables.css. Every semantic value has a local
    fallback for that use case. */
