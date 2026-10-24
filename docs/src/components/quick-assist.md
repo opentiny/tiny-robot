@@ -108,6 +108,8 @@ const quickAssist = createQuickAssist({
 
 入口默认显示在最后一行选中文字的右下方，入口左边缘对齐文字右边缘。`top` 系列位置使用第一行，`bottom` 系列使用最后一行；同一行的多个内联文本片段合并计算。`start` 表示入口向文字左侧展开（入口右边缘对齐文字左边缘），`end` 表示入口向文字右侧展开（入口左边缘对齐文字右边缘），不带后缀则居中；`auto` 优先在末行下方居中。空间不足时会翻转到另一侧，并使用对应的首行或末行，必要时向视口内调整。
 
+点击入口后，输入浮层直接相对选区使用同一套 `placement` / `offset` 规则，默认间距为 8px；根据浮层自身尺寸进行翻转和视口避让。输入框聚焦和输入期间，原划词范围保留灰色高亮，关闭或提交后清除。高亮通过 CSS Custom Highlight API 绘制，不修改原文 DOM；不支持该 API 的浏览器仍可使用划词帮助，但不显示保留高亮。
+
 ```ts
 const quickAssist = createQuickAssist({
   adapter,
@@ -604,8 +606,8 @@ TinyRobotVanilla.configureVanillaTheme({
 | `selection.validate`           | `(snapshot) => boolean`                                                                     | 内置校验       | 替代默认的文本内容校验                                                                                                                         |
 | `trigger.label`                | `string`                                                                                    | `智能帮助`     | 划词入口文案                                                                                                                                   |
 | `trigger.showDelay`            | `number`                                                                                    | `0`            | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数                                                                                               |
-| `trigger.offset`               | `number`                                                                                    | `8`            | 入口与选区的间距，单位为像素                                                                                                                   |
-| `trigger.placement`            | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'` | 入口的优先位置；上方按首行、下方按末行，空间不足时调整                                                                                         |
+| `trigger.offset`               | `number`                                                                                    | `8`            | 入口及输入浮层与选区的间距，单位为像素                                                                                                         |
+| `trigger.placement`            | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'` | 入口及输入浮层的优先位置；上方按首行、下方按末行，空间不足时调整                                                                               |
 | `nearbyContext.maxLength`      | `number`                                                                                    | `500`          | 附近文本的最大字符数                                                                                                                           |
 | `nearbyContext.blockSelectors` | `string[]`                                                                                  | 内置选择器     | 在默认语义块之外增加候选块                                                                                                                     |
 | `getNearbyContext`             | `(snapshot) => string \| undefined`                                                         | —              | 自定义附近文本；`snapshot` 含 DOM `Range`                                                                                                      |

@@ -1,14 +1,7 @@
 import { QuickAssistStageError } from './errors'
 import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
-import {
-  computePosition,
-  getSelectionLineAnchors,
-  observeAnchor,
-  getSnapshotRect,
-  positionElement,
-} from '../positioning'
-import type { SelectionLineAnchors } from '../positioning'
+import { getSelectionLineAnchors, observeAnchor, getSnapshotRect, positionElement } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
 import { captureSelectionSnapshot, createSelectionController, isDefaultTextValid } from '../selection'
 import { expandShortcut, getActivationRect, observeActivationPosition } from '../positioning/activation'
@@ -33,7 +26,6 @@ import type {
   QuickAssistInstance,
   QuickAssistMessages,
   QuickAssistOptions,
-  QuickAssistPlacement,
   SelectionSnapshot,
   Suggestion,
 } from '../types'
@@ -150,48 +142,6 @@ function normalizeActivation(activation: QuickAssistActivation): QuickAssistActi
     anchorElement: activation.anchorElement ?? snapshot.anchorElement,
     selection: snapshot,
   }
-}
-
-function makeRect(root: Document, left: number, top: number, width: number, height: number): DOMRectReadOnly {
-  const DOMRectConstructor = root.defaultView?.DOMRect
-  if (DOMRectConstructor) return new DOMRectConstructor(left, top, width, height)
-  const right = left + width
-  const bottom = top + height
-  return {
-    x: left,
-    y: top,
-    left,
-    top,
-    right,
-    bottom,
-    width,
-    height,
-    toJSON: () => ({ left, top, right, bottom, width, height }),
-  } as DOMRectReadOnly
-}
-
-/** Calculate where the (currently hidden) Trigger would sit for a moved Range. */
-function getVirtualTriggerRect(
-  root: Document,
-  anchor: DOMRectReadOnly,
-  size: { width: number; height: number },
-  placement: QuickAssistPlacement,
-  offset: number,
-  lineAnchors?: SelectionLineAnchors,
-): DOMRectReadOnly {
-  const view = root.defaultView
-  const { left, top } = computePosition({
-    anchor,
-    lineAnchors,
-    placement,
-    offset,
-    ...size,
-    viewport: {
-      width: view?.innerWidth ?? root.documentElement.clientWidth,
-      height: view?.innerHeight ?? root.documentElement.clientHeight,
-    },
-  })
-  return makeRect(root, left, top, size.width, size.height)
 }
 
 /** Framework-free QuickAssist orchestration and lifecycle. */
@@ -372,9 +322,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     candidate.state = 'composer'
     stopAnchorObservation()
     const snapshot = snapshotOf(candidate.activation)
-    const triggerAtOpen = triggerElement?.getBoundingClientRect() ?? null
-    const triggerSize = triggerAtOpen ? { width: triggerAtOpen.width, height: triggerAtOpen.height } : undefined
-    const triggerPlacement = (triggerElement?.dataset.placement as QuickAssistPlacement) ?? resolved.trigger.placement
+    const hadTrigger = !!triggerElement
     triggerElement = null
     const popover = ui.showPopover({
       session: candidate,
@@ -386,43 +334,14 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       },
       onClose: () => closeSession('escape'),
     })
-    if (triggerAtOpen) emit({ type: 'trigger_click', sessionId: candidate.id })
+    if (hadTrigger) emit({ type: 'trigger_click', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
     emit({ type: 'popover_show', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
-    const getPopoverAnchor = (): DOMRectReadOnly | null => {
-      const selectionRect = readAnchor(candidate)
-      if (!selectionRect) return null
-      if (!triggerSize) return selectionRect
-      return getVirtualTriggerRect(
-        resolved.root,
-        selectionRect,
-        triggerSize,
-        triggerPlacement,
-        resolved.trigger.offset,
-        snapshot ? getSelectionLineAnchors(snapshot) : undefined,
-      )
-    }
-    const positionPopover = (): void => {
-      const anchor = getPopoverAnchor()
-      if (!anchor) return
-      positionElement({
-        element: popover,
-        anchor,
-        placement: 'auto',
-        offset: resolved.trigger.offset,
-      })
-    }
-    if (triggerAtOpen) {
-      positionElement({
-        element: popover,
-        anchor: triggerAtOpen,
-        placement: 'auto',
-        offset: resolved.trigger.offset,
-      })
-    } else {
-      positionPopover()
-    }
+    // Use the same selection/line anchor and placement rules as the trigger.
+    // Anchoring to the removed trigger adds its height and a second offset.
+    const positionPopover = (): void => reposition(popover, candidate)
+    positionPopover()
     if (snapshot) {
       anchorCleanup = observeAnchor({
         element: popover,

@@ -178,6 +178,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   let restoreElement: HTMLElement | null = null
   let state: UIState = { suggestions: [], loading: false, error: false, submittingDisabled: false }
   let destroyed = false
+  let releaseSelectionHighlight: (() => void) | undefined
 
   const ensureHost = (): HTMLDivElement => {
     if (host) return host
@@ -191,6 +192,8 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   }
 
   const removeVisible = (restoreFocus: boolean): void => {
+    releaseSelectionHighlight?.()
+    releaseSelectionHighlight = undefined
     if (!host) return
     const hadFocus = !!root.activeElement && host.contains(root.activeElement)
     if (visible) visible.remove()
@@ -389,7 +392,25 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       visible = popover
       renderSuggestions()
       syncSubmit()
-      input.focus()
+      const range = session.activation.selection?.range
+      const view = root.defaultView
+      if (range && view?.Highlight && view.CSS?.highlights) {
+        // A separate paint layer survives textarea focus without changing the
+        // host text nodes, native selection, or the retained positioning Range.
+        const name = 'tr-quick-assist-selection-retained'
+        const registry = view.CSS.highlights
+        const highlight = registry.get(name) ?? new view.Highlight()
+        // Share the stylesheet's fixed name across instances/bundles, but own a
+        // distinct Range so closing one composer cannot clear another's paint.
+        const retainedRange = range.cloneRange()
+        highlight.add(retainedRange)
+        registry.set(name, highlight)
+        releaseSelectionHighlight = () => {
+          highlight.delete(retainedRange)
+          if (!highlight.size && registry.get(name) === highlight) registry.delete(name)
+        }
+      }
+      input.focus({ preventScroll: true })
       return popover
     },
 

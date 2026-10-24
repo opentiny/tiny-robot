@@ -105,15 +105,15 @@ async function selectDirection(page: Page, selector: string, backward: boolean) 
   }, backward)
 }
 
-async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom = false) {
+async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom = false, left = 240) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.evaluate(
-    ({ placement, bottom }) => {
+    ({ placement, bottom, left }) => {
       window.resetQuickAssist({ trigger: placement ? { placement } : {} })
       const element = document.querySelector<HTMLElement>('#mixed')!
       Object.assign(element.style, {
         position: 'fixed',
-        left: '240px',
+        left: `${left}px`,
         top: bottom ? 'auto' : '180px',
         bottom: bottom ? '10px' : 'auto',
         width: '500px',
@@ -124,7 +124,7 @@ async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom
         '<span id="first-line">第一行的文字比较长，<b>包含多个片段</b></span><br>' +
         '<span id="last-line" style="margin-left:60px">末行<b>短文本</b></span>'
     },
-    { placement, bottom },
+    { placement, bottom, left },
   )
   await select(page, '#mixed')
   await expect(page.locator(trigger)).toBeVisible()
@@ -292,6 +292,134 @@ test('multiline forward selection can end to the left of its starting point', as
     document.dispatchEvent(new Event('selectionchange'))
   })
   await expect(page.locator(trigger)).toBeVisible()
+})
+
+for (const placement of ['top', 'bottom', 'auto', 'top-start', 'top-end', 'bottom-start', 'bottom-end'] as const) {
+  test(`popover ${placement} uses the same selected-line positioning as the trigger`, async ({ page }) => {
+    await prepareLines(page, placement, false, 360)
+    await page.locator(trigger).click()
+    await expect(page.locator(`${popover} textarea`)).toBeFocused()
+    const side = placement.startsWith('top') ? 'top' : 'bottom'
+    const geometry = await page.locator(popover).evaluate((element, side) => {
+      const range = document.createRange()
+      range.selectNodeContents(document.querySelector(side === 'top' ? '#first-line' : '#last-line')!)
+      return { box: element.getBoundingClientRect().toJSON(), line: range.getBoundingClientRect().toJSON() }
+    }, side)
+    const { box, line } = geometry
+    if (side === 'top') expect(box.bottom).toBeCloseTo(line.top - 8, 0)
+    else expect(box.top).toBeCloseTo(line.bottom + 8, 0)
+    if (placement.endsWith('-start')) expect(box.right).toBeCloseTo(line.left, 0)
+    else if (placement.endsWith('-end')) expect(box.left).toBeCloseTo(line.right, 0)
+    else expect(box.left + box.width / 2).toBeCloseTo(line.left + line.width / 2, 0)
+  })
+}
+
+test('popover flips against the selected first line near the viewport bottom', async ({ page }) => {
+  await prepareLines(page, 'bottom-end', true)
+  await page.locator(trigger).click()
+  await expect(page.locator(popover)).toHaveAttribute('data-placement', 'top-end')
+  const gap = await page.locator(popover).evaluate((element) => {
+    const range = document.createRange()
+    range.selectNodeContents(document.querySelector('#first-line')!)
+    return range.getBoundingClientRect().top - element.getBoundingClientRect().bottom
+  })
+  expect(gap).toBeCloseTo(8, 0)
+})
+
+for (const close of ['escape', 'outside', 'submit', 'disable', 'destroy', 'detach', 'update'] as const) {
+  test(`gray selection highlight survives input focus and is released on ${close}`, async ({ page }, testInfo) => {
+    await open(page)
+    await expect(page.locator(`${popover} textarea`)).toBeFocused()
+    const highlights = () =>
+      page.evaluate(() => [...CSS.highlights.keys()].filter((name) => name.startsWith('tr-quick-assist-selection-')))
+    const names = await highlights()
+    expect(names).toHaveLength(1)
+    expect(
+      await page.locator('#term').evaluate(
+        (element, name) => ({
+          text: [...CSS.highlights.get(name)!].map((range) => (range as Range).toString()).join(''),
+          color: getComputedStyle(element, `::highlight(${name})`).backgroundColor,
+          html: element.innerHTML,
+        }),
+        names[0],
+      ),
+    ).toEqual({ text: '竞价计费', color: 'rgb(217, 217, 217)', html: '竞价计费' })
+    if (close === 'escape') {
+      await page.screenshot({ path: testInfo.outputPath('gray-selection-popover.png'), animations: 'disabled' })
+      await testInfo.attach('gray-selection-popover', {
+        path: testInfo.outputPath('gray-selection-popover.png'),
+        contentType: 'image/png',
+      })
+    }
+    await page.locator(`${popover} textarea`).fill('输入问题时仍保留高亮')
+    expect(await highlights()).toEqual(names)
+    if (close === 'escape') await page.keyboard.press('Escape')
+    else if (close === 'outside') await page.locator('#outside-button').click()
+    else if (close === 'submit') await page.locator(`${popover} textarea`).press('Enter')
+    else
+      await page.evaluate((method) => {
+        if (method === 'detach') document.querySelector('#term')!.remove()
+        else if (method === 'update') window.qa.updateOptions({ trigger: { offset: 12 } })
+        else window.qa[method]()
+      }, close)
+    await expect(page.locator(popover)).toHaveCount(0)
+    expect(await highlights()).toEqual([])
+  })
+}
+
+for (const dark of [false, true]) {
+  test(`retained selection is readable with strict style CSP on a ${dark ? 'dark' : 'light'} host`, async ({
+    page,
+  }) => {
+    await page.evaluate((dark) => {
+      if (dark) {
+        document.body.style.backgroundColor = '#161616'
+        document.body.style.color = '#eeeeee'
+      }
+      const policy = document.createElement('meta')
+      policy.httpEquiv = 'Content-Security-Policy'
+      policy.content = "style-src 'self'"
+      document.head.append(policy)
+    }, dark)
+    await open(page)
+    expect(
+      await page.locator('#term').evaluate((element) => {
+        const style = getComputedStyle(element, '::highlight(tr-quick-assist-selection-retained)')
+        return { background: style.backgroundColor, color: style.color }
+      }),
+    ).toEqual({ background: 'rgb(217, 217, 217)', color: 'rgb(25, 25, 25)' })
+    await expect(page.locator('[data-tr-quick-assist] style')).toHaveCount(0)
+    await page.locator(`${popover} textarea`).fill('保留高亮并发送')
+    await page.keyboard.press('Enter')
+    expect(await page.evaluate(() => window.qaRequests[0].query)).toBe('保留高亮并发送')
+  })
+}
+
+test('closing one instance retains other instance ranges and unrelated host highlights', async ({ page }) => {
+  await page.goto('/quick-assist/umd.html')
+  await page.waitForFunction(() => typeof window.TinyRobotVanilla?.createQuickAssist === 'function')
+  await page.evaluate(() => {
+    window.qa2 = window.TinyRobotVanilla.createQuickAssist({ include: ['#scope'], adapter: { submit() {} } })
+    const range = document.createRange()
+    range.selectNodeContents(document.querySelector('#term')!)
+    CSS.highlights.set('host-highlight', new Highlight(range))
+  })
+  await select(page)
+  await expect(page.locator(trigger)).toHaveCount(2)
+  // Open both without an outside pointerdown dismissing the other instance.
+  await page.locator(trigger).evaluateAll((buttons) => buttons.forEach((button) => (button as HTMLElement).click()))
+  await expect(page.locator(popover)).toHaveCount(2)
+  expect(await page.evaluate(() => CSS.highlights.get('tr-quick-assist-selection-retained')!.size)).toBe(2)
+  await page.evaluate(() => window.qa.destroy())
+  await expect(page.locator(popover)).toHaveCount(1)
+  expect(
+    await page.evaluate(() => ({
+      retained: CSS.highlights.get('tr-quick-assist-selection-retained')!.size,
+      host: CSS.highlights.get('host-highlight')!.size,
+    })),
+  ).toEqual({ retained: 1, host: 1 })
+  await page.evaluate(() => window.qa2.destroy())
+  expect(await page.evaluate(() => [...CSS.highlights.keys()])).toEqual(['host-highlight'])
 })
 
 test('popover keeps its last-line trigger anchor after layout changes', async ({ page }) => {
