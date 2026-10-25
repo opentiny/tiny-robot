@@ -186,6 +186,7 @@ const hasPrompts = computed(() => props.prompts !== false && promptProps.value.i
 const { scrollToBottom, pause } = useAutoScroll({
   scrollRef: () => props.scrollTarget,
   contentRef: () => contentRef.value,
+  bottomThreshold: 50,
   enabled: () => shouldAutoScroll.value,
 })
 defineExpose({ scrollToBottom, pauseAutoScroll: pause, anchorItems })
