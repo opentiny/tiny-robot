@@ -16,6 +16,8 @@ import type {
   ChatWelcomeOptions,
 } from '../types'
 
+export const DEFAULT_CHAT_MOBILE_BREAKPOINT = 960
+
 export interface DefaultChatUIData {
   conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
   bubble: {
@@ -101,6 +103,7 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
       surface: {
         mode: 'normal',
       },
+      mobileBreakpoint: DEFAULT_CHAT_MOBILE_BREAKPOINT,
       emptyState: 'start',
       composer: {
         welcome: 'footer',

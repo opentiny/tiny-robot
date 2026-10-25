@@ -1,4 +1,4 @@
-import { createDefaultChatUIOptions } from './defaults'
+import { createDefaultChatUIOptions, DEFAULT_CHAT_MOBILE_BREAKPOINT } from './defaults'
 import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from '../types'
 import type { DefaultChatUIOptions } from './defaults'
 import type {
@@ -26,6 +26,7 @@ import type {
 export interface ResolvedChatLayoutOptions {
   showScrollToBottom: boolean
   surface: ResolvedChatSurfaceOptions
+  mobileBreakpoint: number
   emptyState: 'start' | 'center'
   composer: ResolvedChatComposerLayoutOptions
   contentMaxWidth: ChatCssSize
@@ -130,6 +131,7 @@ function resolveLayout(
 ): ResolvedChatLayoutOptions {
   return {
     showScrollToBottom: options?.showScrollToBottom ?? defaults.showScrollToBottom,
+    mobileBreakpoint: resolveMobileBreakpoint(options?.mobileBreakpoint ?? defaults.mobileBreakpoint),
     surface: {
       mode: options?.surface?.mode ?? defaults.surface.mode,
       floatingOptions: options?.surface?.floatingOptions,
@@ -144,6 +146,10 @@ function resolveLayout(
     leftAside: resolveLeftAside(defaults.leftAside, options?.leftAside),
     rightAside: resolveRightAside(options?.rightAside),
   }
+}
+
+function resolveMobileBreakpoint(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : DEFAULT_CHAT_MOBILE_BREAKPOINT
 }
 
 function resolveLeftAside(

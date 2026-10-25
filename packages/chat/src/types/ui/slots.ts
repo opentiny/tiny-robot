@@ -9,6 +9,7 @@ export interface ChatHeaderSlotProps {
   readonly title: string
   readonly isEmpty: boolean
   readonly conversation: ChatConversationView
+  readonly isMobileViewport: boolean
   readonly createConversation: () => void
   readonly isLeftAsideOpen: boolean
   readonly openLeftAside: () => void

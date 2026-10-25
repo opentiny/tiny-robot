@@ -7,6 +7,7 @@ defineProps<{
   title: string
   isEmpty: boolean
   conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
+  isMobileViewport: boolean
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean
@@ -54,7 +55,7 @@ function openRightAside() {
     :toggle-left-aside="toggleLeftAside"
     :open-right-aside="openRightAside"
   >
-    <header class="chat-header">
+    <header class="chat-header" :class="{ 'chat-header--mobile': isMobileViewport }">
       <div class="chat-header__aside-cell">
         <TrLayout.AsideToggle v-if="isLeftAsideVisible && isLeftAsideDrawer" side="left">
           <template #default="{ isOpen }">
@@ -132,34 +133,32 @@ function openRightAside() {
   background: var(--tr-container-bg-hover);
 }
 
-@media (max-width: 959px) {
-  .chat-header {
-    position: relative;
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
-    justify-content: stretch;
-    min-height: 32px;
-  }
+.chat-header--mobile {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  justify-content: stretch;
+  min-height: 32px;
+}
 
-  .chat-header__aside-cell,
-  .chat-header__actions {
-    width: 32px;
-    justify-content: center;
-  }
+.chat-header--mobile .chat-header__aside-cell,
+.chat-header--mobile .chat-header__actions {
+  width: 32px;
+  justify-content: center;
+}
 
-  .chat-header__title {
-    text-align: center;
-  }
+.chat-header--mobile .chat-header__title {
+  text-align: center;
+}
 
-  .chat-header__aside-toggle {
-    display: inline-flex;
-    background: var(--tr-container-bg-default);
-    color: var(--tr-text-secondary);
-  }
+.chat-header--mobile .chat-header__aside-toggle {
+  display: inline-flex;
+  background: var(--tr-container-bg-default);
+  color: var(--tr-text-secondary);
+}
 
-  .chat-header__new.tr-icon-button {
-    display: inline-flex;
-    color: var(--tr-text-secondary);
-  }
+.chat-header--mobile .chat-header__new.tr-icon-button {
+  display: inline-flex;
+  color: var(--tr-text-secondary);
 }
 </style>

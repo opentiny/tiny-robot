@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBreakpoints, useWindowSize } from '@vueuse/core'
+import { useWindowSize } from '@vueuse/core'
 import { computed, h, nextTick, onBeforeUpdate, shallowRef } from 'vue'
 import { TrAnchor, TrLayout } from '@opentiny/tiny-robot'
 import type {
@@ -71,16 +71,15 @@ const isControlledInput = props.inputValue !== undefined
 const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')
 const scrollTarget = shallowRef<HTMLElement | null>(null)
 const messagesRef = shallowRef<InstanceType<typeof ChatMessages> | null>(null)
-const breakpoints = useBreakpoints({
-  mobile: 0,
-  desktop: 960,
-})
-const isMobileViewport = breakpoints.smaller('desktop')
 const { width: viewportWidth } = useWindowSize()
 
 const resolvedOptions = computed(() => resolveChatUIOptions(props.ui))
 const resolvedData = computed(() => resolveChatUIData(props.data, resolvedOptions.value.labels))
 const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') : draftValue.value))
+const isMobileViewport = computed(() => {
+  const width = viewportWidth.value
+  return width > 0 && width < resolvedOptions.value.layout.mobileBreakpoint
+})
 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
@@ -523,7 +522,7 @@ function renderEmptyStateComposer() {
 <template>
   <TrLayout
     v-bind="layoutProps"
-    class="tr-chat-ui"
+    :class="['tr-chat-ui', { 'tr-chat-ui--mobile': isMobileViewport }]"
     :style="layoutStyle"
     @left-aside-open-change="asideState.handleLeftAsideOpenChange"
     @right-aside-open-change="asideState.handleRightAsideOpenChange"
@@ -600,6 +599,7 @@ function renderEmptyStateComposer() {
           :title="resolvedData.conversation.title"
           :is-empty="isEmpty"
           :conversation="resolvedData.conversation"
+          :is-mobile-viewport="isMobileViewport"
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="asideState.isLeftAsideDrawer.value"
           :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
@@ -616,6 +616,7 @@ function renderEmptyStateComposer() {
               :title="resolvedData.conversation.title"
               :is-empty="isEmpty"
               :conversation="resolvedData.conversation"
+              :is-mobile-viewport="isMobileViewport"
               :create-conversation="handleCreateConversation"
               :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
               :open-left-aside="asideState.openLeftAside"
@@ -944,26 +945,24 @@ function renderEmptyStateComposer() {
   white-space: nowrap;
 }
 
-@media (max-width: 959px) {
-  .chat-panel-content--header {
-    padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
-  }
+.tr-chat-ui--mobile .chat-panel-content--header {
+  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
+}
 
-  .chat-panel-content--main {
-    padding: var(
-      --tr-chat-ui-main-padding,
-      var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
-        var(--tr-chat-ui-content-padding-inline, 16px)
-    );
-  }
+.tr-chat-ui--mobile .chat-panel-content--main {
+  padding: var(
+    --tr-chat-ui-main-padding,
+    var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
+      var(--tr-chat-ui-content-padding-inline, 16px)
+  );
+}
 
-  .chat-scroll-actions--main {
-    padding-inline: var(--tr-chat-ui-content-padding-inline, 16px);
-  }
+.tr-chat-ui--mobile .chat-scroll-actions--main {
+  padding-inline: var(--tr-chat-ui-content-padding-inline, 16px);
+}
 
-  .chat-panel-content--footer,
-  .chat-panel-content--footer.has-composer-after {
-    padding: var(--tr-chat-ui-footer-padding, 0 var(--tr-chat-ui-content-padding-inline, 16px) 16px);
-  }
+.tr-chat-ui--mobile .chat-panel-content--footer,
+.tr-chat-ui--mobile .chat-panel-content--footer.has-composer-after {
+  padding: var(--tr-chat-ui-footer-padding, 0 var(--tr-chat-ui-content-padding-inline, 16px) 16px);
 }
 </style>
