@@ -3,10 +3,10 @@ outline: [1, 3]
 ---
 
 <script setup>
-import vanillaUmdUrl from '../../../packages/components/dist/vanilla/vanilla.umd.js?url'
+import vanillaGlobalUrl from '../../../packages/components/dist/vanilla/vanilla.global.js?url'
 
 if (typeof window !== 'undefined') {
-  window.__tinyRobotVanillaDemoUmdUrl = vanillaUmdUrl
+  window.__tinyRobotVanillaDemoGlobalUrl = vanillaGlobalUrl
 }
 </script>
 
@@ -31,12 +31,12 @@ import '@opentiny/tiny-robot/vanilla/style.css'
 
 QuickAssist 的运行时代码不依赖 Vue、Angular 等框架或其他界面组件。可以在任何技术栈项目中单独使用该组件，且产物不会包含任何框架运行时。
 
-### UMD 方式
+### CDN 方式
 
-将 `node_modules/@opentiny/tiny-robot/dist/vanilla/vanilla.umd.js` 部署到应用的静态资源目录或者CDN，通过全局对象 `TinyRobotVanilla` 调用。此文件是整个无框架组件集合的入口；以后新增组件也会从同一全局对象导出。下例中以jsdelivr cdn地址为例：
+通过 CDN 加载脚本后，使用 `window.TinyRobotVanilla` 创建组件，无需单独引入样式。将 `VERSION` 替换为包含 `vanilla.global.js` 的已发布 TinyRobot 版本号：
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.5.2-alpha.19/dist/vanilla/vanilla.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@VERSION/dist/vanilla/vanilla.global.js"></script>
 <script>
   const quickAssist = window.TinyRobotVanilla.createQuickAssist({
     adapter: {
@@ -48,7 +48,9 @@ QuickAssist 的运行时代码不依赖 Vue、Angular 等框架或其他界面�
 </script>
 ```
 
-UMD 入口会自动向所在文档注入组件样式。如果内容安全策略禁止动态注入 `<style>`，可以使用上文的 NPM/ESM 入口并显式加载 CSS。
+也可以将 npm 包中的 `dist/vanilla/vanilla.global.js` 部署到自己的 CDN 或静态资源目录，再替换上面的脚本地址。此文件是整个无框架组件集合的入口，提供 `createQuickAssist`、`configureVanillaTheme` 等 API。
+
+CDN 方式会在创建实例时自动注入组件样式。如果页面的内容安全策略禁止动态注入 `<style>`，可以使用 npm 方式并显式加载 CSS。
 
 ## 代码示例
 
@@ -564,7 +566,7 @@ configureVanillaTheme({}) // 恢复默认 TinyRobot 主题来源
 
 配置按 `Document` 共享，对已有及后续组件生效，主题变化不会清空正在编辑的问题。每次调用与内置默认值合并，不累积上次配置；`source` 与 `colorMode` 不能同时设置。
 
-UMD 使用相同 API，脚本加载完成后调用即可：
+CDN 方式使用相同 API，脚本加载完成后调用即可：
 
 ```js
 TinyRobotVanilla.configureVanillaTheme({
@@ -572,7 +574,7 @@ TinyRobotVanilla.configureVanillaTheme({
 })
 ```
 
-配色优先级为：**组件变量覆盖 → 宿主 `--tr-*` 变量 → 内置配色**。如果加载了 TinyRobot 全量样式，需同步其颜色模式；只使用组件自带配色时，加载 Vanilla CSS 即可（UMD 自动注入）。
+配色优先级为：**组件变量覆盖 → 宿主 `--tr-*` 变量 → 内置配色**。如果加载了 TinyRobot 全量样式，需同步其颜色模式；只使用组件自带配色时，加载 Vanilla CSS 即可（CDN 方式自动注入）。
 
 浮层挂载在 `body` 下，局部主题来源只同步亮暗状态，不会复制局部品牌变量。自定义变量应放在 `html`、`body` 或组件根节点的全局样式中。iframe 需通过 `configureVanillaTheme(config, iframeDocument)` 配置其自身文档。
 
