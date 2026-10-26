@@ -32,7 +32,7 @@ export interface AskUserToolIntegration {
   onToolCallEnd: (
     toolCall: ChatCompletionMessageToolCall,
     context: ToolCallContext & {
-      status: 'success' | 'failed' | 'cancelled' | 'denied'
+      status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
       error?: Error
     },
   ) => void
@@ -95,33 +95,34 @@ const isAskUserToolCall = (
 }
 
 const setAskUserTerminalResult = (
-  context: ToolCallContext & { status: 'success' | 'failed' | 'cancelled' | 'denied'; error?: Error },
+  context: ToolCallContext & {
+    status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
+    error?: Error
+  },
 ) => {
   if (context.status === 'success') {
     return
   }
 
-  const assistantMessage = getMutableMessage(context.assistantMessage)
   const state = getAskUserMessageState(context.assistantMessage)
-  if (!state.askUser || !state.askUserRuntime) {
-    return
-  }
-
   const cancelled = context.status === 'cancelled' || context.status === 'denied'
   const outcome = cancelled ? 'cancelled' : 'failed'
   const reason = context.error?.message ?? `ask_user tool ${context.status}`
 
   context.mutate('messages', () => {
-    assistantMessage.state = {
-      ...assistantMessage.state,
-      askUser: {
-        ...state.askUser,
-        status: cancelled ? 'cancelled' : 'error',
-        retryable: false,
-        error: reason,
-        updatedAt: Date.now(),
-      },
-      askUserRuntime: state.askUserRuntime,
+    if (state.askUser && state.askUserRuntime) {
+      const assistantMessage = getMutableMessage(context.assistantMessage)
+      assistantMessage.state = {
+        ...assistantMessage.state,
+        askUser: {
+          ...state.askUser,
+          status: cancelled ? 'cancelled' : 'error',
+          retryable: false,
+          error: reason,
+          updatedAt: Date.now(),
+        },
+        askUserRuntime: state.askUserRuntime,
+      }
     }
     if (context.toolMessage) {
       context.toolMessage.content = JSON.stringify({ outcome, reason })
@@ -149,6 +150,11 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
       }
 
       const toolCall = askUserCalls[0]
+      const siblingToolCalls = toolCalls.filter((call) => !isAskUserToolCall(call))
+      for (const siblingToolCall of siblingToolCalls) {
+        deferredToolCallIds.add(siblingToolCall.id)
+      }
+
       let args: AskUserToolArguments
       try {
         args = parseAskUserToolCallArguments(toolCall)
@@ -157,11 +163,6 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
           return
         }
         throw error
-      }
-
-      const siblingToolCalls = toolCalls.filter((call) => !isAskUserToolCall(call))
-      for (const siblingToolCall of siblingToolCalls) {
-        deferredToolCallIds.add(siblingToolCall.id)
       }
 
       const assistantMessage = getMutableMessage(context.assistantMessage as unknown as ChatMessage)

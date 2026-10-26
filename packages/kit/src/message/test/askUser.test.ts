@@ -338,7 +338,11 @@ describe('ask_user tool integration', () => {
       }
 
       expect(toolMessages).toMatchObject([
-        { role: 'tool', tool_call_id: 'call-malformed-ask-user', content: 'Tool call failed.' },
+        {
+          role: 'tool',
+          tool_call_id: 'call-malformed-ask-user',
+          content: JSON.stringify({ outcome: 'failed', reason: 'ask_user arguments must be valid JSON' }),
+        },
       ])
       return {
         id: 'malformed-ask-user-final',
@@ -456,5 +460,22 @@ describe('ask_user tool integration', () => {
     await expect(integration.beforeCallTools([askUserCall, siblingCall], context)).resolves.toBeUndefined()
     expect(integration.shouldDeferToolCall(siblingCall)).toBe(true)
     expect(integration.shouldDeferToolCall(siblingCall)).toBe(false)
+  })
+
+  it('defers sibling tools even when the ask_user arguments are malformed', async () => {
+    const integration = createAskUserToolIntegration()
+    const malformedAskUserCall = {
+      id: 'call-malformed-ask-user',
+      type: 'function' as const,
+      function: { name: ASK_USER_TOOL_NAME, arguments: '{' },
+    }
+    const siblingCall = {
+      id: 'call-delete',
+      type: 'function' as const,
+      function: { name: 'delete', arguments: '{}' },
+    }
+
+    await expect(integration.beforeCallTools([malformedAskUserCall, siblingCall], {} as never)).resolves.toBeUndefined()
+    expect(integration.shouldDeferToolCall(siblingCall)).toBe(true)
   })
 })

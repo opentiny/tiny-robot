@@ -335,13 +335,13 @@ export const toolPlugin = (
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息、状态和错误信息
-     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied'
-     * @param context.error - 当状态为 'failed'、'cancelled' 或 'denied' 时，可能包含错误信息
+     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
+     * @param context.error - 当状态为 'failed'、'cancelled'、'denied' 或 'deferred' 时，可能包含错误信息
      */
     onToolCallEnd?: (
       toolCall: ChatCompletionMessageToolCall,
       context: ToolCallContext & {
-        status: 'success' | 'failed' | 'cancelled' | 'denied'
+        status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
         error?: Error
       },
     ) => void
@@ -357,6 +357,8 @@ export const toolPlugin = (
      * 当工具调用执行失败、被拒绝或因回合中止而未执行时使用的消息内容。
      */
     toolCallFailedContent?: string
+    /** 当 AskUser 阻止同批普通工具执行时使用的消息内容。 */
+    toolCallDeferredContent?: string
     /**
      * 是否在浏览器 localStorage 中持久化暂停的工具回合。默认：true。
      */
@@ -374,7 +376,6 @@ export const toolPlugin = (
     askUser?: boolean
     /** AskUser 的模型提示词。仅在 askUser 为 true 时注入；未提供时使用 kit 默认提示词。 */
     askUserPrompt?: string
-    /** 显式允许普通工具与 ask_user 同批执行；默认全部延后，避免答案依赖的副作用提前发生。 */
   },
 ): MessageEnginePlugin => {
   const {
@@ -389,6 +390,7 @@ export const toolPlugin = (
     toolCallAwaitingApprovalContent = 'Tool call awaiting confirmation.',
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
+    toolCallDeferredContent = 'Tool call deferred until ask_user completes.',
     persistPausedTurn = true,
     autoFillMissingToolMessages = false,
     askUser = false,
@@ -1075,16 +1077,18 @@ export const toolPlugin = (
         // A paused turn already has the tool resolution used to create its
         // pending calls. Reuse it for a follow-up request when providers are
         // temporarily unavailable; a fresh turn still reports the failure.
-        const hasDeniedToolCall = context.currentTurn.some((message) => {
+        const hasTerminalSkippedToolCall = context.currentTurn.some((message) => {
           if (message.role !== 'assistant') {
             return false
           }
 
           const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
-          return Object.values(toolCallState).some((toolCall) => toolCall.status === 'denied')
+          return Object.values(toolCallState).some(
+            (toolCall) => toolCall.status === 'denied' || toolCall.status === 'deferred',
+          )
         })
 
-        if (!currentToolResolution && !hasDeniedToolCall) {
+        if (!currentToolResolution && !hasTerminalSkippedToolCall) {
           throw error
         }
         resolvedTools = currentToolResolution ?? {
@@ -1225,13 +1229,13 @@ export const toolPlugin = (
 
         if (askUserIntegration?.shouldDeferToolCall(toolCall)) {
           mutate('messages', () => {
-            toolMessage.content = toolCallCancelledContent
+            toolMessage.content = toolCallDeferredContent
             toolMessage.metadata ??= {}
             toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
           })
           toolCallEnd(toolCall, {
             ...contextWithToolMessage,
-            status: 'denied',
+            status: 'deferred',
             error: new Error('Tool call deferred until ask_user completes.'),
           })
           return
