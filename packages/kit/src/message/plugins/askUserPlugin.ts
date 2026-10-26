@@ -26,6 +26,7 @@ export interface AskUserToolIntegration {
   runtimeTool: RuntimeTool
   getTools: () => [RuntimeTool]
   beforeCallTools: (toolCalls: ChatCompletionMessageToolCall[], context: ToolCallPreparationContext) => Promise<void>
+  shouldDeferToolCall: (toolCall: ChatCompletionMessageToolCall) => boolean
   shouldPauseToolCall: (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => boolean
   onBeforeRequest: (context: BeforeRequestContext) => void
   onToolCallEnd: (
@@ -93,51 +94,52 @@ const isAskUserToolCall = (
   return toolCall.type === 'function' && 'function' in toolCall && toolCall.function.name === ASK_USER_TOOL_NAME
 }
 
-const hasPendingInteraction = (context: ToolCallPreparationContext, interactionId: string) => {
-  return context.getState().messages.some((message) => {
-    if (message.role !== 'assistant') {
-      return false
-    }
+const setAskUserTerminalResult = (
+  context: ToolCallContext & { status: 'success' | 'failed' | 'cancelled' | 'denied'; error?: Error },
+) => {
+  if (context.status === 'success') {
+    return
+  }
 
-    const state = getAskUserMessageState(message)
-    const runtime = state.askUserRuntime
-    const toolCallState = state.toolCall as Record<string, { status?: string }> | undefined
-
-    return (
-      runtime?.interactionId === interactionId && toolCallState?.[runtime.toolCallId]?.status === 'awaiting-approval'
-    )
-  })
-}
-
-const setAskUserError = (context: ToolCallContext, error: string) => {
   const assistantMessage = getMutableMessage(context.assistantMessage)
   const state = getAskUserMessageState(context.assistantMessage)
   if (!state.askUser || !state.askUserRuntime) {
     return
   }
 
+  const cancelled = context.status === 'cancelled' || context.status === 'denied'
+  const outcome = cancelled ? 'cancelled' : 'failed'
+  const reason = context.error?.message ?? `ask_user tool ${context.status}`
+
   context.mutate('messages', () => {
     assistantMessage.state = {
       ...assistantMessage.state,
       askUser: {
         ...state.askUser,
-        status: 'error',
+        status: cancelled ? 'cancelled' : 'error',
         retryable: false,
-        error,
+        error: reason,
         updatedAt: Date.now(),
       },
       askUserRuntime: state.askUserRuntime,
+    }
+    if (context.toolMessage) {
+      context.toolMessage.content = JSON.stringify({ outcome, reason })
+      context.toolMessage.metadata ??= {}
+      context.toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
     }
   })
 }
 
 export const createAskUserToolIntegration = (options: AskUserToolIntegrationOptions = {}): AskUserToolIntegration => {
   const runtimeTool = createAskUserRuntimeTool()
+  const deferredToolCallIds = new Set<string>()
 
   return {
     runtimeTool,
     getTools: () => [runtimeTool],
     beforeCallTools: async (toolCalls, context) => {
+      deferredToolCallIds.clear()
       const askUserCalls = toolCalls.filter(isAskUserToolCall)
       if (askUserCalls.length === 0) {
         return
@@ -157,8 +159,9 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         throw error
       }
 
-      if (hasPendingInteraction(context, args.id)) {
-        throw new Error(`An unfinished ask_user interaction already uses id "${args.id}"`)
+      const siblingToolCalls = toolCalls.filter((call) => !isAskUserToolCall(call))
+      for (const siblingToolCall of siblingToolCalls) {
+        deferredToolCallIds.add(siblingToolCall.id)
       }
 
       const assistantMessage = getMutableMessage(context.assistantMessage as unknown as ChatMessage)
@@ -170,7 +173,6 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         updatedAt: Date.now(),
       }
       const runtime: AskUserRuntimeMeta = {
-        interactionId: args.id,
         toolCallId: toolCall.id,
       }
 
@@ -183,6 +185,7 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         }
       })
     },
+    shouldDeferToolCall: (toolCall) => deferredToolCallIds.delete(toolCall.id),
     shouldPauseToolCall: (toolCall, context) => {
       if (!isAskUserToolCall(toolCall)) {
         return false
@@ -205,7 +208,7 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         return
       }
 
-      setAskUserError(context, context.error?.message ?? `ask_user tool ${context.status}`)
+      setAskUserTerminalResult(context)
     },
   }
 }

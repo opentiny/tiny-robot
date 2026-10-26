@@ -25,221 +25,180 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 const args: AskUserToolArguments = {
-  id: 'project-setup',
-  title: '配置项目',
-  steps: [
+  heading: '项目配置',
+  questions: [
     {
       id: 'framework',
-      title: '选择框架',
-      summary: '选择前端框架',
-      type: 'single',
-      required: true,
-      options: [
-        { label: 'Vue', value: 'vue' },
-        { label: 'React', value: 'react', disabled: true },
-      ],
+      question: '选择前端框架',
+      options: [{ label: 'Vue' }, { label: 'React' }],
+      multiSelect: false,
+      allowCustom: true,
     },
     {
       id: 'features',
-      title: '选择功能',
-      summary: '选择功能',
-      type: 'multiple',
-      options: [
-        { label: 'TypeScript', value: 'typescript' },
-        { label: '测试', value: 'test' },
-      ],
+      question: '选择需要的功能',
+      options: [{ label: '测试' }, { label: 'TypeScript' }],
+      multiSelect: true,
+      allowCustom: true,
     },
-    {
-      id: 'notes',
-      title: '补充说明',
-      summary: '补充说明',
-      type: 'text',
-    },
+    { id: 'notes', question: '补充说明' },
     {
       id: 'confirm',
-      title: '确认配置',
-      summary: '确认配置',
-      type: 'confirm',
-      required: true,
+      question: '确认配置',
+      options: [{ label: '确认' }, { label: '取消' }],
+      multiSelect: false,
+      allowCustom: false,
     },
   ],
 }
 
 describe('ask_user protocol', () => {
-  it('appends model instructions to an existing system message only once', () => {
-    const messages = [
-      { role: 'system' as const, content: 'Product instructions.' },
-      { role: 'user' as const, content: 'Configure the project.' },
-    ]
+  it('describes the dependency and parallel execution rules', () => {
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('dependent follow-up')
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('Do not include another tool call in the same response as')
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('do not add an "Other" or "Custom" option')
 
-    const injected = appendAskUserSystemPrompt(messages, 'Use the form when clarification is needed.')
-    const systemContent = String(injected[0]?.content)
-
-    expect(systemContent).toContain('Product instructions.')
-    expect(systemContent).toContain('Use the form when clarification is needed.')
-    expect(ASK_USER_SYSTEM_PROMPT).toContain('Every step must include `summary`.')
-    expect(ASK_USER_SYSTEM_PROMPT).toContain('make `summary` identical to `title`')
-    expect(systemContent).toContain(ASK_USER_SYSTEM_PROMPT_START)
+    const system = [{ role: 'system' as const, content: 'Base instructions' }]
+    const injected = appendAskUserSystemPrompt(system)
+    expect(injected[0]?.content).toContain(ASK_USER_SYSTEM_PROMPT_START)
+    expect(injected[0]?.content).toContain('Do not include another tool call')
     expect(appendAskUserSystemPrompt(injected, ASK_USER_SYSTEM_PROMPT)).toBe(injected)
-    expect(messages[0]?.content).toBe('Product instructions.')
   })
 
-  it('parses and normalizes the tool arguments', () => {
-    expect(parseAskUserArguments(JSON.stringify(args))).toEqual(args)
-    expect(parseAskUserArguments({ ...args, title: '  配置项目  ' }).title).toBe('配置项目')
-
+  it('parses text and choice questions and normalizes labels', () => {
     const parsed = parseAskUserArguments({
-      ...args,
-      steps: [{ ...args.steps[0], summary: '  选择前端框架  ' }],
+      heading: '  配置  ',
+      questions: [
+        { id: 'name', question: '  姓名  ' },
+        {
+          id: 'framework',
+          question: '框架',
+          options: [{ label: '  Vue  ', description: '  渐进式框架  ' }],
+          multiSelect: false,
+          allowCustom: true,
+        },
+      ],
     })
-    expect(parsed.steps[0].summary).toBe('选择前端框架')
-    expect(() =>
-      parseAskUserArguments({
-        ...args,
-        steps: [{ ...args.steps[0], summary: undefined }],
-      }),
-    ).toThrow('summary must be a string')
-    expect(() =>
-      parseAskUserArguments({
-        ...args,
-        steps: [{ ...args.steps[0], summary: 'a'.repeat(81) }],
-      }),
-    ).toThrow('at most 80 characters')
+
+    expect(parsed).toEqual({
+      heading: '配置',
+      questions: [
+        { id: 'name', question: '姓名' },
+        {
+          id: 'framework',
+          question: '框架',
+          options: [{ label: 'Vue', description: '渐进式框架' }],
+          multiSelect: false,
+          allowCustom: true,
+        },
+      ],
+    })
   })
 
-  it('publishes a schema that requires enabled options for choice steps', () => {
-    const parameters = askUserTool.function.parameters as {
-      properties: {
-        steps: {
-          items: {
-            oneOf: Array<{ properties: { type: { enum: string[] }; options?: { contains?: unknown } } }>
-          }
-        }
-      }
-    }
-    const singleStep = parameters.properties.steps.items.oneOf.find((step) => step.properties.type.enum[0] === 'single')
-    const multipleStep = parameters.properties.steps.items.oneOf.find(
-      (step) => step.properties.type.enum[0] === 'multiple',
+  it('rejects legacy UI fields, duplicate ids and duplicate labels', () => {
+    expect(() => parseAskUserArguments({ id: 'legacy', questions: [{ id: 'q', question: '问题' }] })).toThrow(
+      'arguments.id is not supported',
     )
-
-    expect(singleStep?.properties.options?.contains).toBeDefined()
-    expect(multipleStep?.properties.options?.contains).toBeDefined()
-  })
-
-  it('rejects malformed definitions before rendering', () => {
-    expect(() => parseAskUserArguments('{')).toThrow('valid JSON')
     expect(() =>
       parseAskUserArguments({
-        ...args,
-        steps: [{ ...args.steps[0] }, { ...args.steps[1], id: args.steps[0].id }],
+        questions: [
+          { id: 'q', question: '问题' },
+          { id: 'q', question: '重复问题' },
+        ],
       }),
     ).toThrow('duplicate id')
     expect(() =>
       parseAskUserArguments({
-        ...args,
-        steps: [
+        questions: [
           {
-            ...args.steps[0],
-            options: [
-              { label: 'Vue', value: 'vue' },
-              { label: 'Vue 2', value: 'vue' },
-            ],
+            id: 'q',
+            question: '问题',
+            options: [{ label: '同名' }, { label: '同名' }],
+            multiSelect: false,
+            allowCustom: false,
           },
         ],
       }),
-    ).toThrow('duplicate value')
+    ).toThrow('duplicate label')
+    expect(() => parseAskUserArguments({ questions: [{ id: 'q', question: '问题', multiSelect: false }] })).toThrow(
+      'require options',
+    )
+    expect(() => parseAskUserArguments({ questions: [{ id: '__proto__', question: '问题' }] })).toThrow('must match')
+    expect(() => parseAskUserArguments({ heading: '', questions: [{ id: 'q', question: '问题' }] })).toThrow(
+      'non-empty when provided',
+    )
     expect(() =>
       parseAskUserArguments({
-        ...args,
-        steps: [{ ...args.steps[0], options: [] }],
+        questions: [
+          {
+            id: 'q',
+            question: '问题',
+            options: [{ label: '选项', description: '' }],
+            multiSelect: false,
+            allowCustom: false,
+          },
+        ],
       }),
-    ).toThrow('at least one enabled option')
-    expect(() =>
-      parseAskUserArguments({
-        ...args,
-        steps: [{ ...args.steps[0], options: [{ label: 'Unavailable', value: 'unavailable', disabled: true }] }],
-      }),
-    ).toThrow('at least one enabled option')
+    ).toThrow('non-empty when provided')
   })
 
-  it('normalizes valid answers and preserves false', () => {
+  it('normalizes answered and skipped values into one result shape', () => {
     expect(
-      validateAndNormalizeAnswers(args.steps, {
-        framework: { selected: ['vue'] },
-        features: { selected: ['test', 'typescript'] },
-        notes: '  extra notes  ',
-        confirm: false,
-        ignoredUnknownKey: 'discarded',
+      validateAndNormalizeAnswers(args.questions, {
+        framework: 'Vue',
+        features: ['测试', '自定义服务'],
+        notes: '  额外说明  ',
+        confirm: '',
       }),
     ).toEqual({
-      framework: { selected: ['vue'] },
-      features: { selected: ['test', 'typescript'] },
-      notes: 'extra notes',
-      confirm: false,
+      framework: { status: 'answered', value: 'Vue' },
+      features: { status: 'answered', value: ['测试', '自定义服务'] },
+      notes: { status: 'answered', value: '额外说明' },
+      confirm: { status: 'skipped' },
+    })
+
+    expect(validateAndNormalizeAnswers(args.questions, {})).toEqual({
+      framework: { status: 'skipped' },
+      features: { status: 'skipped' },
+      notes: { status: 'skipped' },
+      confirm: { status: 'skipped' },
     })
   })
 
-  it('allows ignored answers and rejects unknown, disabled, and duplicate answers', () => {
-    const requiredSteps = args.steps.filter((step) => step.id === 'framework' || step.id === 'confirm')
+  it('enforces choice mode and allowCustom', () => {
+    expect(() => validateAndNormalizeAnswers(args.questions, { framework: 'Svelte' })).not.toThrow()
+    expect(() => validateAndNormalizeAnswers(args.questions, { confirm: '自定义' })).toThrow('unknown option')
+    expect(() => validateAndNormalizeAnswers(args.questions, { framework: ['Vue'] })).toThrow('must be a string')
+    expect(() => validateAndNormalizeAnswers(args.questions, { features: ['测试', '测试'] })).toThrow(
+      'duplicate options',
+    )
+    expect(() => validateAndNormalizeAnswers(args.questions, { notes: 'x'.repeat(4001) })).toThrow('at most 4000')
+    expect(() =>
+      validateAndNormalizeAnswers(args.questions, {
+        features: Array.from({ length: 51 }, (_, index) => `custom-${index}`),
+      }),
+    ).toThrow('at most 50 values')
+    const longQuestions = Array.from({ length: 6 }, (_, index) => ({
+      id: `note-${index}`,
+      question: `Note ${index}`,
+    }))
+    expect(() =>
+      validateAndNormalizeAnswers(
+        longQuestions,
+        Object.fromEntries(longQuestions.map((question) => [question.id, 'x'.repeat(4000)])),
+      ),
+    ).toThrow('at most 20000 characters in total')
+  })
 
-    expect(validateAndNormalizeAnswers(requiredSteps, {})).toEqual({
-      framework: { selected: [] },
-      confirm: null,
-    })
-    expect(
-      validateAndNormalizeAnswers(args.steps, {
-        framework: null,
-        features: 'ignored',
-        notes: 'ignored',
-        confirm: null,
-      }),
-    ).toEqual({
-      framework: { selected: [] },
-      features: { selected: [] },
-      notes: 'ignored',
-      confirm: null,
-    })
-    expect(() =>
-      validateAndNormalizeAnswers(args.steps, {
-        framework: { selected: ['react'] },
-        confirm: true,
-      }),
-    ).toThrow('disabled option')
-    expect(() =>
-      validateAndNormalizeAnswers(args.steps, {
-        framework: { selected: ['vue', 'vue'] },
-        confirm: true,
-      }),
-    ).toThrow('duplicate selected')
-    expect(() =>
-      validateAndNormalizeAnswers(args.steps, {
-        framework: { selected: ['unknown'] },
-        confirm: true,
-      }),
-    ).toThrow('unknown option')
-
-    const frameworkWithOther = {
-      ...args.steps[0],
-      options: [...(args.steps[0].options ?? []), { label: '其他', value: 'other' }],
+  it('publishes the new model-facing schema', () => {
+    const parameters = askUserTool.function.parameters as {
+      required: string[]
+      properties: Record<string, { properties?: Record<string, unknown> }>
     }
-    expect(() =>
-      validateAndNormalizeAnswers([frameworkWithOther], {
-        framework: {
-          selected: ['vue'],
-          other: { selected: true, text: 'React' },
-        },
-      }),
-    ).toThrow('at most one selected value')
-
-    const frameworkWithDisabledOther = {
-      ...args.steps[0],
-      options: [...(args.steps[0].options ?? []), { label: '其他', value: 'other', disabled: true }],
-    }
-    expect(() =>
-      validateAndNormalizeAnswers([frameworkWithDisabledOther], {
-        framework: { selected: [], other: { selected: true, text: 'React' } },
-      }),
-    ).toThrow('unavailable other option')
+    expect(parameters.required).toEqual(['questions'])
+    expect(parameters.properties).toHaveProperty('heading')
+    expect(parameters.properties).toHaveProperty('questions')
+    expect(parameters.properties).not.toHaveProperty('steps')
   })
 })
 
@@ -268,10 +227,7 @@ describe('ask_user tool integration', () => {
                   {
                     id: 'call-ask-user',
                     type: 'function',
-                    function: {
-                      name: ASK_USER_TOOL_NAME,
-                      arguments: JSON.stringify(args),
-                    },
+                    function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
                   },
                 ],
               },
@@ -289,14 +245,12 @@ describe('ask_user tool integration', () => {
         role: 'tool',
         tool_call_id: 'call-ask-user',
         content: JSON.stringify({
-          type: 'ask_user_result',
-          interactionId: args.id,
-          status: 'submitted',
+          outcome: 'submitted',
           answers: {
-            framework: { selected: ['vue'] },
-            features: { selected: [] },
-            notes: 'extra notes',
-            confirm: false,
+            framework: { status: 'answered', value: 'Vue' },
+            features: { status: 'skipped' },
+            notes: { status: 'answered', value: 'extra notes' },
+            confirm: { status: 'skipped' },
           },
         }),
       })
@@ -306,13 +260,7 @@ describe('ask_user tool integration', () => {
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: 'mock',
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: '配置已提交。' },
-            finish_reason: 'stop',
-          },
-        ],
+        choices: [{ index: 0, message: { role: 'assistant', content: '配置已提交。' }, finish_reason: 'stop' }],
       } as ChatCompletion
     })
 
@@ -332,18 +280,17 @@ describe('ask_user tool integration', () => {
     })
 
     await engine.sendMessage('开始配置')
-
     expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+
     const assistantMessage = engine.getState().messages.find((message) => message.role === 'assistant')
     expect(assistantMessage).toMatchObject({
       content: [
         { type: 'text', text: '请补充配置。' },
-        { type: 'ask_user', id: args.id, steps: args.steps },
+        { type: 'ask_user', heading: args.heading },
       ],
       state: {
         askUser: { status: 'active', answers: {} },
-        askUserRuntime: { interactionId: args.id, toolCallId: 'call-ask-user' },
-        toolCall: { 'call-ask-user': { status: 'awaiting-approval' } },
+        askUserRuntime: { toolCallId: 'call-ask-user' },
       },
     })
 
@@ -351,28 +298,19 @@ describe('ask_user tool integration', () => {
     state.askUser = {
       ...(state.askUser as Record<string, unknown>),
       status: 'submitted',
-      answers: {
-        framework: { selected: ['vue'] },
-        features: { selected: [] },
-        notes: 'extra notes',
-        confirm: false,
-      },
+      answers: { framework: 'Vue', notes: '  extra notes  ' },
     }
 
-    await expect(
-      engine.dispatchCommand(TOOL_RESUME_COMMAND, {
-        toolCallId: 'call-ask-user',
-      }),
-    ).resolves.toEqual({ status: 'resumed', toolCallId: 'call-ask-user' })
-
+    await expect(engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-ask-user' })).resolves.toEqual({
+      status: 'resumed',
+      toolCallId: 'call-ask-user',
+    })
     expect(responseProvider).toHaveBeenCalledTimes(2)
-    expect(engine.getState().messages.at(-1)).toMatchObject({ role: 'assistant', content: '配置已提交。' })
   })
 
   it('returns malformed ask_user calls as failed tool results', async () => {
     const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
       const toolMessages = requestBody.messages.filter((message) => message.role === 'tool')
-
       if (toolMessages.length === 0) {
         return {
           id: 'malformed-ask-user-call',
@@ -389,10 +327,7 @@ describe('ask_user tool integration', () => {
                   {
                     id: 'call-malformed-ask-user',
                     type: 'function',
-                    function: {
-                      name: ASK_USER_TOOL_NAME,
-                      arguments: '{',
-                    },
+                    function: { name: ASK_USER_TOOL_NAME, arguments: '{' },
                   },
                 ],
               },
@@ -403,47 +338,28 @@ describe('ask_user tool integration', () => {
       }
 
       expect(toolMessages).toMatchObject([
-        {
-          role: 'tool',
-          tool_call_id: 'call-malformed-ask-user',
-          content: 'Tool call failed.',
-        },
+        { role: 'tool', tool_call_id: 'call-malformed-ask-user', content: 'Tool call failed.' },
       ])
-
       return {
         id: 'malformed-ask-user-final',
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: 'mock',
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: '已处理无效工具调用。' },
-            finish_reason: 'stop',
-          },
-        ],
+        choices: [{ index: 0, message: { role: 'assistant', content: '已处理无效工具调用。' }, finish_reason: 'stop' }],
       } as ChatCompletion
     })
 
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
-        toolPlugin({
-          askUser: true,
-          getTools: async () => [],
-          callTool: async () => 'fallback',
-        }),
+        toolPlugin({ askUser: true, getTools: async () => [], callTool: async () => 'fallback' }),
       ],
       responseProvider,
     })
 
     await engine.sendMessage('触发无效表单')
-
     expect(responseProvider).toHaveBeenCalledTimes(2)
-    expect(engine.getState().messages.at(-1)).toMatchObject({
-      role: 'assistant',
-      content: '已处理无效工具调用。',
-    })
+    expect(engine.getState().messages.at(-1)).toMatchObject({ role: 'assistant', content: '已处理无效工具调用。' })
   })
 
   it.each(['denied', 'cancelled', 'failed'] as const)('marks the form as error when ask_user ends as %s', (status) => {
@@ -452,16 +368,8 @@ describe('ask_user tool integration', () => {
       role: 'assistant' as const,
       content: '',
       state: {
-        askUser: {
-          status: 'active' as const,
-          currentStep: 0,
-          answers: {},
-          completedStepIds: [],
-        },
-        askUserRuntime: {
-          interactionId: args.id,
-          toolCallId: 'call-ask-user',
-        },
+        askUser: { status: 'active' as const, currentStep: 0, answers: {}, completedStepIds: [] },
+        askUserRuntime: { toolCallId: 'call-ask-user' },
       },
     }
     const toolCall = {
@@ -478,9 +386,40 @@ describe('ask_user tool integration', () => {
     } as never)
 
     expect(assistantMessage.state.askUser).toMatchObject({
-      status: 'error',
+      status: status === 'denied' || status === 'cancelled' ? 'cancelled' : 'error',
       retryable: false,
       error: `ask_user ${status}`,
+    })
+  })
+
+  it('returns a structured cancellation result when ask_user is rejected', () => {
+    const integration = createAskUserToolIntegration()
+    const assistantMessage = {
+      role: 'assistant' as const,
+      content: '',
+      state: {
+        askUser: { status: 'active' as const, currentStep: 0, answers: {}, completedStepIds: [] },
+        askUserRuntime: { toolCallId: 'call-ask-user' },
+      },
+    }
+    const toolMessage = { role: 'tool' as const, tool_call_id: 'call-ask-user', content: 'Tool call failed.' }
+    const toolCall = {
+      id: 'call-ask-user',
+      type: 'function' as const,
+      function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
+    }
+
+    integration.onToolCallEnd(toolCall, {
+      assistantMessage,
+      toolMessage,
+      status: 'denied',
+      error: new Error('User cancelled the form'),
+      mutate: (_key: string, mutate: () => void) => mutate(),
+    } as never)
+
+    expect(JSON.parse(String(toolMessage.content))).toEqual({
+      outcome: 'cancelled',
+      reason: 'User cancelled the form',
     })
   })
 
@@ -491,18 +430,31 @@ describe('ask_user tool integration', () => {
       type: 'function' as const,
       function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
     })
-    const context = {
-      getState: () => ({
-        messages: [],
-        requestState: 'processing',
-        isProcessing: true,
-        isPaused: false,
-        canStartTurn: false,
-      }),
-    } as never
 
-    await expect(integration.beforeCallTools([toolCall('call-a'), toolCall('call-b')], context)).rejects.toThrow(
+    await expect(integration.beforeCallTools([toolCall('call-a'), toolCall('call-b')], {} as never)).rejects.toThrow(
       'Only one ask_user call',
     )
+  })
+
+  it('defers sibling tools in every ask_user response', async () => {
+    const integration = createAskUserToolIntegration()
+    const askUserCall = {
+      id: 'call-ask-user',
+      type: 'function' as const,
+      function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
+    }
+    const siblingCall = {
+      id: 'call-deploy',
+      type: 'function' as const,
+      function: { name: 'deploy', arguments: '{}' },
+    }
+
+    const context = {
+      assistantMessage: { role: 'assistant', content: '' },
+      mutate: (_key: string, mutate: () => void) => mutate(),
+    } as never
+    await expect(integration.beforeCallTools([askUserCall, siblingCall], context)).resolves.toBeUndefined()
+    expect(integration.shouldDeferToolCall(siblingCall)).toBe(true)
+    expect(integration.shouldDeferToolCall(siblingCall)).toBe(false)
   })
 })

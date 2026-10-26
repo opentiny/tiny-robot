@@ -374,6 +374,7 @@ export const toolPlugin = (
     askUser?: boolean
     /** AskUser 的模型提示词。仅在 askUser 为 true 时注入；未提供时使用 kit 默认提示词。 */
     askUserPrompt?: string
+    /** 显式允许普通工具与 ask_user 同批执行；默认全部延后，避免答案依赖的副作用提前发生。 */
   },
 ): MessageEnginePlugin => {
   const {
@@ -399,7 +400,11 @@ export const toolPlugin = (
     throw new TypeError('maxToolRounds must be a non-negative integer')
   }
 
-  const askUserIntegration = askUser ? createAskUserToolIntegration({ prompt: askUserPrompt }) : undefined
+  const askUserIntegration = askUser
+    ? createAskUserToolIntegration({
+        prompt: askUserPrompt,
+      })
+    : undefined
 
   const inFlightToolCallIds = new Set<string>()
 
@@ -1216,6 +1221,20 @@ export const toolPlugin = (
           assistantMessage,
           toolMessage,
           toolSource,
+        }
+
+        if (askUserIntegration?.shouldDeferToolCall(toolCall)) {
+          mutate('messages', () => {
+            toolMessage.content = toolCallCancelledContent
+            toolMessage.metadata ??= {}
+            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
+          })
+          toolCallEnd(toolCall, {
+            ...contextWithToolMessage,
+            status: 'denied',
+            error: new Error('Tool call deferred until ask_user completes.'),
+          })
+          return
         }
 
         const shouldPause =

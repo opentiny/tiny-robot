@@ -423,15 +423,10 @@ describe('useMessage', () => {
             function: {
               name: 'ask_user',
               arguments: JSON.stringify({
-                id: 'profile',
-                title: '完善资料',
-                steps: [
+                questions: [
                   {
                     id: 'name',
-                    title: '姓名',
-                    summary: '姓名',
-                    type: 'text',
-                    required: true,
+                    question: '姓名',
                   },
                 ],
               }),
@@ -448,10 +443,8 @@ describe('useMessage', () => {
             tool_call_id: 'call-ask-user-vue',
           })
           expect(JSON.parse(String(toolMessage?.content))).toEqual({
-            type: 'ask_user_result',
-            interactionId: 'profile',
-            status: 'submitted',
-            answers: { name: 'Ada' },
+            outcome: 'submitted',
+            answers: { name: { status: 'answered', value: 'Ada' } },
           })
         },
       },
@@ -491,7 +484,7 @@ describe('useMessage', () => {
     expect(assistantMessage?.content).toEqual([
       expect.objectContaining({
         type: 'ask_user',
-        id: 'profile',
+        questions: [{ id: 'name', question: '姓名' }],
       }),
     ])
     expect(assistantMessage?.state).toMatchObject({
@@ -501,7 +494,6 @@ describe('useMessage', () => {
         answers: {},
       },
       askUserRuntime: {
-        interactionId: 'profile',
         toolCallId: 'call-ask-user-vue',
       },
       toolCall: {

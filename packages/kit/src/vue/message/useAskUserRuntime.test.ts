@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import { TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/plugins/toolPlugin'
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/plugins/toolPlugin'
 import type { ChatMessage } from '../../types'
 import { useAskUserRuntime } from './useAskUserRuntime'
 
@@ -20,14 +20,10 @@ const createMessage = (
         function: {
           name: 'ask_user',
           arguments: JSON.stringify({
-            id: 'profile',
-            steps: [
+            questions: [
               {
                 id: 'name',
-                title: '姓名',
-                summary: '姓名',
-                type: 'text',
-                required: true,
+                question: '姓名',
               },
             ],
           }),
@@ -42,7 +38,6 @@ const createMessage = (
         completedStepIds: ['name'],
       },
       askUserRuntime: {
-        interactionId: 'profile',
         toolCallId: 'call-ask-user',
       },
       toolCall: {
@@ -55,6 +50,29 @@ const createMessage = (
 }
 
 describe('useAskUserRuntime', () => {
+  it('cancels an active form through the reject command', async () => {
+    const messages = ref<ChatMessage[]>([createMessage({}, 'awaiting-approval', 'active')])
+    const dispatchCommand = vi.fn().mockResolvedValue({ status: 'denied', toolCallId: 'call-ask-user' })
+    const runtime = useAskUserRuntime({ messages, dispatchCommand })
+
+    await runtime.handleBubbleEvent({
+      name: 'ask-user:cancel',
+      payload: 'No thanks',
+      messageIndex: 0,
+      contentIndex: 0,
+    })
+
+    expect(dispatchCommand).toHaveBeenCalledWith(TOOL_REJECT_COMMAND, {
+      toolCallId: 'call-ask-user',
+      reason: 'No thanks',
+    })
+    expect(messages.value[0]?.state?.askUser).toMatchObject({
+      status: 'cancelled',
+      retryable: false,
+      error: 'No thanks',
+    })
+  })
+
   it('persists state changes and resumes the matching tool call', async () => {
     const messages = ref<ChatMessage[]>([createMessage({ name: 'Ada' })])
     const dispatchCommand = vi.fn().mockResolvedValue({ status: 'resumed', toolCallId: 'call-ask-user' })
@@ -73,11 +91,10 @@ describe('useAskUserRuntime', () => {
     })
     await runtime.handleBubbleEvent({ name: 'ask-user:submit', messageIndex: 0, contentIndex: 0 })
 
-    expect(messages.value[0]?.state?.askUserRuntime).toEqual({
-      interactionId: 'profile',
-      toolCallId: 'call-ask-user',
+    expect(messages.value[0]?.state?.askUserRuntime).toEqual({ toolCallId: 'call-ask-user' })
+    expect(messages.value[0]?.state?.askUser).toMatchObject({
+      answers: { name: { status: 'answered', value: 'Ada Lovelace' } },
     })
-    expect(messages.value[0]?.state?.askUser).toMatchObject({ answers: { name: 'Ada Lovelace' } })
     expect(dispatchCommand).toHaveBeenCalledWith(TOOL_RESUME_COMMAND, { toolCallId: 'call-ask-user' })
   })
 
@@ -91,7 +108,7 @@ describe('useAskUserRuntime', () => {
     expect(dispatchCommand).toHaveBeenCalledWith(TOOL_RESUME_COMMAND, { toolCallId: 'call-ask-user' })
     expect(messages.value[0]?.state?.askUser).toMatchObject({
       status: 'submitted',
-      answers: { name: '' },
+      answers: { name: { status: 'skipped' } },
     })
   })
 
@@ -192,7 +209,7 @@ describe('useAskUserRuntime', () => {
 
     expect(messages.value[0]?.state?.askUser).toMatchObject({
       status: 'submitted',
-      answers: { name: 'Ada' },
+      answers: { name: { status: 'answered', value: 'Ada' } },
     })
   })
 
@@ -215,7 +232,7 @@ describe('useAskUserRuntime', () => {
 
     expect(messages.value[0]?.state?.askUser).toMatchObject({
       status: 'submitted',
-      answers: { name: 'Ada' },
+      answers: { name: { status: 'answered', value: 'Ada' } },
     })
   })
 })

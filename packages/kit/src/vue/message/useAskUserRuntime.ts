@@ -7,7 +7,7 @@ import {
   type AskUserRuntimeMeta,
   type AskUserState,
 } from '../../message/tools/askUser'
-import { TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/plugins/toolPlugin'
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/plugins/toolPlugin'
 import type { UseMessageReturn } from './types'
 
 export interface AskUserStateChangeEvent {
@@ -48,6 +48,7 @@ const isKnownHandledToolCallStatus = (status: string | undefined) => {
 
 export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | 'dispatchCommand'>) => {
   const resumePromises = new Map<string, Promise<ToolCallCommandResult>>()
+  const cancelPromises = new Map<string, Promise<ToolCallCommandResult>>()
 
   const setAskUserError = (target: AskUserMessage, state: AskUserState, error: unknown) => {
     const runtime = getAskUserMessageState(target).askUserRuntime
@@ -82,6 +83,26 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
       })
     resumePromises.set(toolCallId, resume)
     return resume
+  }
+
+  const rejectToolCall = (toolCallId: string, reason: string) => {
+    const pendingCancel = cancelPromises.get(toolCallId)
+    if (pendingCancel) {
+      return pendingCancel
+    }
+
+    const cancel = message
+      .dispatchCommand<ToolCallCommandResult>(TOOL_REJECT_COMMAND, {
+        toolCallId,
+        reason,
+      })
+      .finally(() => {
+        if (cancelPromises.get(toolCallId) === cancel) {
+          cancelPromises.delete(toolCallId)
+        }
+      })
+    cancelPromises.set(toolCallId, cancel)
+    return cancel
   }
 
   const ensureResumeSucceeded = (target: AskUserMessage, toolCallId: string, result: ToolCallCommandResult) => {
@@ -122,6 +143,43 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
     const messageState = getAskUserMessageState(target)
     const state = messageState.askUser
     const runtime = messageState.askUserRuntime as AskUserRuntimeMeta | undefined
+
+    if (event.name === 'ask-user:cancel') {
+      if (!state || state.status !== 'active' || !runtime?.toolCallId) {
+        return
+      }
+
+      if (getToolCallStatus(target, runtime.toolCallId) !== 'awaiting-approval') {
+        setAskUserError(target, state, new Error('ask_user tool call cannot be cancelled'))
+        return
+      }
+
+      const reason =
+        typeof event.payload === 'string' && event.payload.trim().length > 0
+          ? event.payload.trim()
+          : 'User cancelled the ask_user form.'
+
+      try {
+        const result = await rejectToolCall(runtime.toolCallId, reason)
+        if (result.status === 'missing') {
+          throw new Error('ask_user tool call cannot be cancelled')
+        }
+
+        target.state = {
+          ...target.state,
+          askUser: {
+            ...getAskUserMessageState(target).askUser,
+            status: 'cancelled',
+            retryable: false,
+            error: reason,
+            updatedAt: Date.now(),
+          },
+        }
+      } catch (error) {
+        setAskUserError(target, getAskUserMessageState(target).askUser ?? state, error)
+      }
+      return
+    }
 
     if (event.name === 'ask-user:retry') {
       if (!state || !runtime?.toolCallId) {
@@ -166,7 +224,7 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
       }
 
       const args = parseAskUserToolCallArguments(toolCall as unknown as ChatCompletionMessageFunctionToolCall)
-      const answers = validateAndNormalizeAnswers(args.steps, state.answers)
+      const answers = validateAndNormalizeAnswers(args.questions, state.answers)
 
       target.state = {
         ...target.state,

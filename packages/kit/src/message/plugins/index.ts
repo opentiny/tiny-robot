@@ -33,16 +33,18 @@ export {
   validateAndNormalizeAnswers,
 } from '../tools/askUser'
 export type {
-  AskUserChoiceAnswer,
+  AskUserAnswer,
   AskUserContent,
   AskUserMessageState,
+  AskUserQuestion,
+  AskUserQuestionBase,
+  AskUserChoiceQuestion,
   AskUserRuntimeMeta,
   AskUserState,
   AskUserStatus,
-  AskUserStepType,
+  AskUserTextQuestion,
   AskUserToolArguments,
   AskUserToolOption,
   AskUserToolResult,
-  AskUserToolStep,
   AskUserProtocolErrorCode,
 } from '../tools/askUser'

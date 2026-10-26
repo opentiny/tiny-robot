@@ -121,6 +121,7 @@ export const toolPlugin = (
     askUser?: boolean
     /** AskUser 的模型提示词。未提供时使用 kit 默认提示词。 */
     askUserPrompt?: string
+    /** 显式允许普通工具与 ask_user 同批执行；默认全部延后，避免答案依赖的副作用提前发生。 */
   },
 ): UseMessagePlugin => {
   const {

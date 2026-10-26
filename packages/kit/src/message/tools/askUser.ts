@@ -3,54 +3,60 @@ import type { RuntimeTool } from '../plugins/toolPlugin'
 
 export const ASK_USER_TOOL_NAME = 'ask_user'
 
-/** Default model instructions for the AskUser runtime tool. */
+/** Model-facing rules for the AskUser protocol. */
 export const ASK_USER_SYSTEM_PROMPT = [
-  'When you need information from the user before continuing, use the `ask_user` tool instead of asking a plain-text question.',
-  'Put all related questions in one complete form and provide stable, unique step ids.',
-  'Every step must include `summary`. `summary` and `title` should express the same meaning at different levels of detail: make `summary` a concise label for the step, preferably no more than 20 characters, and use `title` for the full natural-language question. Never omit `summary`, copy the full question into it, or make `summary` identical to `title`.',
-  'For single and multiple steps, a free-text "Other" choice may be included. If included, it must be an enabled option with value `other`.',
-  'When the user skips a step, interpret an empty selection as skipped, an empty string as skipped, and null confirmation as skipped.',
-  'Call `ask_user` at most once in a single assistant response. After the tool returns the submitted answers, continue the task using those answers.',
+  'When you need explicit information from the user before continuing, use the `ask_user` tool instead of asking a plain-text question.',
+  'Combine independent questions into one complete form and use stable, unique question ids.',
+  'Ask dependent follow-up questions in a later `ask_user` call after receiving the earlier answers.',
+  'Do not call `ask_user` in parallel with another `ask_user` call.',
+  'Do not include another tool call in the same response as `ask_user`; answer-dependent tools must wait for the result.',
+  'When `allowCustom` is true, do not add an "Other" or "Custom" option; the client provides custom input automatically.',
+  'Every question may be skipped by the user. After the tool returns its answers, continue the task using those answers.',
 ].join('\n')
 
 /** Markers keep automatic prompt injection idempotent without altering stored message history. */
 export const ASK_USER_SYSTEM_PROMPT_START = '<tiny-robot-ask-user-instructions>'
 export const ASK_USER_SYSTEM_PROMPT_END = '</tiny-robot-ask-user-instructions>'
 
-export type AskUserStepType = 'single' | 'multiple' | 'text' | 'confirm'
-
 export interface AskUserToolOption {
+  /** User-visible choice text, returned unchanged when selected. */
   label: string
-  value: string
+  /** Optional explanation shown with the choice and omitted from the answer. */
   description?: string
-  disabled?: boolean
 }
 
-export interface AskUserToolStep {
+export interface AskUserQuestionBase {
+  /** Stable identifier used as the answer key for this question. */
   id: string
-  title: string
-  /** Short label for the current step UI. */
-  summary: string
-  description?: string
-  type: AskUserStepType
-  required?: boolean
-  options?: AskUserToolOption[]
-  placeholder?: string
+  /** Complete user-facing question. */
+  question: string
 }
+
+export interface AskUserTextQuestion extends AskUserQuestionBase {
+  options?: never
+  multiSelect?: never
+  allowCustom?: never
+}
+
+export interface AskUserChoiceQuestion extends AskUserQuestionBase {
+  options: AskUserToolOption[]
+  multiSelect: boolean
+  allowCustom: boolean
+}
+
+export type AskUserQuestion = AskUserTextQuestion | AskUserChoiceQuestion
 
 export interface AskUserToolArguments {
-  id: string
-  title?: string
-  description?: string
-  steps: AskUserToolStep[]
-  submitLabel?: string
+  /** Optional short heading shared by the questions. */
+  heading?: string
+  questions: AskUserQuestion[]
 }
 
 export interface AskUserContent extends AskUserToolArguments {
   type: 'ask_user'
 }
 
-export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'error'
+export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'cancelled' | 'error'
 
 export interface AskUserState {
   status: AskUserStatus
@@ -64,16 +70,7 @@ export interface AskUserState {
   updatedAt?: number
 }
 
-export interface AskUserChoiceAnswer {
-  selected: string[]
-  other?: {
-    selected: boolean
-    text: string
-  }
-}
-
 export interface AskUserRuntimeMeta {
-  interactionId: string
   toolCallId: string
 }
 
@@ -83,12 +80,11 @@ export interface AskUserMessageState {
   [key: string]: unknown
 }
 
-export interface AskUserToolResult {
-  type: 'ask_user_result'
-  interactionId: string
-  status: 'submitted'
-  answers: Record<string, unknown>
-}
+export type AskUserAnswer = { status: 'answered'; value: string | string[] } | { status: 'skipped' }
+
+export type AskUserToolResult =
+  | { outcome: 'submitted'; answers: Record<string, AskUserAnswer> }
+  | { outcome: 'cancelled' | 'failed'; reason?: string }
 
 export type AskUserProtocolErrorCode = 'invalid_arguments' | 'invalid_answer' | 'invalid_state'
 
@@ -103,15 +99,16 @@ export class AskUserProtocolError extends Error {
 }
 
 const MAX_ID_LENGTH = 100
-const MAX_TITLE_LENGTH = 200
-const MAX_SUMMARY_LENGTH = 80
-const MAX_DESCRIPTION_LENGTH = 1000
-const MAX_SUBMIT_LABEL_LENGTH = 40
-const MAX_STEP_COUNT = 20
+const MAX_HEADING_LENGTH = 200
+const MAX_QUESTION_LENGTH = 1000
+const MAX_QUESTION_COUNT = 20
 const MAX_OPTION_COUNT = 50
-const MAX_OPTION_VALUE_LENGTH = 100
+const MAX_OPTION_LABEL_LENGTH = 200
 const MAX_OPTION_DESCRIPTION_LENGTH = 500
-const MAX_PLACEHOLDER_LENGTH = 200
+const MAX_ANSWER_LENGTH = 4000
+const MAX_MULTI_SELECT_COUNT = 50
+const MAX_TOTAL_ANSWER_LENGTH = 20000
+const QUESTION_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,99}$/
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -137,6 +134,8 @@ const assertKnownKeys = (value: Record<string, unknown>, allowedKeys: readonly s
     invalidArguments(`${path}.${unknownKey} is not supported`)
   }
 }
+
+const hasOwn = (value: Record<string, unknown>, key: string) => Object.prototype.hasOwnProperty.call(value, key)
 
 const readRequiredString = (value: Record<string, unknown>, key: string, path: string, maxLength: number) => {
   const rawValue = value[key]
@@ -166,17 +165,23 @@ const readOptionalString = (
   if (result.length > maxLength) {
     invalidArguments(`${path}.${key} must be at most ${maxLength} characters`)
   }
-
-  return result || undefined
-}
-
-const readOptionalBoolean = (value: Record<string, unknown>, key: string, path: string) => {
-  const rawValue = value[key]
-  if (rawValue === undefined) {
-    return undefined
+  if (result.length === 0) {
+    invalidArguments(`${path}.${key} must be non-empty when provided`)
   }
 
-  return typeof rawValue === 'boolean' ? rawValue : invalidArguments(`${path}.${key} must be a boolean`)
+  return result
+}
+
+const readQuestionId = (value: Record<string, unknown>, path: string) => {
+  const id = readRequiredString(value, 'id', path, MAX_ID_LENGTH)
+  if (!QUESTION_ID_PATTERN.test(id)) {
+    invalidArguments(`${path}.id must match ${QUESTION_ID_PATTERN}`)
+  }
+  return id
+}
+
+const readRequiredBoolean = (value: Record<string, unknown>, key: string, path: string) => {
+  return typeof value[key] === 'boolean' ? value[key] : invalidArguments(`${path}.${key} must be a boolean`)
 }
 
 const normalizeOption = (value: unknown, path: string): AskUserToolOption => {
@@ -184,100 +189,62 @@ const normalizeOption = (value: unknown, path: string): AskUserToolOption => {
     invalidArguments(`${path} must be an object`)
   }
   const optionValue = value as Record<string, unknown>
-
-  assertKnownKeys(optionValue, ['label', 'value', 'description', 'disabled'], path)
+  assertKnownKeys(optionValue, ['label', 'description'], path)
 
   const option: AskUserToolOption = {
-    label: readRequiredString(optionValue, 'label', path, MAX_TITLE_LENGTH),
-    value: readRequiredString(optionValue, 'value', path, MAX_OPTION_VALUE_LENGTH),
+    label: readRequiredString(optionValue, 'label', path, MAX_OPTION_LABEL_LENGTH),
   }
   const description = readOptionalString(optionValue, 'description', path, MAX_OPTION_DESCRIPTION_LENGTH)
-  const disabled = readOptionalBoolean(optionValue, 'disabled', path)
-
   if (description !== undefined) {
     option.description = description
-  }
-  if (disabled !== undefined) {
-    option.disabled = disabled
   }
 
   return option
 }
 
-const normalizeStep = (value: unknown, index: number): AskUserToolStep => {
-  const path = `steps[${index}]`
+const normalizeQuestion = (value: unknown, index: number): AskUserQuestion => {
+  const path = `questions[${index}]`
   if (!isRecord(value)) {
     invalidArguments(`${path} must be an object`)
   }
-  const stepValue = value as Record<string, unknown>
+  const questionValue = value as Record<string, unknown>
+  assertKnownKeys(questionValue, ['id', 'question', 'options', 'multiSelect', 'allowCustom'], path)
 
-  assertKnownKeys(
-    stepValue,
-    ['id', 'title', 'summary', 'description', 'type', 'required', 'options', 'placeholder'],
-    path,
-  )
-
-  const type: AskUserStepType =
-    stepValue.type === 'single' ||
-    stepValue.type === 'multiple' ||
-    stepValue.type === 'text' ||
-    stepValue.type === 'confirm'
-      ? stepValue.type
-      : invalidArguments(`${path}.type must be single, multiple, text, or confirm`)
-
-  const step: AskUserToolStep = {
-    id: readRequiredString(stepValue, 'id', path, MAX_ID_LENGTH),
-    title: readRequiredString(stepValue, 'title', path, MAX_TITLE_LENGTH),
-    summary: readRequiredString(stepValue, 'summary', path, MAX_SUMMARY_LENGTH),
-    type,
-  }
-  const description = readOptionalString(stepValue, 'description', path, MAX_DESCRIPTION_LENGTH)
-  const required = readOptionalBoolean(stepValue, 'required', path)
-  const placeholder = readOptionalString(stepValue, 'placeholder', path, MAX_PLACEHOLDER_LENGTH)
-
-  if (description !== undefined) {
-    step.description = description
-  }
-  if (required !== undefined) {
-    step.required = required
-  }
-  if (placeholder !== undefined) {
-    step.placeholder = placeholder
+  const base = {
+    id: readQuestionId(questionValue, path),
+    question: readRequiredString(questionValue, 'question', path, MAX_QUESTION_LENGTH),
   }
 
-  if (stepValue.options !== undefined) {
-    if (type !== 'single' && type !== 'multiple') {
-      invalidArguments(`${path}.options is only supported for single and multiple steps`)
+  if (!hasOwn(questionValue, 'options') || questionValue.options === undefined) {
+    if (hasOwn(questionValue, 'multiSelect') || hasOwn(questionValue, 'allowCustom')) {
+      invalidArguments(`${path}.multiSelect and ${path}.allowCustom require options`)
     }
+    return base
   }
 
-  if (type === 'single' || type === 'multiple') {
-    if (!Array.isArray(stepValue.options)) {
-      invalidArguments(`${path}.options must be an array with at least one enabled option`)
-    }
-    const rawOptions = stepValue.options as unknown[]
-    if (rawOptions.length === 0) {
-      invalidArguments(`${path}.options must contain at least one enabled option`)
-    }
-    if (rawOptions.length > MAX_OPTION_COUNT) {
-      invalidArguments(`${path}.options must contain at most ${MAX_OPTION_COUNT} items`)
-    }
-
-    const options = rawOptions.map((option, optionIndex) => normalizeOption(option, `${path}.options[${optionIndex}]`))
-    const optionValues = new Set<string>()
-    for (const option of options) {
-      if (optionValues.has(option.value)) {
-        invalidArguments(`${path}.options contains duplicate value "${option.value}"`)
-      }
-      optionValues.add(option.value)
-    }
-    if (!options.some((option) => option.disabled !== true)) {
-      invalidArguments(`${path}.options must contain at least one enabled option`)
-    }
-    step.options = options
+  if (!Array.isArray(questionValue.options)) {
+    invalidArguments(`${path}.options must be an array with at least one option`)
+  }
+  const rawOptions = questionValue.options as unknown[]
+  if (rawOptions.length === 0 || rawOptions.length > MAX_OPTION_COUNT) {
+    invalidArguments(`${path}.options must contain between 1 and ${MAX_OPTION_COUNT} items`)
   }
 
-  return step
+  const options = rawOptions.map((option, optionIndex) => normalizeOption(option, `${path}.options[${optionIndex}]`))
+  const labels = new Set<string>()
+  for (const option of options) {
+    if (labels.has(option.label)) {
+      invalidArguments(`${path}.options contains duplicate label "${option.label}"`)
+    }
+    labels.add(option.label)
+  }
+
+  return {
+    ...base,
+    options,
+    multiSelect: readRequiredBoolean(questionValue, 'multiSelect', path),
+    allowCustom: readRequiredBoolean(questionValue, 'allowCustom', path),
+  }
 }
 
 export const parseAskUserArguments = (rawArguments: unknown): AskUserToolArguments => {
@@ -294,42 +261,29 @@ export const parseAskUserArguments = (rawArguments: unknown): AskUserToolArgumen
     invalidArguments('ask_user arguments must be an object')
   }
   const argumentsValue = value as Record<string, unknown>
+  assertKnownKeys(argumentsValue, ['heading', 'questions'], 'arguments')
 
-  assertKnownKeys(argumentsValue, ['id', 'title', 'description', 'steps', 'submitLabel'], 'arguments')
-
-  if (!Array.isArray(argumentsValue.steps)) {
-    invalidArguments('arguments.steps must be an array')
+  if (!Array.isArray(argumentsValue.questions)) {
+    invalidArguments('arguments.questions must be an array')
   }
-  const rawSteps = argumentsValue.steps as unknown[]
-  if (rawSteps.length === 0 || rawSteps.length > MAX_STEP_COUNT) {
-    invalidArguments(`arguments.steps must contain between 1 and ${MAX_STEP_COUNT} items`)
+  const rawQuestions = argumentsValue.questions as unknown[]
+  if (rawQuestions.length === 0 || rawQuestions.length > MAX_QUESTION_COUNT) {
+    invalidArguments(`arguments.questions must contain between 1 and ${MAX_QUESTION_COUNT} items`)
   }
 
-  const steps = rawSteps.map(normalizeStep)
-  const stepIds = new Set<string>()
-  for (const step of steps) {
-    if (stepIds.has(step.id)) {
-      invalidArguments(`arguments.steps contains duplicate id "${step.id}"`)
+  const questions = rawQuestions.map(normalizeQuestion)
+  const questionIds = new Set<string>()
+  for (const question of questions) {
+    if (questionIds.has(question.id)) {
+      invalidArguments(`arguments.questions contains duplicate id "${question.id}"`)
     }
-    stepIds.add(step.id)
+    questionIds.add(question.id)
   }
 
-  const result: AskUserToolArguments = {
-    id: readRequiredString(argumentsValue, 'id', 'arguments', MAX_ID_LENGTH),
-    steps,
-  }
-  const title = readOptionalString(argumentsValue, 'title', 'arguments', MAX_TITLE_LENGTH)
-  const description = readOptionalString(argumentsValue, 'description', 'arguments', MAX_DESCRIPTION_LENGTH)
-  const submitLabel = readOptionalString(argumentsValue, 'submitLabel', 'arguments', MAX_SUBMIT_LABEL_LENGTH)
-
-  if (title !== undefined) {
-    result.title = title
-  }
-  if (description !== undefined) {
-    result.description = description
-  }
-  if (submitLabel !== undefined) {
-    result.submitLabel = submitLabel
+  const result: AskUserToolArguments = { questions }
+  const heading = readOptionalString(argumentsValue, 'heading', 'arguments', MAX_HEADING_LENGTH)
+  if (heading !== undefined) {
+    result.heading = heading
   }
 
   return result
@@ -367,222 +321,221 @@ export const stripAskUserContent = (content: unknown): unknown => {
   return visibleItems.length > 0 ? visibleItems : ''
 }
 
-const getChoiceOptions = (step: AskUserToolStep) => {
-  const options = new Map<string, AskUserToolOption>()
-  for (const option of step.options ?? []) {
-    options.set(option.value, option)
+const skippedAnswer = (): AskUserAnswer => ({ status: 'skipped' })
+
+const unwrapAnswerValue = (value: unknown): { skipped: boolean; value?: unknown } => {
+  if (value === undefined || value === null || value === '') {
+    return { skipped: true }
   }
-  return options
+  if (Array.isArray(value) && value.length === 0) {
+    return { skipped: true }
+  }
+  if (isRecord(value) && value.status === 'skipped') {
+    return { skipped: true }
+  }
+  if (isRecord(value) && value.status === 'answered') {
+    return { skipped: false, value: value.value }
+  }
+  return { skipped: false, value }
 }
 
-const normalizeChoiceAnswer = (step: AskUserToolStep, value: unknown): AskUserChoiceAnswer => {
-  if (!isRecord(value)) {
-    invalidAnswer(`Answer for step "${step.id}" must be a choice object`)
-  }
-  const answerValue = value as Record<string, unknown>
-  assertKnownKeys(answerValue, ['selected', 'other'], `answers.${step.id}`)
-
-  if (!Array.isArray(answerValue.selected) || answerValue.selected.some((item) => typeof item !== 'string')) {
-    invalidAnswer(`Answer for step "${step.id}".selected must be an array of strings`)
-  }
-
-  const selected = answerValue.selected as string[]
-  if (new Set(selected).size !== selected.length) {
-    invalidAnswer(`Answer for step "${step.id}" contains duplicate selected values`)
-  }
-  if (step.type === 'single' && selected.length > 1) {
-    invalidAnswer(`Answer for single step "${step.id}" may contain at most one selected value`)
-  }
-
-  const options = getChoiceOptions(step)
-  for (const optionValue of selected) {
-    const option = options.get(optionValue)
-    if (!option) {
-      invalidAnswer(`Answer for step "${step.id}" contains unknown option "${optionValue}"`)
-    }
-    if (option?.disabled) {
-      invalidAnswer(`Answer for step "${step.id}" contains disabled option "${optionValue}"`)
-    }
-  }
-
-  let other: AskUserChoiceAnswer['other']
-  const rawOther = answerValue.other
-  if (rawOther !== undefined) {
-    if (!isRecord(rawOther)) {
-      invalidAnswer(`Answer for step "${step.id}".other must be an object`)
-    }
-    const otherValue = rawOther as Record<string, unknown>
-    assertKnownKeys(otherValue, ['selected', 'text'], `answers.${step.id}.other`)
-    if (typeof otherValue.selected !== 'boolean' || typeof otherValue.text !== 'string') {
-      invalidAnswer(`Answer for step "${step.id}".other has an invalid shape`)
-    }
-
-    const text = (otherValue.text as string).trim()
-    if (otherValue.selected && text.length === 0) {
-      invalidAnswer(`Answer for step "${step.id}".other.text is required when other is selected`)
-    }
-    if (otherValue.selected) {
-      other = { selected: true, text }
-    }
-  }
-
-  if (other) {
-    const otherOption = options.get('other')
-    if (!otherOption || otherOption.disabled) {
-      invalidAnswer(`Answer for step "${step.id}" contains an unavailable other option`)
-    }
-    if (selected.includes('other')) {
-      invalidAnswer(`Answer for step "${step.id}" contains duplicate other selections`)
-    }
-    if (step.type === 'single' && selected.length > 0) {
-      invalidAnswer(`Answer for single step "${step.id}" may contain at most one selected value`)
-    }
-  }
-
-  if (selected.length === 0 && !other) {
-    return { selected: [] }
-  }
-
-  return {
-    selected: [...selected],
-    ...(other ? { other } : {}),
-  }
-}
-
-const normalizeTextAnswer = (step: AskUserToolStep, value: unknown): string => {
+const normalizeTextAnswer = (question: AskUserTextQuestion, value: unknown): AskUserAnswer => {
   if (typeof value !== 'string') {
-    invalidAnswer(`Answer for text step "${step.id}" must be a string`)
+    invalidAnswer(`Answer for question "${question.id}" must be a string`)
   }
-
   const text = (value as string).trim()
-  return text
+  if (text.length > MAX_ANSWER_LENGTH) {
+    invalidAnswer(`Answer for question "${question.id}" must be at most ${MAX_ANSWER_LENGTH} characters`)
+  }
+  return text ? { status: 'answered', value: text } : skippedAnswer()
 }
 
-const normalizeSkippedAnswer = (step: AskUserToolStep): AskUserChoiceAnswer | string | null => {
-  if (step.type === 'single' || step.type === 'multiple') {
-    return { selected: [] }
+const normalizeChoiceAnswer = (question: AskUserChoiceQuestion, value: unknown): AskUserAnswer => {
+  const labels = new Set(question.options.map((option) => option.label))
+  const validateLabel = (label: string) => {
+    if (!question.allowCustom && !labels.has(label)) {
+      invalidAnswer(`Answer for question "${question.id}" contains unknown option "${label}"`)
+    }
   }
-  if (step.type === 'text') {
-    return ''
+
+  if (question.multiSelect) {
+    if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+      invalidAnswer(`Answer for question "${question.id}" must be an array of strings`)
+    }
+    const values = (value as string[]).map((item) => item.trim())
+    if (values.length > MAX_MULTI_SELECT_COUNT) {
+      invalidAnswer(`Answer for question "${question.id}" may contain at most ${MAX_MULTI_SELECT_COUNT} values`)
+    }
+    if (values.some((item) => item.length === 0)) {
+      invalidAnswer(`Answer for question "${question.id}" contains an empty option`)
+    }
+    if (values.some((item) => item.length > MAX_ANSWER_LENGTH)) {
+      invalidAnswer(`Answer for question "${question.id}" contains a value longer than ${MAX_ANSWER_LENGTH} characters`)
+    }
+    if (new Set(values).size !== values.length) {
+      invalidAnswer(`Answer for question "${question.id}" contains duplicate options`)
+    }
+    values.forEach(validateLabel)
+    return values.length > 0 ? { status: 'answered', value: values } : skippedAnswer()
   }
-  return null
+
+  if (typeof value !== 'string') {
+    invalidAnswer(`Answer for question "${question.id}" must be a string`)
+  }
+  const text = (value as string).trim()
+  if (!text) {
+    return skippedAnswer()
+  }
+  if (text.length > MAX_ANSWER_LENGTH) {
+    invalidAnswer(`Answer for question "${question.id}" must be at most ${MAX_ANSWER_LENGTH} characters`)
+  }
+  validateLabel(text)
+  return { status: 'answered', value: text }
 }
 
 export const validateAndNormalizeAnswers = (
-  steps: AskUserToolStep[],
+  questions: AskUserQuestion[],
   answers: Record<string, unknown>,
-): Record<string, unknown> => {
+): Record<string, AskUserAnswer> => {
   if (!isRecord(answers)) {
     invalidAnswer('ask_user answers must be an object')
   }
 
-  const normalized: Record<string, unknown> = {}
-  for (const step of steps) {
-    const value = answers[step.id]
-    let normalizedValue: unknown
-
-    if (value === undefined || value === null || (value === 'ignored' && step.type !== 'text')) {
-      // `ignored` is accepted here only for states persisted by older versions.
-      normalizedValue = normalizeSkippedAnswer(step)
-    } else if (step.type === 'single' || step.type === 'multiple') {
-      normalizedValue = normalizeChoiceAnswer(step, value)
-    } else if (step.type === 'text') {
-      normalizedValue = normalizeTextAnswer(step, value)
-    } else {
-      if (typeof value !== 'boolean') {
-        invalidAnswer(`Answer for confirm step "${step.id}" must be a boolean or null`)
+  const normalized: Array<[string, AskUserAnswer]> = []
+  let totalAnswerLength = 0
+  for (const question of questions) {
+    const value = Object.prototype.hasOwnProperty.call(answers, question.id) ? answers[question.id] : undefined
+    const unwrapped = unwrapAnswerValue(value)
+    if (unwrapped.skipped) {
+      normalized.push([question.id, skippedAnswer()])
+    } else if (question.options !== undefined) {
+      const answer = normalizeChoiceAnswer(question as AskUserChoiceQuestion, unwrapped.value)
+      normalized.push([question.id, answer])
+      if (answer.status === 'answered') {
+        totalAnswerLength += Array.isArray(answer.value)
+          ? answer.value.reduce((total, value) => total + value.length, 0)
+          : answer.value.length
       }
-      normalizedValue = value
+    } else {
+      const answer = normalizeTextAnswer(question, unwrapped.value)
+      normalized.push([question.id, answer])
+      if (answer.status === 'answered') {
+        totalAnswerLength += answer.value.length
+      }
     }
 
-    normalized[step.id] = normalizedValue
+    if (totalAnswerLength > MAX_TOTAL_ANSWER_LENGTH) {
+      invalidAnswer(`ask_user answers must contain at most ${MAX_TOTAL_ANSWER_LENGTH} characters in total`)
+    }
   }
 
-  return normalized
+  return Object.fromEntries(normalized)
 }
 
 const askUserOptionSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['label', 'value'],
+  required: ['label'],
   properties: {
-    label: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
-    value: { type: 'string', minLength: 1, maxLength: MAX_OPTION_VALUE_LENGTH },
-    description: { type: 'string', maxLength: MAX_OPTION_DESCRIPTION_LENGTH },
-    disabled: { type: 'boolean' },
+    label: {
+      type: 'string',
+      minLength: 1,
+      maxLength: MAX_OPTION_LABEL_LENGTH,
+      pattern: '\\S',
+      description: 'Concise user-visible choice text. If selected, this exact label is returned as the answer.',
+    },
+    description: {
+      type: 'string',
+      minLength: 1,
+      maxLength: MAX_OPTION_DESCRIPTION_LENGTH,
+      pattern: '\\S',
+      description: 'Optional explanation shown to the user but not returned as part of the answer.',
+    },
   },
 }
 
-const askUserStepProperties = {
-  id: { type: 'string', minLength: 1, maxLength: MAX_ID_LENGTH },
-  title: { type: 'string', minLength: 1, maxLength: MAX_TITLE_LENGTH },
-  summary: {
-    type: 'string',
-    minLength: 1,
-    maxLength: MAX_SUMMARY_LENGTH,
-    description: 'A concise label for this step, preferably no more than 20 characters.',
-  },
-  description: { type: 'string', maxLength: MAX_DESCRIPTION_LENGTH },
-  required: { type: 'boolean' },
-  placeholder: { type: 'string', maxLength: MAX_PLACEHOLDER_LENGTH },
-}
-
-const createAskUserStepSchema = (type: AskUserStepType, withOptions: boolean) => ({
+const askUserQuestionBaseSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['id', 'title', 'summary', 'type', ...(withOptions ? ['options'] : [])],
+  required: ['id', 'question'],
   properties: {
-    ...askUserStepProperties,
-    type: { type: 'string', enum: [type] },
-    ...(withOptions
-      ? {
-          options: {
-            type: 'array',
-            minItems: 1,
-            maxItems: MAX_OPTION_COUNT,
-            description: 'Must contain at least one enabled option.',
-            contains: {
-              type: 'object',
-              anyOf: [
-                { not: { required: ['disabled'] } },
-                { required: ['disabled'], properties: { disabled: { enum: [false] } } },
-              ],
-            },
-            items: askUserOptionSchema,
-          },
-        }
-      : {}),
+    id: {
+      type: 'string',
+      minLength: 1,
+      maxLength: MAX_ID_LENGTH,
+      pattern: '^[A-Za-z][A-Za-z0-9_-]{0,99}$',
+      description: 'Stable identifier unique within this call and used as the answer key.',
+    },
+    question: {
+      type: 'string',
+      minLength: 1,
+      maxLength: MAX_QUESTION_LENGTH,
+      pattern: '\\S',
+      description: 'Complete user-facing question, including any context, constraints, and examples.',
+    },
   },
-})
+}
+
+const askUserToolQuestionSchema = {
+  anyOf: [
+    {
+      title: 'Free-text question',
+      ...askUserQuestionBaseSchema,
+    },
+    {
+      title: 'Choice question',
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'question', 'options', 'multiSelect', 'allowCustom'],
+      properties: {
+        ...askUserQuestionBaseSchema.properties,
+        options: {
+          type: 'array',
+          minItems: 1,
+          maxItems: MAX_OPTION_COUNT,
+          description: 'Suggested choices. Labels must be unique within this question.',
+          items: askUserOptionSchema,
+        },
+        multiSelect: {
+          type: 'boolean',
+          description: 'False for at most one choice; true when multiple choices are allowed.',
+        },
+        allowCustom: {
+          type: 'boolean',
+          description:
+            'Whether the user may enter an answer outside the suggested options. When true, do not add an "Other" or "Custom" option.',
+        },
+      },
+    },
+  ],
+}
 
 export const askUserTool: ChatCompletionFunctionTool = {
   type: 'function',
   function: {
     name: ASK_USER_TOOL_NAME,
-    description: 'Ask the user for structured information before continuing.',
+    description:
+      'Ask the user for explicit input when it is needed before continuing. Combine independent questions into one call. Ask dependent follow-up questions in a later call after receiving the earlier answers. Do not call ask_user in parallel with another ask_user call. Do not include another tool call in the same response as ask_user; answer-dependent tools must wait for the result. When allowCustom is true, do not add an Other or Custom option. Every question may be skipped by the user.',
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'steps'],
       properties: {
-        id: { type: 'string', minLength: 1, maxLength: MAX_ID_LENGTH },
-        title: { type: 'string', maxLength: MAX_TITLE_LENGTH },
-        description: { type: 'string', maxLength: MAX_DESCRIPTION_LENGTH },
-        submitLabel: { type: 'string', maxLength: MAX_SUBMIT_LABEL_LENGTH },
-        steps: {
+        heading: {
+          type: 'string',
+          minLength: 1,
+          maxLength: MAX_HEADING_LENGTH,
+          pattern: '\\S',
+          description: 'Optional short heading shared by the whole group; do not repeat a question here.',
+        },
+        questions: {
           type: 'array',
           minItems: 1,
-          maxItems: MAX_STEP_COUNT,
-          items: {
-            oneOf: [
-              createAskUserStepSchema('single', true),
-              createAskUserStepSchema('multiple', true),
-              createAskUserStepSchema('text', false),
-              createAskUserStepSchema('confirm', false),
-            ],
-          },
+          maxItems: MAX_QUESTION_COUNT,
+          description: 'Questions to present together. Questions in one call must not depend on each other.',
+          items: askUserToolQuestionSchema,
         },
       },
+      required: ['questions'],
     },
   },
 }
@@ -598,7 +551,7 @@ export const createAskUserRuntimeTool = (): RuntimeTool => ({
     if (!state) {
       invalidState('ask_user state is missing')
     }
-    if (!runtime || runtime.toolCallId !== toolCall.id || runtime.interactionId !== args.id) {
+    if (!runtime || runtime.toolCallId !== toolCall.id) {
       invalidState('ask_user state is missing or does not match the tool call')
     }
     const askUserState = state as AskUserState
@@ -606,14 +559,9 @@ export const createAskUserRuntimeTool = (): RuntimeTool => ({
       invalidState('ask_user can only resume after the user submits valid answers')
     }
 
-    const answers = validateAndNormalizeAnswers(args.steps, askUserState.answers)
-    const result: AskUserToolResult = {
-      type: 'ask_user_result',
-      interactionId: args.id,
-      status: 'submitted',
-      answers,
-    }
-
-    return result
+    return {
+      outcome: 'submitted',
+      answers: validateAndNormalizeAnswers(args.questions, askUserState.answers),
+    } satisfies AskUserToolResult
   },
 })
