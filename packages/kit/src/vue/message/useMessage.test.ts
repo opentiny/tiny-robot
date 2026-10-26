@@ -443,7 +443,7 @@ describe('useMessage', () => {
             tool_call_id: 'call-ask-user-vue',
           })
           expect(JSON.parse(String(toolMessage?.content))).toEqual({
-            outcome: 'submitted',
+            outcome: 'completed',
             answers: { name: { status: 'answered', value: 'Ada' } },
           })
         },

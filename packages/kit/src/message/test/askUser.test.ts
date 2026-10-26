@@ -6,6 +6,7 @@ import {
   ASK_USER_TOOL_NAME,
   ASK_USER_SYSTEM_PROMPT,
   ASK_USER_SYSTEM_PROMPT_START,
+  AskUserProtocolError,
   appendAskUserSystemPrompt,
   createAskUserToolIntegration,
   askUserTool,
@@ -55,13 +56,14 @@ const args: AskUserToolArguments = {
 describe('ask_user protocol', () => {
   it('describes the dependency and parallel execution rules', () => {
     expect(ASK_USER_SYSTEM_PROMPT).toContain('dependent follow-up')
-    expect(ASK_USER_SYSTEM_PROMPT).toContain('Do not include another tool call in the same response as')
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('may run in parallel with `ask_user`')
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('If an answer is skipped')
     expect(ASK_USER_SYSTEM_PROMPT).toContain('do not add an "Other" or "Custom" option')
 
     const system = [{ role: 'system' as const, content: 'Base instructions' }]
     const injected = appendAskUserSystemPrompt(system)
     expect(injected[0]?.content).toContain(ASK_USER_SYSTEM_PROMPT_START)
-    expect(injected[0]?.content).toContain('Do not include another tool call')
+    expect(injected[0]?.content).toContain('may run in parallel with `ask_user`')
     expect(appendAskUserSystemPrompt(injected, ASK_USER_SYSTEM_PROMPT)).toBe(injected)
   })
 
@@ -193,11 +195,12 @@ describe('ask_user protocol', () => {
   it('publishes the new model-facing schema', () => {
     const parameters = askUserTool.function.parameters as {
       required: string[]
-      properties: Record<string, { properties?: Record<string, unknown> }>
+      properties: Record<string, { description?: string; properties?: Record<string, unknown> }>
     }
     expect(parameters.required).toEqual(['questions'])
     expect(parameters.properties).toHaveProperty('heading')
     expect(parameters.properties).toHaveProperty('questions')
+    expect(parameters.properties.questions?.description).toContain('remain meaningful')
     expect(parameters.properties).not.toHaveProperty('steps')
   })
 })
@@ -245,7 +248,7 @@ describe('ask_user tool integration', () => {
         role: 'tool',
         tool_call_id: 'call-ask-user',
         content: JSON.stringify({
-          outcome: 'submitted',
+          outcome: 'completed',
           answers: {
             framework: { status: 'answered', value: 'Vue' },
             features: { status: 'skipped' },
@@ -341,7 +344,14 @@ describe('ask_user tool integration', () => {
         {
           role: 'tool',
           tool_call_id: 'call-malformed-ask-user',
-          content: JSON.stringify({ outcome: 'failed', reason: 'ask_user arguments must be valid JSON' }),
+          content: JSON.stringify({
+            outcome: 'failed',
+            error: {
+              code: 'invalid_arguments',
+              message: 'ask_user arguments must be valid JSON',
+              retryable: true,
+            },
+          }),
         },
       ])
       return {
@@ -452,7 +462,7 @@ describe('ask_user tool integration', () => {
           { type: 'text', text: '需要补充信息。' },
         ])
         expect(requestBody.messages.find((message) => message.role === 'tool')?.content).toBe(
-          JSON.stringify({ outcome: 'submitted', answers: { name: { status: 'answered', value: 'Ada' } } }),
+          JSON.stringify({ outcome: 'completed', answers: { name: { status: 'answered', value: 'Ada' } } }),
         )
 
         return {
@@ -573,6 +583,33 @@ describe('ask_user tool integration', () => {
     })
   })
 
+  it('returns a structured retryable error when ask_user arguments are invalid', () => {
+    const integration = createAskUserToolIntegration()
+    const toolMessage = { role: 'tool' as const, tool_call_id: 'call-ask-user', content: 'Tool call failed.' }
+    const toolCall = {
+      id: 'call-ask-user',
+      type: 'function' as const,
+      function: { name: ASK_USER_TOOL_NAME, arguments: '{' },
+    }
+
+    integration.onToolCallEnd(toolCall, {
+      assistantMessage: { role: 'assistant', content: '' },
+      toolMessage,
+      status: 'failed',
+      error: new AskUserProtocolError('invalid_arguments', 'ask_user arguments must be valid JSON'),
+      mutate: (_key: string, mutate: () => void) => mutate(),
+    } as never)
+
+    expect(JSON.parse(String(toolMessage.content))).toEqual({
+      outcome: 'failed',
+      error: {
+        code: 'invalid_arguments',
+        message: 'ask_user arguments must be valid JSON',
+        retryable: true,
+      },
+    })
+  })
+
   it('rejects more than one ask_user call in one assistant response', async () => {
     const integration = createAskUserToolIntegration()
     const toolCall = (id: string) => ({
@@ -586,42 +623,101 @@ describe('ask_user tool integration', () => {
     )
   })
 
-  it('defers sibling tools in every ask_user response', async () => {
-    const integration = createAskUserToolIntegration()
-    const askUserCall = {
-      id: 'call-ask-user',
-      type: 'function' as const,
-      function: { name: ASK_USER_TOOL_NAME, arguments: JSON.stringify(args) },
-    }
-    const siblingCall = {
-      id: 'call-deploy',
-      type: 'function' as const,
-      function: { name: 'deploy', arguments: '{}' },
+  it('runs independent sibling tools while ask_user waits for answers', async () => {
+    let requestCount = 0
+    const callTool = vi.fn(async () => 'current time: 12:00')
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        return {
+          id: 'ask-user-and-independent-tool',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-parallel-ask-user',
+                    type: 'function',
+                    function: {
+                      name: ASK_USER_TOOL_NAME,
+                      arguments: JSON.stringify({ questions: [{ id: 'environment', question: '部署环境？' }] }),
+                    },
+                  },
+                  {
+                    id: 'call-current-time',
+                    type: 'function',
+                    function: { name: 'get_current_time', arguments: '{}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(requestBody.messages).toContainEqual(
+        expect.objectContaining({ role: 'tool', tool_call_id: 'call-current-time', content: 'current time: 12:00' }),
+      )
+      expect(requestBody.messages).toContainEqual(
+        expect.objectContaining({
+          role: 'tool',
+          tool_call_id: 'call-parallel-ask-user',
+          content: JSON.stringify({
+            outcome: 'completed',
+            answers: { environment: { status: 'answered', value: 'test' } },
+          }),
+        }),
+      )
+      return {
+        id: 'ask-user-and-independent-tool-final',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [{ index: 0, message: { role: 'assistant', content: '完成。' }, finish_reason: 'stop' }],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          askUser: true,
+          getTools: async () => [
+            { type: 'function', function: { name: 'get_current_time', parameters: { type: 'object' } } },
+          ],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('询问部署环境，并查询当前时间')
+    expect(engine.getState().requestState).toBe('paused')
+    expect(callTool).toHaveBeenCalledOnce()
+    expect(engine.getState().messages).toContainEqual(
+      expect.objectContaining({ role: 'tool', tool_call_id: 'call-current-time', content: 'current time: 12:00' }),
+    )
+
+    const assistantMessage = engine.getState().messages.find((message) => message.role === 'assistant')
+    const state = assistantMessage?.state as Record<string, unknown>
+    state.askUser = {
+      ...(state.askUser as Record<string, unknown>),
+      status: 'submitted',
+      answers: { environment: 'test' },
     }
 
-    const context = {
-      assistantMessage: { role: 'assistant', content: '' },
-      mutate: (_key: string, mutate: () => void) => mutate(),
-    } as never
-    await expect(integration.beforeCallTools([askUserCall, siblingCall], context)).resolves.toBeUndefined()
-    expect(integration.shouldDeferToolCall(siblingCall)).toBe(true)
-    expect(integration.shouldDeferToolCall(siblingCall)).toBe(false)
-  })
-
-  it('defers sibling tools even when the ask_user arguments are malformed', async () => {
-    const integration = createAskUserToolIntegration()
-    const malformedAskUserCall = {
-      id: 'call-malformed-ask-user',
-      type: 'function' as const,
-      function: { name: ASK_USER_TOOL_NAME, arguments: '{' },
-    }
-    const siblingCall = {
-      id: 'call-delete',
-      type: 'function' as const,
-      function: { name: 'delete', arguments: '{}' },
-    }
-
-    await expect(integration.beforeCallTools([malformedAskUserCall, siblingCall], {} as never)).resolves.toBeUndefined()
-    expect(integration.shouldDeferToolCall(siblingCall)).toBe(true)
+    await expect(
+      engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-parallel-ask-user' }),
+    ).resolves.toEqual({ status: 'resumed', toolCallId: 'call-parallel-ask-user' })
+    expect(requestCount).toBe(2)
+    expect(engine.getState().requestState).toBe('completed')
   })
 })

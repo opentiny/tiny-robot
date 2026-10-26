@@ -236,15 +236,14 @@ type ResponseProvider<T = ChatCompletion> = (
 | `getTools`                        | `(context) => MaybePromise<ToolProviderItem[]>`                                   | 是   | —                                    | 返回当前请求可用的 OpenAI tool schema 或带本地 handler 的 runtime tool。                   |
 | `callTool`                        | `(toolCall, context) => MaybeStreamableResult<string \| Record<string, unknown>>` | 是   | —                                    | 执行普通 function tool。结果写入对应 tool 消息；上下文包含 `toolMessage` 和 `toolSource`。 |
 | `beforeCallTools`                 | `(toolCalls, context) => Promise<void>`                                           | 否   | —                                    | 执行一批工具前进行校验、鉴权或遥测。                                                       |
-| `shouldPauseToolCall`             | `(toolCall, context) => boolean \| Promise<boolean>`                              | 否   | —                                    | 返回 `true` 时暂停当前工具；启用 `askUser` 后同批普通工具不会执行。                         |
+| `shouldPauseToolCall`             | `(toolCall, context) => boolean \| Promise<boolean>`                              | 否   | —                                    | 返回 `true` 时暂停当前工具；AskUser 只暂停对应调用，同批其他工具仍按普通流程执行。            |
 | `maxToolRounds`                   | `number`                                                                          | 否   | 不限制                               | 单个用户回合允许的工具调用批次数；必须为非负整数，`0` 表示不执行工具。                     |
 | `onLimitExceeded`                 | `(toolCalls, context) => MaybePromise<void>`                                      | 否   | —                                    | 下一批超过轮次上限时调用；不能放行超限工具。                                               |
 | `onToolCallStart`                 | `(toolCall, context) => void`                                                     | 否   | —                                    | tool 消息已追加、实际执行前调用。                                                          |
-| `onToolCallEnd`                   | `(toolCall, context) => void`                                                     | 否   | —                                    | 工具以 `success`、`failed`、`cancelled`、`denied` 或 `deferred` 结束时调用。              |
+| `onToolCallEnd`                   | `(toolCall, context) => void`                                                     | 否   | —                                    | 工具以 `success`、`failed`、`cancelled` 或 `denied` 结束时调用。                           |
 | `toolCallAwaitingApprovalContent` | `string`                                                                          | 否   | `'Tool call awaiting confirmation.'` | 等待确认时写入 tool 消息的内容。                                                           |
 | `toolCallCancelledContent`        | `string`                                                                          | 否   | `'Tool call cancelled.'`             | 取消或补齐缺失 tool 消息时使用的内容。                                                     |
 | `toolCallFailedContent`           | `string`                                                                          | 否   | `'Tool call failed.'`                | 执行失败或拒绝时使用的内容。                                                               |
-| `toolCallDeferredContent`         | `string`                                                                          | 否   | `'Tool call deferred until ask_user completes.'` | AskUser 阻止同批普通工具执行时使用的内容。                                  |
 | `persistPausedTurn`               | `boolean`                                                                         | 否   | `true`                               | 是否把暂停回合快照写入浏览器 LocalStorage，以便重建引擎后恢复。                            |
 | `autoFillMissingToolMessages`     | `boolean`                                                                         | 否   | `false`                              | 下一轮请求前是否为历史中缺失的 tool 结果补充取消消息。                                     |
 | `askUser`                         | `boolean`                                                                         | 否   | `false`                              | 是否启用 `ask_user` 工具。启用后会自动注册工具、暂停对应调用，并在恢复时返回结构化答案。   |
@@ -285,13 +284,13 @@ type ResponseProvider<T = ChatCompletion> = (
 }
 ```
 
-工具结果包含交互级的 `outcome` 和按问题 ID 索引的 `answers`。提交成功时 `outcome` 为 `submitted`；取消或失败时返回对应状态。文本和单选返回字符串，多选返回字符串数组；确认类问题使用单选问题表达，返回被选中的 option label，不返回布尔值。所有问题都可以跳过，并使用显式的 `skipped` 状态：
+工具结果包含交互级的 `outcome` 和按问题 ID 索引的 `answers`。交互完成时 `outcome` 为 `completed`；取消或失败时返回对应状态。文本和单选返回字符串，多选返回字符串数组；确认类问题使用单选问题表达，返回被选中的 option label，不返回布尔值。所有问题都可以跳过，并使用显式的 `skipped` 状态：
 
 文本和自定义答案最多 4000 个字符，多选最多包含 50 个值，单次提交的所有答案合计最多 20,000 个字符；超出任一限制的提交会作为可重试的答案校验错误处理。
 
 ```json
 {
-  "outcome": "submitted",
+  "outcome": "completed",
   "answers": {
     "environment": { "status": "answered", "value": "生产环境" },
     "services": { "status": "answered", "value": ["订单服务", "会员服务"] },
@@ -300,9 +299,11 @@ type ResponseProvider<T = ChatCompletion> = (
 }
 ```
 
-外层工具消息仍通过标准的 `tool_call_id` 关联本次调用，不需要在参数或结果中重复生成交互 ID。`outcome` 的含义如下：`submitted` 表示用户提交了答案，`cancelled` 表示用户取消、拒绝或回合中止，`failed` 表示参数校验、答案校验或恢复过程失败。取消时结果使用 `{ "outcome": "cancelled", "reason": "..." }`。
+外层工具消息仍通过标准的 `tool_call_id` 关联本次调用，不需要在参数或结果中重复生成交互 ID。`outcome` 的含义如下：`completed` 表示交互已完成，即使所有问题都被跳过也成立；`cancelled` 表示用户取消、拒绝或回合中止；`failed` 表示参数、答案或交互状态校验失败，或发生内部错误。取消结果可包含 `reason`；失败结果包含 `error.code`、`error.message` 和 `error.retryable`。错误码为 `invalid_arguments`、`invalid_answer`、`invalid_state` 或 `internal_error`；`retryable` 表示模型是否可以修正问题并重新发起一次 AskUser 调用，不表示可以恢复同一个已结束的表单。
 
-相互独立的问题应合并到一次调用；依赖用户答案的追问或普通工具必须等结果返回后再执行；不要并行调用多个 `ask_user`。模型可能仍在同一响应中生成普通工具调用，但启用 `askUser` 后这些同批普通工具不会真正执行，而是标记为 `deferred`，并写入 `toolCallDeferredContent`；模型应在收到 AskUser 结果后的下一轮重新生成依赖用户答案的工具调用。
+失败结果示例：`{ "outcome": "failed", "error": { "code": "invalid_arguments", "message": "ask_user arguments must be valid JSON", "retryable": true } }`。
+
+同一次调用中的问题必须彼此独立，并且即使其他问题被跳过也仍然有意义；依赖先前答案的追问应放到后续调用。不要并行调用多个 `ask_user`。依赖 AskUser 答案的普通工具必须等结果返回后再调用；与所有可能答案都无关的工具可以和 `ask_user` 并行执行。Kit 不会推断普通工具是否依赖用户答案，模型应根据工具参数和任务语义判断调用顺序；若答案被跳过，不要发起依赖该答案的追问或工具调用。
 
 `askUserPrompt` 用于替代默认的 AskUser 提示词并注入 system message，不会替换应用已有的其他 system instructions。自定义内容必须保留上述输入、输出、跳过和执行顺序规则，否则模型可能生成无法解析或执行顺序错误的调用。
 

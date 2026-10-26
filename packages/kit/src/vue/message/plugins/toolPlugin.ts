@@ -85,13 +85,13 @@ export const toolPlugin = (
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息、状态和错误信息
-     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
-     * @param context.error - 当状态为 'failed'、'cancelled'、'denied' 或 'deferred' 时，可能包含错误信息
+     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied'
+     * @param context.error - 当状态为 'failed'、'cancelled' 或 'denied' 时，可能包含错误信息
      */
     onToolCallEnd?: (
       toolCall: ToolCall,
       context: UseMessageToolCallContext & {
-        status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
+        status: 'success' | 'failed' | 'cancelled' | 'denied'
         error?: Error
       },
     ) => void
@@ -107,8 +107,6 @@ export const toolPlugin = (
      * 当工具调用执行失败、被拒绝或因回合中止而未执行时使用的消息内容。
      */
     toolCallFailedContent?: string
-    /** AskUser 阻止同批普通工具执行时使用的消息内容。 */
-    toolCallDeferredContent?: string
     /** 是否在浏览器 localStorage 中持久化暂停的工具回合。 */
     persistPausedTurn?: boolean
     /**
@@ -137,7 +135,6 @@ export const toolPlugin = (
     toolCallAwaitingApprovalContent,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
-    toolCallDeferredContent = 'Tool call deferred until ask_user completes.',
     persistPausedTurn = true,
     autoFillMissingToolMessages = false,
     askUser = false,
@@ -246,7 +243,6 @@ export const toolPlugin = (
         toolCallAwaitingApprovalContent,
         toolCallCancelledContent,
         toolCallFailedContent,
-        toolCallDeferredContent,
         persistPausedTurn,
         autoFillMissingToolMessages,
       })

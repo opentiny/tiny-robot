@@ -26,14 +26,13 @@ export interface AskUserToolIntegration {
   runtimeTool: RuntimeTool
   getTools: () => [RuntimeTool]
   beforeCallTools: (toolCalls: ChatCompletionMessageToolCall[], context: ToolCallPreparationContext) => Promise<void>
-  shouldDeferToolCall: (toolCall: ChatCompletionMessageToolCall) => boolean
   shouldPauseToolCall: (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => boolean
   onBeforeRequest: (context: BeforeRequestContext) => void
   onClosingRequest: (context: BeforeRequestContext) => void
   onToolCallEnd: (
     toolCall: ChatCompletionMessageToolCall,
     context: ToolCallContext & {
-      status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
+      status: 'success' | 'failed' | 'cancelled' | 'denied'
       error?: Error
     },
   ) => void
@@ -97,7 +96,7 @@ const isAskUserToolCall = (
 
 const setAskUserTerminalResult = (
   context: ToolCallContext & {
-    status: 'success' | 'failed' | 'cancelled' | 'denied' | 'deferred'
+    status: 'success' | 'failed' | 'cancelled' | 'denied'
     error?: Error
   },
 ) => {
@@ -107,8 +106,17 @@ const setAskUserTerminalResult = (
 
   const state = getAskUserMessageState(context.assistantMessage)
   const cancelled = context.status === 'cancelled' || context.status === 'denied'
-  const outcome = cancelled ? 'cancelled' : 'failed'
   const reason = context.error?.message ?? `ask_user tool ${context.status}`
+  const result = cancelled
+    ? { outcome: 'cancelled' as const, reason }
+    : {
+        outcome: 'failed' as const,
+        error: {
+          code: context.error instanceof AskUserProtocolError ? context.error.code : ('internal_error' as const),
+          message: reason,
+          retryable: context.error instanceof AskUserProtocolError && context.error.code !== 'invalid_state',
+        },
+      }
 
   context.mutate('messages', () => {
     if (state.askUser && state.askUserRuntime) {
@@ -126,7 +134,7 @@ const setAskUserTerminalResult = (
       }
     }
     if (context.toolMessage) {
-      context.toolMessage.content = JSON.stringify({ outcome, reason })
+      context.toolMessage.content = JSON.stringify(result)
       context.toolMessage.metadata ??= {}
       context.toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
     }
@@ -135,7 +143,6 @@ const setAskUserTerminalResult = (
 
 export const createAskUserToolIntegration = (options: AskUserToolIntegrationOptions = {}): AskUserToolIntegration => {
   const runtimeTool = createAskUserRuntimeTool()
-  const deferredToolCallIds = new Set<string>()
   const stripAskUserContentFromRequest = (context: BeforeRequestContext) => {
     context.requestBody.messages = context.requestBody.messages.map(
       (message) => ({ ...message, content: stripAskUserContent(message.content) }) as ChatMessage,
@@ -146,7 +153,6 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
     runtimeTool,
     getTools: () => [runtimeTool],
     beforeCallTools: async (toolCalls, context) => {
-      deferredToolCallIds.clear()
       const askUserCalls = toolCalls.filter(isAskUserToolCall)
       if (askUserCalls.length === 0) {
         return
@@ -156,11 +162,6 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
       }
 
       const toolCall = askUserCalls[0]
-      const siblingToolCalls = toolCalls.filter((call) => !isAskUserToolCall(call))
-      for (const siblingToolCall of siblingToolCalls) {
-        deferredToolCallIds.add(siblingToolCall.id)
-      }
-
       let args: AskUserToolArguments
       try {
         args = parseAskUserToolCallArguments(toolCall)
@@ -192,7 +193,6 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
         }
       })
     },
-    shouldDeferToolCall: (toolCall) => deferredToolCallIds.delete(toolCall.id),
     shouldPauseToolCall: (toolCall, context) => {
       if (!isAskUserToolCall(toolCall)) {
         return false

@@ -6,10 +6,12 @@ export const ASK_USER_TOOL_NAME = 'ask_user'
 /** Model-facing rules for the AskUser protocol. */
 export const ASK_USER_SYSTEM_PROMPT = [
   'When you need explicit information from the user before continuing, use the `ask_user` tool instead of asking a plain-text question.',
-  'Combine independent questions into one complete form and use stable, unique question ids.',
+  'Combine questions into one `ask_user` call only when each can be answered independently and remains meaningful if any other question is skipped.',
   'Ask dependent follow-up questions in a later `ask_user` call after receiving the earlier answers.',
   'Do not call `ask_user` in parallel with another `ask_user` call.',
-  'Do not include another tool call in the same response as `ask_user`; answer-dependent tools must wait for the result.',
+  'A tool whose arguments or execution depend on an `ask_user` answer must wait until that answer is returned.',
+  'A tool that is independent of every possible `ask_user` answer may run in parallel with `ask_user`.',
+  'If an answer is skipped, do not ask dependent follow-up questions or call tools that require that answer.',
   'When `allowCustom` is true, do not add an "Other" or "Custom" option; the client provides custom input automatically.',
   'Every question may be skipped by the user. After the tool returns its answers, continue the task using those answers.',
 ].join('\n')
@@ -83,8 +85,16 @@ export interface AskUserMessageState {
 export type AskUserAnswer = { status: 'answered'; value: string | string[] } | { status: 'skipped' }
 
 export type AskUserToolResult =
-  | { outcome: 'submitted'; answers: Record<string, AskUserAnswer> }
-  | { outcome: 'cancelled' | 'failed'; reason?: string }
+  | { outcome: 'completed'; answers: Record<string, AskUserAnswer> }
+  | { outcome: 'cancelled'; reason?: string }
+  | {
+      outcome: 'failed'
+      error: {
+        code: AskUserProtocolErrorCode | 'internal_error'
+        message: string
+        retryable: boolean
+      }
+    }
 
 export type AskUserProtocolErrorCode = 'invalid_arguments' | 'invalid_answer' | 'invalid_state'
 
@@ -471,7 +481,8 @@ const askUserQuestionBaseSchema = {
       minLength: 1,
       maxLength: MAX_QUESTION_LENGTH,
       pattern: '\\S',
-      description: 'Complete user-facing question, including any context, constraints, and examples.',
+      description:
+        'Complete user-facing question, including any context, constraints, and examples. Each question in a call must be independently answerable and remain meaningful if any other question is skipped.',
     },
   },
 }
@@ -515,7 +526,7 @@ export const askUserTool: ChatCompletionFunctionTool = {
   function: {
     name: ASK_USER_TOOL_NAME,
     description:
-      'Ask the user for explicit input when it is needed before continuing. Combine independent questions into one call. Ask dependent follow-up questions in a later call after receiving the earlier answers. Do not call ask_user in parallel with another ask_user call. Do not include another tool call in the same response as ask_user; answer-dependent tools must wait for the result. When allowCustom is true, do not add an Other or Custom option. Every question may be skipped by the user.',
+      'Ask the user for explicit input when it is needed before continuing. Combine questions into one call only when each can be answered independently and remains meaningful if any other question is skipped. Ask dependent follow-up questions in a later call after receiving earlier answers. Do not call ask_user in parallel with another ask_user call. A tool whose arguments or execution depend on an ask_user answer must wait for the result; tools independent of every possible answer may run in parallel. If an answer is skipped, do not ask dependent follow-ups or call tools that require it. When allowCustom is true, do not add an Other or Custom option. Every question may be skipped by the user.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -531,7 +542,8 @@ export const askUserTool: ChatCompletionFunctionTool = {
           type: 'array',
           minItems: 1,
           maxItems: MAX_QUESTION_COUNT,
-          description: 'Questions to present together. Questions in one call must not depend on each other.',
+          description:
+            'Questions to present together. Include only independently answerable questions that remain meaningful when any other question is skipped.',
           items: askUserToolQuestionSchema,
         },
       },
@@ -560,7 +572,7 @@ export const createAskUserRuntimeTool = (): RuntimeTool => ({
     }
 
     return {
-      outcome: 'submitted',
+      outcome: 'completed',
       answers: validateAndNormalizeAnswers(args.questions, askUserState.answers),
     } satisfies AskUserToolResult
   },
