@@ -366,6 +366,152 @@ describe('ask_user tool integration', () => {
     expect(engine.getState().messages.at(-1)).toMatchObject({ role: 'assistant', content: '已处理无效工具调用。' })
   })
 
+  it.each([
+    { format: 'string', content: 'Base instructions' },
+    { format: 'array', content: [{ type: 'text' as const, text: 'Base instructions' }] },
+  ])(
+    'sanitizes closing requests and continuations with a $format system prompt',
+    async ({ content: systemContent }) => {
+      const callTool = vi.fn(async () => 'lookup result')
+      const onBeforeRequest = vi.fn()
+      let requestCount = 0
+      const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+        requestCount += 1
+
+        if (requestCount <= 2) {
+          expect(JSON.stringify(requestBody.messages)).toContain(ASK_USER_SYSTEM_PROMPT_START)
+        }
+
+        if (requestCount === 1) {
+          return {
+            id: 'closing-ask-user-start',
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: 'mock',
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: 'assistant',
+                  content: '需要补充信息。',
+                  tool_calls: [
+                    {
+                      id: 'call-closing-ask-user',
+                      type: 'function',
+                      function: {
+                        name: ASK_USER_TOOL_NAME,
+                        arguments: JSON.stringify({ questions: [{ id: 'name', question: '姓名' }] }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: 'tool_calls',
+              },
+            ],
+          } as ChatCompletion
+        }
+
+        if (requestCount === 2) {
+          return {
+            id: 'closing-ask-user-next-tool',
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: 'mock',
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call-after-ask-user',
+                      type: 'function',
+                      function: { name: 'lookup', arguments: '{}' },
+                    },
+                  ],
+                },
+                finish_reason: 'tool_calls',
+              },
+            ],
+          } as ChatCompletion
+        }
+
+        expect(requestBody.tools).toEqual([])
+        expect(requestBody.tool_choice).toBe('none')
+        expect(
+          requestBody.messages.some(
+            (message) =>
+              Array.isArray(message.content) &&
+              message.content.some((item) => item && typeof item === 'object' && item.type === 'ask_user'),
+          ),
+        ).toBe(false)
+        expect(JSON.stringify(requestBody.messages)).not.toContain('tiny-robot-ask-user-instructions')
+        expect(requestBody.messages.find((message) => message.role === 'system')?.content).toEqual(systemContent)
+        expect(requestBody.messages.find((message) => message.role === 'assistant')?.content).toEqual([
+          { type: 'text', text: '需要补充信息。' },
+        ])
+        expect(requestBody.messages.find((message) => message.role === 'tool')?.content).toBe(
+          JSON.stringify({ outcome: 'submitted', answers: { name: { status: 'answered', value: 'Ada' } } }),
+        )
+
+        return {
+          id: 'closing-ask-user-final',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: requestCount === 3 ? '尚未结束。' : '已结束。' },
+              finish_reason: requestCount === 3 ? 'length' : 'stop',
+            },
+          ],
+        } as ChatCompletion
+      })
+
+      const engine = createTestMessageEngine({
+        initialMessages: [{ role: 'system', content: systemContent }],
+        plugins: [
+          ...silentDefaultPlugins,
+          lengthPlugin(),
+          toolPlugin({
+            askUser: true,
+            maxToolRounds: 1,
+            getTools: async () => [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } }],
+            onBeforeRequest,
+            callTool,
+          }),
+        ],
+        responseProvider,
+      })
+
+      await engine.sendMessage('结束这个请求')
+      expect(engine.getState().requestState).toBe('paused')
+
+      const assistantMessage = engine.getState().messages.find((message) => message.role === 'assistant')
+      const state = assistantMessage?.state as Record<string, unknown>
+      state.askUser = {
+        ...(state.askUser as Record<string, unknown>),
+        status: 'submitted',
+        answers: { name: 'Ada' },
+      }
+
+      await expect(
+        engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-closing-ask-user' }),
+      ).resolves.toEqual({ status: 'resumed', toolCallId: 'call-closing-ask-user' })
+      expect(requestCount).toBe(4)
+      expect(onBeforeRequest).toHaveBeenCalledTimes(4)
+      expect(callTool).not.toHaveBeenCalled()
+      expect(engine.getState().requestState).toBe('completed')
+      expect(assistantMessage).toMatchObject({
+        content: [{ type: 'text', text: '需要补充信息。' }, { type: 'ask_user' }],
+        state: { askUser: { status: 'submitted' } },
+      })
+      expect(engine.getState().messages[0]?.content).toEqual(systemContent)
+    },
+  )
+
   it.each(['denied', 'cancelled', 'failed'] as const)('marks the form as error when ask_user ends as %s', (status) => {
     const integration = createAskUserToolIntegration()
     const assistantMessage = {

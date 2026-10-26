@@ -1059,6 +1059,7 @@ export const toolPlugin = (
 
       if (toolLoopMode === 'closing') {
         await restOptions.onBeforeRequest?.(context)
+        askUserIntegration?.onClosingRequest(context)
         const disableTools = () => {
           requestBody.tools = []
           requestBody.tool_choice = 'none'

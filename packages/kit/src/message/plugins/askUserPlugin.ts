@@ -29,6 +29,7 @@ export interface AskUserToolIntegration {
   shouldDeferToolCall: (toolCall: ChatCompletionMessageToolCall) => boolean
   shouldPauseToolCall: (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => boolean
   onBeforeRequest: (context: BeforeRequestContext) => void
+  onClosingRequest: (context: BeforeRequestContext) => void
   onToolCallEnd: (
     toolCall: ChatCompletionMessageToolCall,
     context: ToolCallContext & {
@@ -135,6 +136,11 @@ const setAskUserTerminalResult = (
 export const createAskUserToolIntegration = (options: AskUserToolIntegrationOptions = {}): AskUserToolIntegration => {
   const runtimeTool = createAskUserRuntimeTool()
   const deferredToolCallIds = new Set<string>()
+  const stripAskUserContentFromRequest = (context: BeforeRequestContext) => {
+    context.requestBody.messages = context.requestBody.messages.map(
+      (message) => ({ ...message, content: stripAskUserContent(message.content) }) as ChatMessage,
+    )
+  }
 
   return {
     runtimeTool,
@@ -196,14 +202,10 @@ export const createAskUserToolIntegration = (options: AskUserToolIntegrationOpti
       return state.askUserRuntime?.toolCallId === toolCall.id && Boolean(state.askUser)
     },
     onBeforeRequest: (context) => {
-      const messages = context.requestBody.messages.map((message) => {
-        return {
-          ...message,
-          content: stripAskUserContent(message.content) as ChatMessage['content'],
-        }
-      }) as unknown as ChatMessage[]
-      context.requestBody.messages = appendAskUserSystemPrompt(messages, options.prompt)
+      stripAskUserContentFromRequest(context)
+      context.requestBody.messages = appendAskUserSystemPrompt(context.requestBody.messages, options.prompt)
     },
+    onClosingRequest: stripAskUserContentFromRequest,
     onToolCallEnd: (toolCall, context) => {
       if (!isAskUserToolCall(toolCall) || context.status === 'success') {
         return
