@@ -104,8 +104,8 @@ const hasPrompts = computed(() => props.prompts !== false && promptProps.value.i
 
 const { scrollToBottom } = useAutoScroll({
   scrollRef: () => props.scrollTarget,
-  contentRef,
-  enabled: shouldAutoScroll,
+  contentRef: () => contentRef.value,
+  enabled: () => shouldAutoScroll.value,
 })
 
 watch(

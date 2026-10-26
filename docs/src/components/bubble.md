@@ -60,9 +60,21 @@ Bubble 用于展示单条消息或消息列表，适合聊天、AI 流式回复�
 
 Bubble 提供 `BubbleRenderers.Markdown` 渲染器。使用前需要在应用中安装 `markdown-it` 和 `dompurify`；单个 Bubble 可以通过 `fallback-content-renderer` 配置，列表或组件树则推荐由 `BubbleProvider` 统一配置。
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add markdown-it dompurify
 ```
+
+```bash [yarn]
+yarn add markdown-it dompurify
+```
+
+```bash [npm]
+npm install markdown-it dompurify
+```
+
+:::
 
 <demo vue="../../demos/bubble/markdown.vue" title="Markdown 内容" description="配置 Markdown 渲染器展示格式化文本。" />
 
@@ -999,6 +1011,6 @@ type BubbleMessageGroup = {
 
 ## 迁移与弃用
 
-Bubble v0.4 重构了消息结构与渲染器体系。从 v0.3.x 升级时，请按照 [Bubble 迁移指南](../migration/bubble-migration) 调整消息数据、渲染器和事件接入方式；新项目直接使用本文 API。
+Bubble v0.4 重构了消息结构与渲染器体系。从 v0.3.x 升级时，请按照 [Bubble 迁移指南](../migration/v0.4/bubble) 调整消息数据、渲染器和事件接入方式；新项目直接使用本文 API。
 
 `BubbleMessageGroup.startIndex` 已弃用。自定义分组可能产生不连续消息，应用应使用 `messageIndexes` 将组内索引映射回原始消息索引。

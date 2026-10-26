@@ -13,13 +13,19 @@ TinyRobot 提供官方 CLI 工具 [`@opentiny/tiny-robot-cli`](https://www.npmjs
 
 无需全局安装，可直接通过 `npx` 或 `pnpm dlx` 使用。
 
-```bash
-# npm
-npx @opentiny/tiny-robot-cli
+::: code-group
 
+```bash [pnpm]
 # pnpm
 pnpm dlx @opentiny/tiny-robot-cli
 ```
+
+```bash [npm]
+# npm
+npx @opentiny/tiny-robot-cli
+```
+
+:::
 
 ## create
 
@@ -35,9 +41,28 @@ npx @opentiny/tiny-robot-cli create <project-name> --template basic
 npx @opentiny/tiny-robot-cli create my-app --template basic
 ```
 
-创建完成后：
+CLI 还提供独立的 Chat 模板：
 
 ```bash
+npx @opentiny/tiny-robot-cli create my-chat --template chat
+```
+
+### 运行时版本
+
+`create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。通常无需指定版本；如需让生成项目使用特定 TinyRobot 版本，可通过 `--runtime-version <version>` 覆盖默认版本。
+
+```bash
+npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2
+npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
+```
+
+`create` 会将版本写入生成项目的 TinyRobot 运行时依赖。`add chat` 使用该版本处理 TinyRobot 运行时依赖；稳定版本会保留能够满足目标版本的依赖，预发布版本按精确版本处理。
+
+创建完成后：
+
+::: code-group
+
+```bash [pnpm]
 cd my-app
 pnpm install
 
@@ -46,6 +71,28 @@ pnpm install
 
 pnpm dev
 ```
+
+```bash [yarn]
+cd my-app
+yarn install
+
+# configure your API key
+# copy .env.example to .env.local
+
+yarn dev
+```
+
+```bash [npm]
+cd my-app
+npm install
+
+# configure your API key
+# copy .env.example to .env.local
+
+npm run dev
+```
+
+:::
 
 create 命令特性
 
@@ -64,34 +111,19 @@ npx @opentiny/tiny-robot-cli add chat
 
 CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package。
 
-```bash
-npx @opentiny/tiny-robot-cli add chat
-```
+执行命令后，CLI 会生成以下内容：
 
-执行后，CLI 会根据当前项目状态自动处理以下内容：
+| 变更项                 | 说明                               |
+| ---------------------- | ---------------------------------- |
+| `src/tiny-robot-chat/` | 集成 TinyRobot Chat 组件和功能样式 |
+| `.env.example`         | 添加所需环境变量模板               |
+| `package.json`         | 添加或保留 TinyRobot Chat 所需依赖 |
 
-| 变更项                 | 说明                                   |
-| ---------------------- | -------------------------------------- |
-| `src/tiny-robot-chat/` | 集成 TinyRobot Chat 组件和功能样式     |
-| `main.ts` / `main.js`  | 自动插入 TinyRobot 样式导入            |
-| `.env.example`         | 添加所需环境变量模板                   |
-| `package.json`         | 添加或保留 TinyRobot Chat 所需依赖     |
-| `App.vue`              | 自动挂载 `<TinyRobotChat />`           |
+`add chat` 不会修改 `src/main.ts`、`src/main.js`、`src/App.vue` 或 `vite.config.*`。
 
-执行过程中会展示变更确认列表，可按需勾选。
+默认交互模式会显示待变更内容并请求确认；`--yes` 直接应用变更，`--dry-run` 只预览变更计划，不写入文件。如果写入过程中失败，CLI 会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
 
-CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。已有兼容版本会保留，更高版本不会被降级。
-
-```shell
-? Select which file changes to apply (all selected by default):
-❯◉ Chat feature files
- ◉ main entry style imports
- ◉ .env.example
- ◉ package.json
- ◉ App.vue mount
-```
-
-`add chat` 不会创建或修改用户项目的 `vite.config.*`。这是宿主项目的构建配置，需要手动补充 Model Context MCP 代理。
+CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。稳定版本会保留能够满足目标版本的依赖，预发布版本按精确版本处理。
 
 ### 配置 Model Context MCP 代理
 
@@ -113,22 +145,14 @@ export default defineConfig({
 
 ### 下一步操作
 
-**导入样式**
-
-如果没有 `src/main.ts` 或者 `src/main.js` 文件，CLI 不会写入样式相关代码，此时你需要手动在应用入口导入样式
-
-```shell
-import '@opentiny/tiny-robot/dist/style.css'
-```
-
 **接入组件**
 
-仅当未选择 `App.vue mount` 或 CLI 未能安全自动挂载时，才需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
+CLI 不会自动挂载 `TinyRobotChat`，需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
 
 ```vue
 <!-- src/App.vue -->
 <script setup lang="ts">
-import HelloWord from './components/HelloWorld.vue'
+import HelloWorld from './components/HelloWorld.vue'
 import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 </script>
 
@@ -139,9 +163,11 @@ import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 </template>
 ```
 
+生成的 `TinyRobotChat.vue` 会自动导入 TinyRobot 和 Chat 样式，无需在 `src/main.ts` 或 `src/main.js` 中重复导入。
+
 **配置 API_KEY**
 
-复制 `.env.example` 为 `.env.local`，再在 `.env.local` 中配置大模型的 `API_KEY`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
+复制 `.env.example` 为 `.env.local`，根据使用的模型配置 `VITE_ALIYUN_DASHSCOPE_KEY` 或 `VITE_DEEPSEEK_API_KEY`；自定义模型代理可配置 `VITE_QWEN_API_URL` 或 `VITE_DEEPSEEK_API_URL`，自定义 MCP 地址使用 `VITE_AMAP_MCP_URL`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
 
 ```shell
 # .env.local
@@ -152,10 +178,21 @@ VITE_DEEPSEEK_API_KEY=your_api_key
 
 如果依赖更新了，不要忘记安装
 
-```shell
-npm install
+::: code-group
+
+```bash [pnpm]
 pnpm install
 ```
+
+```bash [yarn]
+yarn install
+```
+
+```bash [npm]
+npm install
+```
+
+:::
 
 现在你可以启动你的应用体验 AI 聊天应用了
 

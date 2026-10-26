@@ -61,6 +61,9 @@ onBeforeUnmount(() => {
       <template #prefix>
         <IconAi :style="{ fontSize: '26px' }" />
       </template>
+      <template #input-prefix>
+        <span class="input-prefix-label">需求</span>
+      </template>
       <template #footer-right>
         <UploadButton tooltip="文件上传" tooltip-placement="top" />
       </template>
@@ -93,6 +96,11 @@ onBeforeUnmount(() => {
   background: #f5f5f5;
   border-color: #1476ff;
   color: #1476ff;
+}
+
+.input-prefix-label {
+  color: #1476ff;
+  font-weight: 600;
 }
 
 .message {

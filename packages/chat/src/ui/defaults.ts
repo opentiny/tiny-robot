@@ -78,6 +78,8 @@ export function createDefaultChatLabels(): ChatLabels {
     modelEmptyText: '暂无模型',
     rightAsideTitle: '详情',
     mcp: 'MCP',
+    mcpInstallServer: '安装',
+    mcpRemoveServer: '卸载',
     thinkingFeature: '深度思考',
     searchFeature: '联网搜索',
     welcomeTitle: 'TinyRobot AI 助手',

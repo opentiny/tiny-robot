@@ -6,6 +6,12 @@ import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
 import { themeConfig } from './themeConfig'
 
 const devAlias = {
+  '@opentiny/tiny-robot/vanilla/style.css': fileURLToPath(
+    new URL('../../packages/components/src/vanilla/quick-assist/style.css', import.meta.url),
+  ),
+  '@opentiny/tiny-robot/vanilla': fileURLToPath(
+    new URL('../../packages/components/src/vanilla/index.ts', import.meta.url),
+  ),
   '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
   '@opentiny/tiny-robot-kit': fileURLToPath(new URL('../../packages/kit/src', import.meta.url)),
   '@opentiny/tiny-robot-style': fileURLToPath(
@@ -40,9 +46,24 @@ export default defineConfig({
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
     },
     resolve: {
-      alias: {
-        ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
-      },
+      alias: [
+        ...(process.env.VP_MODE === 'development'
+          ? [
+              {
+                find: /^@opentiny\/tiny-robot\/dist\/style\.css$/,
+                replacement: fileURLToPath(new URL('../../packages/components/src/styles/root.css', import.meta.url)),
+              },
+              {
+                find: /^@opentiny\/tiny-robot-chat$/,
+                replacement: fileURLToPath(new URL('../../packages/chat/src/index.ts', import.meta.url)),
+              },
+            ]
+          : []),
+        ...Object.entries(process.env.VP_MODE === 'development' ? devAlias : prodAlias).map(([find, replacement]) => ({
+          find,
+          replacement,
+        })),
+      ],
     },
   },
   markdown: {

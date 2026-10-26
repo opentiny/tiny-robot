@@ -82,6 +82,8 @@ export interface ChatLabels {
   searchModel: string
   modelEmptyText: string
   mcp: string
+  mcpInstallServer: string
+  mcpRemoveServer: string
   thinkingFeature: string
   searchFeature: string
   welcomeTitle: string
@@ -96,15 +98,15 @@ export interface ChatAsideOptions {
   readonly mode?: 'dock' | 'drawer'
   readonly width?: number
   readonly collapsedWidth?: number
+  readonly resizable?: boolean
+  readonly minWidth?: number
+  readonly maxWidth?: number
   readonly open?: boolean
   readonly defaultOpen?: boolean
 }
 
 export interface ChatRightAsideOptions extends Omit<ChatAsideOptions, 'open' | 'defaultOpen'> {
   readonly showClose?: boolean
-  readonly resizable?: boolean
-  readonly minWidth?: number
-  readonly maxWidth?: number
   readonly panels?: readonly ChatRightAsidePanelOptions[]
 }
 
