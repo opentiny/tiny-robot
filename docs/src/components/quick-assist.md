@@ -203,6 +203,14 @@ createQuickAssist({
 
 `ValidateSuggestion` 类型可从 `@opentiny/tiny-robot/vanilla` 导入。AI 原始输出的 JSON 解析、字段映射和缺失 `id` 的生成应在业务 `getSuggestions` 中完成，组件接收统一的 `Suggestion[]`。
 
+### 自定义发送内容
+
+用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
+
+下面的示例对两种发送方式统一补充产品、业务场景和选中内容，并展示提交后的 `query`、`prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
+
+<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
+
 ### 页面上下文与敏感数据
 
 选中示例中的虚构租户编号并提交，可查看选区文本、附近文本和业务字段中的编号被统一脱敏后的上下文。另一个标为敏感的区域不能触发划词，也不会进入附近文本。

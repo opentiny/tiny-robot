@@ -212,6 +212,7 @@ try {
       '#qa-delay-text',
       '#qa-position-text',
       '#qa-recommendations-text',
+      '#qa-build-prompt-text',
       '#qa-context-text',
       '#qa-scope-allowed',
       '#qa-lifecycle-text',
@@ -289,6 +290,34 @@ try {
     await expect(page.locator('.tr-quick-assist__popover')).toContainText('查看注意事项')
     await page.locator('.tr-quick-assist__popover').getByText('查看注意事项').click()
     await expect(page.locator('#qa-recommendations-text').locator('..').locator('pre')).toContainText('查看注意事项')
+
+    const promptTerm = page.locator('#qa-build-prompt-term')
+    const promptResult = page.locator('.qa-prompt-result')
+    for (const viaSuggestion of [false, true]) {
+      await promptTerm.scrollIntoViewIfNeeded()
+      await promptTerm.evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        document.dispatchEvent(new Event('selectionchange'))
+      })
+      await page.locator('.tr-quick-assist__trigger').click()
+      await page.locator('.tr-quick-assist__popover textarea').fill('如何选择？')
+      if (viaSuggestion) await page.getByRole('button', { name: '解释 计费模式', exact: true }).click()
+      else await page.locator('.tr-quick-assist__popover textarea').press('Enter')
+      await expect(promptResult.locator('dd').nth(0)).toHaveText(viaSuggestion ? '解释 计费模式' : '如何选择？')
+      await expect(promptResult.locator('dd').nth(1)).toHaveText(
+        [
+          '产品：云服务器',
+          '业务场景：生产环境',
+          '参考内容：计费模式',
+          `用户问题：${viaSuggestion ? '请解释“计费模式”的含义，并比较常见选项。' : '如何选择？'}`,
+        ].join('\n\n'),
+      )
+      await expect(promptResult.locator('dd').nth(2)).toHaveText('计费模式')
+    }
 
     const contextText = page.locator('#qa-context-tenant')
     await contextText.scrollIntoViewIfNeeded()
