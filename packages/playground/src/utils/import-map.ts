@@ -8,6 +8,12 @@ interface ImportMapOptions {
 
 export function generateImportMap(options: ImportMapOptions) {
   const { tinyRobotVersion, builtinImportMap, extraImports } = options
+  const vanillaBaseUrl = `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/vanilla`
+  // 浏览器不能直接将 CSS 作为 JS 模块导入，通过模块加载样式表。
+  const vanillaStyleModule = `const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = ${JSON.stringify(`${vanillaBaseUrl}/style.css`)};
+document.head.appendChild(link);`
 
   const extraImportsMap = Object.entries(extraImports || {})
     .map(([pkg, version]) => {
@@ -24,6 +30,8 @@ export function generateImportMap(options: ImportMapOptions) {
       ...builtinImportMap?.imports,
       // TinyRobot 相关包 - 使用统一版本号
       '@opentiny/tiny-robot': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/index.min.js`,
+      '@opentiny/tiny-robot/vanilla': `${vanillaBaseUrl}/index.js`,
+      '@opentiny/tiny-robot/vanilla/style.css': `data:text/javascript,${encodeURIComponent(vanillaStyleModule)}`,
       '@opentiny/tiny-robot-svgs': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${tinyRobotVersion}/dist/tiny-robot-svgs.min.js`,
       '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/dist/index.mjs`,
 
