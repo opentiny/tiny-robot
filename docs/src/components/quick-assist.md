@@ -150,7 +150,7 @@ createQuickAssist({
 | 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果                                                                       |
 | 两者都配置                             | 先显示静态模板，再合并异步推荐；默认静态在前、远程追加，按 `id` 保留首次出现项，最后由 `maxSuggestions` 裁剪；可用 `mergeSuggestions` 自定义覆盖策略 |
 
-`Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送。手动输入则把编辑后的内容作为 `query`；可用 `buildPrompt` 自定义最终发送内容。
+`Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送，此时 `query` 使用推荐项的 `label`，不受输入框内容影响；手动发送时 `query` 使用去除首尾空白后的输入内容。划词原文保留在 `context.text` 中。`buildPrompt` 收到的 `query` 遵循相同规则，可用它自定义最终发送的 `prompt`。
 
 #### 远程推荐覆盖静态问题
 

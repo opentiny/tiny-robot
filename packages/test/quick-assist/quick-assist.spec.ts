@@ -767,6 +767,37 @@ test('nearby context excludes sensitive, hidden and form content', async ({ page
   expect(JSON.stringify(context)).not.toMatch(/HIDDEN_SECRET|PASSWORD_VALUE|HIDDEN_TEXT/)
 })
 
+for (const customPrompt of [false, true]) {
+  for (const editInput of [false, true]) {
+    test(`suggestion query uses its label with customPrompt=${customPrompt} and editInput=${editInput}`, async ({
+      page,
+    }) => {
+      await page.evaluate((customPrompt) => {
+        document.querySelector('#term')!.textContent = '计费模式'
+        window.resetQuickAssist({
+          suggestions: [{ id: 'explain', label: '解释 计费模式', prompt: '请解释计费模式的含义' }],
+          ...(customPrompt
+            ? {
+                buildPrompt: ({ query, context, suggestion }) => `${query}|${context.text}|${suggestion?.prompt}`,
+              }
+            : {}),
+        })
+      }, customPrompt)
+      await open(page)
+      if (editInput) await page.locator(`${popover} textarea`).fill('与推荐项无关的输入')
+      await page.getByRole('button', { name: '解释 计费模式', exact: true }).click()
+      const requests = await page.evaluate(() => window.qaRequests)
+      expect(requests).toHaveLength(1)
+      expect(requests[0]).toMatchObject({
+        query: '解释 计费模式',
+        prompt: customPrompt ? '解释 计费模式|计费模式|请解释计费模式的含义' : '请解释计费模式的含义',
+        context: { text: '计费模式' },
+        suggestion: { id: 'explain', label: '解释 计费模式', prompt: '请解释计费模式的含义' },
+      })
+    })
+  }
+}
+
 test('async-only opens immediately and accepts input while suggestions load', async ({ page }) => {
   await page.evaluate(() => window.resetQuickAssist({ getSuggestions: () => new Promise(() => {}) }))
   await open(page)
@@ -774,6 +805,10 @@ test('async-only opens immediately and accepts input while suggestions load', as
   await input.fill('手动问题')
   await input.press('Enter')
   await expect(page.locator('#chat')).toBeVisible()
+  expect(await page.evaluate(() => window.qaRequests[0])).toMatchObject({
+    query: '手动问题',
+    prompt: '手动问题',
+  })
 })
 
 test('async results append and deduplicate templates', async ({ page }) => {

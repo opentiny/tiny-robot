@@ -330,7 +330,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       onSuggestionClick: (suggestion) => {
         if (!isCurrent(candidate)) return
         emit({ type: 'suggestion_click', sessionId: candidate.id, suggestionId: suggestion.id })
-        submit(candidate, candidate.inputValue, suggestion)
+        submit(candidate, suggestion.label, suggestion)
       },
       onClose: () => closeSession('escape'),
     })

@@ -140,6 +140,7 @@ export interface SuggestionFactory {
 /** A request frozen immediately before handing work to the host adapter. */
 export interface AIRequest {
   source: string
+  /** Trimmed user input for manual submissions, or the clicked suggestion's label. */
   query: string
   prompt: string
   context: QuickAssistContext
@@ -204,6 +205,7 @@ export type ValidateSuggestion = (suggestion: Suggestion, context: QuickAssistCo
 export type MergeSuggestions = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext) => Suggestion[]
 
 export type BuildPromptInput = {
+  /** Trimmed user input for manual submissions, or the clicked suggestion's label. */
   query: string
   context: QuickAssistContext
   suggestion?: Suggestion
