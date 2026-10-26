@@ -109,7 +109,7 @@
   position: fixed;
   display: flex;
   flex-direction: column;
-  width: min(272px, calc(100vw - 16px));
+  width: min(var(--tr-quick-assist-popover-width, 272px), calc(100vw - 16px));
   min-height: 108px;
   max-height: min(440px, calc(100vh - 16px));
   padding: 15px;

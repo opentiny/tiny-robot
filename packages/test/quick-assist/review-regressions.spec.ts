@@ -8,6 +8,105 @@ for (const entry of ['index', 'umd']) {
       await page.waitForFunction(() => !!window.qa)
     })
 
+    for (const owner of ['validator', 'provider']) {
+      test(`remote structured metadata is isolated from ${owner} mutations`, async ({ page }) => {
+        await page.evaluate((owner) => {
+          const cycle: Record<string, unknown> = {}
+          cycle.self = cycle
+          const meta = {
+            nested: { value: 'original' },
+            date: new Date('2026-01-01T00:00:00Z'),
+            map: new Map([['key', { value: 'original' }]]),
+            set: new Set(['original']),
+            bytes: new Uint8Array([42]),
+            bigint: BigInt(123),
+            cycle,
+          }
+          const mutate = (value: typeof meta) => {
+            value.nested.value = 'mutated'
+            value.date.setUTCFullYear(2000)
+            value.map.get('key')!.value = 'mutated'
+            value.set.clear()
+            value.bytes[0] = 0
+            value.cycle.self = null
+          }
+          window.qa.updateOptions({
+            suggestions: [],
+            getSuggestions: async () => [{ id: 'remote', label: 'Remote metadata', prompt: 'explain', meta }],
+            validateSuggestion: (suggestion) => {
+              if (owner === 'validator') mutate(suggestion.meta as typeof meta)
+              return true
+            },
+            mergeSuggestions: (_base, incoming) => {
+              if ((incoming[0].meta as typeof meta).nested.value !== 'original') {
+                throw new Error('Validator mutated merge input')
+              }
+              // A retained provider object is mutated after its result has been received.
+              if (owner === 'provider') mutate(meta)
+              return incoming
+            },
+            adapter: {
+              submit: (request) => {
+                window.qaRequests.push(request)
+              },
+            },
+          })
+          window.qa.activate({ text: 'Explain', anchor: document.querySelector('#term')!, open: 'popover' })
+        }, owner)
+        await page.getByRole('button', { name: 'Remote metadata', exact: true }).click()
+        expect(
+          await page.evaluate(() => {
+            const meta = window.qaRequests[0].suggestion!.meta!
+            return {
+              nested: meta.nested,
+              date: (meta.date as Date).toISOString(),
+              map: (meta.map as Map<string, { value: string }>).get('key'),
+              set: [...(meta.set as Set<string>)],
+              bytes: [...(meta.bytes as Uint8Array)],
+              bigint: meta.bigint === BigInt(123),
+              cycle: (meta.cycle as Record<string, unknown>).self === meta.cycle,
+            }
+          }),
+        ).toEqual({
+          nested: { value: 'original' },
+          date: '2026-01-01T00:00:00.000Z',
+          map: { value: 'original' },
+          set: ['original'],
+          bytes: [42],
+          bigint: true,
+          cycle: true,
+        })
+        expect(await page.evaluate(() => window.qaEvents.some((event) => event.type === 'error'))).toBe(false)
+      })
+    }
+
+    for (const validSibling of [true, false]) {
+      test(`uncloneable remote metadata is filtered, valid sibling: ${validSibling}`, async ({ page }) => {
+        await page.evaluate((validSibling) => {
+          window.qa.updateOptions({
+            suggestions: [{ id: 'base', label: 'Base fallback', prompt: 'base' }],
+            getSuggestions: async () => [
+              { id: 'invalid', label: 'Invalid', prompt: 'invalid', meta: { fn: () => {} } },
+              ...(validSibling
+                ? [{ id: 'valid', label: 'Valid remote', prompt: 'valid', meta: { nested: { value: 'clean' } } }]
+                : []),
+            ],
+          })
+          window.qa.activate({ text: 'Explain', anchor: document.querySelector('#term')!, open: 'popover' })
+        }, validSibling)
+        await expect(page.locator('.tr-quick-assist__suggestion')).toHaveText(
+          validSibling ? ['Base fallback', 'Valid remote'] : ['Base fallback'],
+        )
+        await expect
+          .poll(() =>
+            page.evaluate(() =>
+              window.qaEvents.some((event) => event.type === 'error' && event.stage === 'suggestions'),
+            ),
+          )
+          .toBe(!validSibling)
+      })
+    }
+
     test('each remote callback receives an independent sanitized context', async ({ page }) => {
       await page.evaluate(() => {
         window.qa.updateOptions({

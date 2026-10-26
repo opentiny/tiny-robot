@@ -8,6 +8,38 @@ for (const entry of ['index', 'umd']) {
       await page.waitForFunction(() => !!window.qa)
     })
 
+    for (const custom of [false, true]) {
+      for (const viewportWidth of [1280, 240]) {
+        for (const side of ['left', 'right']) {
+          test(`popover width custom=${custom}, viewport=${viewportWidth}, anchor=${side}`, async ({ page }) => {
+            await page.setViewportSize({ width: viewportWidth, height: 720 })
+            await page.evaluate(
+              ({ custom, side }) => {
+                const style = document.createElement('style')
+                style.textContent = '.business-quick-assist { --tr-quick-assist-popover-width: 400px; }'
+                document.head.append(style)
+                const anchor = document.querySelector<HTMLElement>('#term')!
+                Object.assign(anchor.style, { position: 'fixed', top: '100px', [side]: '8px' })
+                window.qa.updateOptions({ attrs: { popover: { class: custom ? 'business-quick-assist' : '' } } })
+                window.qa.activate({ text: 'Explain', anchor, open: 'popover' })
+              },
+              { custom, side },
+            )
+            const popover = page.locator('.tr-quick-assist__popover')
+            await expect(popover).toBeVisible()
+            await expect
+              .poll(() =>
+                popover.evaluate((element) => {
+                  const rect = element.getBoundingClientRect()
+                  return { width: rect.width, inside: rect.left >= 0 && rect.right <= innerWidth }
+                }),
+              )
+              .toEqual({ width: Math.min(custom ? 400 : 272, viewportWidth - 16), inside: true })
+          })
+        }
+      }
+    }
+
     test('an anchor that restores visibility under a hidden ancestor can activate', async ({ page }) => {
       await page.evaluate(() => {
         const parent = document.createElement('div')

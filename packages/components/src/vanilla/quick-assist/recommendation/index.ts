@@ -1,4 +1,4 @@
-import { copyContext } from '../context/value'
+import { copyContext, snapshotContextData } from '../context/value'
 import type { QuickAssistRecommendationModule } from '../core/types'
 import type {
   GetSuggestions,
@@ -54,7 +54,7 @@ function isFactory(value: QuickAssistSuggestionInput): value is SuggestionFactor
 }
 
 function copySuggestion(value: Suggestion): Suggestion {
-  return value.meta ? { ...value, meta: { ...value.meta } } : { ...value }
+  return value.meta ? { ...value, meta: snapshotContextData(value.meta) } : { ...value }
 }
 
 function validateSuggestion(value: unknown, index: number): Suggestion {

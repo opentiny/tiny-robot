@@ -126,6 +126,7 @@ export interface Suggestion {
   id: string
   label: string
   prompt: string
+  /** Structured-cloneable metadata; shared memory is not supported. */
   meta?: Record<string, unknown>
 }
 

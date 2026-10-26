@@ -181,6 +181,8 @@ createQuickAssist({
 
 可选的同步回调 `validateSuggestion(suggestion, context): boolean` 在基础校验后、合并前逐项执行，仅用于远程问题：
 
+推荐的 `meta` 会进行结构化深拷贝，校验器修改副本或提供器在推荐被接收后修改原对象，都不会改变已接收的推荐内容。`meta` 支持 Date、Map、Set、类型化数组和循环引用，但不能包含函数、DOM 节点、响应式代理或共享内存。远程问题的 `meta` 无法克隆时，该项按无效问题过滤；非空批次全部无效时仍按推荐失败处理。
+
 | 参数或返回值          | 含义                                                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `suggestion`          | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
@@ -674,3 +676,19 @@ QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-
 | `--tr-quick-assist-pill-radius`          | 入口、输入区及推荐问题按钮圆角   | `var(--tr-radius-full, 9999px)`                                                   |
 | `--tr-quick-assist-shadow`               | 入口及输入浮层阴影               | `0 2px 8px 0 rgba(0, 0, 0, 0.16)`                                                 |
 | `--tr-quick-assist-z-index`              | 组件层级                         | `var(--tr-z-index-popover, 1500)`                                                 |
+| `--tr-quick-assist-popover-width`        | 输入浮层宽度，仍受视口宽度减 16px 限制 | `272px` |
+
+例如，通过 `attrs.popover.class` 为浮层添加业务 class 后设置宽度：
+
+```ts
+createQuickAssist({
+  adapter,
+  attrs: { popover: { class: 'business-quick-assist' } },
+})
+```
+
+```css
+.business-quick-assist {
+  --tr-quick-assist-popover-width: 400px;
+}
+```
