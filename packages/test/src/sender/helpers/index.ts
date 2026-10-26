@@ -69,6 +69,10 @@ export function createSenderTestHelper(page: Page) {
       await page.locator(selectors.toggleExternalContentBtn).click()
     },
 
+    async toggleConstrainedWidth() {
+      await page.locator(selectors.toggleConstrainedWidthBtn).click()
+    },
+
     async toggleAttachmentsSource() {
       await page.locator(selectors.toggleAttachmentsSourceBtn).click()
     },

@@ -70,6 +70,9 @@ defineExpose(expose)
       <template v-if="$slots.footer" #footer>
         <slot name="footer" />
       </template>
+      <template v-if="$slots['actions-inline']" #actions-inline="slotProps">
+        <slot name="actions-inline" v-bind="slotProps" />
+      </template>
       <template v-if="$slots['footer-right']" #footer-right>
         <slot name="footer-right" />
       </template>
@@ -81,6 +84,8 @@ defineExpose(expose)
 .tr-sender {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   background-color: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   box-shadow: var(--tr-sender-box-shadow);

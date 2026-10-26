@@ -381,6 +381,24 @@ test.describe('Sender 组件测试', () => {
     await expect(helper.getSender()).toHaveClass(/tr-sender--multiple/)
   })
 
+  test('Slots: 单行操作切换多行后应显示在 footer-right', async () => {
+    await expect(page.locator(helper.selectors.actionsInlineBtn)).toBeVisible()
+    await expect(page.locator(`${helper.selectors.footer} ${helper.selectors.actionsInlineBtn}`)).toHaveCount(0)
+
+    await helper.toggleMode()
+
+    await expect(page.locator(`${helper.selectors.footer} ${helper.selectors.actionsInlineBtn}`)).toBeVisible()
+    await expect(page.locator(`${helper.selectors.footer} ${helper.selectors.footerRightBtn}`)).toBeVisible()
+    await expect(page.locator('.tr-sender-actions-inline')).toHaveCount(0)
+  })
+
+  test('交互: 受限父容器下中文内容溢出应自动切换到多行模式', async () => {
+    await helper.toggleConstrainedWidth()
+    await helper.typeContent('这是一段足够长的中文内容，用于验证单行输入超出父容器宽度后能够自动切换到多行模式。')
+
+    await expect(helper.getSender()).toHaveClass(/tr-sender--multiple/)
+  })
+
   test('边界: 快速连续输入和删除应该正常工作', async () => {
     await helper.typeContent('快速输入测试')
     await helper.expectEditorContent('快速输入测试')

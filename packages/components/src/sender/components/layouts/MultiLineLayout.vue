@@ -39,8 +39,9 @@ const slotScope = useSlotScope()
       <template #footer>
         <slot name="footer" v-bind="slotScope" />
       </template>
-      <template #footer-right>
-        <slot name="footer-right" v-bind="slotScope" />
+      <template #footer-right="slotProps">
+        <slot name="actions-inline" v-bind="slotProps" />
+        <slot name="footer-right" v-bind="slotProps" />
       </template>
     </Footer>
   </div>

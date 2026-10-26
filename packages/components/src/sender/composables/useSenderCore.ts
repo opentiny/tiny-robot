@@ -238,9 +238,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   watch(
     () => editor.value?.state.doc.content,
     () => {
-      setTimeout(() => {
-        checkOverflow()
-      }, 0)
+      requestAnimationFrame(() => checkOverflow())
     },
     { deep: true },
   )

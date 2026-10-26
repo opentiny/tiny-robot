@@ -65,6 +65,7 @@ const slotScope = useSlotScope()
   .tr-sender-container {
     display: flex;
     align-items: center;
+    min-width: 0;
   }
 
   .tr-sender-main {
