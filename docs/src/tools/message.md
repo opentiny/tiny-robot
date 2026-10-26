@@ -302,7 +302,7 @@ type ResponseProvider<T = ChatCompletion> = (
 
 外层工具消息仍通过标准的 `tool_call_id` 关联本次调用，不需要在参数或结果中重复生成交互 ID。`outcome` 的含义如下：`submitted` 表示用户提交了答案，`cancelled` 表示用户取消、拒绝或回合中止，`failed` 表示参数校验、答案校验或恢复过程失败。取消时结果使用 `{ "outcome": "cancelled", "reason": "..." }`。
 
-相互独立的问题应合并到一次调用；依赖用户答案的追问或普通工具必须等结果返回后再执行；不要并行调用多个 `ask_user`。模型可能仍在同一响应中生成普通工具调用，但启用 `askUser` 后这些同批普通工具不会真正执行，会被标记为拒绝并写入取消结果；模型应在收到 AskUser 结果后的下一轮重新生成依赖用户答案的工具调用。
+相互独立的问题应合并到一次调用；依赖用户答案的追问或普通工具必须等结果返回后再执行；不要并行调用多个 `ask_user`。模型可能仍在同一响应中生成普通工具调用，但启用 `askUser` 后这些同批普通工具不会真正执行，而是标记为 `deferred`，并写入 `toolCallDeferredContent`；模型应在收到 AskUser 结果后的下一轮重新生成依赖用户答案的工具调用。
 
 `askUserPrompt` 用于替代默认的 AskUser 提示词并注入 system message，不会替换应用已有的其他 system instructions。自定义内容必须保留上述输入、输出、跳过和执行顺序规则，否则模型可能生成无法解析或执行顺序错误的调用。
 
