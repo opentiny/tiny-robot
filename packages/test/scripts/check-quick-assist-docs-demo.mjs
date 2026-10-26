@@ -91,7 +91,7 @@ try {
     await demo.locator('html[data-quick-assist-ready="true"]').waitFor({ timeout: 5000 })
   } catch (error) {
     const status = await demo.locator('#event-status').textContent()
-    const assets = await page.evaluate(() => window.__tinyRobotVanillaDemoUmdUrl)
+    const assets = await page.evaluate(() => window.__tinyRobotVanillaDemoGlobalUrl)
     const frameState = await paragraph.evaluate(() => ({
       baseURI: document.baseURI,
       readyState: document.readyState,
@@ -105,16 +105,16 @@ try {
       },
     )
   }
-  const umdUrl = standalone
-    ? new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', url).href
-    : await page.evaluate(() => window.__tinyRobotVanillaDemoUmdUrl)
+  const globalUrl = standalone
+    ? new URL('../../../packages/components/dist/vanilla/vanilla.global.js', url).href
+    : await page.evaluate(() => window.__tinyRobotVanillaDemoGlobalUrl)
   await expect
     .poll(() =>
       demo
         .locator('script[src]')
         .evaluateAll(
           (scripts, expected) => scripts.some((script) => script.src === new URL(expected, document.baseURI).href),
-          umdUrl,
+          globalUrl,
         ),
     )
     .toBe(true)
