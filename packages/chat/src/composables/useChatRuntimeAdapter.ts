@@ -31,7 +31,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
-  let sendingFromEmptyConversation = false
+  const emptyConversationSendSnapshots = new Set<Set<string>>()
 
   watch(
     runtime,
@@ -50,6 +50,8 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     const actionRuntime = runtime.value
     const conversationId = actionRuntime.activeConversation.value?.id ?? null
     const navigationRevision = actionRuntime.conversationNavigationRevision?.value
+    const emptySendSnapshot =
+      conversationId === null ? new Set(actionRuntime.conversations.value.map((item) => item.id)) : undefined
     return async (payload: ChatSendPayload) => {
       const currentConversationId = actionRuntime.activeConversation.value?.id ?? null
       if (
@@ -60,14 +62,14 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         return false
       }
       try {
-        sendingFromEmptyConversation = conversationId === null
+        if (emptySendSnapshot) emptyConversationSendSnapshots.add(emptySendSnapshot)
         return await actionRuntime.actions.send(payload)
       } catch (error) {
         options.onActionError({ action: 'send', payload, error })
         return false
       } finally {
         await nextTick()
-        sendingFromEmptyConversation = false
+        if (emptySendSnapshot) emptyConversationSendSnapshots.delete(emptySendSnapshot)
       }
     }
   }
@@ -93,7 +95,12 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         nextId !== previousId &&
         runtime.value.conversationNavigationRevision === undefined
       ) {
-        if (sendingFromEmptyConversation && previousId === null && nextId !== null) return
+        const creationSnapshot =
+          nextId === null ? undefined : [...emptyConversationSendSnapshots].find((snapshot) => !snapshot.has(nextId))
+        if (previousId === null && nextId !== null && creationSnapshot) {
+          emptyConversationSendSnapshots.delete(creationSnapshot)
+          return
+        }
         invalidateDraftForNavigation()
       }
     },

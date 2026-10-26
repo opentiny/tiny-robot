@@ -147,6 +147,47 @@ describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
     expect(observedErrors).toEqual([{ action: 'send', payload: { text: 'retry' }, error: sendError }])
   })
 
+  it('restores a draft when concurrent empty-target sends create the conversation', async () => {
+    const activeConversation = shallowRef<ChatConversation | null>(null)
+    let finishFirst!: (accepted: boolean) => void
+    let finishSecond!: (accepted: boolean) => void
+    const firstResult = new Promise<boolean>((resolve) => {
+      finishFirst = resolve
+    })
+    const secondResult = new Promise<boolean>((resolve) => {
+      finishSecond = resolve
+    })
+    let calls = 0
+    const runtime: ChatRuntime = {
+      conversations: ref([]),
+      activeConversation,
+      composer: {},
+      actions: {
+        send: async () => {
+          calls++
+          if (calls === 2)
+            activeConversation.value = { id: 'created', title: 'created', messages: [], requestState: 'idle' }
+          return calls === 1 ? firstResult : secondResult
+        },
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('retry')
+    const first = adapter.send({ text: 'first' })
+    const second = adapter.send({ text: 'second' })
+    await Promise.resolve()
+    finishFirst(false)
+    await first
+    finishSecond(false)
+    await second
+    expect(adapter.inputValue.value).toBe('retry')
+  })
+
   it('preserves text entered while a send creates the first conversation', async () => {
     const activeConversation = shallowRef<ChatConversation | null>(null)
     let finish!: () => void

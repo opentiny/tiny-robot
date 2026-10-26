@@ -103,7 +103,7 @@ describe('useChatRuntimeFromConversation', () => {
   })
 
   it('does not count a custom send-created first conversation as navigation', async () => {
-    const harness = createHarness('')
+    const harness = createHarness('existing')
     harness.activeConversationId.value = null
     let finish!: (accepted: boolean) => void
     const pending = new Promise<boolean>((resolve) => {
@@ -120,6 +120,32 @@ describe('useChatRuntimeFromConversation', () => {
     finish(false)
     await expect(sending).resolves.toBe(false)
     expect(runtime.conversationNavigationRevision?.value).toBe(0)
+  })
+
+  it('counts selecting an existing conversation during a custom send as navigation', async () => {
+    const harness = createHarness('existing')
+    harness.activeConversationId.value = null
+    const runtime = useChatRuntimeFromConversation({
+      conversation: harness.api,
+      send: async () => {
+        await harness.api.switchConversation('existing')
+        return false
+      },
+    })
+
+    await expect(runtime.actions.send({ text: 'first' })).resolves.toBe(false)
+    expect(runtime.conversationNavigationRevision?.value).toBe(1)
+  })
+
+  it('forwards external payloads through the default Kit message metadata', async () => {
+    const harness = createHarness()
+    const payloads = [{ source: 'attachment', payload: { id: 'file-1' } }]
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(runtime.actions.send({ text: 'inspect', externalPayloads: payloads })).resolves.toBe(true)
+    expect(harness.items.get('a')?.engine.send).toHaveBeenCalledWith(
+      expect.objectContaining({ externalPayloads: payloads }),
+    )
   })
 
   it('honors beforeSend branches and releases an occupied target on every exit', async () => {

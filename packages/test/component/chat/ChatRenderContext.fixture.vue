@@ -10,6 +10,7 @@ const props = withDefaults(
     consecutiveUsers?: boolean
     customMain?: boolean
     callerAnchors?: boolean
+    customConsecutiveUsers?: boolean
     callbackAttributes?: boolean
     floating?: boolean
     width?: number
@@ -68,7 +69,19 @@ const ui = computed<ChatUIOptions>(() => ({
   bubble: {
     bubbleList: {
       contentRenderMode: 'split',
-      ...(props.consecutiveUsers ? { groupStrategy: 'consecutive' as const } : {}),
+      ...(props.customConsecutiveUsers
+        ? {
+            groupStrategy: (items: import('@opentiny/tiny-robot').BubbleMessage[]) => [
+              {
+                role: 'user',
+                messages: items,
+                messageIndexes: items.map((_, index) => index),
+              },
+            ],
+          }
+        : props.consecutiveUsers
+          ? { groupStrategy: 'consecutive' as const }
+          : {}),
     },
     bubbleProvider: {
       fallbackContentRenderer: markRaw(RenderContextProbe),

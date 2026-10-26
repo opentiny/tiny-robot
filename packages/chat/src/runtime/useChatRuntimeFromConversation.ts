@@ -48,16 +48,21 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
   const creatingConversationForSend = shallowRef(false)
-  let awaitingCustomCreation = false
+  const customSendConversationSnapshots = new Set<Set<string>>()
   const occupiedTargets = shallowRef(new Set<string>())
   let previousConversationId = conversation.activeConversationId.value
   watch(
     conversation.activeConversationId,
     (id) => {
       if (id !== previousConversationId) {
-        const createdForCustomSend = awaitingCustomCreation && previousConversationId === null && id !== null
+        const isCreatedConversation = conversation.conversations.value.some((item) => item.id === id)
+        const creationSnapshot =
+          id === null
+            ? undefined
+            : [...customSendConversationSnapshots].find((snapshot) => !snapshot.has(id) && isCreatedConversation)
+        const createdForCustomSend = previousConversationId === null && id !== null && Boolean(creationSnapshot)
         previousConversationId = id
-        if (createdForCustomSend) awaitingCustomCreation = false
+        if (createdForCustomSend && creationSnapshot) customSendConversationSnapshots.delete(creationSnapshot)
         else if (!creatingConversationForSend.value) conversationNavigationRevision.value++
       }
     },
@@ -145,6 +150,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     await targetConversation.engine.send({
       role: 'user',
       content: nextText,
+      ...(payload.externalPayloads ? { externalPayloads: payload.externalPayloads } : {}),
       metadata: {
         createdAt: now,
         updatedAt: now,
@@ -222,12 +228,14 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       }
 
       if (send) {
-        if (targetConversationId === null) awaitingCustomCreation = true
+        const customSendSnapshot =
+          targetConversationId === null ? new Set(conversation.conversations.value.map((item) => item.id)) : undefined
+        if (customSendSnapshot) customSendConversationSnapshots.add(customSendSnapshot)
         try {
           const result = await send(effectivePayload)
           return result !== false
         } finally {
-          awaitingCustomCreation = false
+          if (customSendSnapshot) customSendConversationSnapshots.delete(customSendSnapshot)
         }
       }
       if (targetConversationId === null) {

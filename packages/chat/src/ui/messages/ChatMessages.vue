@@ -10,6 +10,7 @@ import {
   type BubbleBoxAttributesResolver,
   type BubbleContentAttributesResolver,
   type BubbleMessage,
+  type BubbleMessageGroup,
   type BubbleRoleConfig,
   type PromptProps,
 } from '@opentiny/tiny-robot'
@@ -79,6 +80,38 @@ const bubbleMessages = computed<ChatMessageItem[]>(() =>
     streamState: resolveStreamState(message, props.request, getMessageStreamState(message)),
   })),
 )
+const messageIndexes = computed(() =>
+  props.anchorEnabled ? new Map(bubbleMessages.value.map((message, index) => [message, index])) : undefined,
+)
+const additionalAnchorIndexes = computed(() => {
+  if (!props.anchorEnabled) return new Set<number>()
+  const strategy = props.options.bubbleList.groupStrategy
+  let groups: BubbleMessageGroup[] = []
+  if (typeof strategy === 'function') {
+    groups = strategy(bubbleMessages.value, props.options.bubbleList.dividerRole ?? 'user')
+  } else if (strategy === 'consecutive') {
+    for (const [index, message] of bubbleMessages.value.entries()) {
+      const previous = groups.at(-1)
+      if (
+        previous &&
+        previous.role === message.role &&
+        !bubbleListProps.value.roleConfigs?.[message.role ?? '']?.hidden
+      ) {
+        previous.messages.push(message)
+        previous.messageIndexes.push(index)
+      } else {
+        groups.push({ role: message.role ?? '', messages: [message], messageIndexes: [index] })
+      }
+    }
+  }
+  return new Set(
+    groups.flatMap((group) =>
+      group.role === 'user'
+        ? group.messageIndexes.slice(1).filter((index) => bubbleMessages.value[index]?.role === 'user')
+        : [],
+    ),
+  )
+})
 provide(CHAT_RENDER_ENVIRONMENT, {
   scrollRoot: computed(() => props.scrollTarget),
   conversationId: computed(() => props.conversationId),
@@ -118,14 +151,8 @@ const contentAttributes: BubbleContentAttributesResolver = (message, content, co
   const configured = props.options.bubbleProvider?.contentAttributes
   const attributes = typeof configured === 'function' ? configured(message, content, contentIndex) : configured
   const item = message as ChatMessageItem
-  const messageIndex = bubbleMessages.value.indexOf(item)
-  const isAdditionalAnchorTarget =
-    props.anchorEnabled &&
-    props.options.bubbleList.groupStrategy === 'consecutive' &&
-    item.role === 'user' &&
-    messageIndex > 0 &&
-    bubbleMessages.value[messageIndex - 1]?.role === 'user' &&
-    (contentIndex ?? 0) === 0
+  const messageIndex = messageIndexes.value?.get(item) ?? -1
+  const isAdditionalAnchorTarget = additionalAnchorIndexes.value.has(messageIndex) && (contentIndex ?? 0) === 0
   const boxAttributes = isAdditionalAnchorTarget ? resolveBoxAttributes([item], content, 0) : undefined
   return mergeProps(attributes ?? {}, {
     ...(isAdditionalAnchorTarget

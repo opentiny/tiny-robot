@@ -1021,7 +1021,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 
 | 字段      | 类型                          | 配置说明                                                                  | `false` 的作用                            |
 | --------- | ----------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
-| `layout`  | `ChatLayoutOptions`           | 未配置的布局字段使用默认值；窗口、输入区和左右侧栏可分别配置。            | 不支持；使用 `leftAside` / `rightAside`。 |
+| `layout`  | `ChatLayoutOptions`           | 未配置的布局字段使用默认值；窗口、输入区和左右侧栏可分别配置。`mobileBreakpoint` 默认 `960`，视口宽度低于该值启用移动布局；非正数或非有限值回退到 `960`。 | 不支持；使用 `leftAside` / `rightAside`。 |
 | `brand`   | `ChatBrandOptions`            | 提供的选项覆盖对应的默认名称或图标，默认名称为 `TinyRobot`。              | 不支持。                                  |
 | `labels`  | `Partial<ChatLabels>`         | 按字段覆盖内置中文文案；也会更新默认欢迎文案和历史菜单文案。              | 不支持。                                  |
 | `header`  | `false`                       | 省略时显示默认 Header。                                                   | 移除 Header。                             |
@@ -1034,6 +1034,8 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `mcp`     | `false \| ChatMcpOptions`     | 默认 `{}`；当前没有额外配置字段。                                         | 即使存在 MCP 数据也隐藏入口和面板。       |
 | `extensions` | `false \| ChatExtensionsOptions` | 注册应用扩展页签，可设置默认页签及二级面板状态。 | 不注册应用扩展页签。 |
 | `anchor` | `false \| ChatAnchorOptions` | 默认关闭；传入对象开启，见 [anchor 配置](#anchor)。 | 隐藏用户消息目录。 |
+
+`ui.layout.mobileBreakpoint` 控制移动布局断点，默认 `960`（像素）；视口宽度小于该值时启用移动布局。非正数或非有限数值回退到 `960`。`layout-header` 插槽参数 `ChatHeaderSlotProps.isMobileViewport` 可用于同步自定义页头布局状态。
 
 #### `ui.extensions` {#ui-extensions}
 
@@ -1212,6 +1214,8 @@ toolbar: (defaults) => [
 | `composer-before`                                                                  | `ChatSenderSlotProps`              | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
 | `composer-after`                                                                   | `ChatSenderSlotProps`              | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
 | `sender-header`                                                                    | 无                                 | 在默认输入框内部上方添加内容。                                                              |
+| `sender-content`                                                                   | `{ editor }`                       | 替换默认输入框的编辑区域。                                                                  |
+| `sender-actions-inline`                                                            | `SenderSlotScope`                  | 在默认行内操作区、默认操作之前添加内容。                                                    |
 | `sender-footer`                                                                    | `SenderSlotScope`                  | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域；提供插入、聚焦和状态方法。  |
 | `sender-footer-right`                                                              | `SenderSlotScope`                  | 在默认多行输入框内部底部右侧、默认操作按钮前添加内容；提供插入、聚焦和状态方法。            |
 | `welcome-footer` / `prompts-footer`                                                | 无                                 | 扩展对应区域。                                                                              |
@@ -1219,7 +1223,7 @@ toolbar: (defaults) => [
 | `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
 | `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps` | 在消息内容下方添加内容。                                                                    |
 
-`sender-header`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制顶部内容显隐时，将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
+`sender-header`、`sender-content`、`sender-actions-inline`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制顶部内容显隐时，将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
 
 ### 自定义消息渲染上下文
 

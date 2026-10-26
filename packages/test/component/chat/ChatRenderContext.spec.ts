@@ -87,6 +87,17 @@ test('Anchor gives every message in a consecutive user group its own target', as
   )
 })
 
+test('Anchor uses actual custom group results for targets', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const component = await mount(ChatRenderContext, { props: { consecutiveUsers: true, customConsecutiveUsers: true } })
+  const items = component.locator('.tr-anchor__item')
+  const targets = component.locator('.tr-chat-anchor-target[data-anchor-id]')
+  await expect(items).toHaveCount(2)
+  await expect(targets).toHaveCount(2)
+  await items.nth(1).click()
+  await expect(targets.nth(1)).toHaveClass(/tr-chat-anchor-target-active/)
+})
+
 test('Anchor combines callback attributes and injects only the first split target', async ({ mount, page }) => {
   await page.setViewportSize({ width: 1200, height: 800 })
   const component = await mount(ChatRenderContext, { props: { callbackAttributes: true } })
