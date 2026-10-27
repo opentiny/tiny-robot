@@ -47,18 +47,20 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 <style scoped>
 .qa-feature-demo {
+  color: var(--vp-c-text-1, #213547);
+  background: var(--vp-c-bg, #fff);
   padding: 18px;
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 10px;
   line-height: 1.7;
 }
 .qa-feature-demo__text {
   padding: 8px 14px;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: var(--vp-c-bg-soft, #f5f7fa);
 }
 .qa-feature-demo__hint {
-  color: #536171;
+  color: var(--vp-c-text-2, #536171);
   font-size: 13px;
 }
 pre {

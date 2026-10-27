@@ -46,6 +46,16 @@ body,
   }
 }
 
+/* 主题示例内容较短；预览区随 iframe 高度布局，避免溢出并遮住下方边框。 */
+.qa-theme-demo .vitepress-demo-plugin__container > .vitepress-demo-plugin-preview {
+  height: auto !important;
+}
+
+.VPDoc:has(h1[id='quickassist-智能帮助']) .qa-theme-demo .vitepress-demo-plugin-preview iframe {
+  display: block;
+  min-height: 340px !important;
+}
+
 /* 暗色模式下的 Demo 插件样式 */
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;

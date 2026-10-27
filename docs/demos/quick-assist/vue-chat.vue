@@ -134,6 +134,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 <style scoped>
 .qa-demo {
+  color: var(--vp-c-text-1, #213547);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 18px;
@@ -141,9 +142,9 @@ onBeforeUnmount(() => quickAssist?.destroy())
   height: 560px;
   max-height: 560px;
   padding: 18px;
-  border: 1px solid var(--tr-border-color, #dfe3e8);
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 12px;
-  background: var(--tr-bg-color, #fff);
+  background: var(--vp-c-bg, #fff);
 }
 
 .qa-demo__page {
@@ -167,15 +168,17 @@ onBeforeUnmount(() => quickAssist?.destroy())
 .qa-demo__page [data-ai-selection='false'] {
   padding: 8px 10px;
   border-radius: 6px;
-  background: #fff4e5;
-  color: #744c12;
+  background: var(--vp-c-warning-soft, #fff4e5);
+  color: var(--vp-c-warning-1, #744c12);
 }
 
 .qa-demo__open {
   padding: 8px 12px;
-  border: 1px solid #cbd3dd;
+  border: 1px solid var(--vp-c-border, #cbd3dd);
   border-radius: 6px;
-  background: #fff;
+  background: var(--vp-c-bg, #fff);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
@@ -188,9 +191,9 @@ onBeforeUnmount(() => quickAssist?.destroy())
   flex-direction: column;
   gap: 12px;
   padding: 14px;
-  border: 1px solid var(--tr-border-color, #dfe3e8);
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 10px;
-  background: var(--tr-container-bg-default, #fafbfc);
+  background: var(--vp-c-bg-soft, #fafbfc);
 }
 
 .qa-demo__assistant-head {
@@ -203,7 +206,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 .qa-demo__assistant-head p {
   margin: 0;
-  color: #697586;
+  color: var(--vp-c-text-2, #697586);
   font-size: 12px;
 }
 
@@ -211,8 +214,8 @@ onBeforeUnmount(() => quickAssist?.destroy())
   flex: none;
   padding: 3px 7px;
   border-radius: 999px;
-  background: #e8f2ff;
-  color: #1768ac;
+  background: var(--vp-c-brand-soft, #e8f2ff);
+  color: var(--vp-c-brand-1, #1768ac);
   font-size: 11px;
 }
 
@@ -223,7 +226,7 @@ onBeforeUnmount(() => quickAssist?.destroy())
 }
 
 .qa-demo__empty {
-  color: #697586;
+  color: var(--vp-c-text-2, #697586);
   font-size: 13px;
 }
 
@@ -254,5 +257,13 @@ onBeforeUnmount(() => quickAssist?.destroy())
   .qa-demo__assistant {
     min-height: 0;
   }
+}
+
+.qa-demo__open:hover {
+  border-color: var(--vp-c-brand-1, #2175c4);
+}
+.qa-demo__open:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1, #2175c4);
+  outline-offset: 2px;
 }
 </style>

@@ -1,9 +1,17 @@
 import { QuickAssistStageError } from './errors'
-import { copyContext } from '../context/value'
+import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
-import { observeAnchor, getSnapshotRect, positionElement } from '../positioning'
+import {
+  computePosition,
+  getSelectionLineAnchors,
+  observeAnchor,
+  getSnapshotRect,
+  positionElement,
+} from '../positioning'
+import type { SelectionLineAnchors } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
-import { captureSelectionSnapshot, createSelectionController } from '../selection'
+import { captureSelectionSnapshot, createSelectionController, isDefaultTextValid } from '../selection'
+import { expandShortcut, getActivationRect, observeActivationPosition } from '../positioning/activation'
 import { createQuickAssistUI } from '../ui'
 import type {
   QuickAssistActivation,
@@ -16,6 +24,9 @@ import type {
 } from './types'
 import type {
   AIRequest,
+  QuickAssistActivationInput,
+  QuickAssistAnchorShortcut,
+  QuickAssistSelectionSource,
   QuickAssistCloseReason,
   QuickAssistEvent,
   QuickAssistErrorStage,
@@ -49,11 +60,21 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (!input.adapter || typeof input.adapter.submit !== 'function') {
     throw new Error('QuickAssist requires an adapter with a submit function')
   }
+  if (input.validateSuggestion !== undefined && typeof input.validateSuggestion !== 'function') {
+    throw new Error('QuickAssist validateSuggestion must be a function')
+  }
   const maxSuggestions = input.maxSuggestions ?? 3
   if (!Number.isInteger(maxSuggestions) || maxSuggestions <= 0) {
     throw new Error('QuickAssist maxSuggestions must be a positive integer')
   }
   const selectionInput = input.selection ?? {}
+  if (selectionInput.validateActivation !== undefined && typeof selectionInput.validateActivation !== 'function') {
+    throw new Error('QuickAssist selection.validateActivation must be a function')
+  }
+  const forwardOnly = selectionInput.forwardOnly ?? true
+  if (typeof forwardOnly !== 'boolean') {
+    throw new Error('QuickAssist selection.forwardOnly must be a boolean')
+  }
   const maxTextLength = selectionInput.maxTextLength ?? 300
   if (!Number.isInteger(maxTextLength) || maxTextLength <= 0) {
     throw new Error('QuickAssist selection.maxTextLength must be a positive integer')
@@ -67,8 +88,12 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (!Number.isFinite(offset) || offset < 0) {
     throw new Error('QuickAssist trigger.offset must be a non-negative number')
   }
-  if (!['top', 'bottom', 'auto'].includes(triggerInput.placement ?? 'auto')) {
-    throw new Error('QuickAssist trigger.placement must be top, bottom, or auto')
+  if (
+    !['top', 'bottom', 'auto', 'top-start', 'top-end', 'bottom-start', 'bottom-end'].includes(
+      triggerInput.placement ?? 'bottom-end',
+    )
+  ) {
+    throw new Error('Invalid QuickAssist trigger.placement')
   }
   const nearbyInput = input.nearbyContext ?? {}
   const nearbyMaxLength = nearbyInput.maxLength ?? 500
@@ -83,12 +108,17 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     include: [...(input.include ?? [])],
     exclude: [...(input.exclude ?? [])],
     maxSuggestions,
-    selection: { maxTextLength, validate: selectionInput.validate },
+    selection: {
+      forwardOnly,
+      maxTextLength,
+      validate: selectionInput.validate,
+      validateActivation: selectionInput.validateActivation,
+    },
     trigger: {
       label: triggerInput.label ?? '智能帮助',
       showDelay,
       offset,
-      placement: triggerInput.placement ?? 'auto',
+      placement: triggerInput.placement ?? 'bottom-end',
     },
     nearbyContext: {
       maxLength: nearbyMaxLength,
@@ -147,23 +177,20 @@ function getVirtualTriggerRect(
   size: { width: number; height: number },
   placement: QuickAssistPlacement,
   offset: number,
+  lineAnchors?: SelectionLineAnchors,
 ): DOMRectReadOnly {
   const view = root.defaultView
-  const viewportWidth = view?.innerWidth ?? root.documentElement.clientWidth
-  const viewportHeight = view?.innerHeight ?? root.documentElement.clientHeight
-  const margin = 8
-  const requested = placement === 'auto' ? 'bottom' : placement
-  const roomBelow = viewportHeight - anchor.bottom - offset - margin
-  const roomAbove = anchor.top - offset - margin
-  const shouldFlip =
-    requested === 'bottom'
-      ? roomBelow < size.height && roomAbove > roomBelow
-      : roomAbove < size.height && roomBelow > roomAbove
-  const side = shouldFlip ? (requested === 'bottom' ? 'top' : 'bottom') : requested
-  const rawLeft = anchor.left + anchor.width / 2 - size.width / 2
-  const left = Math.max(margin, Math.min(rawLeft, viewportWidth - size.width - margin))
-  const rawTop = side === 'top' ? anchor.top - size.height - offset : anchor.bottom + offset
-  const top = Math.max(margin, Math.min(rawTop, viewportHeight - size.height - margin))
+  const { left, top } = computePosition({
+    anchor,
+    lineAnchors,
+    placement,
+    offset,
+    ...size,
+    viewport: {
+      width: view?.innerWidth ?? root.documentElement.clientWidth,
+      height: view?.innerHeight ?? root.documentElement.clientHeight,
+    },
+  })
   return makeRect(root, left, top, size.width, size.height)
 }
 
@@ -188,6 +215,15 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   let triggerTimer: ReturnType<typeof setTimeout> | undefined
   let pointerDown = false
   let anchorCleanup: (() => void) | undefined
+  let invalidationCleanup: (() => void) | undefined
+  const manualOwner = {}
+  interface SourceRegistration {
+    source: QuickAssistSelectionSource
+    generation: number
+    active: boolean
+    lastIdentity?: string
+  }
+  const sources = new Set<SourceRegistration>()
   let unsubscribeSelection: (() => void) | undefined
   let unsubscribeSelectionClear: (() => void) | undefined
   let optionsVersion = 0
@@ -213,13 +249,27 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   const isCurrent = (candidate: QuickAssistSession): boolean =>
     !destroyed && session?.id === candidate.id && !candidate.controller.signal.aborted
 
+  const readAnchor = (candidate: QuickAssistSession): DOMRectReadOnly | null => {
+    try {
+      return candidate.external
+        ? getActivationRect(candidate.external, resolved.root)
+        : candidate.activation.selection
+          ? getSnapshotRect(candidate.activation.selection)
+          : null
+    } catch (error) {
+      emitError(candidate.id, 'callback', error)
+      return null
+    }
+  }
+
   const reposition = (element: HTMLElement, candidate: QuickAssistSession): void => {
     const snapshot = candidate.activation.selection
-    const anchor = snapshot ? getSnapshotRect(snapshot) : candidate.activation.rect
+    const anchor = readAnchor(candidate)
     if (!anchor) return
     positionElement({
       element,
       anchor,
+      lineAnchors: snapshot ? getSelectionLineAnchors(snapshot) : undefined,
       placement: resolved.trigger.placement,
       offset: resolved.trigger.offset,
     })
@@ -235,6 +285,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     if (triggerTimer !== undefined) clearTimeout(triggerTimer)
     triggerTimer = undefined
     stopAnchorObservation()
+    const releaseInvalidation = invalidationCleanup
+    invalidationCleanup = undefined
     triggerElement = null
     if (!current) {
       ui.close()
@@ -246,10 +298,21 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     // Preserve the collector's snapshot on dismissal so the same selection
     // cannot reactivate on the next keyup/pointerup. Re-selection has already
     // recorded its new range (or cleared an invalid one).
-    if (reason !== 'reselection' && reason !== 'escape' && reason !== 'manual' && reason !== 'outside') {
+    if (
+      !current.owner &&
+      reason !== 'reselection' &&
+      reason !== 'escape' &&
+      reason !== 'manual' &&
+      reason !== 'outside'
+    ) {
       selectionModule.reset?.()
     }
     ui.close()
+    try {
+      releaseInvalidation?.()
+    } catch (error) {
+      emitError(current.id, 'callback', error)
+    }
     emit({ type: 'close', sessionId: current.id, reason }, reason === 'destroy')
   }
 
@@ -298,12 +361,20 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const handlePopover = (candidate: QuickAssistSession): void => {
     if (!isCurrent(candidate)) return
+    if (candidate.external) {
+      const anchor = readAnchor(candidate)
+      if (!isCurrent(candidate)) return
+      if (!anchor) {
+        closeSession('anchor-invalid')
+        return
+      }
+    }
     candidate.state = 'composer'
     stopAnchorObservation()
     const snapshot = snapshotOf(candidate.activation)
     const triggerAtOpen = triggerElement?.getBoundingClientRect() ?? null
     const triggerSize = triggerAtOpen ? { width: triggerAtOpen.width, height: triggerAtOpen.height } : undefined
-    const triggerSide: QuickAssistPlacement = triggerElement?.dataset.placement === 'top' ? 'top' : 'bottom'
+    const triggerPlacement = (triggerElement?.dataset.placement as QuickAssistPlacement) ?? resolved.trigger.placement
     triggerElement = null
     const popover = ui.showPopover({
       session: candidate,
@@ -315,16 +386,22 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       },
       onClose: () => closeSession('escape'),
     })
-    emit({ type: 'trigger_click', sessionId: candidate.id })
+    if (triggerAtOpen) emit({ type: 'trigger_click', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
     emit({ type: 'popover_show', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
     const getPopoverAnchor = (): DOMRectReadOnly | null => {
-      if (!snapshot) return triggerAtOpen
-      const selectionRect = getSnapshotRect(snapshot)
+      const selectionRect = readAnchor(candidate)
       if (!selectionRect) return null
       if (!triggerSize) return selectionRect
-      return getVirtualTriggerRect(resolved.root, selectionRect, triggerSize, triggerSide, resolved.trigger.offset)
+      return getVirtualTriggerRect(
+        resolved.root,
+        selectionRect,
+        triggerSize,
+        triggerPlacement,
+        resolved.trigger.offset,
+        snapshot ? getSelectionLineAnchors(snapshot) : undefined,
+      )
     }
     const positionPopover = (): void => {
       const anchor = getPopoverAnchor()
@@ -358,16 +435,38 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         },
       })
     }
-    const hasProvider = !!resolved.getSuggestions
+    candidate.refreshPosition = positionPopover
+    const external = candidate.external
+    const hasLocalSuggestions = external?.suggestions !== undefined
+    const provider =
+      external?.getSuggestions !== undefined
+        ? (external.getSuggestions ?? undefined)
+        : hasLocalSuggestions
+          ? undefined
+          : resolved.getSuggestions
+    const recommendations =
+      hasLocalSuggestions || external?.getSuggestions !== undefined
+        ? createRecommendationResolver({
+            suggestions: hasLocalSuggestions ? external?.suggestions : resolved.suggestions,
+            getSuggestions: provider,
+            validateSuggestion: resolved.validateSuggestion,
+            mergeSuggestions: resolved.mergeSuggestions,
+            maxSuggestions: resolved.maxSuggestions,
+            messages: resolved.messages,
+          })
+        : recommendationModule
+    const hasProvider = !!provider
     ui.update({ loading: hasProvider, submittingDisabled: true })
     positionPopover()
-    void Promise.resolve(contextModule.build(snapshot as SelectionSnapshot, candidate.controller.signal))
+    void Promise.resolve(
+      contextModule.build(candidate.external ?? (snapshot as SelectionSnapshot), candidate.controller.signal),
+    )
       .then((context) => {
         if (!isCurrent(candidate)) return
         candidate.context = context
         let base: Suggestion[]
         try {
-          base = recommendationModule.resolveBase(copyContext(context))
+          base = recommendations.resolveBase(copyContext(context))
         } catch (error) {
           ui.update({ loading: false, submittingDisabled: false, error: true })
           positionPopover()
@@ -377,13 +476,13 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         candidate.suggestions = base
         ui.update({ suggestions: base, loading: hasProvider, submittingDisabled: false, error: false })
         positionPopover()
-        if (!resolved.getSuggestions) return
-        const asyncSuggestions = recommendationModule.resolveAsync?.(copyContext(context), candidate.controller.signal)
+        if (!hasProvider) return
+        const asyncSuggestions = recommendations.resolveAsync?.(copyContext(context), candidate.controller.signal)
         if (!asyncSuggestions) return
         return Promise.resolve(asyncSuggestions)
           .then((incoming) => {
             if (!isCurrent(candidate)) return
-            const merged = recommendationModule.merge(base, incoming, copyContext(context))
+            const merged = recommendations.merge(base, incoming, copyContext(context))
             candidate.suggestions = merged
             ui.update({ suggestions: merged, loading: false, submittingDisabled: false, error: false })
             positionPopover()
@@ -406,10 +505,19 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   const showTrigger = (candidate: QuickAssistSession, emitSelection = false): void => {
     if (!isCurrent(candidate)) return
     const snapshot = candidate.activation.selection
+    if (candidate.external) {
+      const anchor = readAnchor(candidate)
+      if (!isCurrent(candidate)) return
+      if (!anchor) {
+        closeSession('anchor-invalid')
+        return
+      }
+    }
     if (resolved.trigger.showDelay > 0 && snapshot) {
       const latest = captureSelectionSnapshot(resolved.root)
       if (
         !latest ||
+        (resolved.selection.forwardOnly && latest.direction === 'backward') ||
         latest.text !== snapshot.text ||
         latest.range.startContainer !== snapshot.range.startContainer ||
         latest.range.startOffset !== snapshot.range.startOffset ||
@@ -433,6 +541,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     emit({ type: 'trigger_show', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
     reposition(triggerElement, candidate)
+    candidate.refreshPosition = () => {
+      if (triggerElement) reposition(triggerElement, candidate)
+    }
     if (!snapshot) return
     let triggerAnchor = getSnapshotRect(snapshot)
     let cumulativeTriggerMovement = 0
@@ -468,14 +579,21 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     }, resolved.trigger.showDelay)
   }
 
-  const handleActivation = (rawActivation: QuickAssistActivation): void => {
-    if (!enabled || destroyed) return
+  const handleActivation = (
+    rawActivation: QuickAssistActivation,
+    owner?: object,
+    external?: QuickAssistActivationInput,
+    accepted?: () => void,
+    isSourceCurrent: () => boolean = () => true,
+  ): void => {
+    if (!enabled || destroyed || !isSourceCurrent()) return
     const activation = normalizeActivation(rawActivation)
     const snapshot = snapshotOf(activation)
-    if (!snapshot) return
+    if (!snapshot && !external) return
     const currentSnapshot = session?.activation.selection
     if (
       currentSnapshot &&
+      snapshot &&
       currentSnapshot.text === snapshot.text &&
       currentSnapshot.range.startContainer === snapshot.range.startContainer &&
       currentSnapshot.range.startOffset === snapshot.range.startOffset &&
@@ -484,17 +602,68 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     )
       return
     if (session) closeSession('reselection')
+    // Closing the previous session invokes host callbacks, which may detach or
+    // remount this source while its emit is still on the stack.
+    if (destroyed || !enabled || session || !isSourceCurrent()) return
     const next: QuickAssistSession = {
       id: ++nextSessionId,
       activation,
+      external,
+      owner,
       controller: new AbortController(),
       state: 'trigger',
       suggestions: [],
-      inputValue: snapshot.text,
+      inputValue: activation.text ?? '',
       originalActiveElement: resolved.root.activeElement,
       submitStarted: false,
     }
     session = next
+    accepted?.()
+    if (external) {
+      let previousRect = readAnchor(next)
+      if (!isCurrent(next)) return
+      let movement = 0
+      const refresh = (scroll = false) => {
+        if (!isCurrent(next)) return
+        const rect = readAnchor(next)
+        if (!isCurrent(next)) return
+        if (!rect) {
+          closeSession('anchor-invalid')
+          return
+        }
+        if (scroll && previousRect && next.state === 'trigger') {
+          movement += Math.abs(rect.left - previousRect.left) + Math.abs(rect.top - previousRect.top)
+          if (movement > 4) {
+            closeSession('scroll')
+            return
+          }
+        }
+        previousRect = rect
+        next.refreshPosition?.()
+      }
+      const positionCleanup = observeActivationPosition(resolved.root, () => refresh(true))
+      let sourceCleanup: (() => void) | undefined
+      try {
+        sourceCleanup = external.onInvalidate?.(() => refresh())
+      } catch (error) {
+        emitError(next.id, 'callback', error)
+        if (isCurrent(next)) closeSession('anchor-invalid')
+      }
+      const cleanup = () => {
+        positionCleanup()
+        sourceCleanup?.()
+      }
+      if (!isCurrent(next)) {
+        cleanup()
+        return
+      }
+      invalidationCleanup = cleanup
+    }
+    if (external?.open === 'popover') {
+      emit({ type: 'selection', sessionId: next.id })
+      if (isCurrent(next)) handlePopover(next)
+      return
+    }
     if (resolved.trigger.showDelay === 0 && !pointerDown) {
       showTrigger(next, true)
       return
@@ -502,6 +671,144 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     emit({ type: 'selection', sessionId: next.id })
     if (!isCurrent(next)) return
     scheduleTrigger(next)
+  }
+
+  const activateExternal = (
+    raw: QuickAssistActivationInput | QuickAssistAnchorShortcut,
+    owner: object,
+    accepted?: () => void,
+    isSourceCurrent: () => boolean = () => true,
+  ): void => {
+    if (!enabled || destroyed || !isSourceCurrent()) return
+    try {
+      const input = 'anchor' in raw ? expandShortcut(raw, resolved.root) : raw
+      if (
+        typeof input.source !== 'string' ||
+        !input.source.trim() ||
+        typeof input.text !== 'string' ||
+        typeof input.getRect !== 'function'
+      )
+        throw new Error('QuickAssist activation requires source, text and getRect')
+      const text = input.text.trim()
+      if (input.open !== undefined && input.open !== 'trigger' && input.open !== 'popover') {
+        throw new Error('QuickAssist activation.open must be trigger or popover')
+      }
+      if (input.suggestions !== undefined && !Array.isArray(input.suggestions)) {
+        throw new Error('QuickAssist activation.suggestions must be an array')
+      }
+      if (
+        input.getSuggestions !== undefined &&
+        input.getSuggestions !== null &&
+        typeof input.getSuggestions !== 'function'
+      ) {
+        throw new Error('QuickAssist activation.getSuggestions must be a function or null')
+      }
+      if (!text || text.length > resolved.selection.maxTextLength) return
+      const frozen: QuickAssistActivationInput = {
+        ...input,
+        text,
+        meta: input.meta ? snapshotContextData(input.meta) : undefined,
+        suggestions: input.suggestions?.map((suggestion) => ({
+          ...suggestion,
+          ...('meta' in suggestion && suggestion.meta ? { meta: snapshotContextData(suggestion.meta) } : {}),
+        })),
+      }
+      if (!getActivationRect(frozen, resolved.root) || !isSourceCurrent()) return
+      const view = {
+        source: frozen.source,
+        text,
+        direction: frozen.direction,
+        anchorElement: frozen.anchorElement,
+        identity: frozen.identity,
+        meta: frozen.meta,
+      }
+      if (
+        !(resolved.selection.validateActivation
+          ? resolved.selection.validateActivation(view)
+          : isDefaultTextValid(text, resolved.selection.maxTextLength))
+      )
+        return
+      if (!enabled || destroyed || !isSourceCurrent()) return
+      // Freeze adjacent text before opening UI or awaiting business context.
+      const nearbyText = input.getNearbyText?.()?.trim().slice(0, resolved.nearbyContext.maxLength)
+      frozen.getNearbyText = () => nearbyText
+      handleActivation(
+        { source: frozen.source, text, anchorElement: frozen.anchorElement },
+        owner,
+        frozen,
+        accepted,
+        isSourceCurrent,
+      )
+    } catch (error) {
+      emitError(session?.id ?? 0, 'callback', error)
+    }
+  }
+
+  const mountSource = (entry: SourceRegistration): void => {
+    if (entry.active || !enabled || destroyed || !sources.has(entry)) return
+    entry.active = true
+    entry.lastIdentity = undefined
+    const generation = ++entry.generation
+    const isSourceCurrent = () =>
+      !destroyed && enabled && sources.has(entry) && entry.active && generation === entry.generation
+    try {
+      entry.source.activate((input) => {
+        if (!isSourceCurrent()) return
+        if (!input) {
+          entry.lastIdentity = undefined
+          if (session?.owner === entry) closeSession('reselection')
+          return
+        }
+        if (input.identity !== undefined && entry.lastIdentity === input.identity) return
+        let accepted = false
+        activateExternal(
+          input,
+          entry,
+          () => {
+            accepted = true
+            entry.lastIdentity = input.identity
+          },
+          isSourceCurrent,
+        )
+        if (!accepted && isSourceCurrent()) {
+          entry.lastIdentity = undefined
+          if (session?.owner === entry) closeSession('reselection')
+        }
+      })
+    } catch (error) {
+      unmountSource(entry)
+      if (session?.owner === entry) closeSession('anchor-invalid')
+      emitError(session?.id ?? 0, 'callback', error)
+    }
+  }
+  const unmountSource = (entry: SourceRegistration): void => {
+    if (!entry.active) return
+    entry.active = false
+    entry.generation++
+    try {
+      entry.source.deactivate()
+    } catch (error) {
+      emitError(session?.id ?? 0, 'callback', error)
+    }
+  }
+  const registerSource = (source: QuickAssistSelectionSource): (() => void) => {
+    if (destroyed) return () => {}
+    if (
+      !source ||
+      typeof source.name !== 'string' ||
+      typeof source.activate !== 'function' ||
+      typeof source.deactivate !== 'function'
+    ) {
+      throw new Error('QuickAssist source requires name, activate and deactivate')
+    }
+    const entry: SourceRegistration = { source, generation: 0, active: false }
+    sources.add(entry)
+    mountSource(entry)
+    return () => {
+      if (!sources.delete(entry)) return
+      unmountSource(entry)
+      if (session?.owner === entry) closeSession('manual')
+    }
   }
 
   const onPointerDown = (event: PointerEvent): void => {
@@ -517,6 +824,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     pointerDown = false
     if (session?.state === 'trigger' && !triggerElement) closeSession('reselection')
   }
+  const onContextMenu = (): void => {
+    if (session?.state === 'trigger') closeSession('outside')
+  }
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && session) {
       event.preventDefault()
@@ -531,6 +841,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     resolved.root.addEventListener('pointerdown', onPointerDown, true)
     resolved.root.addEventListener('pointerup', onPointerUp, true)
     resolved.root.addEventListener('pointercancel', onPointerCancel, true)
+    resolved.root.addEventListener('contextmenu', onContextMenu, true)
     resolved.root.addEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.addEventListener('popstate', onRoute)
     resolved.root.defaultView?.addEventListener('hashchange', onRoute)
@@ -539,6 +850,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     resolved.root.removeEventListener('pointerdown', onPointerDown, true)
     resolved.root.removeEventListener('pointerup', onPointerUp, true)
     resolved.root.removeEventListener('pointercancel', onPointerCancel, true)
+    resolved.root.removeEventListener('contextmenu', onContextMenu, true)
     resolved.root.removeEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.removeEventListener('popstate', onRoute)
     resolved.root.defaultView?.removeEventListener('hashchange', onRoute)
@@ -553,6 +865,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         include: configuration.include,
         exclude: configuration.exclude,
         maxTextLength: configuration.selection.maxTextLength,
+        forwardOnly: configuration.selection.forwardOnly,
         validate: configuration.selection.validate,
       })
       const nextContext = createContextModule({
@@ -575,6 +888,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       const nextRecommendation = createRecommendationResolver({
         suggestions: configuration.suggestions,
         getSuggestions: configuration.getSuggestions,
+        validateSuggestion: configuration.validateSuggestion,
         mergeSuggestions: configuration.mergeSuggestions,
         maxSuggestions: configuration.maxSuggestions,
         messages: configuration.messages,
@@ -606,7 +920,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     ui = modules.ui
     unsubscribeSelection = selectionModule.onActivation(handleActivation)
     unsubscribeSelectionClear = selectionModule.onClear?.(() => {
-      if (session?.state === 'trigger') closeSession('reselection')
+      if (session?.state === 'trigger' && !session.owner) closeSession('reselection')
     })
   }
 
@@ -622,12 +936,14 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     enabled = true
     selectionModule.enable()
     attachGlobalListeners()
+    for (const entry of sources) mountSource(entry)
   }
   const disable = (): void => {
     if (destroyed || !enabled) return
+    enabled = false
+    for (const entry of sources) unmountSource(entry)
     closeSession('disable')
     pointerDown = false
-    enabled = false
     selectionModule.disable()
     detachGlobalListeners()
   }
@@ -637,6 +953,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   const destroy = (): void => {
     if (destroyed) return
     destroyed = true
+    for (const entry of sources) unmountSource(entry)
+    sources.clear()
     closeSession('destroy')
     enabled = false
     detachGlobalListeners()
@@ -683,5 +1001,13 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   }
 
   if (resolved.enabled) enable()
-  return { enable, disable, close, destroy, updateOptions }
+  return {
+    enable,
+    disable,
+    close,
+    destroy,
+    updateOptions,
+    activate: (input) => activateExternal(input, manualOwner),
+    registerSource,
+  }
 }

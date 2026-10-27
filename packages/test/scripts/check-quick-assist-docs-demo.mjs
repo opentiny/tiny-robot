@@ -5,10 +5,61 @@ const standalone = new URL(url).pathname.endsWith('/docs/demos/quick-assist/vani
 const screenshotRoot = process.argv[3]
 const browser = await chromium.launch({ headless: true })
 
+// Check the rendered foreground against ancestor backgrounds, including translucent warning panels.
+async function checkThemeContrast(locator) {
+  await expect
+    .poll(() =>
+      locator.evaluateAll((elements) => {
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = 1
+        const context = canvas.getContext('2d')
+        const rgba = (value) => {
+          context.clearRect(0, 0, 1, 1)
+          context.fillStyle = value
+          context.fillRect(0, 0, 1, 1)
+          return Array.from(context.getImageData(0, 0, 1, 1).data)
+        }
+        const luminance = (rgb) =>
+          rgb.slice(0, 3).reduce((sum, value, index) => {
+            const channel = value / 255
+            return (
+              sum +
+              (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4) *
+                [0.2126, 0.7152, 0.0722][index]
+            )
+          }, 0)
+        return elements.flatMap((element) => {
+          const layers = []
+          for (let node = element; node; node = node.parentElement)
+            layers.unshift(rgba(getComputedStyle(node).backgroundColor))
+          let background = [255, 255, 255]
+          for (const layer of layers)
+            background = background.map(
+              (channel, index) => (layer[index] * layer[3]) / 255 + channel * (1 - layer[3] / 255),
+            )
+          const color = rgba(getComputedStyle(element).color)
+          const foreground = background.map(
+            (channel, index) => (color[index] * color[3]) / 255 + channel * (1 - color[3] / 255),
+          )
+          const light = luminance(foreground)
+          const dark = luminance(background)
+          const contrast = (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05)
+          return contrast < 4.5 ? [`${element.className || element.tagName}: ${contrast.toFixed(2)}`] : []
+        })
+      }),
+    )
+    .toEqual([])
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } })
   const pageErrors = []
+  const loadErrors = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
+  page.on('requestfailed', (request) => loadErrors.push(`${request.url()}: ${request.failure()?.errorText}`))
+  page.on('response', (response) => {
+    if (response.status() >= 400) loadErrors.push(`${response.status()} ${response.url()}`)
+  })
   await page.goto(url)
   if (!standalone) await page.locator('h3').filter({ hasText: 'HTML 接入' }).first().scrollIntoViewIfNeeded()
 
@@ -28,9 +79,12 @@ try {
         )?.slice(0, 350),
       })),
     )
-    throw new Error(`Docs HTML preview did not render: ${JSON.stringify(frames)}; errors=${pageErrors.join('; ')}`, {
-      cause: error,
-    })
+    throw new Error(
+      `Docs HTML preview did not render: ${JSON.stringify(frames)}; errors=${[...pageErrors, ...loadErrors].join('; ')}`,
+      {
+        cause: error,
+      },
+    )
   }
   await paragraph.scrollIntoViewIfNeeded()
   try {
@@ -66,6 +120,51 @@ try {
     .toBe(true)
   expect(await paragraph.evaluate(() => typeof window.TinyRobotVanilla?.createQuickAssist)).toBe('function')
   await expect(demo.locator('style[data-tr-quick-assist-style]')).toHaveCount(1)
+  // Exercise live switching in both directions; the HTML iframe must follow its parent.
+  for (const mode of ['dark', 'light', 'dark']) {
+    if (standalone) {
+      await page.emulateMedia({ colorScheme: mode })
+    } else {
+      const dark = await page.locator('html').evaluate((element) => element.classList.contains('dark'))
+      if (dark !== (mode === 'dark')) await page.getByTitle('Toggle theme', { exact: true }).click()
+      await expect(page.locator('html')).toHaveAttribute('data-tr-color-mode', mode)
+      await checkThemeContrast(
+        page.locator(
+          [
+            '.qa-demo__page',
+            '.qa-demo__page [data-sensitive]',
+            '.qa-demo__open',
+            '.qa-position-demo label',
+            '.qa-position-demo select',
+            '#qa-position-text',
+            '.qa-delay-demo button',
+            '#qa-delay-text',
+            '.qa-delay-demo__status',
+            '.qa-feature-demo__hint',
+            '.qa-feature-demo__text',
+            '.qa-feature-demo__allowed',
+            '.qa-feature-demo [data-sensitive]',
+            '.qa-feature-demo [data-qa-ignore]',
+            '.qa-feature-demo button',
+            '.qa-feature-demo__status',
+            '.qa-remote-demo',
+            '.qa-remote-demo select',
+            '.qa-remote-demo__hint',
+            '.qa-validation-demo',
+            '.qa-validation-demo select',
+            '.qa-validation-demo__kept',
+          ].join(', '),
+        ),
+      )
+    }
+    await expect(demo.locator('html')).toHaveAttribute('data-theme', mode)
+    await checkThemeContrast(demo.locator('body, article, [data-sensitive], button, .status'))
+    if (screenshotRoot && !standalone) {
+      await page
+        .locator('.qa-position-demo')
+        .screenshot({ path: `${screenshotRoot}/theme-${mode}.png`, animations: 'disabled' })
+    }
+  }
   if (!standalone) {
     const frame = await page
       .locator('iframe')
@@ -87,6 +186,7 @@ try {
   })
 
   await expect(demo.locator('.tr-quick-assist__trigger')).toBeVisible()
+  await checkThemeContrast(demo.locator('.tr-quick-assist__trigger'))
   if (!standalone) await page.locator('iframe').first().scrollIntoViewIfNeeded()
   const frameRect = standalone ? { x: 0, y: 0 } : await page.locator('iframe').first().boundingBox()
   const triggerRect = await demo
@@ -106,9 +206,11 @@ try {
     })
   }
   await expect(demo.locator('#event-status')).not.toContainText('失败')
+  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__popover button'))
   if (!standalone) {
     for (const selector of [
       '#qa-delay-text',
+      '#qa-position-text',
       '#qa-recommendations-text',
       '#qa-context-text',
       '#qa-scope-allowed',
@@ -116,6 +218,35 @@ try {
     ]) {
       await expect(page.locator(selector)).toBeVisible()
     }
+    const positionDemo = page.locator('.qa-position-demo')
+    const selectPositionText = async (backward) => {
+      await page.locator('#qa-position-text').scrollIntoViewIfNeeded()
+      await page.locator('#qa-position-text').evaluate((element, reverse) => {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+        const nodes = []
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node)
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        window
+          .getSelection()
+          .setBaseAndExtent(
+            reverse ? last : first,
+            reverse ? last.length : 0,
+            reverse ? first : last,
+            reverse ? 0 : last.length,
+          )
+        document.dispatchEvent(new Event('selectionchange'))
+      }, backward)
+    }
+    await selectPositionText(false)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveAttribute('data-placement', 'bottom-end')
+    await selectPositionText(true)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await positionDemo.getByRole('checkbox').uncheck()
+    await positionDemo.getByRole('combobox').selectOption('top-start')
+    await selectPositionText(true)
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveAttribute('data-placement', 'top-start')
+    await page.keyboard.press('Escape')
     const delayText = page.locator('#qa-delay-text')
     await delayText.scrollIntoViewIfNeeded()
     await delayText.evaluate((element) => {
@@ -195,6 +326,9 @@ try {
     // Exercise the actual adapter with enough messages to overflow the panel.
     const chatDemo = page.locator('.qa-demo')
     await chatDemo.getByRole('button', { name: '打开 AI 对话', exact: true }).click()
+    await checkThemeContrast(
+      chatDemo.locator('.qa-demo__assistant, .qa-demo__assistant-head p, .qa-demo__badge, .qa-demo__empty'),
+    )
     const chatText = chatDemo.locator('.qa-demo__page p').first()
     for (let index = 0; index < 8; index++) {
       await chatText.scrollIntoViewIfNeeded()
@@ -278,6 +412,75 @@ try {
       }))
     expect(mobileFrame.height).toBeGreaterThanOrEqual(900)
     expect(mobileFrame.contentHeight).toBeLessThanOrEqual(mobileFrame.height)
+  }
+  if (!standalone) {
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    const themeDemo = page.frameLocator('iframe').nth(1)
+    await expect(themeDemo.locator('html')).toHaveAttribute('data-quick-assist-ready', 'true')
+    const themeContainer = page.locator('.qa-theme-demo .vitepress-demo-plugin__container')
+    const checkThemeFrameLayout = async () => {
+      await expect
+        .poll(() =>
+          themeContainer.evaluate((element) => {
+            const frame = element.querySelector('iframe').getBoundingClientRect()
+            const preview = element.querySelector('.vitepress-demo-plugin-preview').getBoundingClientRect()
+            const description = element.querySelector('.vitepress-demo-plugin-description').getBoundingClientRect()
+            const container = element.getBoundingClientRect()
+            return (
+              frame.bottom <= preview.bottom &&
+              frame.bottom <= description.top &&
+              description.bottom <= container.bottom
+            )
+          }),
+        )
+        .toBe(true)
+    }
+    await checkThemeFrameLayout()
+    const parentMode = await page.locator('html').getAttribute('data-tr-color-mode')
+    for (const mode of ['dark', 'light']) {
+      await themeDemo.locator('#theme-mode').selectOption(mode)
+      await expect(themeDemo.locator('html')).toHaveAttribute('data-cf-theme', mode)
+      await themeDemo.locator('#theme-term').scrollIntoViewIfNeeded()
+      await themeDemo.locator('#theme-term').evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        document.dispatchEvent(new Event('selectionchange'))
+      })
+      await themeDemo.locator('.tr-quick-assist__trigger').click()
+      await expect(themeDemo.locator('.tr-quick-assist__popover')).toHaveCSS(
+        'background-color',
+        mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+      )
+      await checkThemeContrast(
+        themeDemo.locator('body, #theme-text, #theme-status, .tr-quick-assist__input, .tr-quick-assist__suggestion'),
+      )
+      if (screenshotRoot) {
+        await themeContainer.screenshot({ path: `${screenshotRoot}/theme-demo-${mode}.png`, animations: 'disabled' })
+      }
+      await themeDemo.locator('.tr-quick-assist__input').fill('主题示例提交')
+      await themeDemo.locator('.tr-quick-assist__input').press('Enter')
+      await expect(themeDemo.locator('#theme-status')).toHaveText('已提交：主题示例提交')
+      await expect(page.locator('html')).toHaveAttribute('data-tr-color-mode', parentMode)
+    }
+    await themeDemo.locator('#theme-mode').selectOption('auto')
+    for (const mode of ['dark', 'light']) {
+      await page.emulateMedia({ colorScheme: mode })
+      await expect(themeDemo.locator('html')).toHaveAttribute('data-cf-theme', mode)
+      await expect(themeDemo.locator('#theme-status')).toContainText('跟随系统')
+    }
+    await page.setViewportSize({ width: 390, height: 900 })
+    await themeDemo.locator('#theme-mode').selectOption('dark')
+    expect(await themeDemo.locator('html').evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true)
+    await checkThemeFrameLayout()
+    if (screenshotRoot) {
+      await themeContainer.evaluate((element) => {
+        window.scrollBy(0, element.getBoundingClientRect().top - 120)
+      })
+      await themeContainer.screenshot({ path: `${screenshotRoot}/theme-demo-mobile.png`, animations: 'disabled' })
+    }
   }
   if (pageErrors.length) throw new Error(`Docs page errors: ${pageErrors.join('; ')}`)
   console.log(`QuickAssist HTML demo: trigger and popover visible ${standalone ? 'standalone' : 'in the docs iframe'}.`)

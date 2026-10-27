@@ -3,6 +3,7 @@ import type {
   QuickAssistContext,
   QuickAssistEvent,
   QuickAssistActivation,
+  QuickAssistActivationInput,
   QuickAssistOptions,
   QuickAssistPlacement,
   SelectionSnapshot,
@@ -17,6 +18,9 @@ export type QuickAssistViewState = 'idle' | 'trigger' | 'composer'
 export interface QuickAssistSession {
   id: number
   activation: QuickAssistActivation
+  external?: QuickAssistActivationInput
+  owner?: object
+  refreshPosition?: () => void
   controller: AbortController
   state: QuickAssistViewState
   context?: QuickAssistContext
@@ -34,8 +38,10 @@ export interface ResolvedQuickAssistOptions extends QuickAssistOptions {
   exclude: string[]
   maxSuggestions: number
   selection: {
+    forwardOnly: boolean
     maxTextLength: number
     validate?: NonNullable<QuickAssistOptions['selection']>['validate']
+    validateActivation?: NonNullable<QuickAssistOptions['selection']>['validateActivation']
   }
   trigger: Required<NonNullable<QuickAssistOptions['trigger']>>
   nearbyContext: Required<NonNullable<QuickAssistOptions['nearbyContext']>>
@@ -54,7 +60,10 @@ export interface QuickAssistSelectionModule {
 }
 
 export interface QuickAssistContextModule {
-  build: (snapshot: SelectionSnapshot, signal: AbortSignal) => QuickAssistContext | Promise<QuickAssistContext>
+  build: (
+    snapshot: SelectionSnapshot | QuickAssistActivationInput,
+    signal: AbortSignal,
+  ) => QuickAssistContext | Promise<QuickAssistContext>
 }
 
 export interface QuickAssistRecommendationModule {

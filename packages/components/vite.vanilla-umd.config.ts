@@ -1,5 +1,8 @@
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
+import { generateVanillaTheme } from './scripts/vanilla-theme.mjs'
+
+generateVanillaTheme()
 
 function verifyVanillaGraph(): Plugin {
   return {

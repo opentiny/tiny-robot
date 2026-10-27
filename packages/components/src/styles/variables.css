@@ -109,6 +109,13 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
+  /* ===== QuickAssist decoration tokens ===== */
+  --tr-assist-border-color: #e6e6e6;
+  --tr-assist-icon-gradient-start: #7d00ff;
+  --tr-assist-icon-gradient-middle: #b927ff;
+  --tr-assist-icon-gradient-end: #ff6bb5;
+  --tr-assist-box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+
   /* ===== Attachments ===== */
   --tr-attachments-card-bg: #ffffff;
   --tr-attachments-card-border-color: #f0f0f0;
@@ -322,6 +329,13 @@
   --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
+
+  /* ===== QuickAssist decoration tokens ===== */
+  --tr-assist-border-color: #4d4d4d;
+  --tr-assist-icon-gradient-start: #b47aff;
+  --tr-assist-icon-gradient-middle: #d580ff;
+  --tr-assist-icon-gradient-end: #ff95cc;
+  --tr-assist-box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.48);
 
   /* ===== Attachments ===== */
   --tr-attachments-card-bg: transparent;
