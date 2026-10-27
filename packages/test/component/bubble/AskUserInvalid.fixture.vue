@@ -13,35 +13,35 @@ const props = defineProps<{
   emptySteps?: boolean
 }>()
 const invalidContent: BubbleMessage['content'] = [{ type: 'ask_user' }]
-const malformedContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'malformed-ask-user', steps: [null] }]
+const malformedContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'malformed-ask-user', questions: [null] }]
 const malformedOptionsContent: BubbleMessage['content'] = [
   {
     type: 'ask_user',
     id: 'malformed-options-ask-user',
-    steps: [{ id: 'framework', title: '框架', type: 'single', options: {} }],
+    questions: [{ id: 'framework', question: '框架', options: {} }],
   },
 ]
 const emptyStepIdContent: BubbleMessage['content'] = [
-  { type: 'ask_user', id: 'empty-step-id-ask-user', steps: [{ id: '', title: '项目名称', type: 'text' }] },
+  { type: 'ask_user', id: 'empty-step-id-ask-user', questions: [{ id: '', question: '项目名称' }] },
 ]
 const duplicateStepIdsContent: BubbleMessage['content'] = [
   {
     type: 'ask_user',
     id: 'duplicate-step-id-ask-user',
-    steps: [
-      { id: 'duplicate', title: '项目名称', type: 'text' },
-      { id: 'duplicate', title: '项目描述', type: 'text' },
+    questions: [
+      { id: 'duplicate', question: '项目名称' },
+      { id: 'duplicate', question: '项目描述' },
     ],
   },
 ]
 const emptyContentIdContent: BubbleMessage['content'] = [
-  { type: 'ask_user', id: '', steps: [{ id: 'project-name', title: '项目名称', type: 'text' }] },
+  { type: 'ask_user', id: '', questions: [{ id: 'project-name', question: '项目名称' }] },
 ]
 const duplicateContentIdsContent: BubbleMessage['content'] = [
-  { type: 'ask_user', id: 'duplicate-ask-user', steps: [{ id: 'first-step', title: '第一个问题', type: 'text' }] },
-  { type: 'ask_user', id: 'duplicate-ask-user', steps: [{ id: 'second-step', title: '第二个问题', type: 'text' }] },
+  { type: 'ask_user', id: 'duplicate-ask-user', questions: [{ id: 'first-step', question: '第一个问题' }] },
+  { type: 'ask_user', id: 'duplicate-ask-user', questions: [{ id: 'second-step', question: '第二个问题' }] },
 ]
-const emptyStepsContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'empty-steps-ask-user', steps: [] }]
+const emptyStepsContent: BubbleMessage['content'] = [{ type: 'ask_user', id: 'empty-steps-ask-user', questions: [] }]
 </script>
 
 <template>

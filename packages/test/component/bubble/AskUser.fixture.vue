@@ -8,24 +8,18 @@ const props = defineProps<{ initialState?: Record<string, unknown> }>()
 const content: AskUserContent = {
   type: 'ask_user',
   id: 'ask-user-test',
-  title: '项目配置',
-  description: '请填写项目配置，完成后提交。',
-  steps: [
+  heading: '项目配置',
+  questions: [
     {
       id: 'name',
-      title: '项目名称',
-      type: 'text',
-      placeholder: '输入项目名称',
+      question: '项目名称',
     },
     {
       id: 'framework',
-      title: '框架',
-      type: 'single',
-      options: [
-        { label: 'Vue', value: 'vue' },
-        { label: 'React', value: 'react' },
-        { label: '其他', value: 'other', disabled: true },
-      ],
+      question: '框架',
+      options: [{ label: 'Vue' }, { label: 'React' }],
+      multiSelect: false,
+      allowCustom: false,
     },
   ],
 }

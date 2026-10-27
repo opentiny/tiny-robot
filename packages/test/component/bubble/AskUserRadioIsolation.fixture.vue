@@ -6,16 +6,14 @@ import type { AskUserContent } from '../../../components/src/bubble/index.type'
 const content: AskUserContent = {
   type: 'ask_user',
   id: 'shared-ask-user',
-  title: '选择框架',
-  steps: [
+  heading: '选择框架',
+  questions: [
     {
       id: 'framework',
-      title: '框架',
-      type: 'single',
-      options: [
-        { label: 'Vue', value: 'vue' },
-        { label: 'React', value: 'react' },
-      ],
+      question: '框架',
+      options: [{ label: 'Vue' }, { label: 'React' }],
+      multiSelect: false,
+      allowCustom: false,
     },
   ],
 }

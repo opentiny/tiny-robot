@@ -8,15 +8,15 @@ const props = defineProps<{ useResolver?: boolean; initialState?: Record<string,
 const firstContent: AskUserContent = {
   type: 'ask_user',
   id: 'first-ask-user',
-  title: '第一个问题',
-  steps: [{ id: 'first-step', title: '第一个步骤', type: 'text' }],
+  heading: '第一个问题',
+  questions: [{ id: 'first-step', question: '第一个步骤' }],
 }
 
 const secondContent: AskUserContent = {
   type: 'ask_user',
   id: 'second-ask-user',
-  title: '第二个问题',
-  steps: [{ id: 'second-step', title: '第二个步骤', type: 'text' }],
+  heading: '第二个问题',
+  questions: [{ id: 'second-step', question: '第二个步骤' }],
 }
 
 const state = ref<Record<string, unknown>>(props.initialState ?? {})

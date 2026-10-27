@@ -20,7 +20,7 @@ test.describe('AskUser renderer', () => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
 
-    await expect(bubble.getByText('请填写项目配置，完成后提交。')).toBeVisible()
+    await expect(bubble.getByRole('heading', { name: '项目配置' })).toBeVisible()
     await expect(bubble.getByRole('button', { name: '跳过' })).toBeVisible()
     await bubble.getByRole('button', { name: '跳过' }).click()
 
