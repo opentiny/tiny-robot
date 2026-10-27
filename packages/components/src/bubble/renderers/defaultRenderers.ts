@@ -38,7 +38,8 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (message) => Array.isArray(message.tool_calls) && message.tool_calls.length > 0,
+    find: (message) =>
+      Array.isArray(message.tool_calls) && message.tool_calls.some((toolCall) => toolCall.function.name !== 'ask_user'),
     renderer: markRaw(Tools),
     priority: BubbleRendererMatchPriority.NORMAL,
   },

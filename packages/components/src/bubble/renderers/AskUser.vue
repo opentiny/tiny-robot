@@ -4,15 +4,7 @@ import { TinyButton } from '@opentiny/vue'
 import { computed, reactive } from 'vue'
 import { isAskUserContent, useAskUser, useBubbleEventFn, useContentResolver, useMessageContent } from '../composables'
 import { useStableId } from '../../shared/composables'
-import type {
-  AskUserChoiceAnswer,
-  AskUserContent,
-  AskUserOption,
-  AskUserState,
-  AskUserStateMap,
-  AskUserStateValue,
-  BubbleContentRendererProps,
-} from '../index.type'
+import type { AskUserState, AskUserStateMap, AskUserStateValue, BubbleContentRendererProps } from '../index.type'
 
 defineOptions({
   inheritAttrs: false,
@@ -24,7 +16,27 @@ const { content } = useMessageContent(props)
 const resolveContent = useContentResolver()
 const emitEvent = useBubbleEventFn()
 
-const askUserContent = computed(() => (isAskUserContent(content.value) ? (content.value as AskUserContent) : undefined))
+const fallbackInteractionId = (contentIndex: number) => `ask-user-${props.message.id ?? 'message'}-${contentIndex}`
+const getInteractionId = (value: unknown, contentIndex: number) => {
+  if (value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string') {
+    return (value as { id: string }).id
+  }
+
+  return fallbackInteractionId(contentIndex)
+}
+
+const askUserContent = computed(() => {
+  if (!isAskUserContent(content.value)) {
+    return undefined
+  }
+
+  const protocolContent = content.value
+  const interactionId = protocolContent.id ?? fallbackInteractionId(props.contentIndex)
+  return {
+    ...protocolContent,
+    id: interactionId,
+  }
+})
 
 const isAskUserState = (value: unknown): value is AskUserState => {
   if (!value || typeof value !== 'object') {
@@ -47,17 +59,17 @@ const askUserIds = computed(() => {
     return askUserContent.value ? [askUserContent.value.id] : []
   }
 
-  return messageContent.filter(isAskUserContent).map((item) => item.id)
+  return messageContent.flatMap((item, index) => (isAskUserContent(item) ? [getInteractionId(item, index)] : []))
 })
 
 const hasMultipleAskUsers = computed(() => askUserIds.value.length > 1)
-const legacyStateOwnerId = computed(() => askUserIds.value[0])
+const stateOwnerId = computed(() => askUserIds.value[0])
 
 const askUserState = computed(() => {
   const storedState = props.message.state?.askUser as AskUserStateValue | undefined
 
   if (isAskUserState(storedState)) {
-    return askUserContent.value?.id === legacyStateOwnerId.value ? storedState : undefined
+    return askUserContent.value?.id === stateOwnerId.value ? storedState : undefined
   }
 
   const interactionId = askUserContent.value?.id
@@ -85,8 +97,8 @@ const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
 
   const stateUpdatePayload = payload as { key: string; value: unknown }
   const stateMap: AskUserStateMap = isAskUserState(storedState)
-    ? legacyStateOwnerId.value
-      ? { [legacyStateOwnerId.value]: storedState }
+    ? stateOwnerId.value
+      ? { [stateOwnerId.value]: storedState }
       : {}
     : ((storedState ?? {}) as AskUserStateMap)
 
@@ -104,30 +116,36 @@ const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
 
 const askUser = reactive(useAskUser(askUserContent, askUserState, emitAskUserEvent))
 
-const stepLabel = (step: AskUserContent['steps'][number]) => step.summary || step.title
+type AskUserRenderStep = NonNullable<ReturnType<typeof useAskUser>['steps']['value'][number]>
+type AskUserRenderOption = NonNullable<AskUserRenderStep['options']>[number]
 
-type SelectableOption = Omit<AskUserOption, 'value'> & { value: string | boolean }
-const OTHER_OPTION_VALUE = 'other'
+const stepLabel = (step: AskUserRenderStep) => step.summary || step.title
 
-const confirmOptions: SelectableOption[] = [
-  { label: '确认', value: true },
-  { label: '不确认', value: false },
-]
+type SelectableOption = Omit<AskUserRenderOption, 'value'> & { value: string }
+const isCustomOption = (option: AskUserRenderOption) => option.custom === true
 
-const stepAnswer = (step: AskUserContent['steps'][number]) => {
+const stepAnswer = (step: AskUserRenderStep) => {
   const value = askUser.draftAnswers[step.id]
 
-  if (value === 'ignored') {
-    return '已跳过'
+  if (value && typeof value === 'object' && 'status' in value) {
+    const answer = value as { status?: unknown; value?: unknown }
+    if (answer.status === 'skipped') {
+      return '已跳过'
+    }
+    if (answer.status === 'answered') {
+      return Array.isArray(answer.value)
+        ? answer.value.map((item) => String(item)).join('、')
+        : String(answer.value ?? '')
+    }
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item) => step.options?.find((option) => option.value === item)?.label ?? String(item)).join('、')
-  }
-
-  if (value && typeof value === 'object' && Array.isArray((value as AskUserChoiceAnswer).selected)) {
-    const answer = value as AskUserChoiceAnswer
-    const labels = answer.selected.map(
+  if (value && typeof value === 'object' && Array.isArray((value as { selected?: unknown }).selected)) {
+    const answer = value as {
+      selected: string[]
+      additionalCustomValues?: string[]
+      other?: { selected: boolean; text: string }
+    }
+    const labels = [...answer.selected, ...(answer.additionalCustomValues ?? [])].map(
       (item) => step.options?.find((option) => option.value === item)?.label ?? String(item),
     )
 
@@ -138,8 +156,9 @@ const stepAnswer = (step: AskUserContent['steps'][number]) => {
     return labels.length ? labels.join('、') : '已跳过'
   }
 
-  if (typeof value === 'boolean') {
-    return value ? '确认' : '不确认'
+  if (Array.isArray(value)) {
+    const labels = value.map((item) => step.options?.find((option) => option.value === item)?.label ?? String(item))
+    return labels.length ? labels.join('、') : '已跳过'
   }
 
   if (typeof value === 'string' && step.options) {
@@ -156,31 +175,22 @@ const currentOptions = computed<SelectableOption[]>(() => {
     return []
   }
 
-  return step.type === 'confirm'
-    ? confirmOptions
-    : (step.options ?? []).filter((option) => option.value !== OTHER_OPTION_VALUE)
+  return (step.options ?? []).filter((option) => !isCustomOption(option))
 })
 
-const otherOption = computed(() => askUser.currentStep?.options?.find((option) => option.value === OTHER_OPTION_VALUE))
+const otherOption = computed(() => askUser.currentStep?.options?.find(isCustomOption))
 
 const selectOption = (value: SelectableOption['value']) => {
-  if (askUser.currentStep?.type === 'confirm') {
-    askUser.setAnswer(value)
-  } else {
-    askUser.selectOption(value as string)
-  }
+  askUser.selectOption(value)
 }
 
 const isOptionSelected = (value: SelectableOption['value']) => {
-  if (askUser.currentStep?.type === 'confirm') {
-    return askUser.currentAnswer === value
-  }
-
-  return askUser.isOptionSelected(value as string)
+  return askUser.isOptionSelected(value)
 }
 
 const answersExpanded = computed(() => askUser.expanded)
-const answersId = computed(() => `ask-user-answers-${askUserContent.value?.id ?? ''}`)
+const answersId = computed(() => `ask-user-answers-${askUserInstanceId}`)
+const stepHeadingId = (stepId: string) => `ask-user-step-${askUserInstanceId}-${stepId}`
 
 const toggleAnswers = () => {
   askUser.setExpanded(!answersExpanded.value)
@@ -229,10 +239,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       :class="{ 'is-collapsed': askUser.status === 'submitted' && !answersExpanded }"
     >
       <div class="tr-bubble__ask-user-heading">
-        <h3 class="tr-bubble__ask-user-prompt">{{ askUserContent.title || '提供详细的问题' }}</h3>
-        <p v-if="askUserContent.description" class="tr-bubble__ask-user-description">
-          {{ askUserContent.description }}
-        </p>
+        <h3 class="tr-bubble__ask-user-prompt">{{ askUserContent.heading || '提供详细的问题' }}</h3>
       </div>
       <tiny-button
         v-if="askUser.status === 'submitted' && askUser.steps.length"
@@ -267,10 +274,14 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       </ul>
     </section>
 
+    <p v-else-if="askUser.status === 'cancelled'" class="tr-bubble__ask-user-error" role="status">
+      已取消本次信息收集。
+    </p>
+
     <section
       v-else-if="askUser.currentStep"
       class="tr-bubble__ask-user-step"
-      :aria-labelledby="`ask-user-step-${askUser.currentStep.id}`"
+      :aria-labelledby="stepHeadingId(askUser.currentStep.id)"
     >
       <div v-if="askUser.steps.length > 1" class="tr-bubble__ask-user-progress" aria-label="确认进度">
         <template v-for="(step, index) in askUser.steps" :key="step.id">
@@ -300,7 +311,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       <div class="tr-bubble__ask-user-step-heading">
         <div>
           <h4
-            :id="`ask-user-step-${askUser.currentStep.id}`"
+            :id="stepHeadingId(askUser.currentStep.id)"
             class="tr-bubble__ask-user-step-title"
             :title="askUser.currentStep.title"
           >
@@ -316,7 +327,6 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
         <textarea
           class="tr-bubble__ask-user-textarea"
           :value="typeof askUser.currentAnswer === 'string' ? askUser.currentAnswer : ''"
-          :placeholder="askUser.currentStep.placeholder"
           :disabled="askUser.isLocked"
           rows="3"
           @input="handleTextInput"
@@ -389,7 +399,10 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       </p>
     </section>
 
-    <div v-if="askUser.steps.length && askUser.status !== 'submitted'" class="tr-bubble__ask-user-actions">
+    <div
+      v-if="askUser.steps.length && askUser.status !== 'submitted' && askUser.status !== 'cancelled'"
+      class="tr-bubble__ask-user-actions"
+    >
       <tiny-button
         v-if="askUser.canGoBack"
         size="mini"
@@ -437,7 +450,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           class="tr-bubble__ask-user-button"
           @click="askUser.submit"
         >
-          <span>{{ askUserContent.submitLabel || '提交' }}</span>
+          <span>提交</span>
         </tiny-button>
       </div>
     </div>

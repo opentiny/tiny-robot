@@ -1,18 +1,44 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import type {
-  AskUserChoiceAnswer,
-  AskUserContent,
-  AskUserOption,
-  AskUserState,
-  AskUserStep,
-  AskUserStepType,
-  BubbleEvent,
-} from '../index.type'
+import type { AskUserContent, AskUserQuestionOption, AskUserState, BubbleEvent } from '../index.type'
 
 type AskUserEventEmitter = (event: BubbleEvent) => void
 
-const isChoiceAnswer = (value: unknown): value is AskUserChoiceAnswer => {
-  return Boolean(value && typeof value === 'object' && Array.isArray((value as AskUserChoiceAnswer).selected))
+type AskUserRenderStepType = 'single' | 'multiple' | 'text'
+
+interface AskUserRenderOption {
+  label: string
+  value: string
+  description?: string
+  disabled?: boolean
+  custom?: boolean
+}
+
+interface AskUserRenderChoiceAnswer {
+  selected: string[]
+  additionalCustomValues?: string[]
+  other?: {
+    selected: boolean
+    text: string
+  }
+}
+
+interface AskUserRenderStep {
+  id: string
+  title: string
+  summary?: string
+  description?: string
+  type: AskUserRenderStepType
+  options?: AskUserRenderOption[]
+}
+
+interface AskUserRenderContent {
+  type: 'ask_user'
+  id: string
+  steps: AskUserRenderStep[]
+}
+
+const isChoiceAnswer = (value: unknown): value is AskUserRenderChoiceAnswer => {
+  return Boolean(value && typeof value === 'object' && Array.isArray((value as AskUserRenderChoiceAnswer).selected))
 }
 
 const cloneAnswer = (value: unknown) => {
@@ -23,6 +49,7 @@ const cloneAnswer = (value: unknown) => {
   if (isChoiceAnswer(value)) {
     return {
       selected: [...value.selected],
+      ...(value.additionalCustomValues ? { additionalCustomValues: [...value.additionalCustomValues] } : {}),
       ...(value.other ? { other: { ...value.other } } : {}),
     }
   }
@@ -66,6 +93,10 @@ const answersEqual = (left: Record<string, unknown>, right: Record<string, unkno
         isChoiceAnswer(leftValue) &&
         isChoiceAnswer(rightValue) &&
         answersEqual({ selected: leftValue.selected }, { selected: rightValue.selected }) &&
+        answersEqual(
+          { values: leftValue.additionalCustomValues ?? [] },
+          { values: rightValue.additionalCustomValues ?? [] },
+        ) &&
         leftValue.other?.selected === rightValue.other?.selected &&
         leftValue.other?.text === rightValue.other?.text
       )
@@ -77,7 +108,11 @@ const answersEqual = (left: Record<string, unknown>, right: Record<string, unkno
 
 const isFilled = (value: unknown) => {
   if (isChoiceAnswer(value)) {
-    return value.selected.length > 0 || Boolean(value.other?.selected && value.other.text.trim())
+    return (
+      value.selected.length > 0 ||
+      Boolean(value.other?.selected && value.other.text.trim()) ||
+      Boolean(value.additionalCustomValues?.some((item) => item.trim()))
+    )
   }
 
   if (Array.isArray(value)) {
@@ -91,7 +126,86 @@ const isFilled = (value: unknown) => {
   return value !== undefined && value !== null
 }
 
-const normalizeState = (content: AskUserContent | undefined, state: AskUserState | undefined): AskUserState => {
+const unwrapProtocolAnswer = (value: unknown) => {
+  if (!value || typeof value !== 'object') {
+    return value
+  }
+
+  const answer = value as { status?: unknown; value?: unknown }
+  if (answer.status === 'skipped') {
+    return null
+  }
+  if (answer.status === 'answered') {
+    return answer.value
+  }
+
+  return value
+}
+
+const toRenderAnswer = (step: AskUserRenderStep, value: unknown) => {
+  const answer = unwrapProtocolAnswer(value)
+  if (answer === undefined || answer === null || step.type === 'text') {
+    return answer
+  }
+
+  const optionValues = new Set((step.options ?? []).filter((option) => !option.custom).map((option) => option.value))
+  if (step.type === 'multiple' && Array.isArray(answer)) {
+    const values = answer.filter((item): item is string => typeof item === 'string')
+    const selected = values.filter((item) => optionValues.has(item))
+    const customValues = values.filter((item) => !optionValues.has(item))
+    if (!customValues.length) {
+      return values
+    }
+
+    return {
+      selected,
+      other: { selected: true, text: customValues[0] },
+      ...(customValues.length > 1 ? { additionalCustomValues: customValues.slice(1) } : {}),
+    } satisfies AskUserRenderChoiceAnswer
+  }
+
+  if (
+    step.type === 'single' &&
+    typeof answer === 'string' &&
+    !optionValues.has(answer) &&
+    step.options?.some((option) => option.custom)
+  ) {
+    return { selected: [], other: { selected: true, text: answer } } satisfies AskUserRenderChoiceAnswer
+  }
+
+  return answer
+}
+
+const toProtocolAnswer = (step: AskUserRenderStep | undefined, value: unknown) => {
+  if (!step || !isChoiceAnswer(value)) {
+    return value
+  }
+
+  if (step.type === 'multiple') {
+    const values = [
+      ...value.selected,
+      ...(value.additionalCustomValues ?? []),
+      ...(value.other?.selected && value.other.text.trim() ? [value.other.text.trim()] : []),
+    ]
+    return Array.from(new Set(values))
+  }
+
+  if (step.type === 'single') {
+    if (value.other?.selected && value.other.text.trim()) {
+      return value.other.text.trim()
+    }
+    return value.selected[0] ?? null
+  }
+
+  return value
+}
+
+const toProtocolAnswers = (content: AskUserRenderContent | undefined, answers: Record<string, unknown>) => {
+  const steps = new Map(content?.steps.map((step) => [step.id, step]) ?? [])
+  return Object.fromEntries(Object.entries(answers).map(([id, value]) => [id, toProtocolAnswer(steps.get(id), value)]))
+}
+
+const normalizeState = (content: AskUserRenderContent | undefined, state: AskUserState | undefined): AskUserState => {
   const stepCount = content?.steps.length ?? 0
   const currentStep = Math.min(Math.max(state?.currentStep ?? 0, 0), Math.max(stepCount - 1, 0))
   const stepIds = new Set(content?.steps.map((step) => step.id) ?? [])
@@ -99,7 +213,12 @@ const normalizeState = (content: AskUserContent | undefined, state: AskUserState
   return {
     status: state?.status ?? 'active',
     currentStep,
-    answers: cloneAnswers(state?.answers),
+    answers: Object.fromEntries(
+      Object.entries(state?.answers ?? {}).map(([id, value]) => {
+        const step = content?.steps.find((item) => item.id === id)
+        return [id, step ? toRenderAnswer(step, value) : cloneAnswer(value)]
+      }),
+    ),
     completedStepIds: (state?.completedStepIds ?? []).filter((stepId) => stepIds.has(stepId)),
     ...(typeof state?.expanded === 'boolean' ? { expanded: state.expanded } : {}),
     ...(state?.error ? { error: state.error } : {}),
@@ -108,35 +227,41 @@ const normalizeState = (content: AskUserContent | undefined, state: AskUserState
   }
 }
 
-const askUserStepTypes = new Set<AskUserStepType>(['single', 'multiple', 'text', 'confirm'])
-
-const isAskUserOption = (value: unknown): value is AskUserOption => {
+const isAskUserQuestion = (value: unknown) => {
   if (!value || typeof value !== 'object') {
     return false
   }
 
-  const option = value as Partial<AskUserOption>
-  return (
-    typeof option.label === 'string' &&
-    typeof option.value === 'string' &&
-    (option.description === undefined || typeof option.description === 'string') &&
-    (option.disabled === undefined || typeof option.disabled === 'boolean')
-  )
-}
-
-const isAskUserStep = (value: unknown): value is AskUserStep => {
-  if (!value || typeof value !== 'object') {
+  const question = value as Record<string, unknown>
+  if (
+    typeof question.id !== 'string' ||
+    question.id.trim().length === 0 ||
+    typeof question.question !== 'string' ||
+    question.question.trim().length === 0
+  ) {
     return false
   }
 
-  const step = value as Partial<AskUserStep>
+  if (question.options === undefined) {
+    return question.multiSelect === undefined && question.allowCustom === undefined
+  }
+
   return (
-    typeof step.id === 'string' &&
-    step.id.trim().length > 0 &&
-    typeof step.title === 'string' &&
-    typeof step.type === 'string' &&
-    askUserStepTypes.has(step.type as AskUserStepType) &&
-    (step.options === undefined || (Array.isArray(step.options) && step.options.every(isAskUserOption)))
+    Array.isArray(question.options) &&
+    question.options.length > 0 &&
+    question.options.every((option) => {
+      if (!option || typeof option !== 'object') {
+        return false
+      }
+      const choice = option as Record<string, unknown>
+      return (
+        typeof choice.label === 'string' &&
+        choice.label.trim().length > 0 &&
+        (choice.description === undefined || typeof choice.description === 'string')
+      )
+    }) &&
+    typeof question.multiSelect === 'boolean' &&
+    typeof question.allowCustom === 'boolean'
   )
 }
 
@@ -145,20 +270,62 @@ export const isAskUserContent = (value: unknown): value is AskUserContent => {
     return false
   }
 
-  const content = value as Partial<AskUserContent>
-  if (
+  const content = value as Record<string, unknown>
+  return (
     content.type === 'ask_user' &&
-    typeof content.id === 'string' &&
-    content.id.trim().length > 0 &&
-    Array.isArray(content.steps) &&
-    content.steps.length > 0 &&
-    content.steps.every(isAskUserStep)
-  ) {
-    const stepIds = content.steps.map((step) => step.id)
-    return new Set(stepIds).size === stepIds.length
+    (content.id === undefined || (typeof content.id === 'string' && content.id.trim().length > 0)) &&
+    (content.heading === undefined || typeof content.heading === 'string') &&
+    Array.isArray(content.questions) &&
+    content.questions.length > 0 &&
+    content.questions.every(isAskUserQuestion) &&
+    new Set((content.questions as Array<{ id: string }>).map((question) => question.id)).size ===
+      content.questions.length
+  )
+}
+
+const toUniqueCustomOptionValue = (questionId: string, optionLabels: Set<string>) => {
+  let value = `__ask_user_custom_${questionId}__`
+  while (optionLabels.has(value)) {
+    value += '_'
+  }
+  return value
+}
+
+/** Adapts protocol questions to the renderer's sequential question model. */
+const normalizeAskUserViewContent = (value: unknown, fallbackId: string): AskUserRenderContent | undefined => {
+  if (!isAskUserContent(value)) {
+    return undefined
   }
 
-  return false
+  return {
+    type: 'ask_user',
+    id: value.id ?? fallbackId,
+    steps: value.questions.map((question): AskUserRenderStep => {
+      if (!question.options) {
+        return { id: question.id, title: question.question, type: 'text' }
+      }
+
+      const options: AskUserRenderOption[] = question.options.map((option: AskUserQuestionOption) => ({
+        label: option.label,
+        value: option.label,
+        ...(option.description ? { description: option.description } : {}),
+      }))
+      if (question.allowCustom) {
+        options.push({
+          label: '其他',
+          value: toUniqueCustomOptionValue(question.id, new Set(options.map((option) => option.value))),
+          custom: true,
+        })
+      }
+
+      return {
+        id: question.id,
+        title: question.question,
+        type: question.multiSelect ? 'multiple' : 'single',
+        options,
+      }
+    }),
+  }
 }
 
 export const hasUniqueAskUserIds = (value: unknown): boolean => {
@@ -166,16 +333,20 @@ export const hasUniqueAskUserIds = (value: unknown): boolean => {
     return true
   }
 
-  const askUserIds = value.filter(isAskUserContent).map((content) => content.id)
+  const askUserIds = value
+    .filter(isAskUserContent)
+    .map((content) => content.id)
+    .filter((id): id is string => typeof id === 'string')
   return new Set(askUserIds).size === askUserIds.length
 }
 
-export const useAskUser = (
+const useAskUserView = (
   contentSource: MaybeRefOrGetter<AskUserContent | undefined>,
+  fallbackId: string,
   stateSource: MaybeRefOrGetter<AskUserState | undefined>,
   emitEvent: AskUserEventEmitter,
 ) => {
-  const content = computed(() => toValue(contentSource))
+  const content = computed(() => normalizeAskUserViewContent(toValue(contentSource), fallbackId))
   const state = computed(() => normalizeState(content.value, toValue(stateSource)))
   const draftAnswers = ref<Record<string, unknown>>({})
   const syncedAnswers = ref<Record<string, unknown>>({})
@@ -204,10 +375,12 @@ export const useAskUser = (
 
   const steps = computed(() => content.value?.steps ?? [])
   const currentStepIndex = computed(() => state.value.currentStep)
-  const currentStep = computed<AskUserStep | undefined>(() => steps.value[currentStepIndex.value])
+  const currentStep = computed<AskUserRenderStep | undefined>(() => steps.value[currentStepIndex.value])
   const status = computed(() => state.value.status)
   const retryable = computed(() => state.value.retryable !== false)
-  const isLocked = computed(() => status.value === 'submitting' || status.value === 'submitted')
+  const isLocked = computed(
+    () => status.value === 'submitting' || status.value === 'submitted' || status.value === 'cancelled',
+  )
   const canGoBack = computed(() => !isLocked.value && currentStepIndex.value > 0)
   const currentAnswer = computed(() => {
     const stepId = currentStep.value?.id
@@ -223,7 +396,7 @@ export const useAskUser = (
     const value = currentAnswer.value
 
     if (isChoiceAnswer(value)) {
-      return cloneAnswer(value) as AskUserChoiceAnswer
+      return cloneAnswer(value) as AskUserRenderChoiceAnswer
     }
 
     if (step?.type === 'multiple') {
@@ -237,7 +410,7 @@ export const useAskUser = (
     const nextState: AskUserState = {
       ...state.value,
       ...patch,
-      answers: cloneAnswers(draftAnswers.value),
+      answers: toProtocolAnswers(content.value, draftAnswers.value),
       updatedAt: Date.now(),
     }
 
@@ -326,6 +499,9 @@ export const useAskUser = (
     const answer = currentChoiceAnswer()
     if (selected && currentStep.value?.type === 'single') {
       answer.selected = []
+    }
+    if (!selected) {
+      answer.additionalCustomValues = []
     }
     answer.other = { selected, text: answer.other?.text ?? '' }
     setAnswer(answer)
@@ -491,3 +667,10 @@ export const useAskUser = (
     setExpanded,
   }
 }
+
+/** Manages the interactive state for a current-protocol AskUser question set. */
+export const useAskUser = (
+  contentSource: MaybeRefOrGetter<AskUserContent | undefined>,
+  stateSource: MaybeRefOrGetter<AskUserState | undefined>,
+  emitEvent: AskUserEventEmitter,
+) => useAskUserView(contentSource, 'ask-user', stateSource, emitEvent)

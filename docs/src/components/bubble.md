@@ -297,7 +297,7 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 组件内置了以下渲染器，可以通过 `BubbleRenderers` 访问：
 
-- `BubbleRenderers.AskUser` - 分步收集与确认渲染器
+- `BubbleRenderers.AskUser` - AskUser 问题收集与确认渲染器
 - `BubbleRenderers.Box` - 默认 Box 渲染器
 - `BubbleRenderers.Text` - 文本内容渲染器（默认 Content 渲染器）
 - `BubbleRenderers.Image` - 图片渲染器
@@ -392,25 +392,58 @@ defineProps<BubbleBoxRendererProps>()
 
 #### AskUser 渲染器
 
-当 `content` 数组包含 `type: 'ask_user'` 的内容项时，Bubble 会自动匹配内置的 `AskUser` 渲染器。它在气泡内展示分步收集流程，支持单选、多选、文本输入和确认步骤。
+当 `content` 数组包含 `type: 'ask_user'` 的内容项时，Bubble 会自动匹配内置的 `AskUser` 渲染器。内容使用 Kit 当前 `questions` 协议，可展示单选、多选和文本输入。确认问题应使用“确认 / 暂不确认”等单选选项表达。
 
-应用通过 `AskUserContent` 提供问题和步骤，通过消息的 `state.askUser` 保存交互状态。初次渲染时可以省略 `state.askUser`，渲染器会从第一个步骤开始；用户操作后，应用需要监听 `state-change`，将 `key` 为 `askUser` 的新值同步回消息的 `state`。单个 AskUser 的值为 `AskUserState`；同一条消息包含多个 AskUser 时，值为以交互 ID 为键的 `AskUserStateMap`。Bubble 只负责展示和发出事件，不会自行持久化状态，也不会提交外部请求。
+内容可使用 `heading` 作为标题，并通过 `questions` 描述问题：没有 `options` 的问题显示文本域；带选项的问题通过 `multiSelect` 区分单选和多选，`allowCustom: true` 时渲染器会额外显示自定义输入。自定义答案提交时会转换为协议要求的字符串或字符串数组。
 
-各步骤类型的行为如下：
+应用通过消息的 `state.askUser` 保存交互状态。初次渲染时可以省略 `state.askUser`，渲染器会从第一个问题开始；用户操作后，应用需要监听 `state-change`，将 `key` 为 `askUser` 的新值同步回消息的 `state`。单个 AskUser 的值为 `AskUserState`；同一条消息包含多个 AskUser 时，值为以交互 ID 为键的 `AskUserStateMap`。Kit 会把工具调用 ID 用作内容项的内部交互 ID；手动构造的 `questions` 内容可省略该 ID，渲染器会生成一个。Bubble 只负责展示和发出事件，不会自行持久化状态，也不会提交外部请求。
 
-| 步骤类型   | 行为                                                                 |
-| ---------- | -------------------------------------------------------------------- |
-| `single`   | 从 `options` 中选择一个选项；支持通过值为 `other` 的选项填写其他内容 |
-| `multiple` | 从 `options` 中选择多个选项；支持通过值为 `other` 的选项填写其他内容 |
-| `text`     | 使用文本域填写内容                                                   |
-| `confirm`  | 使用内置的“确认”和“不确认”选项                                       |
+问题按照 `questions` 中的顺序逐个展示，每个问题都可以跳过；跳过的问题会在提交结果中标记为 `skipped`。每个 demo 都单独维护交互状态，可以操作后展开状态查看答案。
 
-`summary` 为可选字段，省略时使用 `title` 作为步骤进度标签。每个步骤都可以跳过；跳过后会将当前步骤答案记为 `null`，再进入下一步。
+| 问题配置                                     | 渲染方式                                           |
+| -------------------------------------------- | -------------------------------------------------- |
+| 不提供 `options`                             | 文本输入                                           |
+| 提供 `options` 且 `multiSelect: false`       | 单选；`allowCustom: true` 时可以输入自定义答案     |
+| 提供 `options` 且 `multiSelect: true`        | 多选；`allowCustom: true` 时可以输入自定义答案     |
+
+##### 场景一：单选或自定义回答
+
+设置 `multiSelect: false` 时用户最多选择一个候选答案；`allowCustom: true` 会额外提供自定义输入，用户可以选择一个候选项，也可以填写候选项之外的答案。
 
 <demo
-  vue="../../demos/bubble/ask-user.vue"
-  title="分步收集用户信息"
-  description="使用单选、多选、文本输入和确认步骤，提交后在消息状态中展示收集结果。"
+  vue="../../demos/bubble/ask-user-choice.vue"
+  title="单选或自定义回答"
+  description="选择预发布或生产环境，也可以输入其他发布环境。"
+/>
+
+##### 场景二：多选
+
+设置 `multiSelect: true` 后，用户可以同时选择多个候选项。本例用于选择发布涉及的服务。
+
+<demo
+  vue="../../demos/bubble/ask-user-multiple.vue"
+  title="多选服务"
+  description="一次选择本次发布涉及的多个服务。"
+/>
+
+##### 场景三：文本与确认
+
+一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。
+
+<demo
+  vue="../../demos/bubble/ask-user-text-confirm.vue"
+  title="文本说明与巡检确认"
+  description="填写变更说明，并选择发布后是否需要巡检摘要。"
+/>
+
+##### 场景四：多问题与跳过
+
+这个示例接入 Kit：`toolPlugin({ askUser: true })` 注册 AskUser 工具，`useAskUserRuntime` 在提交后校验答案并恢复调用。尝试跳过变更说明，观察模型收到的结果中该问题标记为 `skipped`，其他问题仍正常返回。
+
+<demo
+  vue="../../demos/bubble/ask-user-kit.vue"
+  title="Kit 多问题与跳过"
+  description="真实模拟工具调用暂停、跳过一个问题、提交、恢复工具和模型后续回复。"
 />
 
 ### 交互与状态管理
@@ -673,11 +706,9 @@ AskUser 的每次交互都会先通过 `state:update` 请求更新状态，再�
 | `BubbleSlots`                         | 组件插槽         | Bubble 插槽                               |
 | `BubbleListSlots`                     | 组件插槽         | BubbleList 插槽                           |
 | `BubbleMessage`                       | 消息数据         | 消息基础类型                              |
-| `AskUserStepType`                     | AskUser 配置     | AskUser 步骤类型                          |
-| `AskUserOption`                       | AskUser 配置     | 单选或多选步骤的选项                      |
-| `AskUserChoiceAnswer`                 | AskUser 数据     | 带“其他”选项的选择结果                    |
-| `AskUserStep`                         | AskUser 配置     | 单个交互步骤                              |
-| `AskUserContent`                      | AskUser 内容     | `type: 'ask_user'` 内容项                 |
+| `AskUserContent`                      | AskUser 内容     | `type: 'ask_user'` questions 内容项        |
+| `AskUserQuestion`                     | AskUser 配置     | 当前协议中的问题                              |
+| `AskUserQuestionOption`               | AskUser 配置     | 当前协议中的选项                              |
 | `AskUserStatus`                       | AskUser 状态     | AskUser 的交互状态                        |
 | `AskUserState`                        | AskUser 状态     | AskUser 在消息 `state.askUser` 中保存的状态 |
 | `AskUserStateMap`                     | AskUser 状态     | 多个 AskUser 按交互 ID 保存的状态集合       |
@@ -775,43 +806,27 @@ type ChatMessageContentItem = {
 以下为 AskUser 相关类型的完整定义：
 
 ```typescript
-type AskUserStepType = 'single' | 'multiple' | 'text' | 'confirm'
-
-interface AskUserOption {
+interface AskUserQuestionOption {
   label: string
-  value: string
   description?: string
-  disabled?: boolean
 }
 
-interface AskUserChoiceAnswer {
-  selected: string[]
-  other?: {
-    selected: boolean
-    text: string
-  }
-}
-
-interface AskUserStep {
+interface AskUserQuestion {
   id: string
-  title: string
-  summary?: string
-  description?: string
-  type: AskUserStepType
-  options?: AskUserOption[]
-  placeholder?: string
+  question: string
+  options?: AskUserQuestionOption[]
+  multiSelect?: boolean
+  allowCustom?: boolean
 }
 
 interface AskUserContent {
   type: 'ask_user'
-  id: string
-  title?: string
-  description?: string
-  steps: AskUserStep[]
-  submitLabel?: string
+  id?: string
+  heading?: string
+  questions: AskUserQuestion[]
 }
 
-type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'error'
+type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'cancelled' | 'error'
 
 interface AskUserState {
   status: AskUserStatus

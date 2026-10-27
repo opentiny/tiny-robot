@@ -19,43 +19,28 @@ export type ChatMessageContentItem = { type: string; [key: string]: any }
 
 export type ChatMessageContent = string | ChatMessageContentItem[]
 
-export type AskUserStepType = 'single' | 'multiple' | 'text' | 'confirm'
-
-export interface AskUserOption {
+export interface AskUserQuestionOption {
   label: string
-  value: string
   description?: string
-  disabled?: boolean
 }
 
-export interface AskUserChoiceAnswer {
-  selected: string[]
-  other?: {
-    selected: boolean
-    text: string
-  }
-}
-
-export interface AskUserStep {
+export interface AskUserQuestion {
   id: string
-  title: string
-  summary?: string
-  description?: string
-  type: AskUserStepType
-  options?: AskUserOption[]
-  placeholder?: string
+  question: string
+  options?: AskUserQuestionOption[]
+  multiSelect?: boolean
+  allowCustom?: boolean
 }
 
+/** Content emitted by the `ask_user` tool protocol. */
 export interface AskUserContent {
   type: 'ask_user'
-  id: string
-  title?: string
-  description?: string
-  steps: AskUserStep[]
-  submitLabel?: string
+  id?: string
+  heading?: string
+  questions: AskUserQuestion[]
 }
 
-export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'error'
+export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'cancelled' | 'error'
 
 export interface AskUserState {
   status: AskUserStatus
