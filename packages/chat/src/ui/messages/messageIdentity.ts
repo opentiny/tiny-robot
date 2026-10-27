@@ -1,4 +1,5 @@
 import { toRaw } from 'vue'
+import type { BubbleMessageGroup } from '@opentiny/tiny-robot'
 import type { ChatMessageItem, ChatRequestView } from '../../types'
 
 export type ChatStreamMessageState = 'history' | 'current' | 'unknown'
@@ -43,4 +44,12 @@ export function getMessageAnchorText(message: ChatMessageItem): string {
       .join(' ')
       .trim()
   return ''
+}
+
+export function getAdditionalAnchorIndexes(groups: BubbleMessageGroup[], messages: ChatMessageItem[]): Set<number> {
+  return new Set(
+    groups.flatMap((group) =>
+      group.role === 'user' ? group.messageIndexes.slice(1).filter((index) => messages[index]?.role === 'user') : [],
+    ),
+  )
 }

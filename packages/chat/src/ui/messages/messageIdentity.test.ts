@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { reactive } from 'vue'
-import { createMessageIdentity, getMessageAnchorText, resolveStreamState } from './messageIdentity'
+import { getBubbleMessageGroups } from '../../../../components/src/bubble/messageGroups'
+import type { ChatMessageItem } from '../../types'
+import {
+  createMessageIdentity,
+  getAdditionalAnchorIndexes,
+  getMessageAnchorText,
+  resolveStreamState,
+} from './messageIdentity'
 
 describe('Chat message identity', () => {
   it('keeps explicit keys across immutable replacement and server ID changes', () => {
@@ -84,5 +91,19 @@ describe('Chat user message anchor text', () => {
   it('includes statements and instructions from user messages', () => {
     expect(getMessageAnchorText({ role: 'user', content: '这是当前会话的背景信息。' })).toBe('这是当前会话的背景信息。')
     expect(getMessageAnchorText({ role: 'user', content: '请保留当前输入草稿' })).toBe('请保留当前输入草稿')
+  })
+})
+
+describe('Chat user message anchor targets', () => {
+  it('includes consecutive user messages when assistant is the divider role', () => {
+    const messages = [
+      { role: 'user', content: 'first' },
+      { role: 'user', content: 'second' },
+      { role: 'assistant', content: 'reply' },
+    ] as ChatMessageItem[]
+    const groups = getBubbleMessageGroups(messages, 'divider', 'assistant')
+
+    expect(groups.map((group) => group.messageIndexes)).toEqual([[0, 1], [2]])
+    expect([...getAdditionalAnchorIndexes(groups, messages)]).toEqual([1])
   })
 })

@@ -7,6 +7,7 @@ import {
   TrPrompts,
   TrWelcome,
   useAutoScroll,
+  getBubbleMessageGroups,
   type BubbleBoxAttributesResolver,
   type BubbleContentAttributesResolver,
   type BubbleMessage,
@@ -16,7 +17,12 @@ import {
 } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { CHAT_RENDER_ENVIRONMENT } from '../../composables/useChatRenderContext'
-import { createMessageIdentity, getMessageAnchorText, resolveStreamState } from './messageIdentity'
+import {
+  createMessageIdentity,
+  getAdditionalAnchorIndexes,
+  getMessageAnchorText,
+  resolveStreamState,
+} from './messageIdentity'
 import { useChatStreamState } from './useChatStreamState'
 import type { ChatRequestView } from '../../types'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
@@ -85,32 +91,13 @@ const messageIndexes = computed(() =>
 )
 const additionalAnchorIndexes = computed(() => {
   if (!props.anchorEnabled) return new Set<number>()
-  const strategy = props.options.bubbleList.groupStrategy
-  let groups: BubbleMessageGroup[] = []
-  if (typeof strategy === 'function') {
-    groups = strategy(bubbleMessages.value, props.options.bubbleList.dividerRole ?? 'user')
-  } else if (strategy === 'consecutive') {
-    for (const [index, message] of bubbleMessages.value.entries()) {
-      const previous = groups.at(-1)
-      if (
-        previous &&
-        previous.role === message.role &&
-        !bubbleListProps.value.roleConfigs?.[message.role ?? '']?.hidden
-      ) {
-        previous.messages.push(message)
-        previous.messageIndexes.push(index)
-      } else {
-        groups.push({ role: message.role ?? '', messages: [message], messageIndexes: [index] })
-      }
-    }
-  }
-  return new Set(
-    groups.flatMap((group) =>
-      group.role === 'user'
-        ? group.messageIndexes.slice(1).filter((index) => bubbleMessages.value[index]?.role === 'user')
-        : [],
-    ),
+  const groups: BubbleMessageGroup[] = getBubbleMessageGroups(
+    bubbleMessages.value,
+    props.options.bubbleList.groupStrategy,
+    props.options.bubbleList.dividerRole,
+    bubbleListProps.value.roleConfigs,
   )
+  return getAdditionalAnchorIndexes(groups, bubbleMessages.value)
 })
 provide(CHAT_RENDER_ENVIRONMENT, {
   scrollRoot: computed(() => props.scrollTarget),

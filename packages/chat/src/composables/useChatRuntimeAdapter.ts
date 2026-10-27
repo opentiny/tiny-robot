@@ -41,6 +41,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       pendingModelFeatureIds.value = new Set()
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
+      emptyConversationSendSnapshots.clear()
       invalidateDraftForNavigation()
     },
     { flush: 'sync' },

@@ -318,4 +318,56 @@ describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
     resolveFirstSend(true)
     await send
   })
+
+  it('does not match replacement runtime navigation against a pending empty send snapshot', async () => {
+    let finishFirstSend!: (accepted: boolean) => void
+    const firstActiveConversation = shallowRef<ChatConversation | null>(null)
+    const firstRuntime: ChatRuntime = {
+      conversations: ref([]),
+      activeConversation: firstActiveConversation,
+      composer: {},
+      actions: {
+        send: () =>
+          new Promise<boolean>((resolve) => {
+            finishFirstSend = resolve
+          }),
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const secondActiveConversation = shallowRef<ChatConversation | null>(null)
+    const secondRuntime: ChatRuntime = {
+      conversations: ref([{ id: 'existing', title: 'existing' }]),
+      activeConversation: secondActiveConversation,
+      composer: {},
+      actions: {
+        send: async () => true,
+        clearActiveConversation: () => undefined,
+        createConversation: () => undefined,
+        switchConversation: () => undefined,
+        renameConversation: () => undefined,
+        deleteConversation: () => undefined,
+      },
+    }
+    const runtime = shallowRef(firstRuntime)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    const send = adapter.send({ text: 'first runtime send' })
+    await Promise.resolve()
+
+    runtime.value = secondRuntime
+    adapter.setInputValue('replacement runtime draft')
+    secondActiveConversation.value = {
+      id: 'existing',
+      title: 'existing',
+      messages: [],
+      requestState: 'idle',
+    }
+
+    expect(adapter.inputValue.value).toBe('')
+    finishFirstSend(true)
+    await send
+  })
 })
