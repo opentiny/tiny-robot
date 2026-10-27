@@ -62,9 +62,14 @@ export function copyContext(value: unknown): QuickAssistContext {
       throw new Error(`QuickAssistContext.${field} must be a record`)
     }
   }
-  let context: QuickAssistContext
+  return snapshotContextData(value) as unknown as QuickAssistContext
+}
+
+/** Detach structured context data without retaining shared storage. */
+export function snapshotContextData<T>(value: T): T {
+  let snapshot: T
   try {
-    context = structuredClone(value) as unknown as QuickAssistContext
+    snapshot = structuredClone(value)
   } catch (error) {
     throw new Error(
       'QuickAssistContext must contain only structured-cloneable data ' +
@@ -72,6 +77,6 @@ export function copyContext(value: unknown): QuickAssistContext {
     )
   }
   // Inspect the clone so cross-realm buffers and collections use local prototypes.
-  rejectSharedMemory(context)
-  return context
+  if (snapshot && typeof snapshot === 'object') rejectSharedMemory(snapshot)
+  return snapshot
 }
