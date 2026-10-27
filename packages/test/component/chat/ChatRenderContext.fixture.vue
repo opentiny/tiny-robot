@@ -8,6 +8,7 @@ const props = withDefaults(
   defineProps<{
     anchor?: boolean
     consecutiveUsers?: boolean
+    assistantDivider?: boolean
     customMain?: boolean
     callerAnchors?: boolean
     customConsecutiveUsers?: boolean
@@ -32,6 +33,7 @@ const messages = shallowRef<ChatMessageItem[]>(
     ? [
         { id: 'adjacent-user-1', role: 'user', content: 'Adjacent question one' },
         { id: 'adjacent-user-2', role: 'user', content: 'Adjacent question two' },
+        ...(props.assistantDivider ? [{ id: 'assistant-divider', role: 'assistant', content: 'x'.repeat(1000) }] : []),
       ]
     : Array.from({ length: 6 }, (_, index) => [
         {
@@ -69,19 +71,21 @@ const ui = computed<ChatUIOptions>(() => ({
   bubble: {
     bubbleList: {
       contentRenderMode: 'split',
-      ...(props.customConsecutiveUsers
-        ? {
-            groupStrategy: (items: import('@opentiny/tiny-robot').BubbleMessage[]) => [
-              {
-                role: 'user',
-                messages: items,
-                messageIndexes: items.map((_, index) => index),
-              },
-            ],
-          }
-        : props.consecutiveUsers
-          ? { groupStrategy: 'consecutive' as const }
-          : {}),
+      ...(props.assistantDivider
+        ? { groupStrategy: 'divider' as const, dividerRole: 'assistant' }
+        : props.customConsecutiveUsers
+          ? {
+              groupStrategy: (items: import('@opentiny/tiny-robot').BubbleMessage[]) => [
+                {
+                  role: 'user',
+                  messages: items,
+                  messageIndexes: items.map((_, index) => index),
+                },
+              ],
+            }
+          : props.consecutiveUsers
+            ? { groupStrategy: 'consecutive' as const }
+            : {}),
     },
     bubbleProvider: {
       fallbackContentRenderer: markRaw(RenderContextProbe),

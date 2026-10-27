@@ -145,8 +145,14 @@ describe('createVueMessageAdapter', () => {
     expect(distinctSnapshots).toEqual(['', 'hello', 'hello world'])
   })
 
-  it('preserves File objects in the response provider request body', async () => {
+  it('preserves attachment File objects in the response provider request body', async () => {
     const file = new File(['attachment'], 'attachment.txt', { type: 'text/plain' })
+    const externalPayloads = [
+      {
+        source: 'attachment',
+        payload: [{ id: 'attachment-1', name: file.name, size: file.size, rawFile: file }],
+      },
+    ]
     const responseProvider = vi.fn(mockResponseProvider('ok'))
     const adapter = createVueMessageAdapter()
     const engine = createMessageEngine(adapter, {
@@ -157,10 +163,10 @@ describe('createVueMessageAdapter', () => {
     await engine.send({
       role: 'user',
       content: 'attachment',
-      file,
+      externalPayloads,
     })
 
     const requestMessage = responseProvider.mock.calls[0][0].messages[0]
-    expect(requestMessage.file).toBe(file)
+    expect(requestMessage.externalPayloads[0].payload[0].rawFile).toBe(file)
   })
 })

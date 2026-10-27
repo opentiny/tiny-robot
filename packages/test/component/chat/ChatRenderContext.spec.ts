@@ -98,6 +98,30 @@ test('Anchor uses actual custom group results for targets', async ({ mount, page
   await expect(targets.nth(1)).toHaveClass(/tr-chat-anchor-target-active/)
 })
 
+test('Anchor navigates every user message grouped by an assistant divider', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const component = await mount(ChatRenderContext, { props: { consecutiveUsers: true, assistantDivider: true } })
+  const items = component.locator('.tr-anchor__item')
+  const targets = component.locator('.tr-chat-anchor-target[data-anchor-id]')
+  const scrollRoot = component.locator('.chat-main-scroll-host')
+
+  await expect(items).toHaveCount(2)
+  await expect(targets).toHaveCount(2)
+  expect(await items.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-item-id')))).toEqual(
+    await targets.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-anchor-id'))),
+  )
+
+  await scrollRoot.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  const initialScrollTop = await scrollRoot.evaluate((element) => element.scrollTop)
+  expect(initialScrollTop).toBeGreaterThan(0)
+
+  await items.nth(1).click()
+  await expect(targets.nth(1)).toHaveClass(/tr-chat-anchor-target-active/)
+  await expect.poll(() => scrollRoot.evaluate((element) => element.scrollTop)).toBeLessThan(initialScrollTop)
+})
+
 test('Anchor combines callback attributes and injects only the first split target', async ({ mount, page }) => {
   await page.setViewportSize({ width: 1200, height: 800 })
   const component = await mount(ChatRenderContext, { props: { callbackAttributes: true } })
