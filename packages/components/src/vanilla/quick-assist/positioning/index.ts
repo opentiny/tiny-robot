@@ -5,9 +5,65 @@ const VIEWPORT_MARGIN = 8
 export interface PositionElementOptions {
   element: HTMLElement
   anchor: DOMRectReadOnly
+  lineAnchors?: SelectionLineAnchors
   placement: QuickAssistPlacement
   offset: number
   viewport?: { width: number; height: number }
+}
+
+export interface SelectionLineAnchors {
+  top: DOMRectReadOnly
+  bottom: DOMRectReadOnly
+}
+
+function unionRect(root: Document, rects: DOMRectReadOnly[]): DOMRectReadOnly {
+  const left = Math.min(...rects.map((rect) => rect.left))
+  const top = Math.min(...rects.map((rect) => rect.top))
+  const right = Math.max(...rects.map((rect) => rect.right))
+  const bottom = Math.max(...rects.map((rect) => rect.bottom))
+  const width = right - left
+  const height = bottom - top
+  if (root.defaultView?.DOMRect) return new root.defaultView.DOMRect(left, top, width, height)
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    toJSON: () => ({ left, top, right, bottom, width, height }),
+  }
+}
+
+/** Merge text fragments on each visual line, excluding enclosing element boxes. */
+export function getSelectionLineAnchors(snapshot: SelectionSnapshot): SelectionLineAnchors | undefined {
+  const { range, root } = snapshot
+  const common = range.commonAncestorContainer
+  const walker = root.createTreeWalker(common, 4 /* SHOW_TEXT */)
+  const rects: DOMRectReadOnly[] = []
+  for (let node: Node | null = common.nodeType === 3 ? common : walker.nextNode(); node; node = walker.nextNode()) {
+    if (!range.intersectsNode(node)) continue
+    const fragment = root.createRange()
+    fragment.setStart(node, node === range.startContainer ? range.startOffset : 0)
+    fragment.setEnd(node, node === range.endContainer ? range.endOffset : node.textContent!.length)
+    rects.push(...Array.from(fragment.getClientRects()).filter((rect) => rect.width > 0 && rect.height > 0))
+  }
+  if (!rects.length) return undefined
+  rects.sort((a, b) => a.top - b.top || a.left - b.left)
+  const lines: DOMRectReadOnly[][] = []
+  for (const rect of rects) {
+    const line = lines.find((items) =>
+      items.some(
+        (item) =>
+          Math.min(item.bottom, rect.bottom) - Math.max(item.top, rect.top) > Math.min(item.height, rect.height) / 2,
+      ),
+    )
+    if (line) line.push(rect)
+    else lines.push([rect])
+  }
+  return { top: unionRect(root, lines[0]), bottom: unionRect(root, lines[lines.length - 1]) }
 }
 
 export interface ObserveAnchorOptions {
@@ -19,9 +75,8 @@ export interface ObserveAnchorOptions {
 
 /**
  * Return the currently usable rectangle for a retained selection range.
- * A selection can span several lines; the union rectangle is the most stable
- * anchor for the compact trigger/popover.  The function deliberately uses
- * only the captured range and never reads the live document selection.
+ * The union rectangle is used for visibility and movement checks; placement
+ * uses the first/last line anchors. Only the captured Range is read.
  */
 export function getSnapshotRect(snapshot: SelectionSnapshot): DOMRectReadOnly | null {
   const range = snapshot.range
@@ -36,26 +91,7 @@ export function getSnapshotRect(snapshot: SelectionSnapshot): DOMRectReadOnly | 
   }
   if (!rects.length) return rangeRect
 
-  const left = Math.min(...rects.map((rect) => rect.left))
-  const top = Math.min(...rects.map((rect) => rect.top))
-  const right = Math.max(...rects.map((rect) => rect.right))
-  const bottom = Math.max(...rects.map((rect) => rect.bottom))
-
-  // Keep the browser's DOMRectReadOnly contract while avoiding a dependency
-  // on a particular window implementation (important for SSR/test documents).
-  const view = snapshot.root.defaultView
-  if (view?.DOMRect) return new view.DOMRect(left, top, right - left, bottom - top)
-  return {
-    x: left,
-    y: top,
-    left,
-    top,
-    right,
-    bottom,
-    width: right - left,
-    height: bottom - top,
-    toJSON: () => ({ left, top, right, bottom, width: right - left, height: bottom - top }),
-  } as DOMRectReadOnly
+  return unionRect(snapshot.root, rects)
 }
 
 function getViewport(
@@ -70,28 +106,60 @@ function getViewport(
   }
 }
 
-/** Position a fixed element below/above an anchor, flipping and shifting it into view. */
-export function positionElement(options: PositionElementOptions): void {
-  const { element, anchor, offset } = options
-  const viewport = getViewport(element, options.viewport)
-  const width = element.getBoundingClientRect().width || element.offsetWidth || 1
-  const height = element.getBoundingClientRect().height || element.offsetHeight || 1
-  const requested = options.placement === 'auto' ? 'bottom' : options.placement
-  const roomBelow = viewport.height - anchor.bottom - offset - VIEWPORT_MARGIN
-  const roomAbove = anchor.top - offset - VIEWPORT_MARGIN
+/** Shared by real and virtual triggers so opening/repositioning a popover cannot drift. */
+export function computePosition(options: {
+  anchor: DOMRectReadOnly
+  lineAnchors?: SelectionLineAnchors
+  placement: QuickAssistPlacement
+  offset: number
+  width: number
+  height: number
+  viewport: { width: number; height: number }
+}): { left: number; top: number; placement: QuickAssistPlacement } {
+  const { offset, width, height, viewport } = options
+  const requested = options.placement.startsWith('top') ? 'top' : 'bottom'
+  const alignment = options.placement.endsWith('-start')
+    ? 'start'
+    : options.placement.endsWith('-end')
+      ? 'end'
+      : 'center'
+  const topAnchor = options.lineAnchors?.top ?? options.anchor
+  const bottomAnchor = options.lineAnchors?.bottom ?? options.anchor
+  const roomBelow = viewport.height - bottomAnchor.bottom - offset - VIEWPORT_MARGIN
+  const roomAbove = topAnchor.top - offset - VIEWPORT_MARGIN
   const shouldFlip =
     requested === 'bottom' ? roomBelow < height && roomAbove > roomBelow : roomAbove < height && roomBelow > roomAbove
   const side = shouldFlip ? (requested === 'bottom' ? 'top' : 'bottom') : requested
-
-  const rawLeft = anchor.left + anchor.width / 2 - width / 2
+  const anchor = side === 'top' ? topAnchor : bottomAnchor
+  const rawLeft =
+    alignment === 'start'
+      ? anchor.left - width
+      : alignment === 'end'
+        ? anchor.right
+        : anchor.left + anchor.width / 2 - width / 2
   const left = Math.max(VIEWPORT_MARGIN, Math.min(rawLeft, viewport.width - width - VIEWPORT_MARGIN))
   const rawTop = side === 'top' ? anchor.top - height - offset : anchor.bottom + offset
   const top = Math.max(VIEWPORT_MARGIN, Math.min(rawTop, viewport.height - height - VIEWPORT_MARGIN))
+  return {
+    left: Math.round(left),
+    top: Math.round(top),
+    placement: alignment === 'center' ? side : `${side}-${alignment}`,
+  }
+}
 
+/** Position a fixed element below/above an anchor, flipping and shifting it into view. */
+export function positionElement(options: PositionElementOptions): void {
+  const { element } = options
+  const position = computePosition({
+    ...options,
+    viewport: getViewport(element, options.viewport),
+    width: element.getBoundingClientRect().width || element.offsetWidth || 1,
+    height: element.getBoundingClientRect().height || element.offsetHeight || 1,
+  })
   element.style.position = 'fixed'
-  element.style.left = `${Math.round(left)}px`
-  element.style.top = `${Math.round(top)}px`
-  element.dataset.placement = side
+  element.style.left = `${position.left}px`
+  element.style.top = `${position.top}px`
+  element.dataset.placement = position.placement
 }
 
 function isVisibleAnchor(rect: DOMRectReadOnly, viewport: { width: number; height: number }): boolean {

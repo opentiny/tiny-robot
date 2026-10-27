@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { vanillaStyle } from './scripts/vanilla-theme.mjs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 
@@ -6,7 +6,7 @@ function emitVanillaStyle(): Plugin {
   return {
     name: 'tiny-robot-vanilla-style',
     generateBundle() {
-      const source = readFileSync(resolve(__dirname, 'src/vanilla/quick-assist/style.css'), 'utf8')
+      const source = vanillaStyle()
       this.emitFile({ type: 'asset', fileName: 'vanilla/style.css', source })
     },
   }
