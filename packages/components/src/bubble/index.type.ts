@@ -24,13 +24,24 @@ export interface AskUserQuestionOption {
   description?: string
 }
 
-export interface AskUserQuestion {
+export interface AskUserQuestionBase {
   id: string
   question: string
-  options?: AskUserQuestionOption[]
-  multiSelect?: boolean
-  allowCustom?: boolean
 }
+
+export interface AskUserTextQuestion extends AskUserQuestionBase {
+  options?: never
+  multiSelect?: never
+  allowCustom?: never
+}
+
+export interface AskUserChoiceQuestion extends AskUserQuestionBase {
+  options: AskUserQuestionOption[]
+  multiSelect: boolean
+  allowCustom: boolean
+}
+
+export type AskUserQuestion = AskUserTextQuestion | AskUserChoiceQuestion
 
 /** Content emitted by the `ask_user` tool protocol. */
 export interface AskUserContent {

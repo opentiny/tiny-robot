@@ -44,8 +44,8 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (_, content, _contentIndex, context) =>
-      isAskUserContent(content) && hasUniqueAskUserIds(context?.resolvedMessageContent),
+    find: (message, content, _contentIndex, context) =>
+      isAskUserContent(content) && hasUniqueAskUserIds(context?.resolvedMessageContent, message.id),
     renderer: markRaw(AskUser),
     priority: BubbleRendererMatchPriority.CONTENT,
   },

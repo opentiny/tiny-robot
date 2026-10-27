@@ -134,6 +134,20 @@ test.describe('AskUser renderer', () => {
     await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
   })
 
+  test('falls back for AskUser content with duplicate normalized option labels', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { duplicateOptionLabels: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back for AskUser content with a question id outside the Kit protocol', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { unsafeQuestionId: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toBeVisible()
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
   test('falls back for AskUser content with an empty step id', async ({ mount }) => {
     const component = await mount(AskUserInvalidFixture, { props: { emptyStepId: true } })
 
@@ -157,6 +171,13 @@ test.describe('AskUser renderer', () => {
 
   test('falls back for AskUser contents with duplicate content ids', async ({ mount }) => {
     const component = await mount(AskUserInvalidFixture, { props: { duplicateContentIds: true } })
+
+    await expect(component.getByTestId('fallback-content-renderer')).toHaveCount(2)
+    await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)
+  })
+
+  test('falls back when a generated AskUser id collides with an explicit content id', async ({ mount }) => {
+    const component = await mount(AskUserInvalidFixture, { props: { generatedIdCollision: true } })
 
     await expect(component.getByTestId('fallback-content-renderer')).toHaveCount(2)
     await expect(component.locator('[data-type="ask-user"]')).toHaveCount(0)

@@ -811,13 +811,24 @@ interface AskUserQuestionOption {
   description?: string
 }
 
-interface AskUserQuestion {
+interface AskUserQuestionBase {
   id: string
   question: string
-  options?: AskUserQuestionOption[]
-  multiSelect?: boolean
-  allowCustom?: boolean
 }
+
+interface AskUserTextQuestion extends AskUserQuestionBase {
+  options?: never
+  multiSelect?: never
+  allowCustom?: never
+}
+
+interface AskUserChoiceQuestion extends AskUserQuestionBase {
+  options: AskUserQuestionOption[]
+  multiSelect: boolean
+  allowCustom: boolean
+}
+
+type AskUserQuestion = AskUserTextQuestion | AskUserChoiceQuestion
 
 interface AskUserContent {
   type: 'ask_user'

@@ -37,8 +37,19 @@ interface AskUserRenderContent {
   steps: AskUserRenderStep[]
 }
 
+const QUESTION_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,99}$/
+
 const isChoiceAnswer = (value: unknown): value is AskUserRenderChoiceAnswer => {
   return Boolean(value && typeof value === 'object' && Array.isArray((value as AskUserRenderChoiceAnswer).selected))
+}
+
+const setOwnRecordValue = (record: Record<string, unknown>, key: string, value: unknown) => {
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  })
 }
 
 const cloneAnswer = (value: unknown) => {
@@ -61,7 +72,7 @@ const cloneAnswers = (answers: Record<string, unknown> = {}) => {
   const result: Record<string, unknown> = {}
 
   for (const [key, value] of Object.entries(answers)) {
-    result[key] = cloneAnswer(value)
+    setOwnRecordValue(result, key, cloneAnswer(value))
   }
 
   return result
@@ -235,7 +246,7 @@ const isAskUserQuestion = (value: unknown) => {
   const question = value as Record<string, unknown>
   if (
     typeof question.id !== 'string' ||
-    question.id.trim().length === 0 ||
+    !QUESTION_ID_PATTERN.test(question.id) ||
     typeof question.question !== 'string' ||
     question.question.trim().length === 0
   ) {
@@ -246,7 +257,8 @@ const isAskUserQuestion = (value: unknown) => {
     return question.multiSelect === undefined && question.allowCustom === undefined
   }
 
-  return (
+  const optionLabels = new Set<string>()
+  const hasValidOptions =
     Array.isArray(question.options) &&
     question.options.length > 0 &&
     question.options.every((option) => {
@@ -254,15 +266,23 @@ const isAskUserQuestion = (value: unknown) => {
         return false
       }
       const choice = option as Record<string, unknown>
-      return (
-        typeof choice.label === 'string' &&
-        choice.label.trim().length > 0 &&
-        (choice.description === undefined || typeof choice.description === 'string')
-      )
-    }) &&
-    typeof question.multiSelect === 'boolean' &&
-    typeof question.allowCustom === 'boolean'
-  )
+      if (
+        typeof choice.label !== 'string' ||
+        choice.label.trim().length === 0 ||
+        (choice.description !== undefined && typeof choice.description !== 'string')
+      ) {
+        return false
+      }
+
+      const normalizedLabel = choice.label.trim()
+      if (optionLabels.has(normalizedLabel)) {
+        return false
+      }
+      optionLabels.add(normalizedLabel)
+      return true
+    })
+
+  return hasValidOptions && typeof question.multiSelect === 'boolean' && typeof question.allowCustom === 'boolean'
 }
 
 export const isAskUserContent = (value: unknown): value is AskUserContent => {
@@ -328,15 +348,22 @@ const normalizeAskUserViewContent = (value: unknown, fallbackId: string): AskUse
   }
 }
 
-export const hasUniqueAskUserIds = (value: unknown): boolean => {
+export const getAskUserInteractionId = (
+  content: Pick<AskUserContent, 'id'>,
+  contentIndex: number,
+  messageId?: string,
+) => {
+  return content.id ?? `ask-user-${messageId ?? 'message'}-${contentIndex}`
+}
+
+export const hasUniqueAskUserIds = (value: unknown, messageId?: string): boolean => {
   if (!Array.isArray(value)) {
     return true
   }
 
-  const askUserIds = value
-    .filter(isAskUserContent)
-    .map((content) => content.id)
-    .filter((id): id is string => typeof id === 'string')
+  const askUserIds = value.flatMap((content, index) =>
+    isAskUserContent(content) ? [getAskUserInteractionId(content, index, messageId)] : [],
+  )
   return new Set(askUserIds).size === askUserIds.length
 }
 
@@ -553,7 +580,7 @@ const useAskUserView = (
       if (isFilled(answers[step.id])) {
         completed.push(step.id)
       } else {
-        answers[step.id] = null
+        setOwnRecordValue(answers, step.id, null)
       }
       return completed
     }, [])
@@ -580,7 +607,7 @@ const useAskUserView = (
 
     const step = currentStep.value
     const answers = cloneAnswers(draftAnswers.value)
-    answers[step.id] = null
+    setOwnRecordValue(answers, step.id, null)
     draftAnswers.value = answers
 
     const completedStepIds = state.value.completedStepIds.filter((stepId) => stepId !== step.id)

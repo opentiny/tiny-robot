@@ -2,7 +2,14 @@
 import { IconArrowDown, IconCheckedSur } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 import { computed, reactive } from 'vue'
-import { isAskUserContent, useAskUser, useBubbleEventFn, useContentResolver, useMessageContent } from '../composables'
+import {
+  getAskUserInteractionId,
+  isAskUserContent,
+  useAskUser,
+  useBubbleEventFn,
+  useContentResolver,
+  useMessageContent,
+} from '../composables'
 import { useStableId } from '../../shared/composables'
 import type { AskUserState, AskUserStateMap, AskUserStateValue, BubbleContentRendererProps } from '../index.type'
 
@@ -16,22 +23,13 @@ const { content } = useMessageContent(props)
 const resolveContent = useContentResolver()
 const emitEvent = useBubbleEventFn()
 
-const fallbackInteractionId = (contentIndex: number) => `ask-user-${props.message.id ?? 'message'}-${contentIndex}`
-const getInteractionId = (value: unknown, contentIndex: number) => {
-  if (value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string') {
-    return (value as { id: string }).id
-  }
-
-  return fallbackInteractionId(contentIndex)
-}
-
 const askUserContent = computed(() => {
   if (!isAskUserContent(content.value)) {
     return undefined
   }
 
   const protocolContent = content.value
-  const interactionId = protocolContent.id ?? fallbackInteractionId(props.contentIndex)
+  const interactionId = getAskUserInteractionId(protocolContent, props.contentIndex, props.message.id)
   return {
     ...protocolContent,
     id: interactionId,
@@ -59,7 +57,9 @@ const askUserIds = computed(() => {
     return askUserContent.value ? [askUserContent.value.id] : []
   }
 
-  return messageContent.flatMap((item, index) => (isAskUserContent(item) ? [getInteractionId(item, index)] : []))
+  return messageContent.flatMap((item, index) =>
+    isAskUserContent(item) ? [getAskUserInteractionId(item, index, props.message.id)] : [],
+  )
 })
 
 const hasMultipleAskUsers = computed(() => askUserIds.value.length > 1)
