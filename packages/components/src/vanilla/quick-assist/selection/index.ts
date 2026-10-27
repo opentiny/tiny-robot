@@ -144,7 +144,7 @@ function hasValidGeometry(snapshot: SelectionSnapshot): boolean {
   )
 }
 
-function isDefaultTextValid(text: string, maxTextLength: number): boolean {
+export function isDefaultTextValid(text: string, maxTextLength: number): boolean {
   const trimmed = text.trim()
   if (!trimmed || trimmed.length > maxTextLength) return false
   if (NUMERIC_RE.test(trimmed) || PUNCTUATION_RE.test(trimmed.replace(/\s+/gu, ''))) return false
@@ -216,6 +216,14 @@ export function captureSelectionSnapshot(root: Document): SelectionSnapshot | nu
   if (ownerDocumentOf(sourceRange.startContainer) !== root || ownerDocumentOf(sourceRange.endContainer) !== root)
     return null
   const range = sourceRange.cloneRange()
+  // Range boundaries are always ordered; Selection anchor/focus preserve direction.
+  const anchorRange = root.createRange()
+  anchorRange.setStart(selection.anchorNode!, selection.anchorOffset)
+  anchorRange.collapse(true)
+  const focusRange = root.createRange()
+  focusRange.setStart(selection.focusNode!, selection.focusOffset)
+  focusRange.collapse(true)
+  const direction = anchorRange.compareBoundaryPoints(0, focusRange) > 0 ? 'backward' : 'forward'
   const text = selection.toString().trim()
   if (!text) return null
   const rect = range.getBoundingClientRect()
@@ -223,6 +231,7 @@ export function captureSelectionSnapshot(root: Document): SelectionSnapshot | nu
   const anchorElement = elementForNode(selection.anchorNode)
   return {
     text,
+    direction,
     range,
     rect,
     clientRects,
@@ -271,6 +280,10 @@ export function createSelectionModule(options: SelectionModuleOptions): Selectio
     if (Date.now() < ignoreTouchUntil) return
     const snapshot = captureSelectionSnapshot(root)
     if (!snapshot) {
+      clearSnapshot()
+      return
+    }
+    if (options.selection?.forwardOnly !== false && snapshot.direction === 'backward') {
       clearSnapshot()
       return
     }
@@ -373,6 +386,7 @@ export function createSelectionController(options: {
   include: string[]
   exclude: string[]
   maxTextLength: number
+  forwardOnly?: boolean
   validate?: (snapshot: SelectionSnapshot) => boolean
   onInvalidSelector?: (error: Error) => void
 }): SelectionController {
@@ -381,7 +395,11 @@ export function createSelectionController(options: {
       root: options.root,
       include: options.include,
       exclude: options.exclude,
-      selection: { maxTextLength: options.maxTextLength, validate: options.validate },
+      selection: {
+        maxTextLength: options.maxTextLength,
+        forwardOnly: options.forwardOnly,
+        validate: options.validate,
+      },
       onError: options.onInvalidSelector,
     })
   } catch (error) {
