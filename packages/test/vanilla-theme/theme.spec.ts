@@ -147,6 +147,81 @@ for (const entry of ['esm', 'umd']) {
       await expect(page.locator(host)).toHaveAttribute('data-tr-vanilla-color-mode', 'dark')
     })
 
+    for (const sourceType of ['attribute', 'class'] as const) {
+      test(`${sourceType} source follows the first match after insertion, reordering and removal`, async ({ page }) => {
+        await page.evaluate((type) => {
+          const source = document.createElement('div')
+          source.id = 'old-source'
+          source.className = 'theme-source'
+          source.setAttribute('data-theme', 'light')
+          document.body.append(source)
+          window.themeFixture.configure({
+            source: { type, selector: '.theme-source', ...(type === 'attribute' ? { attribute: 'data-theme' } : {}) },
+          })
+        }, sourceType)
+        await select(page)
+        await page.locator('.tr-quick-assist__trigger').click()
+        await page.locator(input).fill('保留当前输入')
+        const events = await page.evaluate(() => window.themeFixture.events.slice())
+        const check = async (mode: string, observers = 1) => {
+          await expect(page.locator(host)).toHaveAttribute('data-tr-vanilla-color-mode', mode)
+          await expect(page.locator(input)).toHaveValue('保留当前输入')
+          await expect(page.locator(input)).toBeFocused()
+          expect(await page.evaluate(() => window.themeFixture.observers())).toBe(observers)
+          expect(await page.evaluate(() => window.themeFixture.events)).toEqual(events)
+        }
+        const setMode = async (id: string, mode: string) => {
+          await page.locator(`#${id}`).evaluate(
+            (source, { type, mode }) => {
+              if (type === 'attribute') source.setAttribute('data-theme', mode)
+              else source.classList.toggle('dark', mode === 'dark')
+            },
+            { type: sourceType, mode },
+          )
+        }
+        await check('light')
+        await page.evaluate((type) => {
+          const next = document.createElement('div')
+          next.id = 'new-source'
+          next.className = 'theme-source'
+          if (type === 'attribute') next.setAttribute('data-theme', 'dark')
+          else next.classList.add('dark')
+          document.querySelector('#old-source')!.before(next)
+        }, sourceType)
+        await check('dark')
+        await setMode('new-source', 'light')
+        await check('light')
+        await setMode('old-source', 'dark')
+        // Give the old source's mutation a chance to deliver before checking.
+        await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())))
+        await check('light')
+        await page.evaluate(() => document.querySelector('#new-source')!.before(document.querySelector('#old-source')!))
+        await check('dark')
+        await setMode('old-source', 'light')
+        await check('light')
+        await setMode('new-source', 'dark')
+        await page.locator('#old-source').evaluate((source) => source.remove())
+        await check('dark')
+        await setMode('new-source', 'light')
+        await check('light')
+        await setMode('new-source', 'dark')
+        await check('dark')
+        await page.locator('#new-source').evaluate((source) => source.remove())
+        await check('light', 0)
+        await page.evaluate((type) => {
+          const source = document.createElement('div')
+          source.className = 'theme-source dark'
+          source.setAttribute('data-theme', 'dark')
+          if (type === 'class') source.removeAttribute('data-theme')
+          document.body.append(source)
+        }, sourceType)
+        await check('dark')
+        await page.evaluate(() => window.themeFixture.instances[0].destroy())
+        await expect(page.locator(host)).toHaveCount(0)
+        expect(await page.evaluate(() => window.themeFixture.observers())).toBe(0)
+      })
+    }
+
     test('inherited TinyRobot tokens and component overrides keep precedence', async ({ page }) => {
       await select(page)
       await page.evaluate(() => {

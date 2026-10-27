@@ -122,9 +122,10 @@ function start(root: Document, state: State): void {
     let target: Element | null = null
     observer = new view.MutationObserver(refresh)
     const bind = () => {
-      if (target?.isConnected && target.matches(config.source.selector)) return
-      target = root.querySelector(config.source.selector)
+      const nextTarget = root.querySelector(config.source.selector)
+      if (target === nextTarget) return
       observer!.disconnect()
+      target = nextTarget
       if (target) observer!.observe(target, { attributes: true, attributeFilter: [config.source.attribute] })
       refresh()
     }
