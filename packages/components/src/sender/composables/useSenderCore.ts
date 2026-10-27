@@ -241,13 +241,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   useAutoSize(currentMode, editorRef, props.autoSize)
 
   // 监听编辑器内容变化，检查是否需要切换模式
-  watch(
-    () => editor.value?.state.doc.content,
-    () => {
-      requestAnimationFrame(() => checkOverflow())
-    },
-    { deep: true },
-  )
+  watch(() => editor.value?.state.doc.content, checkOverflow, { deep: true })
 
   // ========================================
   // 8. 定义其他方法

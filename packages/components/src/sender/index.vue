@@ -48,8 +48,8 @@ defineExpose(expose)
       <template v-if="$slots.content" #content="slotProps">
         <slot name="content" v-bind="slotProps" />
       </template>
-      <template v-if="$slots['actions-inline']" #actions-inline>
-        <slot name="actions-inline" />
+      <template v-if="$slots['actions-inline']" #actions-inline="slotProps">
+        <slot name="actions-inline" v-bind="slotProps" />
       </template>
     </SingleLineLayout>
 

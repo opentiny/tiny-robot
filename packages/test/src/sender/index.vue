@@ -443,8 +443,17 @@ onBeforeUnmount(() => {
           <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
         </template>
 
-        <template #actions-inline>
-          <button data-testid="actions-inline-btn" type="button">单行操作</button>
+        <template #actions-inline="{ insert, disabled, loading, hasContent }">
+          <button
+            data-testid="actions-inline-btn"
+            type="button"
+            :disabled="disabled || loading"
+            :data-has-content="hasContent"
+            @mousedown.prevent
+            @click="insert('插入')"
+          >
+            单行操作
+          </button>
         </template>
 
         <template #footer-right>
