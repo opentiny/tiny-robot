@@ -7,6 +7,7 @@
  */
 
 import { isKey } from '../extensions/utils'
+import { isImeKeyEvent } from '../extensions/ime'
 import type { UseKeyboardShortcutsParams, UseKeyboardShortcutsReturn } from '../index.type'
 
 /**
@@ -29,7 +30,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
    * - 当 submitType 为 'shiftEnter' 时：按 Shift+Enter 提交，单独按 Enter 换行
    */
   const checkSubmitShortcut = (event: KeyboardEvent): boolean => {
-    if (event.isComposing || event.keyCode === 229) return false
+    if (isImeKeyEvent(event)) return false
     if (!isKey(event, 'ENTER')) return false
 
     switch (submitType.value) {
@@ -59,7 +60,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
    * - submitType 为 'shiftEnter' 时：Enter（不带修饰键）
    */
   const checkNewlineShortcut = (event: KeyboardEvent): boolean => {
-    if (event.isComposing || event.keyCode === 229) return false
+    if (isImeKeyEvent(event)) return false
     if (!isKey(event, 'ENTER')) return false
 
     switch (submitType.value) {

@@ -11,10 +11,10 @@ import History from '@tiptap/extension-history'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import type { AnyExtension } from '@tiptap/core'
-import type { EditorProps } from '@tiptap/pm/view'
 import type { SenderEmits, UseEditorReturn } from '../index.type'
 import type { SenderPropsWithDefaults } from '../index.vue'
 import { countGraphemes } from '../utils/countGraphemes'
+import { ImeGuard } from '../extensions/ime'
 
 /**
  * 编辑器 Hook
@@ -45,6 +45,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       Paragraph,
       Text,
       History, // 提供 undo/redo 功能
+      ImeGuard,
       Placeholder.configure({
         placeholder: () => placeholderRef.value || '请输入内容...',
       }),
@@ -89,7 +90,6 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
           }
           return false
         },
-        keydown: (_view, event) => event.isComposing || event.keyCode === 229,
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
@@ -124,28 +124,6 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       emit('blur', props.event as FocusEvent)
     },
   })
-
-  watch(
-    editor,
-    (editorInstance, _previousEditor, onCleanup) => {
-      if (!editorInstance) return
-
-      const view = editorInstance.view
-      const originalSomeProp = view.someProp.bind(view)
-      // 组合期间的合成 Backspace 仍会进入快捷键链，空事务会破坏输入法维护的文本范围。
-      view.someProp = (<PropName extends keyof EditorProps, Result>(
-        propName: PropName,
-        callback?: (value: NonNullable<EditorProps[PropName]>) => Result,
-      ) => {
-        if (propName === 'handleKeyDown' && callback && view.composing) return undefined
-        return callback ? originalSomeProp(propName, callback) : originalSomeProp(propName)
-      }) as typeof view.someProp
-      onCleanup(() => {
-        view.someProp = originalSomeProp
-      })
-    },
-    { immediate: true },
-  )
 
   // 监听外部 modelValue 变化
   watch(

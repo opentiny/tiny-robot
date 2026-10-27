@@ -22,6 +22,7 @@ import {
   getTextWithMentions,
 } from '../extensions'
 import { EXTENSION_NAMES } from '../extensions/constants'
+import { isImeKeyEvent } from '../extensions/ime'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
 import { setupSenderContentRegistration } from '../../shared/composables'
 import { useEditor } from './useEditor'
@@ -181,7 +182,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
             ...editorInstance.options.editorProps,
             handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
               // 组合输入期间交给 ProseMirror/输入法处理，避免误触发提交或换行
-              if (view.composing || event.isComposing || event.keyCode === 229) {
+              if (isImeKeyEvent(event, view)) {
                 return false
               }
 
