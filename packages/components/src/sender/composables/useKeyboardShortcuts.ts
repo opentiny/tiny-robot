@@ -59,6 +59,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
    * - submitType 为 'shiftEnter' 时：Enter（不带修饰键）
    */
   const checkNewlineShortcut = (event: KeyboardEvent): boolean => {
+    if (event.isComposing || event.keyCode === 229) return false
     if (!isKey(event, 'ENTER')) return false
 
     switch (submitType.value) {

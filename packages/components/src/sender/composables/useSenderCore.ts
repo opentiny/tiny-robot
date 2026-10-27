@@ -180,6 +180,11 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
           editorProps: {
             ...editorInstance.options.editorProps,
             handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
+              // 组合输入期间交给 ProseMirror/输入法处理，避免误触发提交或换行
+              if (view.composing || event.isComposing || event.keyCode === 229) {
+                return false
+              }
+
               // 0. 检查插件状态 - 如果建议面板激活或下拉菜单打开，不拦截键盘事件
               const mentionState = MentionPluginKey.getState(view.state)
               const suggestionState = SuggestionPluginKey.getState(view.state)

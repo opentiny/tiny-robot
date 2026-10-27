@@ -11,6 +11,7 @@ import History from '@tiptap/extension-history'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import type { AnyExtension } from '@tiptap/core'
+import type { EditorProps } from '@tiptap/pm/view'
 import type { SenderEmits, UseEditorReturn } from '../index.type'
 import type { SenderPropsWithDefaults } from '../index.vue'
 import { countGraphemes } from '../utils/countGraphemes'
@@ -27,6 +28,8 @@ import { countGraphemes } from '../utils/countGraphemes'
  */
 export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
+  const isComposing = ref(false)
+  const hasPendingModelValue = ref(false)
 
   // 将 placeholder 转换为响应式引用
   const placeholderRef = toRef(props, 'placeholder')
@@ -67,6 +70,27 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
         class: 'tr-sender-editor',
         enterkeyhint: props.enterkeyhint,
       },
+      handleDOMEvents: {
+        compositionstart: () => {
+          isComposing.value = true
+          return false
+        },
+        compositionend: () => {
+          isComposing.value = false
+          if (hasPendingModelValue.value) {
+            nextTick(() => {
+              hasPendingModelValue.value = false
+              const currentEditor = editor.value
+              const externalValue = props.modelValue ?? ''
+              if (currentEditor && externalValue !== currentEditor.getText()) {
+                currentEditor.commands.setContent(externalValue, { emitUpdate: false })
+              }
+            })
+          }
+          return false
+        },
+        keydown: (_view, event) => event.isComposing || event.keyCode === 229,
+      },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
         const text = event.clipboardData?.getData('text/plain')
@@ -101,10 +125,37 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
     },
   })
 
+  watch(
+    editor,
+    (editorInstance, _previousEditor, onCleanup) => {
+      if (!editorInstance) return
+
+      const view = editorInstance.view
+      const originalSomeProp = view.someProp.bind(view)
+      // 组合期间的合成 Backspace 仍会进入快捷键链，空事务会破坏输入法维护的文本范围。
+      view.someProp = (<PropName extends keyof EditorProps, Result>(
+        propName: PropName,
+        callback?: (value: NonNullable<EditorProps[PropName]>) => Result,
+      ) => {
+        if (propName === 'handleKeyDown' && callback && view.composing) return undefined
+        return callback ? originalSomeProp(propName, callback) : originalSomeProp(propName)
+      }) as typeof view.someProp
+      onCleanup(() => {
+        view.someProp = originalSomeProp
+      })
+    },
+    { immediate: true },
+  )
+
   // 监听外部 modelValue 变化
   watch(
     () => props.modelValue,
     (newValue) => {
+      if (isComposing.value || editor.value?.view.composing) {
+        hasPendingModelValue.value = true
+        return
+      }
+
       if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue ?? '', { emitUpdate: false })
       }
