@@ -50,8 +50,10 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 <style scoped>
 .qa-feature-demo {
+  color: var(--vp-c-text-1, #213547);
+  background: var(--vp-c-bg, #fff);
   padding: 18px;
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 10px;
   line-height: 1.7;
 }
@@ -62,18 +64,28 @@ onBeforeUnmount(() => quickAssist?.destroy())
 }
 button {
   padding: 7px 12px;
-  border: 1px solid #cbd3dd;
+  border: 1px solid var(--vp-c-border, #cbd3dd);
   border-radius: 6px;
-  background: #fff;
+  background: var(--vp-c-bg, #fff);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 #qa-lifecycle-text {
   padding: 14px;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: var(--vp-c-bg-soft, #f5f7fa);
 }
 .qa-feature-demo__status {
-  color: #536171;
+  color: var(--vp-c-text-2, #536171);
   font-size: 13px;
+}
+
+button:hover {
+  border-color: var(--vp-c-brand-1, #2175c4);
+}
+button:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1, #2175c4);
+  outline-offset: 2px;
 }
 </style>
