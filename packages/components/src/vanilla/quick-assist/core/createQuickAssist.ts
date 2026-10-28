@@ -1,3 +1,4 @@
+import { DEFAULT_INPUT, DEFAULT_MESSAGES } from '../defaults'
 import { QuickAssistStageError } from './errors'
 import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
@@ -24,21 +25,10 @@ import type {
   QuickAssistEvent,
   QuickAssistErrorStage,
   QuickAssistInstance,
-  QuickAssistMessages,
   QuickAssistOptions,
   SelectionSnapshot,
   Suggestion,
 } from '../types'
-
-const DEFAULT_MESSAGES: Required<QuickAssistMessages> = {
-  inputLabel: '请输入问题',
-  submitLabel: '发送问题',
-  loading: '正在加载推荐…',
-  empty: '暂无推荐',
-  error: '推荐加载失败',
-  defaultExplain: '解释 {text}',
-  defaultUseCase: '{text}适用场景',
-}
 
 function currentDocument(options: QuickAssistOptions): Document {
   const root = options.root ?? (typeof document === 'undefined' ? undefined : document)
@@ -55,10 +45,29 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (input.validateSuggestion !== undefined && typeof input.validateSuggestion !== 'function') {
     throw new Error('QuickAssist validateSuggestion must be a function')
   }
-  const maxSuggestions = input.maxSuggestions ?? 3
+  const maxSuggestions = input.maxSuggestions ?? 2
   if (!Number.isInteger(maxSuggestions) || maxSuggestions <= 0) {
     throw new Error('QuickAssist maxSuggestions must be a positive integer')
   }
+  const inputOptions = {
+    maxRows: input.input?.maxRows ?? DEFAULT_INPUT.maxRows,
+    maxLength: input.input?.maxLength,
+    autoFill: input.input?.autoFill ?? DEFAULT_INPUT.autoFill,
+    placeholder: input.input?.placeholder ?? DEFAULT_INPUT.placeholder,
+    ariaLabel: input.input?.ariaLabel ?? DEFAULT_INPUT.ariaLabel,
+    submitLabel: input.input?.submitLabel ?? DEFAULT_INPUT.submitLabel,
+    maxLengthExceededMessage: input.input?.maxLengthExceededMessage ?? DEFAULT_INPUT.maxLengthExceededMessage,
+  }
+  if (!Number.isInteger(inputOptions.maxRows) || inputOptions.maxRows <= 0) {
+    throw new Error('QuickAssist input.maxRows must be a positive integer')
+  }
+  if (
+    inputOptions.maxLength !== undefined &&
+    (!Number.isInteger(inputOptions.maxLength) || inputOptions.maxLength <= 0)
+  ) {
+    throw new Error('QuickAssist input.maxLength must be a positive integer')
+  }
+  if (typeof inputOptions.autoFill !== 'boolean') throw new Error('QuickAssist input.autoFill must be a boolean')
   const selectionInput = input.selection ?? {}
   if (selectionInput.validateActivation !== undefined && typeof selectionInput.validateActivation !== 'function') {
     throw new Error('QuickAssist selection.validateActivation must be a function')
@@ -100,6 +109,7 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     include: [...(input.include ?? [])],
     exclude: [...(input.exclude ?? [])],
     maxSuggestions,
+    input: inputOptions,
     selection: {
       forwardOnly,
       maxTextLength,
@@ -268,6 +278,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const submit = (candidate: QuickAssistSession, query: string, suggestion?: Suggestion): void => {
     if (!isCurrent(candidate) || !candidate.context || candidate.submitStarted) return
+    if (!suggestion && resolved.input?.maxLength !== undefined && Array.from(query).length > resolved.input.maxLength)
+      return
     const normalizedQuery = query.trim()
     if (!normalizedQuery && !suggestion) return
     const adapter = resolved.adapter
@@ -371,7 +383,6 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
             validateSuggestion: resolved.validateSuggestion,
             mergeSuggestions: resolved.mergeSuggestions,
             maxSuggestions: resolved.maxSuggestions,
-            messages: resolved.messages,
           })
         : recommendationModule
     const hasProvider = !!provider
@@ -532,7 +543,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       controller: new AbortController(),
       state: 'trigger',
       suggestions: [],
-      inputValue: activation.text ?? '',
+      inputValue: (external?.autoFill ?? resolved.input?.autoFill ?? true) ? (activation.text ?? '') : '',
       originalActiveElement: resolved.root.activeElement,
       submitStarted: false,
     }
@@ -608,6 +619,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         typeof input.getRect !== 'function'
       )
         throw new Error('QuickAssist activation requires source, text and getRect')
+      if (input.autoFill !== undefined && typeof input.autoFill !== 'boolean') {
+        throw new Error('QuickAssist activation.autoFill must be a boolean')
+      }
       const text = input.text.trim()
       if (input.open !== undefined && input.open !== 'trigger' && input.open !== 'popover') {
         throw new Error('QuickAssist activation.open must be trigger or popover')
@@ -810,11 +824,11 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         validateSuggestion: configuration.validateSuggestion,
         mergeSuggestions: configuration.mergeSuggestions,
         maxSuggestions: configuration.maxSuggestions,
-        messages: configuration.messages,
       })
       nextUI = createQuickAssistUI({
         root: configuration.root,
         attrs: configuration.attrs,
+        input: configuration.input,
         messages: configuration.messages,
         triggerLabel: configuration.trigger.label,
         onCallbackError: (sessionId, error) => emitError(sessionId, 'callback', error),

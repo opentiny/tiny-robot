@@ -105,16 +105,16 @@ async function selectDirection(page: Page, selector: string, backward: boolean) 
   }, backward)
 }
 
-async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom = false, left = 240) {
+async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom = false, left = 240, top = 180) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.evaluate(
-    ({ placement, bottom, left }) => {
+    ({ placement, bottom, left, top }) => {
       window.resetQuickAssist({ trigger: placement ? { placement } : {} })
       const element = document.querySelector<HTMLElement>('#mixed')!
       Object.assign(element.style, {
         position: 'fixed',
         left: `${left}px`,
-        top: bottom ? 'auto' : '180px',
+        top: bottom ? 'auto' : `${top}px`,
         bottom: bottom ? '10px' : 'auto',
         width: '500px',
         margin: '0',
@@ -124,7 +124,7 @@ async function prepareLines(page: Page, placement?: QuickAssistPlacement, bottom
         '<span id="first-line">第一行的文字比较长，<b>包含多个片段</b></span><br>' +
         '<span id="last-line" style="margin-left:60px">末行<b>短文本</b></span>'
     },
-    { placement, bottom, left },
+    { placement, bottom, left, top },
   )
   await select(page, '#mixed')
   await expect(page.locator(trigger)).toBeVisible()
@@ -296,7 +296,7 @@ test('multiline forward selection can end to the left of its starting point', as
 
 for (const placement of ['top', 'bottom', 'auto', 'top-start', 'top-end', 'bottom-start', 'bottom-end'] as const) {
   test(`popover ${placement} uses the same selected-line positioning as the trigger`, async ({ page }) => {
-    await prepareLines(page, placement, false, 360)
+    await prepareLines(page, placement, false, 360, 260)
     await page.locator(trigger).click()
     await expect(page.locator(`${popover} textarea`)).toBeFocused()
     const side = placement.startsWith('top') ? 'top' : 'bottom'
@@ -1637,14 +1637,14 @@ test('updateOptions replaces supplied nested groups and preserves omitted top-le
       trigger: { label: '旧入口', showDelay: 800, offset: 40, placement: 'top' },
       selection: { maxTextLength: 3, validate: () => false },
       nearbyContext: { maxLength: 4 },
-      messages: { inputLabel: '旧输入', submitLabel: '旧发送' },
+      input: { ariaLabel: '旧输入', submitLabel: '旧发送' },
       suggestions: [{ id: 'retained', label: '保留任务', prompt: '保留问题' }],
     })
     window.qa.updateOptions({
       trigger: { showDelay: 0 },
       selection: { maxTextLength: 100 },
       nearbyContext: { blockSelectors: ['#scope'] },
-      messages: { submitLabel: '新发送' },
+      input: { submitLabel: '新发送' },
     })
   })
   await select(page, '#nearby-term')

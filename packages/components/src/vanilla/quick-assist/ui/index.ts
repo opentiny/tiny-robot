@@ -1,8 +1,10 @@
+import { DEFAULT_INPUT, DEFAULT_MESSAGES } from '../defaults'
 import type {
   QuickAssistAttributeMap,
   QuickAssistActivation,
   QuickAssistAttrs,
   QuickAssistMessages,
+  QuickAssistInputOptions,
   QuickAssistTriggerOptions,
   Suggestion,
 } from '../types'
@@ -11,6 +13,7 @@ import { bindVanillaTheme } from '../../theme/service'
 
 export interface QuickAssistUIOptions {
   root: Document
+  input?: QuickAssistInputOptions
   attrs?: QuickAssistAttrs
   messages?: QuickAssistMessages
   triggerLabel?: string
@@ -36,16 +39,6 @@ interface UIState {
   loading: boolean
   error: boolean
   submittingDisabled: boolean
-}
-
-const DEFAULT_MESSAGES: Required<QuickAssistMessages> = {
-  inputLabel: '请输入问题',
-  submitLabel: '发送问题',
-  loading: '正在加载推荐…',
-  empty: '暂无推荐',
-  error: '推荐加载失败',
-  defaultExplain: '解释 {text}',
-  defaultUseCase: '{text}适用场景',
 }
 
 function setSafeAttributes(element: HTMLElement, attributes: QuickAssistAttributeMap | undefined): void {
@@ -165,6 +158,7 @@ function getDocumentBody(root: Document): HTMLElement {
 export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistUIController {
   const { root } = options
   const attrs = options.attrs ?? {}
+  const inputOptions = { ...DEFAULT_INPUT, ...(options.input ?? {}) }
   const messages = { ...DEFAULT_MESSAGES, ...(options.messages ?? {}) }
   const triggerLabel = options.triggerLabel ?? '智能帮助'
   let host: HTMLDivElement | null = null
@@ -178,6 +172,8 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   let restoreElement: HTMLElement | null = null
   let state: UIState = { suggestions: [], loading: false, error: false, submittingDisabled: false }
   let destroyed = false
+  let releaseLayout: (() => void) | undefined
+  let syncInput: (() => void) | undefined
   let releaseSelectionHighlight: (() => void) | undefined
 
   const ensureHost = (): HTMLDivElement => {
@@ -192,6 +188,9 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   }
 
   const removeVisible = (restoreFocus: boolean): void => {
+    releaseLayout?.()
+    releaseLayout = undefined
+    syncInput = undefined
     releaseSelectionHighlight?.()
     releaseSelectionHighlight = undefined
     if (!host) return
@@ -316,7 +315,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       popover.className = 'tr-quick-assist__popover'
       popover.setAttribute('role', 'dialog')
       popover.setAttribute('aria-modal', 'false')
-      popover.setAttribute('aria-label', messages.inputLabel)
+      popover.setAttribute('aria-label', triggerLabel)
       setSafeAttributes(popover, attrs.popover)
 
       const form = root.createElement('form')
@@ -327,13 +326,14 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       const label = root.createElement('label')
       label.className = 'tr-quick-assist__label'
       label.htmlFor = inputId
-      label.textContent = messages.inputLabel
+      label.textContent = inputOptions.ariaLabel
       input = root.createElement('textarea')
       input.className = 'tr-quick-assist__input'
       input.id = inputId
       input.rows = 1
-      input.value = session.inputValue || session.activation.text || session.activation.selection?.text || ''
-      input.setAttribute('aria-label', messages.inputLabel)
+      input.value = session.inputValue
+      input.placeholder = inputOptions.placeholder
+      input.setAttribute('aria-label', inputOptions.ariaLabel)
       input.setAttribute('autocomplete', 'off')
       input.setAttribute('spellcheck', 'true')
       setSafeAttributes(input, attrs.input)
@@ -341,18 +341,44 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       submit = root.createElement('button')
       submit.type = 'submit'
       submit.className = 'tr-quick-assist__submit'
-      submit.setAttribute('aria-label', messages.submitLabel)
-      submit.title = messages.submitLabel
+      submit.setAttribute('aria-label', inputOptions.submitLabel)
+      submit.title = inputOptions.submitLabel
       submit.append(makeArrow(root))
       setSafeAttributes(submit, attrs.submit)
 
+      const submitTitle = submit.title
+      const counter = root.createElement('span')
+      counter.className = 'tr-quick-assist__counter'
+      counter.hidden = options.input?.maxLength === undefined
+      const count = root.createElement('span')
+      counter.append(count, root.createTextNode(` / ${options.input?.maxLength ?? ''}`))
+      const submitWrapper = root.createElement('span')
+      submitWrapper.className = 'tr-quick-assist__submit-wrapper'
+      const tooltip = root.createElement('span')
+      tooltip.className = 'tr-quick-assist__limit-tooltip'
+      tooltip.id = `tr-quick-assist-limit-${session.id}`
+      tooltip.setAttribute('role', 'tooltip')
+      tooltip.textContent = inputOptions.maxLengthExceededMessage
+      submitWrapper.append(submit, tooltip)
       let composing = false
       const syncSubmit = () => {
-        if (submit) submit.disabled = state.submittingDisabled || input?.value.trim().length === 0
+        if (!input || !submit) return
+        const length = Array.from(input.value).length
+        const maxLength = options.input?.maxLength
+        const tooLong = maxLength !== undefined && length > maxLength
+        count.textContent = String(length)
+        count.classList.toggle('tr-quick-assist__count--invalid', tooLong)
+        input.setAttribute('aria-invalid', String(tooLong))
+        submit.title = tooLong ? '' : submitTitle
+        submitWrapper.classList.toggle('tr-quick-assist__submit-wrapper--invalid', tooLong)
+        submitWrapper.tabIndex = tooLong ? 0 : -1
+        if (tooLong) submitWrapper.setAttribute('aria-describedby', tooltip.id)
+        else submitWrapper.removeAttribute('aria-describedby')
+        submit.disabled = state.submittingDisabled || !input.value.trim() || tooLong
       }
       input.addEventListener('input', () => {
         session.inputValue = input?.value ?? ''
-        syncSubmit()
+        syncInput?.()
       })
       input.addEventListener('compositionstart', () => {
         composing = true
@@ -360,7 +386,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       input.addEventListener('compositionend', () => {
         composing = false
         session.inputValue = input?.value ?? ''
-        syncSubmit()
+        syncInput?.()
       })
       input.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
@@ -368,15 +394,15 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
           onClose()
         } else if (event.key === 'Enter' && !event.shiftKey && !composing) {
           event.preventDefault()
-          if (!state.submittingDisabled && input?.value.trim()) onSubmit(input.value)
+          if (submit && !submit.disabled && input) onSubmit(input.value)
         }
       })
       form.addEventListener('submit', (event) => {
         event.preventDefault()
-        if (state.submittingDisabled || !input?.value.trim()) return
+        if (!submit || submit.disabled || !input?.value.trim()) return
         onSubmit(input.value)
       })
-      form.append(icon, label, input, submit)
+      form.append(icon, label, input, counter, submitWrapper)
       popover.append(form)
 
       suggestionList = root.createElement('div')
@@ -391,7 +417,81 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       container.append(popover)
       visible = popover
       renderSuggestions()
-      syncSubmit()
+      syncInput = () => {
+        if (!input || activeSession !== session) return
+        // Measure the compact row first; wrapped text promotes the composer to its two-row layout.
+        form.classList.remove('tr-quick-assist__composer--multiline')
+        input.style.height = '18px'
+        const maxRows = options.input?.maxRows ?? 2
+        const multiline = input.scrollHeight > 18
+        form.classList.toggle('tr-quick-assist__composer--multiline', multiline)
+        const height = multiline ? Math.min(Math.max(input.scrollHeight, Math.min(2, maxRows) * 18), maxRows * 18) : 18
+        input.style.height = `${height}px`
+        input.style.overflowY = input.scrollHeight > height ? 'auto' : 'hidden'
+        syncSubmit()
+        session.refreshPosition?.()
+      }
+      syncInput()
+      const viewForLayout = root.defaultView
+      let layoutFrame: number | undefined
+      const scheduleInputLayout = () => {
+        if (!viewForLayout || activeSession !== session || layoutFrame !== undefined) return
+        layoutFrame = viewForLayout.requestAnimationFrame(() => {
+          layoutFrame = undefined
+          if (activeSession === session) syncInput?.()
+        })
+      }
+      const inputTypography = () => {
+        if (!input || !viewForLayout) return ''
+        const style = viewForLayout.getComputedStyle(input)
+        return [
+          style.font,
+          style.fontFeatureSettings,
+          style.fontVariationSettings,
+          style.letterSpacing,
+          style.wordSpacing,
+        ].join('|')
+      }
+      let previousTypography = inputTypography()
+      // Inherited font changes can wrap text without resizing the fixed-height
+      // textarea or its parent. Compare typography to ignore our own layout writes.
+      const typographyObserver = viewForLayout?.MutationObserver
+        ? new viewForLayout.MutationObserver(() => {
+            const typography = inputTypography()
+            if (typography !== previousTypography) {
+              previousTypography = typography
+              scheduleInputLayout()
+            }
+          })
+        : undefined
+      for (let ancestor: Element | null = input; ancestor; ancestor = ancestor.parentElement) {
+        typographyObserver?.observe(ancestor, { attributes: true })
+      }
+      // The CSS font-family string stays the same when a web font finishes loading.
+      const fonts = root.fonts
+      fonts?.addEventListener('loadingdone', scheduleInputLayout)
+      fonts?.addEventListener('loadingerror', scheduleInputLayout)
+      let previousWidth = form.getBoundingClientRect().width
+      const resize = viewForLayout?.ResizeObserver
+        ? new viewForLayout.ResizeObserver(() => {
+            if (activeSession !== session) return
+            const width = form.getBoundingClientRect().width
+            if (width !== previousWidth) {
+              previousWidth = width
+              scheduleInputLayout()
+            }
+            session.refreshPosition?.()
+          })
+        : undefined
+      resize?.observe(popover)
+      resize?.observe(form)
+      releaseLayout = () => {
+        resize?.disconnect()
+        typographyObserver?.disconnect()
+        fonts?.removeEventListener('loadingdone', scheduleInputLayout)
+        fonts?.removeEventListener('loadingerror', scheduleInputLayout)
+        if (layoutFrame !== undefined) viewForLayout?.cancelAnimationFrame(layoutFrame)
+      }
       const range = session.activation.selection?.range
       const view = root.defaultView
       if (range && view?.Highlight && view.CSS?.highlights) {
@@ -426,7 +526,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       if (update.error !== undefined) state.error = update.error
       if (update.submittingDisabled !== undefined) state.submittingDisabled = update.submittingDisabled
       renderSuggestions()
-      if (submit) submit.disabled = state.submittingDisabled || input?.value.trim().length === 0
+      syncInput?.()
     },
 
     contains(node: Node | null): boolean {
@@ -455,11 +555,13 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
 export function createUIController(options: {
   root: Document
   trigger: QuickAssistTriggerOptions
+  input?: QuickAssistInputOptions
   attrs?: QuickAssistAttrs
   messages?: QuickAssistMessages
 }): QuickAssistUIController {
   return createQuickAssistUI({
     root: options.root,
+    input: options.input,
     attrs: options.attrs,
     messages: options.messages,
     triggerLabel: options.trigger.label,

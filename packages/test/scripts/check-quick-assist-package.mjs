@@ -93,8 +93,13 @@ await symlink(fileURLToPath(packageURL), join(typeConsumerRoot, 'node_modules', 
 await writeFile(join(typeConsumerRoot, 'package.json'), JSON.stringify({ type: 'module' }))
 await writeFile(
   join(typeConsumerRoot, 'index.ts'),
-  `import { createQuickAssist, type QuickAssistOptions, type AIRequest } from '@opentiny/tiny-robot/vanilla';
-const options: QuickAssistOptions = { adapter: { submit(request: AIRequest) { console.log(request.context.text); } } };
+  `import { createQuickAssist, type QuickAssistOptions, type QuickAssistInputOptions, type QuickAssistMessages, type AIRequest } from '@opentiny/tiny-robot/vanilla';
+const input: QuickAssistInputOptions = { placeholder: 'Ask AI', ariaLabel: 'Question', submitLabel: 'Send', maxLengthExceededMessage: 'Limit exceeded', maxLength: 50 };
+const messages: QuickAssistMessages = { loading: 'Loading', empty: 'No suggestions', error: 'Suggestions unavailable' };
+type RemovedMessageKeys = 'placeholder' | 'inputTooLong' | 'inputLabel' | 'submitLabel' | 'defaultExplain' | 'defaultUseCase';
+type AssertNever<T extends never> = T;
+type RemovedFieldsMustStayRemoved = AssertNever<Extract<keyof QuickAssistMessages, RemovedMessageKeys>>;
+const options: QuickAssistOptions = { input, messages, adapter: { submit(request: AIRequest) { console.log(request.context.text); } } };
 createQuickAssist(options).destroy();
 `,
 )
