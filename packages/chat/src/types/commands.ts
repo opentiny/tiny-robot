@@ -1,8 +1,10 @@
 import type { ChatStructuredData } from './base'
+import type { SenderExternalPayload } from '@opentiny/tiny-robot'
 
 export interface ChatSendPayload {
   readonly text: string
   readonly structuredData?: ChatStructuredData
+  readonly externalPayloads?: readonly SenderExternalPayload[]
 }
 
 export interface ChatRuntimeActionErrorPayload {
