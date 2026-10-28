@@ -1,5 +1,12 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import type { AskUserContent, AskUserQuestionOption, AskUserState, BubbleEvent } from '../index.type'
+import type {
+  AskUserContent,
+  AskUserQuestionOption,
+  AskUserState,
+  BubbleEvent,
+  ChatMessageContent,
+  ToolCall,
+} from '../index.type'
 
 type AskUserEventEmitter = (event: BubbleEvent) => void
 
@@ -303,6 +310,57 @@ export const isAskUserContent = (value: unknown): value is AskUserContent => {
   )
 }
 
+export const getAskUserContentFromToolCall = (toolCall: ToolCall | undefined): AskUserContent | undefined => {
+  if (
+    toolCall?.function?.name !== 'ask_user' ||
+    typeof toolCall.id !== 'string' ||
+    typeof toolCall.function.arguments !== 'string'
+  ) {
+    return undefined
+  }
+
+  try {
+    const argumentsValue: unknown = JSON.parse(toolCall.function.arguments)
+    if (!argumentsValue || typeof argumentsValue !== 'object' || Array.isArray(argumentsValue)) {
+      return undefined
+    }
+
+    const content = { ...(argumentsValue as Record<string, unknown>), type: 'ask_user', id: toolCall.id }
+    return isAskUserContent(content) ? content : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export const resolveBubbleMessageContent = (message: {
+  content?: ChatMessageContent
+  tool_calls?: ToolCall[]
+}): ChatMessageContent | undefined => {
+  const askUserContents =
+    message.tool_calls?.flatMap((toolCall) => {
+      const content = getAskUserContentFromToolCall(toolCall)
+      return content ? [content] : []
+    }) ?? []
+
+  if (askUserContents.length === 0) {
+    return message.content
+  }
+
+  if (Array.isArray(message.content) && message.content.some(isAskUserContent)) {
+    return message.content
+  }
+
+  if (Array.isArray(message.content)) {
+    return [...message.content, ...askUserContents]
+  }
+
+  if (typeof message.content === 'string' && message.content.length > 0) {
+    return [{ type: 'text', text: message.content }, ...askUserContents]
+  }
+
+  return askUserContents
+}
+
 const toUniqueCustomOptionValue = (questionId: string, optionLabels: Set<string>) => {
   let value = `__ask_user_custom_${questionId}__`
   while (optionLabels.has(value)) {
@@ -600,35 +658,6 @@ const useAskUserView = (
     return goToStep(currentStepIndex.value - 1)
   }
 
-  const skip = () => {
-    if (isLocked.value || !currentStep.value) {
-      return false
-    }
-
-    const step = currentStep.value
-    const answers = cloneAnswers(draftAnswers.value)
-    setOwnRecordValue(answers, step.id, null)
-    draftAnswers.value = answers
-
-    const completedStepIds = state.value.completedStepIds.filter((stepId) => stepId !== step.id)
-    const isLastStep = currentStepIndex.value >= steps.value.length - 1
-
-    if (isLastStep) {
-      emitState({ status: 'submitted', completedStepIds, error: undefined }, 'ask-user:submit', {
-        stepId: step.id,
-      })
-    } else {
-      const nextStep = steps.value[currentStepIndex.value + 1]
-      emitState(
-        { status: 'active', currentStep: currentStepIndex.value + 1, completedStepIds, error: undefined },
-        'ask-user:step-change',
-        { stepId: nextStep.id },
-      )
-    }
-
-    return true
-  }
-
   const goToStep = (targetStep: number) => {
     const target = steps.value[targetStep]
 
@@ -688,7 +717,6 @@ const useAskUserView = (
     next,
     submit,
     back,
-    skip,
     goToStep,
     retry,
     setExpanded,

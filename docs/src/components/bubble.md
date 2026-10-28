@@ -297,7 +297,7 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 组件内置了以下渲染器，可以通过 `BubbleRenderers` 访问：
 
-- `BubbleRenderers.AskUser` - AskUser 问题收集与确认渲染器
+- [`BubbleRenderers.AskUser`](#askuser) - AskUser 问题收集与确认渲染器
 - `BubbleRenderers.Box` - 默认 Box 渲染器
 - `BubbleRenderers.Text` - 文本内容渲染器（默认 Content 渲染器）
 - `BubbleRenderers.Image` - 图片渲染器
@@ -390,62 +390,6 @@ defineProps<BubbleBoxRendererProps>()
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 - 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
 
-#### AskUser 渲染器
-
-当 `content` 数组包含 `type: 'ask_user'` 的内容项时，Bubble 会自动匹配内置的 `AskUser` 渲染器。内容使用 Kit 当前 `questions` 协议，可展示单选、多选和文本输入。确认问题应使用“确认 / 暂不确认”等单选选项表达。
-
-内容可使用 `heading` 作为标题，并通过 `questions` 描述问题：没有 `options` 的问题显示文本域；带选项的问题通过 `multiSelect` 区分单选和多选，`allowCustom: true` 时渲染器会额外显示自定义输入。自定义答案提交时会转换为协议要求的字符串或字符串数组。
-
-应用通过消息的 `state.askUser` 保存交互状态。初次渲染时可以省略 `state.askUser`，渲染器会从第一个问题开始；用户操作后，应用需要监听 `state-change`，将 `key` 为 `askUser` 的新值同步回消息的 `state`。单个 AskUser 的值为 `AskUserState`；同一条消息包含多个 AskUser 时，值为以交互 ID 为键的 `AskUserStateMap`。Kit 会把工具调用 ID 用作内容项的内部交互 ID；手动构造的 `questions` 内容可省略该 ID，渲染器会生成一个。Bubble 只负责展示和发出事件，不会自行持久化状态，也不会提交外部请求。
-
-问题按照 `questions` 中的顺序逐个展示，每个问题都可以跳过；跳过的问题会在提交结果中标记为 `skipped`。每个 demo 都单独维护交互状态，可以操作后展开状态查看答案。
-
-| 问题配置                                     | 渲染方式                                           |
-| -------------------------------------------- | -------------------------------------------------- |
-| 不提供 `options`                             | 文本输入                                           |
-| 提供 `options` 且 `multiSelect: false`       | 单选；`allowCustom: true` 时可以输入自定义答案     |
-| 提供 `options` 且 `multiSelect: true`        | 多选；`allowCustom: true` 时可以输入自定义答案     |
-
-##### 场景一：单选或自定义回答
-
-设置 `multiSelect: false` 时用户最多选择一个候选答案；`allowCustom: true` 会额外提供自定义输入，用户可以选择一个候选项，也可以填写候选项之外的答案。
-
-<demo
-  vue="../../demos/bubble/ask-user-choice.vue"
-  title="单选或自定义回答"
-  description="选择预发布或生产环境，也可以输入其他发布环境。"
-/>
-
-##### 场景二：多选
-
-设置 `multiSelect: true` 后，用户可以同时选择多个候选项。本例用于选择发布涉及的服务。
-
-<demo
-  vue="../../demos/bubble/ask-user-multiple.vue"
-  title="多选服务"
-  description="一次选择本次发布涉及的多个服务。"
-/>
-
-##### 场景三：文本与确认
-
-一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。
-
-<demo
-  vue="../../demos/bubble/ask-user-text-confirm.vue"
-  title="文本说明与巡检确认"
-  description="填写变更说明，并选择发布后是否需要巡检摘要。"
-/>
-
-##### 场景四：多问题与跳过
-
-这个示例接入 Kit：`toolPlugin({ askUser: true })` 注册 AskUser 工具，`useAskUserRuntime` 在提交后校验答案并恢复调用。尝试跳过变更说明，观察模型收到的结果中该问题标记为 `skipped`，其他问题仍正常返回。
-
-<demo
-  vue="../../demos/bubble/ask-user-kit.vue"
-  title="Kit 多问题与跳过"
-  description="真实模拟工具调用暂停、跳过一个问题、提交、恢复工具和模型后续回复。"
-/>
-
 ### 交互与状态管理
 
 如果你希望在 Bubble 内部（例如自定义 Content 渲染器中）向外通知交互行为，可以使用 `useBubbleEventFn()` 触发 `bubble-event`。事件会从当前渲染器逐层透传到外层的 `Bubble` / `BubbleList`，应用可以统一监听并处理。
@@ -491,6 +435,91 @@ emitBubbleEvent({
 > **注意**：`state-change` 是针对 `bubble-event` 中 `state:update` 提供的便捷事件，只负责通知外部更新 UI 状态。若状态没有同步回传给消息的 `state` 属性，渲染器下一次渲染时不会保留该状态。
 
 ### 工具调用确认
+
+#### AskUser {#askuser}
+
+AskUser 的输入是 assistant 消息中的 `ask_user` 函数调用。使用 Bubble 默认内容解析器时，只需提供 `tool_calls`；`function.arguments` 必须是包含 `questions` 的 JSON 字符串：
+
+```ts
+const message = {
+  role: 'assistant',
+  tool_calls: [
+    {
+      id: 'call-ask-user-1',
+      type: 'function',
+      function: {
+        name: 'ask_user',
+        arguments: JSON.stringify({
+          heading: '发布确认',
+          questions: [
+            {
+              id: 'environment',
+              question: '发布到哪个环境？',
+              options: [{ label: '预发布' }, { label: '生产' }],
+              multiSelect: false,
+              allowCustom: true,
+            },
+          ],
+        }),
+      },
+    },
+  ],
+}
+```
+
+Bubble 从 `function.arguments` 解析问题并渲染内置表单。独立使用 Bubble 时，AskUser 的交互 ID 取自 `tool_call.id`。Bubble 只负责渲染和发出状态、交互事件；应用需要监听 `state-change` 并把 `askUser` 状态写回对应消息的 `state`。示例一到三直接展示这种用法，表单提交只更新本地消息状态，不会执行或恢复工具调用。若同一条消息包含多个 AskUser，状态会按交互 ID 组织为 `AskUserStateMap`；单个 AskUser 使用 `AskUserState`。
+
+问题配置遵循 Kit 的 AskUser 协议：`heading` 可选，`questions` 是有序的问题列表，每题使用唯一的 `id` 和 `question`。不提供 `options` 时显示文本输入；提供 `options` 时，必须设置 `multiSelect` 和 `allowCustom`，前者选择单选或多选，后者允许在候选项外输入答案。选项的 `label` 是显示文字，也是返回值；`description` 是可选说明。启用自定义答案时，选择“其他”会显示输入框。文本题和单选题返回字符串，多选题返回字符串数组；跳过的问题会在 Kit 校验后的结果中标记为 `skipped`。
+
+问题按顺序逐题填写。单题只显示“提交”；多题时，非最后一步显示“下一步”和“跳过”，最后一步显示“提交”和“跳过”。可以通过进度步骤回看已填写的问题；“跳过”会立即结束本次信息收集，保留已填写答案，并将未填写的问题标记为 `skipped`。“提交”也会将未填写的问题标记为 `skipped`。依赖先前答案的问题应放在后续的 AskUser 调用中；Kit 每次 assistant 响应只支持一个 `ask_user` 调用。
+
+接入 Kit 时，`toolPlugin({ askUser: true })` 注册 `ask_user` 工具。插件收到模型的工具调用后解析参数，将用于展示的 `type: 'ask_user'` 内容项追加到 assistant 消息，并暂停该工具调用。此时 Bubble 渲染的是 Kit 写入的内容项；它的 UI 交互 ID 根据消息 ID 和内容索引生成，Kit 则通过 `state.askUserRuntime.toolCallId` 记录待恢复的工具调用 ID，两者用途不同。应用使用 `useAskUserRuntime(message)` 处理 Bubble 事件：`state-change` 更新消息状态，提交事件触发答案校验并恢复原工具调用，随后工具结果返回模型继续生成回复。场景四展示完整的 Kit 流程。
+
+| 问题配置                                     | 渲染方式                                           |
+| -------------------------------------------- | -------------------------------------------------- |
+| 不提供 `options`                             | 文本输入                                           |
+| 提供 `options` 且 `multiSelect: false`       | 单选；`allowCustom: true` 时可以输入自定义答案     |
+| 提供 `options` 且 `multiSelect: true`        | 多选；`allowCustom: true` 时可以输入自定义答案     |
+
+##### 场景一：单选或自定义回答
+
+设置 `multiSelect: false` 时用户最多选择一个候选答案；`allowCustom: true` 会额外提供自定义输入，用户可以选择一个候选项，也可以填写候选项之外的答案。
+
+<demo
+  vue="../../demos/bubble/ask-user-choice.vue"
+  title="单选或自定义回答"
+  description="选择预发布或生产环境，也可以输入其他发布环境。"
+/>
+
+##### 场景二：多选
+
+设置 `multiSelect: true` 后，用户可以同时选择多个候选项。本例用于选择发布涉及的服务。
+
+<demo
+  vue="../../demos/bubble/ask-user-multiple.vue"
+  title="多选服务"
+  description="一次选择本次发布涉及的多个服务。"
+/>
+
+##### 场景三：文本与确认
+
+一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。
+
+<demo
+  vue="../../demos/bubble/ask-user-text-confirm.vue"
+  title="文本说明与巡检确认"
+  description="填写变更说明，并选择发布后是否需要巡检摘要。"
+/>
+
+##### 场景四：多问题与跳过
+
+这个示例接入 Kit：`toolPlugin({ askUser: true })` 注册并暂停 AskUser 工具调用，`useAskUserRuntime` 在提交后校验答案并恢复原调用。填写发布环境和涉及服务后，在“变更说明”步骤点击“跳过”，观察已填写答案保留，未填写的问题标记为 `skipped`。
+
+<demo
+  vue="../../demos/bubble/ask-user-kit.vue"
+  title="Kit 多问题与跳过"
+  description="真实模拟工具调用暂停、提前结束 AskUser、恢复工具和模型后续回复。"
+/>
 
 该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用；完成允许或拒绝后，还可以点击“再次发起审批”重复演示。消息列表会在限定高度的区域内滚动，顶部操作区始终保持可见。
 
@@ -637,7 +666,7 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `state:update`        | `{ key: string; value: unknown }`      | 请求应用更新消息的 `state`；组件随后额外触发 `state-change`，不会自行持久化状态。     |
 | `tool-call:resume`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“允许”触发；应用需转发 `TOOL_RESUME_COMMAND`。     |
 | `tool-call:reject`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“拒绝”触发；应用需转发 `TOOL_REJECT_COMMAND`。      |
-| `ask-user:step-change` | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId: string }` | AskUser 切换步骤时触发；点击“上一步”、“下一步”或跳过未结束的步骤都会触发。 |
+| `ask-user:step-change` | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId: string }` | AskUser 切换步骤时触发；点击“下一步”或进度步骤时触发。 |
 | `ask-user:submit`      | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'submitted'; stepId?: string }` | AskUser 提交当前结果时触发；应用可在此处校验答案或继续后续流程。 |
 | `ask-user:retry`       | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId?: string }` | AskUser 处于 `error` 状态时点击“重试”触发。 |
 | `ask-user:toggle`      | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: AskUserStatus; expanded: boolean }` | 展开或收起已提交的答案时触发。 |

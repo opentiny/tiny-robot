@@ -2,7 +2,7 @@
 import { computed, nextTick, provide, ref, watch } from 'vue'
 import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
-import { setupBubbleStore, useCopyCleanup } from './composables'
+import { resolveBubbleMessageContent, setupBubbleStore, useCopyCleanup } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
 import type { BubbleEvent, BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
   dividerRole: 'user',
   fallbackRole: 'assistant',
-  contentResolver: (message: BubbleMessage) => message.content,
+  contentResolver: resolveBubbleMessageContent,
 })
 
 defineSlots<BubbleListSlots>()

@@ -127,7 +127,7 @@ const message = useMessage({
     {
       role: 'assistant',
       content:
-        '此示例会通过 Kit 发起 AskUser 工具调用。请尝试跳过“变更说明”，再提交表单，观察工具结果中的 skipped 状态和其余答案。',
+        '此示例会通过 Kit 发起 AskUser 工具调用。请填写发布环境和涉及服务，再在“变更说明”步骤点击“跳过”，观察工具结果保留已填答案并将未填问题标记为 skipped。',
     },
   ],
   responseProvider,
@@ -168,7 +168,7 @@ const startTurn = async () => {
 
   errorMessage.value = ''
   try {
-    await sendMessage('请收集发布环境、涉及服务、可选的变更说明，以及发布后是否需要巡检摘要。变更说明可以跳过。')
+    await sendMessage('请收集发布环境、涉及服务、可选的变更说明，以及发布后是否需要巡检摘要。')
   } catch (error) {
     errorMessage.value = `演示失败：${error instanceof Error ? error.message : String(error)}`
   }

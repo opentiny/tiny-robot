@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCheckedSur } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
-import { computed, reactive } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import {
   getAskUserInteractionId,
   isAskUserContent,
@@ -115,6 +115,7 @@ const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
 }
 
 const askUser = reactive(useAskUser(askUserContent, askUserState, emitAskUserEvent))
+const otherInputRef = ref<HTMLInputElement>()
 
 type AskUserRenderStep = NonNullable<ReturnType<typeof useAskUser>['steps']['value'][number]>
 type AskUserRenderOption = NonNullable<AskUserRenderStep['options']>[number]
@@ -207,12 +208,22 @@ const handleOtherInput = (event: Event) => {
 const handleOtherOptionClick = () => {
   if (!otherOption.value?.disabled && !askUser.isOtherSelected) {
     askUser.setOtherSelected(true)
+    nextTick(() => otherInputRef.value?.focus())
   }
 }
 
 const handleOtherInputClick = () => {
   if (!otherOption.value?.disabled && !askUser.isOtherSelected) {
     askUser.setOtherSelected(true)
+    nextTick(() => otherInputRef.value?.focus())
+  }
+}
+
+const handleOtherOptionChange = (event: Event) => {
+  const selected = (event.target as HTMLInputElement).checked
+  askUser.setOtherSelected(selected)
+  if (selected) {
+    nextTick(() => otherInputRef.value?.focus())
   }
 }
 
@@ -372,7 +383,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
               :name="`ask-user-${askUserInstanceId}-${askUser.currentStep.id}`"
               :checked="askUser.isOtherSelected"
               :disabled="askUser.isLocked || otherOption?.disabled"
-              @change="askUser.setOtherSelected(!askUser.isOtherSelected)"
+              @change="handleOtherOptionChange"
             />
             <span class="tr-bubble__ask-user-option-mark" aria-hidden="true">
               <IconCheckedSur v-if="askUser.currentStep.type === 'multiple' && askUser.isOtherSelected" />
@@ -380,6 +391,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
             <span class="tr-bubble__ask-user-option-label">{{ otherOption?.label || '其他' }}</span>
           </label>
           <input
+            ref="otherInputRef"
             class="tr-bubble__ask-user-other-input"
             :value="askUser.otherText"
             placeholder="请输入"
@@ -403,16 +415,6 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
       v-if="askUser.steps.length && askUser.status !== 'submitted' && askUser.status !== 'cancelled'"
       class="tr-bubble__ask-user-actions"
     >
-      <tiny-button
-        v-if="askUser.canGoBack"
-        size="mini"
-        :reset-time="0"
-        round
-        class="tr-bubble__ask-user-button"
-        @click="askUser.back"
-      >
-        上一步
-      </tiny-button>
       <div class="tr-bubble__ask-user-actions-right">
         <tiny-button
           v-if="askUser.status === 'error' && askUser.retryable"
@@ -425,16 +427,17 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           重试
         </tiny-button>
         <tiny-button
-          v-if="askUser.status === 'active'"
+          v-if="askUser.status === 'active' && askUser.steps.length > 1"
           size="mini"
           round
           class="tr-bubble__ask-user-button"
-          @click="askUser.skip"
+          @click="askUser.submit"
         >
           跳过
         </tiny-button>
         <tiny-button
           v-if="askUser.status === 'active' && askUser.currentStepIndex < askUser.steps.length - 1"
+          type="primary"
           size="mini"
           round
           class="tr-bubble__ask-user-button"
@@ -443,7 +446,7 @@ const handleStepKeydown = (event: KeyboardEvent, index: number) => {
           下一步
         </tiny-button>
         <tiny-button
-          v-if="askUser.status === 'active'"
+          v-if="askUser.status === 'active' && askUser.currentStepIndex === askUser.steps.length - 1"
           type="primary"
           size="mini"
           round

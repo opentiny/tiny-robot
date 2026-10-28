@@ -3,8 +3,59 @@ import AskUserInvalidFixture from './AskUserInvalid.fixture.vue'
 import AskUserFixture from './AskUser.fixture.vue'
 import AskUserMultipleFixture from './AskUserMultiple.fixture.vue'
 import AskUserRadioIsolationFixture from './AskUserRadioIsolation.fixture.vue'
+import AskUserToolCallFixture from './AskUserToolCall.fixture.vue'
 
 test.describe('AskUser renderer', () => {
+  test('focuses the custom answer input after selecting other', async ({ mount }) => {
+    const component = await mount(AskUserFixture, { props: { withOther: true } })
+    const bubble = component.getByTestId('ask-user-bubble')
+    await bubble.getByRole('button', { name: '下一步' }).click()
+
+    await bubble.getByText('其他', { exact: true }).click()
+
+    await expect(bubble.locator('.tr-bubble__ask-user-other-input')).toBeFocused()
+  })
+
+  test('renders AskUser directly from tool_calls when content is omitted', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture)
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble.getByRole('heading', { name: '工具调用问题' })).toBeVisible()
+    await expect(bubble.getByRole('radio', { name: '预发布' })).toBeVisible()
+    await expect(bubble.getByRole('button', { name: '跳过' })).toHaveCount(0)
+    await expect(bubble.getByRole('button', { name: '下一步' })).toHaveCount(0)
+    await expect(bubble.getByRole('button', { name: '提交' })).toBeVisible()
+    await bubble.getByRole('radio', { name: '生产' }).check()
+    await bubble.getByRole('button', { name: '提交' }).click()
+
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('生产')
+  })
+
+  test('does not duplicate AskUser when content and an ask_user tool call coexist', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, { props: { withText: true } })
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble).toContainText('请确认模型返回的发布环境。')
+    await expect(bubble.locator('[data-type="ask-user"]')).toHaveCount(1)
+  })
+
+  test('renders each ask_user tool call once', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, { props: { askUserCount: 2 } })
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble.locator('[data-type="ask-user"]')).toHaveCount(2)
+    await expect(bubble.getByRole('heading', { name: '工具调用问题' })).toBeVisible()
+    await expect(bubble.getByRole('heading', { name: '工具调用问题 2' })).toBeVisible()
+  })
+
+  test('renders an ask_user tool call once in BubbleList', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, { props: { inList: true, withText: true } })
+    const list = component.getByTestId('ask-user-tool-call-list')
+
+    await expect(list).toContainText('请确认模型返回的发布环境。')
+    await expect(list.locator('[data-type="ask-user"]')).toHaveCount(1)
+  })
+
   test('preserves an unsubmitted draft when equivalent state is replaced', async ({ mount }) => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
@@ -16,29 +67,62 @@ test.describe('AskUser renderer', () => {
     await expect(textarea).toHaveValue('draft project')
   })
 
-  test('allows an optional step to be skipped', async ({ mount }) => {
+  test('skip ends the interaction, preserves entered answers, and skips unanswered steps', async ({ mount }) => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
 
     await expect(bubble.getByRole('heading', { name: '项目配置' })).toBeVisible()
-    await expect(bubble.getByRole('button', { name: '跳过' })).toBeVisible()
+    await bubble.getByRole('textbox').fill('OpenTiny')
     await bubble.getByRole('button', { name: '跳过' }).click()
 
-    await expect(bubble.getByRole('heading', { name: '框架' })).toBeVisible()
-    await expect(bubble.getByText('其他', { exact: true })).toHaveCount(0)
-    await expect(component.getByTestId('last-event')).toHaveText('ask-user:step-change')
-    await expect(component.getByTestId('last-step-id')).toHaveText('framework')
+    await expect(component.getByTestId('last-event')).toHaveText('ask-user:submit')
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('项目名称：OpenTiny')
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('框架：已跳过')
   })
 
-  test('can submit after skipping a step', async ({ mount }) => {
+  test('can submit unanswered steps after advancing', async ({ mount }) => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
 
-    await bubble.getByRole('button', { name: '跳过' }).click()
+    await expect(bubble.getByRole('button', { name: '跳过' })).toBeVisible()
+    await expect(bubble.getByRole('button', { name: '下一步' })).toBeVisible()
+    await expect(bubble.getByRole('button', { name: '提交' })).toHaveCount(0)
+    await bubble.getByRole('button', { name: '下一步' }).click()
+    await expect(bubble.getByRole('button', { name: '下一步' })).toHaveCount(0)
+    await expect(bubble.getByRole('button', { name: '提交' })).toBeVisible()
+    await expect(bubble.getByRole('button', { name: '跳过' })).toBeVisible()
     await bubble.getByRole('button', { name: '提交' }).click()
 
     await expect(component.getByTestId('last-event')).toHaveText('ask-user:submit')
     await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('项目名称：已跳过')
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('框架：已跳过')
+  })
+
+  test('skip on the last step preserves its answer and submits the interaction', async ({ mount }) => {
+    const component = await mount(AskUserFixture)
+    const bubble = component.getByTestId('ask-user-bubble')
+
+    await bubble.getByRole('button', { name: '下一步' }).click()
+    await bubble.getByRole('radio', { name: 'Vue' }).check()
+    await bubble.getByRole('button', { name: '跳过' }).click()
+
+    await expect(component.getByTestId('last-event')).toHaveText('ask-user:submit')
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('项目名称：已跳过')
+    await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('框架：Vue')
+  })
+
+  test('removes the back button while keeping progress navigation', async ({ mount }) => {
+    const component = await mount(AskUserFixture)
+    const bubble = component.getByTestId('ask-user-bubble')
+    const textarea = bubble.getByRole('textbox')
+
+    await textarea.fill('OpenTiny')
+    await bubble.getByRole('button', { name: '下一步' }).click()
+
+    await expect(bubble.getByRole('button', { name: '上一步' })).toHaveCount(0)
+    await bubble.locator('.tr-bubble__ask-user-progress-step').first().click()
+    await expect(bubble.getByRole('heading', { name: '项目配置' })).toBeVisible()
+    await expect(textarea).toHaveValue('OpenTiny')
   })
 
   test('hides retry for non-retryable errors', async ({ mount }) => {
@@ -66,10 +150,11 @@ test.describe('AskUser renderer', () => {
     const askUsers = component.locator('[data-type="ask-user"]')
 
     await expect(askUsers).toHaveCount(2)
-    await askUsers.nth(0).getByRole('button', { name: '跳过' }).click()
+    await askUsers.nth(0).getByRole('button', { name: '提交' }).click()
 
+    await expect(askUsers.nth(0).locator('[aria-label="提交结果"]')).toBeVisible()
     await expect(askUsers.nth(1).getByRole('heading', { name: '第二个问题' })).toBeVisible()
-    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '提交' })).toBeVisible()
   })
 
   test('assigns a legacy single state to only the first AskUser', async ({ mount }) => {
@@ -88,7 +173,7 @@ test.describe('AskUser renderer', () => {
     const askUsers = component.locator('[data-type="ask-user"]')
 
     await expect(askUsers.nth(0).locator('[aria-label="提交结果"]')).toBeVisible()
-    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '提交' })).toBeVisible()
   })
 
   test('isolates state between AskUser contents resolved by contentResolver', async ({ mount }) => {
@@ -96,10 +181,11 @@ test.describe('AskUser renderer', () => {
     const askUsers = component.locator('[data-type="ask-user"]')
 
     await expect(askUsers).toHaveCount(2)
-    await askUsers.nth(0).getByRole('button', { name: '跳过' }).click()
+    await askUsers.nth(0).getByRole('button', { name: '提交' }).click()
 
+    await expect(askUsers.nth(0).locator('[aria-label="提交结果"]')).toBeVisible()
     await expect(askUsers.nth(1).getByRole('heading', { name: '第二个问题' })).toBeVisible()
-    await expect(askUsers.nth(1).getByRole('button', { name: '跳过' })).toBeVisible()
+    await expect(askUsers.nth(1).getByRole('button', { name: '提交' })).toBeVisible()
   })
 
   test('isolates radio groups between AskUser renderer instances', async ({ mount }) => {

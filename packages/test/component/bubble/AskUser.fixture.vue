@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import type { AskUserContent, AskUserState, BubbleEvent } from '../../../components/src/bubble/index.type'
 
-const props = defineProps<{ initialState?: Record<string, unknown> }>()
+const props = defineProps<{ initialState?: Record<string, unknown>; withOther?: boolean }>()
 
 const content: AskUserContent = {
   type: 'ask_user',
@@ -19,7 +19,7 @@ const content: AskUserContent = {
       question: '框架',
       options: [{ label: 'Vue' }, { label: 'React' }],
       multiSelect: false,
-      allowCustom: false,
+      allowCustom: props.withOther ?? false,
     },
   ],
 }
