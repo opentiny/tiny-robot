@@ -26,7 +26,7 @@ export function createSenderTestHelper(page: Page) {
 
     async clearContent() {
       await this.getEditor().click()
-      await page.keyboard.press('Control+A')
+      await page.keyboard.press('ControlOrMeta+A')
       await page.keyboard.press('Delete')
       await page.waitForTimeout(50)
     },

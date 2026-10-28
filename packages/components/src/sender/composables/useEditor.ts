@@ -30,6 +30,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
   const editorRef = ref<HTMLElement | null>(null)
   const isComposing = ref(false)
   const hasPendingModelValue = ref(false)
+  let pendingModelTimer: ReturnType<typeof setTimeout> | undefined
 
   // 将 placeholder 转换为响应式引用
   const placeholderRef = toRef(props, 'placeholder')
@@ -73,20 +74,28 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       },
       handleDOMEvents: {
         compositionstart: () => {
+          clearTimeout(pendingModelTimer)
+          pendingModelTimer = undefined
           isComposing.value = true
           return false
         },
         compositionend: () => {
           isComposing.value = false
           if (hasPendingModelValue.value) {
-            nextTick(() => {
-              hasPendingModelValue.value = false
+            clearTimeout(pendingModelTimer)
+            // 等待 ProseMirror 同步最终输入及父组件回传模型。
+            pendingModelTimer = setTimeout(() => {
+              pendingModelTimer = undefined
               const currentEditor = editor.value
+              if (!currentEditor || currentEditor.isDestroyed) return
+              if (isComposing.value || currentEditor.view.composing) return
+
+              hasPendingModelValue.value = false
               const externalValue = props.modelValue ?? ''
-              if (currentEditor && externalValue !== currentEditor.getText()) {
+              if (externalValue !== currentEditor.getText()) {
                 currentEditor.commands.setContent(externalValue, { emitUpdate: false })
               }
-            })
+            }, 0)
           }
           return false
         },
@@ -129,7 +138,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
   watch(
     () => props.modelValue,
     (newValue) => {
-      if (isComposing.value || editor.value?.view.composing) {
+      if (isComposing.value || editor.value?.view.composing || pendingModelTimer !== undefined) {
         hasPendingModelValue.value = true
         return
       }
@@ -169,6 +178,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
 
   // 清理
   onBeforeUnmount(() => {
+    clearTimeout(pendingModelTimer)
     editor.value?.destroy()
   })
 
