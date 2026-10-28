@@ -252,7 +252,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 `header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
 
 :::info 当前插槽作用域
-当前版本只有 `content` 插槽提供 `editor`。`actions-inline`、`footer` 和 `footer-right` 只负责放置内容，不提供作用域参数；需要操作输入内容时，请通过 Sender 实例公开的方法接入。
+`content` 插槽提供 `editor`。`actions-inline` 在单行和多行模式下均提供 `SenderSlotScope`，包含 `editor`、`focus`、`blur`、`insert`、`append`、`replace`、`disabled`、`loading` 和 `hasContent`；其中 `insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。`footer` 和 `footer-right` 不提供作用域参数，需要操作输入内容时，请通过 Sender 实例公开的方法接入。
 :::
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
@@ -494,7 +494,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `prefix`         | 在编辑器左侧添加内容                 | —                     |
 | input-prefix | 多行模式首行前置插槽 | - |
 | `content`        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
-| `actions-inline` | 在单行模式的默认操作按钮前添加内容   | —                     |
+| `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`      |
 | `footer`         | 在多行模式底部左侧添加内容           | —                     |
 | `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | —                     |
 
