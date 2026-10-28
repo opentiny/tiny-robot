@@ -12,11 +12,13 @@ const content: AskUserContent = {
   questions: [
     {
       id: 'name',
-      question: '项目名称',
+      summary: '项目名称',
+      question: '请输入项目名称。',
     },
     {
       id: 'framework',
-      question: '框架',
+      summary: '技术选型',
+      question: '请选择前端框架。',
       options: [{ label: 'Vue' }, { label: 'React' }],
       multiSelect: false,
       allowCustom: props.withOther ?? false,

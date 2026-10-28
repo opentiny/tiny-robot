@@ -13,6 +13,7 @@ export const ASK_USER_SYSTEM_PROMPT = [
   'A tool that is independent of every possible `ask_user` answer may run in parallel with `ask_user`.',
   'If an answer is skipped, do not ask dependent follow-up questions or call tools that require that answer.',
   'When `allowCustom` is true, do not add an "Other" or "Custom" option; the client provides custom input automatically.',
+  'For calls with multiple questions, provide a concise `summary` for each question to label its progress step; keep it distinct from the full `question` text.',
   'Every question may be skipped by the user. After the tool returns its answers, continue the task using those answers.',
 ].join('\n')
 
@@ -30,6 +31,8 @@ export interface AskUserToolOption {
 export interface AskUserQuestionBase {
   /** Stable identifier used as the answer key for this question. */
   id: string
+  /** Optional concise label used for the progress step. */
+  summary?: string
   /** Complete user-facing question. */
   question: string
 }
@@ -110,6 +113,7 @@ export class AskUserProtocolError extends Error {
 
 const MAX_ID_LENGTH = 100
 const MAX_HEADING_LENGTH = 200
+const MAX_SUMMARY_LENGTH = 100
 const MAX_QUESTION_LENGTH = 1000
 const MAX_QUESTION_COUNT = 20
 const MAX_OPTION_COUNT = 50
@@ -218,11 +222,14 @@ const normalizeQuestion = (value: unknown, index: number): AskUserQuestion => {
     invalidArguments(`${path} must be an object`)
   }
   const questionValue = value as Record<string, unknown>
-  assertKnownKeys(questionValue, ['id', 'question', 'options', 'multiSelect', 'allowCustom'], path)
+  assertKnownKeys(questionValue, ['id', 'summary', 'question', 'options', 'multiSelect', 'allowCustom'], path)
 
   const base = {
     id: readQuestionId(questionValue, path),
     question: readRequiredString(questionValue, 'question', path, MAX_QUESTION_LENGTH),
+    ...(questionValue.summary === undefined
+      ? {}
+      : { summary: readOptionalString(questionValue, 'summary', path, MAX_SUMMARY_LENGTH) }),
   }
 
   if (!hasOwn(questionValue, 'options') || questionValue.options === undefined) {
@@ -475,6 +482,13 @@ const askUserQuestionBaseSchema = {
       maxLength: MAX_ID_LENGTH,
       pattern: '^[A-Za-z][A-Za-z0-9_-]{0,99}$',
       description: 'Stable identifier unique within this call and used as the answer key.',
+    },
+    summary: {
+      type: 'string',
+      minLength: 1,
+      maxLength: MAX_SUMMARY_LENGTH,
+      pattern: '\\S',
+      description: 'Optional concise label for the progress step. Keep it distinct from the full question text.',
     },
     question: {
       type: 'string',

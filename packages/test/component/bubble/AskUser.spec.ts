@@ -67,6 +67,17 @@ test.describe('AskUser renderer', () => {
     await expect(textarea).toHaveValue('draft project')
   })
 
+  test('uses question summaries in progress while showing the full question below', async ({ mount }) => {
+    const component = await mount(AskUserFixture)
+    const bubble = component.getByTestId('ask-user-bubble')
+
+    await expect(bubble.locator('.tr-bubble__ask-user-progress-label')).toHaveText(['项目名称', '技术选型'])
+    await expect(bubble.getByRole('heading', { name: '请输入项目名称。' })).toBeVisible()
+
+    await bubble.getByRole('button', { name: '下一步' }).click()
+    await expect(bubble.getByRole('heading', { name: '请选择前端框架。' })).toBeVisible()
+  })
+
   test('skip ends the interaction, preserves entered answers, and skips unanswered steps', async ({ mount }) => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')

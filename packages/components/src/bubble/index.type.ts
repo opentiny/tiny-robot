@@ -26,6 +26,7 @@ export interface AskUserQuestionOption {
 
 export interface AskUserQuestionBase {
   id: string
+  summary?: string
   question: string
 }
 

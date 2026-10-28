@@ -31,10 +31,12 @@ const message = reactive<BubbleMessage<AskUserContent[], { askUser?: AskUserStat
           questions: [
             {
               id: 'summary',
+              summary: '变更目的',
               question: '请简要说明本次变更的目的。',
             },
             {
               id: 'sendInspectionSummary',
+              summary: '巡检摘要',
               question: '发布后是否需要收到巡检摘要？',
               options: [{ label: '需要' }, { label: '不需要' }],
               multiSelect: false,

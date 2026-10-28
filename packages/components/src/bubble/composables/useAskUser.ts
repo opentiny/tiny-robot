@@ -254,6 +254,8 @@ const isAskUserQuestion = (value: unknown) => {
   if (
     typeof question.id !== 'string' ||
     !QUESTION_ID_PATTERN.test(question.id) ||
+    (question.summary !== undefined &&
+      (typeof question.summary !== 'string' || question.summary.trim().length === 0)) ||
     typeof question.question !== 'string' ||
     question.question.trim().length === 0
   ) {
@@ -380,7 +382,7 @@ const normalizeAskUserViewContent = (value: unknown, fallbackId: string): AskUse
     id: value.id ?? fallbackId,
     steps: value.questions.map((question): AskUserRenderStep => {
       if (!question.options) {
-        return { id: question.id, title: question.question, type: 'text' }
+        return { id: question.id, title: question.question, summary: question.summary, type: 'text' }
       }
 
       const options: AskUserRenderOption[] = question.options.map((option: AskUserQuestionOption) => ({
@@ -399,6 +401,7 @@ const normalizeAskUserViewContent = (value: unknown, fallbackId: string): AskUse
       return {
         id: question.id,
         title: question.question,
+        summary: question.summary,
         type: question.multiSelect ? 'multiple' : 'single',
         options,
       }

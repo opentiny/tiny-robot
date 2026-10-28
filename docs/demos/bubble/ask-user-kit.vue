@@ -84,6 +84,7 @@ const responseProvider = async (requestBody: MessageRequestBody, abortSignal: Ab
               questions: [
                 {
                   id: 'environment',
+                  summary: '发布环境',
                   question: '本次变更发布到哪个环境？',
                   options: [
                     { label: '预发布环境', description: '先完成验证' },
@@ -94,6 +95,7 @@ const responseProvider = async (requestBody: MessageRequestBody, abortSignal: Ab
                 },
                 {
                   id: 'services',
+                  summary: '涉及服务',
                   question: '本次发布涉及哪些服务？',
                   options: [{ label: '订单服务' }, { label: '库存服务' }, { label: '支付服务' }],
                   multiSelect: true,
@@ -101,10 +103,12 @@ const responseProvider = async (requestBody: MessageRequestBody, abortSignal: Ab
                 },
                 {
                   id: 'changeSummary',
+                  summary: '变更说明',
                   question: '请简要说明本次变更内容。',
                 },
                 {
                   id: 'confirmDeploy',
+                  summary: '巡检摘要',
                   question: '发布后是否需要收到巡检摘要？',
                   options: [{ label: '需要' }, { label: '不需要' }],
                   multiSelect: false,
