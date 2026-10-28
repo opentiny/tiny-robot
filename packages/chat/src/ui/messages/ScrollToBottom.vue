@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useScroll, useEventListener, useResizeObserver, useMutationObserver } from '@vueuse/core'
+import { useEventListener, useResizeObserver, useMutationObserver } from '@vueuse/core'
 import { computed, onUnmounted, shallowRef, watch } from 'vue'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { TrIconButton } from '@opentiny/tiny-robot'
@@ -10,10 +10,7 @@ const props = defineProps<{
 }>()
 
 const distanceToBottom = shallowRef(0)
-const { y, measure } = useScroll(() => props.target, {
-  behavior: 'smooth',
-  observe: true,
-})
+const emit = defineEmits<{ activate: [] }>()
 const isVisible = computed(() => distanceToBottom.value > 80)
 
 function syncDistance() {
@@ -46,11 +43,6 @@ watch(
 onUnmounted(() => {
   if (syncFrame !== undefined) cancelAnimationFrame(syncFrame)
 })
-
-function scrollToBottom() {
-  measure()
-  y.value = props.target?.scrollHeight ?? 0
-}
 </script>
 
 <template>
@@ -63,7 +55,7 @@ function scrollToBottom() {
     svg-size="18"
     type="button"
     :aria-label="props.label"
-    @click="scrollToBottom"
+    @click="emit('activate')"
   />
 </template>
 
