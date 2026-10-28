@@ -27,6 +27,7 @@ import type {
   ChatHistoryData,
   ChatRightAsidePanelId,
   ChatSwitchConversationPayload,
+  SenderDragPayload,
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
@@ -35,6 +36,7 @@ import type {
 } from './types'
 
 interface ChatUIActions {
+  focusInput: () => Promise<boolean>
   openRightAside: (panel?: ChatRightAsidePanelId) => void
   closeRightAside: () => void
   toggleRightAside: (panel?: ChatRightAsidePanelId) => void
@@ -46,6 +48,7 @@ const chatUIRef = ref<ChatUIActions | null>(null)
 const props = withDefaults(
   defineProps<{
     runtime: ChatRuntime
+    isEmpty?: boolean
     ui?: ChatUIOptions
     title?: string
     floatingState?: LayoutFloatingState
@@ -57,6 +60,7 @@ const props = withDefaults(
   }>(),
   {
     rightAsideOpen: undefined,
+    isEmpty: undefined,
   },
 )
 
@@ -79,6 +83,11 @@ const emit = defineEmits<{
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'update:right-aside-open': [value: boolean]
@@ -94,6 +103,9 @@ const adapter = useChatRuntimeAdapter({
 
 defineExpose({
   send: adapter.send,
+  setInputValue: adapter.setInputValue,
+  clearInput: () => adapter.setInputValue(''),
+  focusInput: () => chatUIRef.value?.focusInput() ?? Promise.resolve(false),
   openRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.openRightAside(panel),
   closeRightAside: () => chatUIRef.value?.closeRightAside(),
   toggleRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.toggleRightAside(panel),
@@ -162,6 +174,26 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
 }
 
+function handleSenderDragEnter(payload: SenderDragPayload) {
+  emit('sender-drag-enter', payload)
+}
+
+function handleSenderDragOver(payload: SenderDragPayload) {
+  emit('sender-drag-over', payload)
+}
+
+function handleSenderDragLeave(payload: SenderDragPayload) {
+  emit('sender-drag-leave', payload)
+}
+
+function handleSenderDrop(payload: SenderDragPayload) {
+  emit('sender-drop', payload)
+}
+
+function handleSenderPaste(event: ClipboardEvent) {
+  emit('sender-paste', event)
+}
+
 function handleLeftAsideOpenChange(payload: ChatAsideOpenChangePayload) {
   emit('left-aside-open-change', payload)
 }
@@ -209,6 +241,7 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
 
 <template>
   <ChatUI
+    :is-empty="props.isEmpty"
     ref="chatUIRef"
     :data="adapter.data.value"
     :ui="props.ui"
@@ -225,6 +258,11 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @prompt-click="handlePromptClick"
     @bubble-state-change="handleBubbleStateChange"
     @bubble-event="handleBubbleEvent"
+    @sender-drag-enter="handleSenderDragEnter"
+    @sender-drag-over="handleSenderDragOver"
+    @sender-drag-leave="handleSenderDragLeave"
+    @sender-drop="handleSenderDrop"
+    @sender-paste="handleSenderPaste"
     @left-aside-open-change="handleLeftAsideOpenChange"
     @right-aside-open-change="handleRightAsideOpenChange"
     @update:right-aside-open="handleUpdateRightAsideOpen"
@@ -300,9 +338,6 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['composer-after']" #composer-after="slotProps">
       <slot name="composer-after" v-bind="slotProps" />
     </template>
-    <template v-if="slots['header-notice']" #header-notice>
-      <slot name="header-notice" />
-    </template>
     <template v-if="slots['welcome-footer']" #welcome-footer>
       <slot name="welcome-footer" />
     </template>
@@ -324,11 +359,17 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['sender-header']" #sender-header>
       <slot name="sender-header" />
     </template>
-    <template v-if="slots['sender-footer']" #sender-footer>
-      <slot name="sender-footer" />
+    <template v-if="slots['sender-content']" #sender-content="slotProps">
+      <slot name="sender-content" v-bind="slotProps" />
     </template>
-    <template v-if="slots['sender-footer-right']" #sender-footer-right>
-      <slot name="sender-footer-right" />
+    <template v-if="slots['sender-actions-inline']" #sender-actions-inline="slotProps">
+      <slot name="sender-actions-inline" v-bind="slotProps" />
+    </template>
+    <template v-if="slots['sender-footer']" #sender-footer="slotProps">
+      <slot name="sender-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="slots['sender-footer-right']" #sender-footer-right="slotProps">
+      <slot name="sender-footer-right" v-bind="slotProps" />
     </template>
     <template v-if="slots['extension-header-actions']" #extension-header-actions="slotProps">
       <slot name="extension-header-actions" v-bind="slotProps" />

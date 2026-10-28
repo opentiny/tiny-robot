@@ -54,6 +54,11 @@ export interface ChatModelReasoningEffortChangePayload {
   readonly effort: string | null
 }
 
+export interface SenderDragPayload {
+  readonly event: DragEvent
+  readonly target: HTMLElement
+}
+
 export interface ChatMcpAddServerPayload {
   readonly serverId: string
 }
@@ -114,6 +119,11 @@ export interface ChatUIEmits {
   'model-select': [payload: ChatModelSelectPayload]
   'model-feature-change': [payload: ChatModelFeatureChangePayload]
   'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'mcp-add-server': [payload: ChatMcpAddServerPayload]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'mcp-remove-server': [payload: ChatMcpRemoveServerPayload]

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
+import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
@@ -13,6 +14,7 @@ import type {
   ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
+  SenderDragPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
@@ -37,13 +39,35 @@ const emit = defineEmits<{
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   modelReasoningEffortChange: [payload: { effort: string | null }]
+  senderDragEnter: [payload: SenderDragPayload]
+  senderDragOver: [payload: SenderDragPayload]
+  senderDragLeave: [payload: SenderDragPayload]
+  senderDrop: [payload: SenderDragPayload]
+  senderPaste: [event: ClipboardEvent]
 }>()
 
 defineSlots<{
   'sender-header'?: () => unknown
-  'sender-footer'?: () => unknown
-  'sender-footer-right'?: () => unknown
+  'sender-content'?: (props: { editor: unknown }) => unknown
+  'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
+  'sender-footer'?: (scope: SenderSlotScope) => unknown
+  'sender-footer-right'?: (scope: SenderSlotScope) => unknown
 }>()
+
+const senderRef = shallowRef<InstanceType<typeof TrSender> | null>(null)
+
+async function focusInput(): Promise<boolean> {
+  const sender = senderRef.value
+  const editor = sender?.editor
+  if (!sender || !editor || props.sender.disabled || editor.isDestroyed) return false
+
+  sender.focus()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+  return senderRef.value === sender && !props.sender.disabled && !editor.isDestroyed && editor.isFocused
+}
+
+defineExpose({ focusInput })
 
 const defaultToolbar: readonly ChatSenderToolbarItem[] = [
   { type: 'builtin', id: 'thinking' },
@@ -103,8 +127,8 @@ function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
 }
 
-function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData']) {
-  emit('submit', { text, structuredData })
+function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData'], extra?: SenderSubmitExtra) {
+  emit('submit', { text, structuredData, externalPayloads: extra?.externalPayloads })
 }
 
 function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: boolean }) {
@@ -127,6 +151,11 @@ function handleOpenExtensionsPanel() {
   emit('openExtensionsPanel')
 }
 
+function handleSenderDrag(event: DragEvent, emitEvent: (payload: SenderDragPayload) => void) {
+  const target = event.currentTarget
+  if (target instanceof HTMLElement) emitEvent({ event, target })
+}
+
 function handleOpenExtensionPanel() {
   if (props.hasRegisteredExtensions) {
     handleOpenExtensionsPanel()
@@ -134,20 +163,36 @@ function handleOpenExtensionPanel() {
     handleOpenMcpPanel()
   }
 }
+
+function getSenderSlotScope(scope: unknown): SenderSlotScope {
+  return scope as SenderSlotScope
+}
 </script>
 
 <template>
   <TrSender
+    ref="senderRef"
     v-bind="senderProps"
     @update:model-value="handleUpdateSenderValue"
     @submit="handleSubmit"
     @cancel="emit('cancel')"
     @clear="emit('clear')"
+    @dragenter.capture="handleSenderDrag($event, (payload) => emit('senderDragEnter', payload))"
+    @dragover.capture="handleSenderDrag($event, (payload) => emit('senderDragOver', payload))"
+    @dragleave.capture="handleSenderDrag($event, (payload) => emit('senderDragLeave', payload))"
+    @drop.capture="handleSenderDrag($event, (payload) => emit('senderDrop', payload))"
+    @paste.capture="emit('senderPaste', $event)"
   >
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
     </template>
-    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer>
+    <template v-if="$slots['sender-content']" #content="slotProps">
+      <slot name="sender-content" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['sender-actions-inline']" #actions-inline="slotProps">
+      <slot name="sender-actions-inline" v-bind="getSenderSlotScope(slotProps)" />
+    </template>
+    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer="slotProps">
       <div v-if="toolbarItems.length" class="tr-chat-toolbar">
         <template v-for="item in toolbarItems" :key="item.id">
           <ChatToolbarButton
@@ -184,10 +229,10 @@ function handleOpenExtensionPanel() {
           />
         </template>
       </div>
-      <slot name="sender-footer" />
+      <slot name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
     </template>
-    <template v-if="$slots['sender-footer-right']" #footer-right>
-      <slot name="sender-footer-right" />
+    <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
+      <slot name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
     </template>
   </TrSender>
 </template>
@@ -195,14 +240,18 @@ function handleOpenExtensionPanel() {
 <style scoped>
 .tr-chat-toolbar {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.tr-chat-toolbar > :not(.tr-chat-model-selector) {
+  flex: 0 0 auto;
 }
 
 @container chat-composer (max-width: 640px) {
   .tr-chat-toolbar {
-    flex-wrap: nowrap;
     gap: 6px;
   }
 }

@@ -249,6 +249,8 @@ Sender 提供了多个插槽位置，方便扩展功能：
 - **`footer`** - 底部左侧区域，可添加功能按钮
 - **`footer-right`** - 底部右侧区域，可添加操作按钮
 
+`header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
+
 :::info 当前插槽作用域
 `content` 插槽提供 `editor`。`actions-inline` 在单行和多行模式下均提供 `SenderSlotScope`，包含 `editor`、`focus`、`blur`、`insert`、`append`、`replace`、`disabled`、`loading` 和 `hasContent`；其中 `insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。`footer` 和 `footer-right` 不提供作用域参数，需要操作输入内容时，请通过 Sender 实例公开的方法接入。
 :::

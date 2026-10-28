@@ -1,19 +1,31 @@
 <script setup lang="ts">
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
+import type { SenderSlotScope } from '../../types/slots'
 import EditorContent from '../editor-content/index.vue'
 import Footer from '../footer/index.vue'
+import SenderHeader from './SenderHeader.vue'
 
 const context = useSenderContext()
 const slotScope = useSlotScope()
+
+defineSlots<{
+  header?: () => unknown
+  prefix?: () => unknown
+  'input-prefix'?: () => unknown
+  content?: (props: { editor: unknown }) => unknown
+  'actions-inline'?: (scope: SenderSlotScope) => unknown
+  footer?: (scope: SenderSlotScope) => unknown
+  'footer-right'?: (scope: SenderSlotScope) => unknown
+}>()
 </script>
 
 <template>
   <div class="tr-sender-multi-layout">
     <!-- Header 插槽 -->
-    <div v-if="$slots.header" class="tr-sender-header">
+    <SenderHeader>
       <slot name="header" />
-    </div>
+    </SenderHeader>
 
     <!-- 主输入行 -->
     <div class="tr-sender-main">
