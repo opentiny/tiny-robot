@@ -14,6 +14,7 @@ defineSlots<{
   prefix?: () => unknown
   'input-prefix'?: () => unknown
   content?: (props: { editor: unknown }) => unknown
+  'actions-inline'?: (scope: SenderSlotScope) => unknown
   footer?: (scope: SenderSlotScope) => unknown
   'footer-right'?: (scope: SenderSlotScope) => unknown
 }>()
@@ -50,8 +51,9 @@ defineSlots<{
       <template #footer>
         <slot name="footer" v-bind="slotScope" />
       </template>
-      <template #footer-right>
-        <slot name="footer-right" v-bind="slotScope" />
+      <template #footer-right="slotProps">
+        <slot name="actions-inline" v-bind="slotProps" />
+        <slot name="footer-right" v-bind="slotProps" />
       </template>
     </Footer>
   </div>
