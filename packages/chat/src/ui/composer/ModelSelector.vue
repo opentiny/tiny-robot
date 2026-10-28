@@ -96,6 +96,25 @@ function handleReasoningEffortChange(effort: string | null) {
 </template>
 
 <style scoped>
+.tr-chat-model-selector {
+  display: block;
+  width: min(180px, 100%);
+  min-width: 0;
+  flex: 0 1 180px;
+}
+
+.tr-chat-model-selector :deep(.tr-model-selector__anchor) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
 .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
   height: 32px;
   min-height: 32px;
@@ -119,6 +138,7 @@ function handleReasoningEffortChange(effort: string | null) {
 
 .tr-chat-model-selector__trigger-main {
   min-width: 0;
+  overflow: hidden;
   gap: 8px;
 }
 
@@ -129,6 +149,7 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 .tr-chat-model-selector__label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -144,6 +165,16 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 @container chat-composer (max-width: 640px) {
+  .tr-chat-model-selector {
+    width: auto;
+    max-width: none;
+    flex: 0 0 auto;
+  }
+
+  .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+    width: auto;
+  }
+
   .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {
     display: none;
   }

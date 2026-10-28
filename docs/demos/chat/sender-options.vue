@@ -7,6 +7,12 @@ import { useChatCaseRuntime } from './shared/createChatRuntime'
 
 const showHelp = shallowRef(false)
 const currentTemplate = shallowRef<TemplateItem[]>([])
+const helpText = computed(() => {
+  if (currentTemplate.value.length > 1)
+    return '报告模板已填入，文本块可以编辑，下拉字段可以选择。内容超过 300 字时无法提交。'
+  if (currentTemplate.value.length) return '常用问题已填入，可以修改后发送。内容超过 300 字时无法提交。'
+  return '@ 用于插入对象名称，不会切换模型；点击“写报告”或“常用问题”填入内容。'
+})
 const mentions: MentionItem[] = [
   { label: '产品组', value: 'product' },
   { label: '研发组', value: 'engineering' },
@@ -86,7 +92,7 @@ function fillCommonQuestion() {
       <TrChat :runtime="runtime" :ui="ui">
         <template v-if="showHelp" #sender-header>
           <p id="sender-options-help" class="sender-options-demo__help">
-            @ 用于插入对象名称，不会切换模型；模板中的文本块可以编辑，下拉字段可以选择。内容超过 300 字时无法提交。
+            {{ helpText }}
           </p>
         </template>
         <template #sender-footer-right>

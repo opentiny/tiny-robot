@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, ref, watch } from 'vue'
+import { computed, getCurrentInstance, h, mergeProps, nextTick, provide, ref, watch } from 'vue'
 import {
   BubbleRenderers,
   TrBubbleList,
@@ -7,11 +7,24 @@ import {
   TrPrompts,
   TrWelcome,
   useAutoScroll,
+  getBubbleMessageGroups,
+  type BubbleBoxAttributesResolver,
+  type BubbleContentAttributesResolver,
   type BubbleMessage,
+  type BubbleMessageGroup,
   type BubbleRoleConfig,
   type PromptProps,
 } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
+import { CHAT_RENDER_ENVIRONMENT } from '../../composables/useChatRenderContext'
+import {
+  createMessageIdentity,
+  getAdditionalAnchorIndexes,
+  getMessageAnchorText,
+  resolveStreamState,
+} from './messageIdentity'
+import { useChatStreamState } from './useChatStreamState'
+import type { ChatRequestView } from '../../types'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
 import type {
   ResolvedChatBubbleOptions,
@@ -29,6 +42,9 @@ const props = defineProps<{
   isEmpty: boolean
   centerEmptyState: boolean
   centerWelcomeComposer: boolean
+  conversationId?: string | null
+  request?: ChatRequestView
+  anchorEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -56,12 +72,91 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 
 const lastMessage = computed(() => props.messages.at(-1))
 const contentRef = ref<HTMLElement | null>(null)
-const bubbleMessages = computed<BubbleMessage[]>(() => props.messages.map((message) => ({ ...message })))
+const messageIdentity = createMessageIdentity(`chat-${getCurrentInstance()!.uid}`)
+const getMessageStreamState = useChatStreamState(
+  () => props.messages,
+  () => props.request,
+  () => props.conversationId,
+  messageIdentity,
+)
+const bubbleMessages = computed<ChatMessageItem[]>(() =>
+  props.messages.map((message) => ({
+    ...message,
+    renderKey: messageIdentity(message, props.conversationId),
+    streamState: resolveStreamState(message, props.request, getMessageStreamState(message)),
+  })),
+)
+const messageIndexes = computed(() =>
+  props.anchorEnabled ? new Map(bubbleMessages.value.map((message, index) => [message, index])) : undefined,
+)
+const additionalAnchorIndexes = computed(() => {
+  if (!props.anchorEnabled) return new Set<number>()
+  const groups: BubbleMessageGroup[] = getBubbleMessageGroups(
+    bubbleMessages.value,
+    props.options.bubbleList.groupStrategy,
+    props.options.bubbleList.dividerRole,
+    bubbleListProps.value.roleConfigs,
+  )
+  return getAdditionalAnchorIndexes(groups, bubbleMessages.value)
+})
+provide(CHAT_RENDER_ENVIRONMENT, {
+  scrollRoot: computed(() => props.scrollTarget),
+  conversationId: computed(() => props.conversationId),
+})
+const anchorItems = computed(() =>
+  !props.anchorEnabled
+    ? []
+    : bubbleMessages.value
+        .filter((message) => message.role === 'user' && !bubbleListProps.value.roleConfigs?.user?.hidden)
+        .map((message) => {
+          const content = (props.options.bubbleList.contentResolver ?? ((item: BubbleMessage) => item.content))(message)
+          const part = Array.isArray(content) ? content[0] : { type: 'text', text: content || '' }
+          const attributes = resolveBoxAttributes([message], part, 0)
+          return {
+            id: String(attributes?.['data-anchor-id'] ?? message.renderKey),
+            label: getMessageAnchorText(message),
+          }
+        })
+        .filter((item) => item.label.length > 0),
+)
 const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
+
+const resolveBoxAttributes: BubbleBoxAttributesResolver = (messages, content, contentIndex) => {
+  const attributes = props.options.bubbleProvider?.boxAttributes
+  return typeof attributes === 'function' ? attributes(messages, content, contentIndex) : attributes
+}
+const boxAttributes: BubbleBoxAttributesResolver = (messages, content, contentIndex) => {
+  const attributes = resolveBoxAttributes(messages, content, contentIndex)
+  const message = messages[0] as ChatMessageItem | undefined
+  if (!props.anchorEnabled || message?.role !== 'user' || (contentIndex ?? 0) !== 0) return attributes
+  return mergeProps(attributes ?? {}, {
+    class: 'tr-chat-anchor-target',
+    'data-anchor-id': attributes?.['data-anchor-id'] ?? message.renderKey,
+  })
+}
+const contentAttributes: BubbleContentAttributesResolver = (message, content, contentIndex) => {
+  const configured = props.options.bubbleProvider?.contentAttributes
+  const attributes = typeof configured === 'function' ? configured(message, content, contentIndex) : configured
+  const item = message as ChatMessageItem
+  const messageIndex = messageIndexes.value?.get(item) ?? -1
+  const isAdditionalAnchorTarget = additionalAnchorIndexes.value.has(messageIndex) && (contentIndex ?? 0) === 0
+  const boxAttributes = isAdditionalAnchorTarget ? resolveBoxAttributes([item], content, 0) : undefined
+  return mergeProps(attributes ?? {}, {
+    ...(isAdditionalAnchorTarget
+      ? {
+          class: 'tr-chat-anchor-target',
+          'data-anchor-id': boxAttributes?.['data-anchor-id'] ?? item.renderKey,
+        }
+      : {}),
+    key: (attributes?.key as string | number | symbol | undefined) ?? JSON.stringify([item.renderKey, contentIndex]),
+  })
+}
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
   errorRenderer: BubbleRenderers.Error,
   ...props.options.bubbleProvider,
+  boxAttributes,
+  contentAttributes,
 }))
 type BubbleListViewProps = ResolvedChatBubbleOptions['bubbleList'] & {
   autoScroll: false
@@ -102,11 +197,21 @@ const promptProps = computed<ResolvedChatPromptsOptions>(() => {
 })
 const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
-const { scrollToBottom } = useAutoScroll({
+const { scrollToBottom, pause } = useAutoScroll({
   scrollRef: () => props.scrollTarget,
   contentRef: () => contentRef.value,
+  bottomThreshold: 50,
   enabled: () => shouldAutoScroll.value,
 })
+defineExpose({ scrollToBottom, pauseAutoScroll: pause, anchorItems })
+
+watch(
+  () => props.conversationId,
+  () => {
+    pause()
+    if (shouldAutoScroll.value) scrollToBottom()
+  },
+)
 
 watch(
   () => lastMessage.value?.role,
@@ -246,7 +351,39 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 .tr-chat-messages__bubble-list {
   min-height: 0;
   overflow: visible;
-  padding: 8px;
+  padding: var(--tr-chat-ui-message-list-padding, 8px 0);
+}
+
+:deep(.tr-chat-anchor-target) {
+  --tr-chat-anchor-bg: var(--tr-color-primary-light);
+  --tr-chat-anchor-active-bg: #b9d7ff;
+  scroll-margin-top: 16px;
+}
+
+:deep(.tr-chat-anchor-target-active) {
+  animation: tr-chat-anchor-flash 1.8s ease-out !important;
+}
+
+:global([data-tr-color-mode='dark'] .tr-chat-anchor-target) {
+  --tr-chat-anchor-bg: color-mix(in srgb, #317af7 30%, var(--tr-container-bg-default));
+  --tr-chat-anchor-active-bg: color-mix(in srgb, #317af7 40%, var(--tr-container-bg-default));
+}
+
+@keyframes tr-chat-anchor-flash {
+  0%,
+  25% {
+    background-color: var(--tr-chat-anchor-active-bg);
+  }
+  45% {
+    background-color: var(--tr-bubble-box-bg);
+  }
+  65%,
+  85% {
+    background-color: var(--tr-chat-anchor-active-bg);
+  }
+  100% {
+    background-color: var(--tr-bubble-box-bg);
+  }
 }
 
 :deep(.tr-prompts__list-container) {
@@ -254,7 +391,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 :deep([data-box-type='box'][data-role='user']) {
-  --tr-bubble-box-bg: var(--tr-color-primary-light);
+  --tr-bubble-box-bg: var(--tr-chat-anchor-bg, var(--tr-color-primary-light));
 }
 
 :deep([data-box-type='box']:not([data-role='user'])) {

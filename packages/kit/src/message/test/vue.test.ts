@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { toRaw, watch } from 'vue'
 import { createVueMessageAdapter } from '../adapters/vue'
 import { createMessageEngine } from '../core/engine'
@@ -143,5 +143,30 @@ describe('createVueMessageAdapter', () => {
 
     const distinctSnapshots = contentSnapshots.filter((content, index) => content !== contentSnapshots[index - 1])
     expect(distinctSnapshots).toEqual(['', 'hello', 'hello world'])
+  })
+
+  it('preserves attachment File objects in the response provider request body', async () => {
+    const file = new File(['attachment'], 'attachment.txt', { type: 'text/plain' })
+    const externalPayloads = [
+      {
+        source: 'attachment',
+        payload: [{ id: 'attachment-1', name: file.name, size: file.size, rawFile: file }],
+      },
+    ]
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const adapter = createVueMessageAdapter()
+    const engine = createMessageEngine(adapter, {
+      plugins: silentDefaultPlugins,
+      responseProvider,
+    })
+
+    await engine.send({
+      role: 'user',
+      content: 'attachment',
+      externalPayloads,
+    })
+
+    const requestMessage = responseProvider.mock.calls[0][0].messages[0]
+    expect(requestMessage.externalPayloads[0].payload[0].rawFile).toBe(file)
   })
 })

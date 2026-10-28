@@ -65,7 +65,7 @@ defineExpose({
   bottom: 0;
 
   &.is-right {
-    right: 0;
+    right: var(--tr-chat-anchor-inset-inline-end, 0px);
   }
 
   &.is-left {
