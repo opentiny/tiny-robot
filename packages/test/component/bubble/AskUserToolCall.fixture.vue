@@ -90,12 +90,14 @@ const handleListStateChange = (payload: { key: string; value: unknown }) => {
   <BubbleProvider
     :content-attributes="props.withContentAttributes ? { 'data-testid': 'synthetic-ask-user' } : undefined"
   >
-    <BubbleList
-      v-if="props.inList"
-      data-testid="ask-user-tool-call-list"
-      :messages="[message]"
-      @state-change="handleListStateChange"
-    />
-    <Bubble v-else data-testid="ask-user-tool-call-bubble" v-bind="message" @state-change="handleStateChange" />
+    <div>
+      <BubbleList
+        v-if="props.inList"
+        data-testid="ask-user-tool-call-list"
+        :messages="[message]"
+        @state-change="handleListStateChange"
+      />
+      <Bubble v-else data-testid="ask-user-tool-call-bubble" v-bind="message" @state-change="handleStateChange" />
+    </div>
   </BubbleProvider>
 </template>

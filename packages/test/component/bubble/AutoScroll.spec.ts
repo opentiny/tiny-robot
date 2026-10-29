@@ -9,6 +9,9 @@ const expectAtBottom = async (scroller: Locator) => {
   await expect.poll(() => distanceToBottom(scroller)).toBeLessThanOrEqual(1)
 }
 
+// Windows may disable scroll animations; these cases need an actual smooth scroll to interrupt.
+test.use({ launchOptions: { args: ['--enable-smooth-scrolling'] } })
+
 test.describe('useAutoScroll', () => {
   test('follows repeated large content growth while at the bottom', async ({ mount }) => {
     const component = await mount(AutoScrollFixture)

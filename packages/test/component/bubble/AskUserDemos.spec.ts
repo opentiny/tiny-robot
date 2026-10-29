@@ -51,7 +51,7 @@ test.describe('AskUser demos', () => {
 
     await textbox.fill('降低发布风险')
     await askUser.getByRole('button', { name: '下一步' }).click()
-    await expect(askUser.getByRole('radio', { name: '需要' })).toBeVisible()
+    await expect(askUser.getByRole('radio', { name: '需要', exact: true })).toBeVisible()
     await expect(relaunchButton).toBeDisabled()
     await askUser.getByText('需要', { exact: true }).click()
     await askUser.getByRole('button', { name: '提交' }).click()
