@@ -525,7 +525,7 @@ AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本
   description="一次选择本次发布涉及的多个服务。"
 />
 
-##### 场景三：文本与确认
+##### 场景三：多步骤问答
 
 一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。可通过 `summary` 设置步骤条短标题，`question` 用于展示完整问题描述。
 
@@ -543,6 +543,7 @@ AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本
 
 <demo
   vue="../../demos/bubble/ask-user-kit.vue"
+  :vueFiles="['../../demos/bubble/ask-user-kit.vue', '../../demos/bubble/ask-user-kit.ts']"
   title="接入 Kit 与提前提交"
   description="真实模拟工具调用暂停、提前结束 AskUser、恢复工具和模型后续回复。"
 />
