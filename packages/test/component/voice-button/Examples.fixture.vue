@@ -8,7 +8,11 @@ import CustomUI from '../../../../docs/demos/sender/voice-custom-ui.vue'
 import VoiceInput from '../../../../docs/demos/sender/voice-input.vue'
 import VoiceCustom from '../../../../docs/demos/sender/voice-custom.vue'
 
-const props = defineProps<{ example: 'mock' | 'serviceMock' | 'ui' | 'input' | 'custom'; delayedStop?: boolean }>()
+const props = defineProps<{
+  example: 'mock' | 'serviceMock' | 'ui' | 'input' | 'custom'
+  delayedStop?: boolean
+  stopText?: string
+}>()
 const text = ref('')
 const ends = ref(0)
 const handler = props.example === 'serviceMock' ? new ServiceMock() : new MockSpeechHandler()
@@ -50,7 +54,7 @@ if (props.delayedStop) {
     }
     callbacks.delete(this)
     setTimeout(() => {
-      listener.onFinal('停止后的结果')
+      listener.onFinal(props.stopText ?? '停止后的结果')
       originalStop.call(this)
     }, 100)
   }

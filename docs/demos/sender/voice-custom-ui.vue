@@ -33,7 +33,10 @@ const handleSpeechEnd = async (transcript?: string) => {
   finalText.value = ''
   // 等待编辑器同步后再提交，取消状态保留到结束，丢弃停止后的 final。
   if (!canceled && text.trim()) {
-    inputText.value = text
+    TrSenderRef.value?.editor?.commands.setContent({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    })
     await nextTick()
     TrSenderRef.value?.submit()
   }
@@ -87,6 +90,14 @@ const handleTouchEnd = () => {
   voiceButtonRef.value?.stop()
   showMobileVoiceUI.value = false
 }
+
+const handleTouchCancel = () => {
+  if (!showMobileVoiceUI.value) return
+  isCanceling.value = true
+  finalText.value = ''
+  showMobileVoiceUI.value = false
+  voiceButtonRef.value?.stop()
+}
 </script>
 
 <template>
@@ -98,6 +109,7 @@ const handleTouchEnd = () => {
         class="chat-input-container"
         @touchmove.prevent="handleTouchMove"
         @touchend.prevent="handleTouchEnd"
+        @touchcancel.prevent="handleTouchCancel"
         @mousemove.prevent="handleTouchMove"
         @mouseup.prevent="handleTouchEnd"
       >
@@ -117,7 +129,7 @@ const handleTouchEnd = () => {
               :auto-insert="false"
               :speech-config="speechConfig"
               :on-button-click="handleButtonClick"
-              @speech-final="finalText += $event"
+              @speech-final="!isCanceling && (finalText += $event)"
               @speech-end="handleSpeechEnd"
               @speech-error="handleSpeechError"
             />

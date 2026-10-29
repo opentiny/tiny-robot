@@ -32,12 +32,18 @@ const speechConfig = computed(() => ({
   customHandler: selected.value === null ? undefined : handlers[selected.value],
 }))
 const events: Event[] = []
-let restart = false
+let restart = 0
+let cancelRestart = false
 const record = (name: string, text?: string) => {
   events.push({ name, text })
   if (name === 'end' && restart) {
-    restart = false
-    voice.value?.start()
+    const count = restart
+    restart = 0
+    for (let i = 0; i < count; i++) voice.value?.start()
+  }
+  if (name === 'end' && cancelRestart) {
+    cancelRestart = false
+    voice.value?.stop()
   }
 }
 
@@ -67,6 +73,9 @@ window.voiceFixture = {
   select: (handler) => {
     selected.value = handler
   },
+  support: (handler, supported) => {
+    handlers[handler].supported = supported
+  },
   failure: (start, stop = '') => {
     handlers[0].startFailure = start
     handlers[0].stopFailure = stop
@@ -74,8 +83,11 @@ window.voiceFixture = {
     if (native) native.stopFailure = stop
   },
   rejectStart: (index) => handlers[0].pendingStarts[index].reject(new Error('late start reject')),
-  restartOnEnd: () => {
-    restart = true
+  restartOnEnd: (count = 1) => {
+    restart = count
+  },
+  stopOnEnd: () => {
+    cancelRestart = true
   },
   hide: () => {
     visible.value = false

@@ -1,4 +1,4 @@
-import { reactive, onUnmounted, toValue, watch } from 'vue'
+import { computed, reactive, shallowRef, onUnmounted, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type {
   SpeechHookOptions,
@@ -19,7 +19,8 @@ import { WebSpeechHandler } from './webSpeechHandler'
  */
 export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): SpeechHandlerResult {
   type Session = { id: number; handler: SpeechHandler; phase: 'starting' | 'recording' | 'stopping' }
-  let session: Session | undefined
+  const session = shallowRef<Session>()
+  const isActive = computed(() => !!session.value)
   let sessionId = 0
   let pendingRestart = false
   let disposed = false
@@ -34,6 +35,7 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
   const resolveOptions = () => toValue(options)
 
   const updateSupportState = () => {
+    if (session.value || disposed) return
     const currentOptions = resolveOptions()
     speechState.isSupported = currentOptions.customHandler
       ? currentOptions.customHandler.isSupported()
@@ -55,12 +57,13 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
   watch(() => resolveOptions().customHandler, updateSupportState, { immediate: true })
 
   const fail = (current: Session, reason: unknown) => {
-    if (disposed || session !== current) return
+    if (disposed || session.value !== current) return
     const error = reason instanceof Error ? reason : new Error(String(reason))
-    session = undefined
+    session.value = undefined
     pendingRestart = false
     speechState.isRecording = false
     speechState.error = error
+    updateSupportState()
     // 先使旧回调失效，再清理，避免同步结束或延迟拒绝影响新会话。
     if (current.phase !== 'stopping') {
       try {
@@ -86,10 +89,10 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
   const start = () => {
     if (disposed) return
     // 如果正在录音，等待当前会话自然结束后再重启
-    if (session) {
-      if (session.phase === 'recording') {
+    if (session.value) {
+      if (session.value.phase === 'recording') {
         pendingRestart = true
-        requestStop(session)
+        requestStop(session.value)
       }
       return
     }
@@ -101,10 +104,10 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
       if (!handler || !handler.isSupported()) throw new Error('语音识别不受支持')
 
       const current: Session = { id: ++sessionId, handler, phase: 'starting' }
-      session = current
+      session.value = current
       pendingRestart = false
       speechState.error = undefined
-      const isCurrent = () => !disposed && session === current
+      const isCurrent = () => !disposed && session.value === current
 
       // 创建回调函数集合 - 每次调用时都获取最新的 options
       const callbacks: SpeechCallbacks = {
@@ -122,12 +125,15 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
         },
         onEnd: (transcript) => {
           if (!isCurrent()) return
-          const shouldRestart = pendingRestart
-          session = undefined
-          pendingRestart = false
+          session.value = undefined
           speechState.isRecording = false
+          updateSupportState()
           resolveOptions().onEnd?.(transcript)
-          if (shouldRestart && !session && sessionId === current.id) start()
+          if (!disposed && !session.value && sessionId === current.id) {
+            const shouldRestart = pendingRestart
+            pendingRestart = false
+            if (shouldRestart) start()
+          }
         },
         onError: (error) => fail(current, error),
       }
@@ -145,14 +151,14 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
   // 停止录音
   const stop = () => {
     pendingRestart = false
-    if (session) requestStop(session)
+    if (session.value) requestStop(session.value)
   }
 
   // 组件卸载时清理资源
   onUnmounted(() => {
-    const current = session
+    const current = session.value
     disposed = true
-    session = undefined
+    session.value = undefined
     pendingRestart = false
     // 如果正在录音，先停止
     if (current && current.phase !== 'stopping') {
@@ -168,6 +174,7 @@ export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): 
 
   return {
     speechState,
+    isActive,
     start,
     stop,
   }

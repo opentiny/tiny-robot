@@ -36,14 +36,17 @@ const appendTranscript = (transcript: string) => {
 
   hasReplacement = false
   focusEditor()
-  editor.value.commands.insertContent(transcript + ' ')
+  editor.value.commands.insertContent({ type: 'text', text: transcript + ' ' })
 }
 
 const replaceTranscript = (transcript: string) => {
   if (!props.autoInsert || !editor.value || (!transcript && !hasReplacement)) return
 
   hasReplacement = true
-  editor.value.commands.setContent(transcript)
+  editor.value.commands.setContent({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: transcript ? [{ type: 'text', text: transcript }] : [] }],
+  })
   focusEditor()
 }
 
@@ -85,7 +88,7 @@ const getSpeechOptions = (): SpeechHookOptions => ({
 })
 
 // 使用语音 Hook
-const { speechState, start, stop } = useSpeechHandler(getSpeechOptions)
+const { speechState, isActive, start, stop } = useSpeechHandler(getSpeechOptions)
 
 // 处理点击
 const handleClick = async () => {
@@ -98,7 +101,7 @@ const handleClick = async () => {
     })
     if (prevented) return
   }
-  if (speechState.isRecording) {
+  if (isActive.value) {
     stop()
   } else {
     start()

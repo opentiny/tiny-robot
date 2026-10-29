@@ -92,6 +92,20 @@ test.describe('结果解析', () => {
 })
 
 test.describe('写入行为', () => {
+  for (const replace of [false, true]) {
+    test(`语音文本保留标签、实体、空格和换行；replace=${replace}`, async ({ mount, page }) => {
+      await mount(VoiceButtonFixture, { props: { replace, initial: '原输入' } })
+      const text = '  A  B <tag>demo</tag> &amp;\n下一行  '
+      await page.evaluate((text) => {
+        const voice = window.voiceFixture
+        voice.start()
+        voice.emit('final', text)
+        voice.emit('end', text)
+      }, text)
+      expect((await snapshot(page)).content).toBe(replace ? text : `原输入${text} `)
+    })
+  }
+
   test('追加只写增量，结束不再次插入累计结果', async ({ mount, page }) => {
     await mount(VoiceButtonFixture, { props: { initial: '原输入' } })
     await page.evaluate(() => {
@@ -198,6 +212,50 @@ test.describe('写入行为', () => {
 })
 
 test.describe('生命周期', () => {
+  test('启动中再次点击取消，迟到的 start 不激活录音', async ({ mount, page }) => {
+    const component = await mount(VoiceButtonFixture, { props: { deferred: true } })
+    const button = component.locator('.tr-action-button')
+    await button.click()
+    expect((await snapshot(page)).recording).toBe(false)
+    await button.click()
+    expect((await snapshot(page)).stops).toEqual([1, 0])
+    await page.evaluate(() => {
+      window.voiceFixture.emit('start')
+      window.voiceFixture.emit('end')
+    })
+    expect((await snapshot(page)).events.map(({ name }) => name)).toEqual(['end'])
+    await button.click()
+    expect((await snapshot(page)).starts).toEqual([2, 0])
+  })
+
+  test('结束回调中的 stop 取消排队重启', async ({ mount, page }) => {
+    await mount(VoiceButtonFixture)
+    await page.evaluate(() => {
+      const voice = window.voiceFixture
+      voice.start()
+      voice.start()
+      voice.stopOnEnd()
+      voice.emit('end')
+    })
+    expect((await snapshot(page)).starts).toEqual([1, 0])
+    expect((await snapshot(page)).recording).toBe(false)
+  })
+
+  test('旧结束回调不清除新会话的重启请求', async ({ mount, page }) => {
+    await mount(VoiceButtonFixture)
+    await page.evaluate(() => {
+      const voice = window.voiceFixture
+      voice.start()
+      voice.start()
+      voice.restartOnEnd(2)
+      voice.emit('end', undefined, 0)
+      voice.emit('end', undefined, 1)
+    })
+    expect((await snapshot(page)).starts).toEqual([3, 0])
+    expect((await snapshot(page)).stops).toEqual([2, 0])
+    expect((await snapshot(page)).recording).toBe(true)
+  })
+
   test('原生 stop 保留 final 监听直到 end，Promise 完成不代替结束事件', async ({ mount, page }) => {
     await mount(VoiceButtonFixture, { props: { native: true, replace: true } })
     await page.evaluate(() => {
@@ -314,6 +372,27 @@ test.describe('生命周期', () => {
 })
 
 test.describe('配置与异常', () => {
+  for (const deferred of [false, true]) {
+    for (const end of ['end', 'error'] as const) {
+      test(`切换不支持的 Handler 保留停止入口，${end} 后隐藏；启动延迟=${deferred}`, async ({ mount, page }) => {
+        const component = await mount(VoiceButtonFixture, { props: { deferred } })
+        await page.evaluate(() => {
+          const voice = window.voiceFixture
+          voice.start()
+          voice.support(1, false)
+          voice.select(1)
+        })
+        await expect(component.locator('.tr-action-button')).toBeVisible()
+        await component.locator('.tr-action-button').click()
+        expect((await snapshot(page)).stops).toEqual([1, 0])
+        await page.evaluate((end) => window.voiceFixture.emit(end, end === 'error' ? '失败' : undefined), end)
+        await expect(component.locator('.tr-action-button')).toHaveCount(0)
+        await page.evaluate(() => window.voiceFixture.select(0))
+        await expect(component.locator('.tr-action-button')).toBeVisible()
+      })
+    }
+  }
+
   test('原生 stop 异常清理监听，保留已确定文本并移除预览', async ({ mount, page }) => {
     await mount(VoiceButtonFixture, { props: { native: true, replace: true } })
     await page.evaluate(() => {

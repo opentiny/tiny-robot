@@ -1,3 +1,5 @@
+import type { ComputedRef } from 'vue'
+
 /**
  * 语音识别相关类型定义
  */
@@ -56,6 +58,8 @@ export interface SpeechHookOptions extends SpeechConfig {
 // 语音识别Hook返回类型
 export interface SpeechHandlerResult {
   speechState: SpeechState
+  /** 会话存在时为 true，包含启动、录音和等待停止完成阶段。 */
+  isActive: ComputedRef<boolean>
   start: () => void
   stop: () => void
 }

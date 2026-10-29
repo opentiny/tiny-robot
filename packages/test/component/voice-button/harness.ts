@@ -14,10 +14,11 @@ export class ControlledHandler implements SpeechHandler {
   startFailure: Failure = ''
   stopFailure: Failure = ''
   deferred = false
+  supported = true
   pendingStarts: { reject: (error: Error) => void }[] = []
 
   isSupported() {
-    return true
+    return this.supported
   }
 
   start(callbacks: SpeechCallbacks) {
@@ -86,9 +87,11 @@ export interface VoiceFixture {
   result: (results: Result[], resultIndex?: number) => void
   configure: (config: SpeechConfig & { autoInsert?: boolean }) => void
   select: (handler: number | null) => void
+  support: (handler: number, supported: boolean) => void
   failure: (start: Failure, stop?: Failure) => void
   rejectStart: (session: number) => void
-  restartOnEnd: () => void
+  restartOnEnd: (count?: number) => void
+  stopOnEnd: () => void
   hide: () => void
   snapshot: () => {
     content: string

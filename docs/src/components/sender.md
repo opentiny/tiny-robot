@@ -151,6 +151,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 替换模式在首次有效结果到达后才覆盖已有输入，全程没有有效结果时保留原输入。每轮录音独立累计；运行中修改 `auto-insert`、`autoReplace` 只影响后续结果，不追溯改写已经追加的内容。
 
+语音结果按纯文本写入，保留连续空格、换行等字面内容。请求启动后，即使仍在等待授权或连接，再次点击按钮也会请求停止；`speech-start` 只在处理器确认开始识别后触发。
+
 <demo
   vue="../../demos/sender/voice-input.vue"
   :vueFiles="['../../demos/sender/voice-input.vue', '../../demos/sender/mockSpeechHandler.ts']"
@@ -161,6 +163,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 浏览器内置处理器是 `VoiceButton` 在未传 `customHandler` 时的默认实现。它会请求麦克风权限，且可用性取决于浏览器；正式产品应处理不支持、拒绝授权和识别失败等情况。
 
 内置 Handler 的 `continuous` 控制是否持续识别，`autoReplace` 控制编辑器写入方式，两者独立。`lang` 可设置为 `en`、`zh`、`zh-CN`、`en-US` 等语言标签；省略时不设置原生 `recognition.lang`，遵循页面 `<html lang>`，再回退浏览器语言。`lang`、`continuous`、`interimResults` 只配置内置 Handler，自定义服务需自行配置。修改这些参数或 `customHandler` 后，从下一轮启动生效，当前会话继续使用启动时的 Handler 和参数。
+
+当前会话结束前保留停止按钮；即使新配置的 Handler 不受支持，也不会中断当前会话的控制入口。结束或失败后，再按最新配置更新支持状态。
 
 #### 第三方语音服务
 
@@ -175,6 +179,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 #### 自定义录音 UI
 
 支持完全自定义语音录制界面，适用于移动端按住说话等场景。
+
+示例在 `speech-end` 收到累计确定文本后写入并提交。上滑取消或系统触发 `touchcancel` 时请求停止，丢弃停止后的结果，保留原输入且不提交；等待结束或错误回调后才允许开始下一轮。
 
 <demo vue="../../demos/sender/voice-custom-ui.vue" title="移动端按住说话" description="自定义录音 UI，展示移动端按住说话的交互模式。" />
 
@@ -594,6 +600,9 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | ------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `useSenderContext`             | 在 Sender 内部的自定义子组件中读取编辑器、状态和操作 | `() => SenderContext`；必须在 `TrSender` 组件树内调用，否则抛出错误              |
 | `useSenderContentRegistration` | 为 Sender 注册附件等不写入编辑器的外部提交内容       | `() => SenderContentRegister \| undefined`；不在 `TrSender` 内时返回 `undefined` |
+| `useSpeechHandler`             | 管理内置或自定义语音识别会话                         | `(options: MaybeRefOrGetter<SpeechHookOptions>) => SpeechHandlerResult` |
+
+`useSpeechHandler()` 返回 `speechState`、`start()`、`stop()` 和只读计算属性 `isActive`。`isActive.value` 在启动、录音及等待停止完成期间为 `true`；`speechState.isRecording` 仅在处理器确认开始后为 `true`。在结束回调内调用 `stop()` 可以取消已排队的重启。
 
 `useSenderContentRegistration()` 返回的注册函数接收稳定的 `source` 和普通值、Ref 或 Getter 形式的 `payload`，并返回注销函数。Sender 会持续读取响应式 payload；提交时复制当前注册项，作为 `extra.externalPayloads` 传给 `submit`。注册组件卸载时必须调用注销函数；`TrAttachments` 已在内部完成注册与清理。
 

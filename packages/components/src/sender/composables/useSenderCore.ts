@@ -71,11 +71,12 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   // 2. 基础状态计算（依赖 editor）
   // ========================================
 
-  const hasEditorContent = computed(() => {
+  const getHasEditorContent = () => {
     if (!editor.value) return false
     const text = getTextWithTemplates(editor.value)
     return text.trim().length > 0
-  })
+  }
+  const hasEditorContent = computed(getHasEditorContent)
 
   const { hasRegisteredContent, registerContent, externalPayloads } = useSenderContentRegistry()
 
@@ -83,32 +84,35 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     return hasEditorContent.value || hasRegisteredContent.value || Boolean(props.hasExternalContent)
   })
 
-  const characterCount = computed(() => {
+  const getCharacterCount = () => {
     if (!editor.value) return 0
     return countGraphemes(getTextWithTemplates(editor.value))
-  })
+  }
+  const characterCount = computed(getCharacterCount)
 
   const isOverLimit = computed(() => {
     if (!props.maxLength) return false
     return characterCount.value > props.maxLength
   })
 
-  const canSubmit = computed(() => {
+  const checkCanSubmit = () => {
     return (
       !props.disabled &&
       !props.loading &&
-      hasContent.value &&
-      !isOverLimit.value &&
+      (getHasEditorContent() || hasRegisteredContent.value || Boolean(props.hasExternalContent)) &&
+      (!props.maxLength || getCharacterCount() <= props.maxLength) &&
       !props.defaultActions?.submit?.disabled
     )
-  })
+  }
+  const canSubmit = computed(checkCanSubmit)
 
   // ========================================
   // 3. 定义核心方法（submit 需要在键盘处理器之前定义）
   // ========================================
 
   const submit = () => {
-    if (!canSubmit.value || !editor.value) return
+    // Tiptap 延迟通知响应式更新，程序化提交必须读取当前内容。
+    if (!editor.value || !checkCanSubmit()) return
 
     // 构建结构化数据（第二个参数，可选）
     // 注意：Template 和 Mention 是互斥的使用场景
