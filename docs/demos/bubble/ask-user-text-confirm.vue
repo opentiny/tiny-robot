@@ -6,10 +6,6 @@
       </TinyButton>
     </div>
     <TrBubble v-bind="message" @state-change="handleStateChange" />
-    <details class="ask-user-demo__state">
-      <summary>查看交互状态</summary>
-      <pre>{{ JSON.stringify(message.state, null, 2) }}</pre>
-    </details>
   </div>
 </template>
 
@@ -71,18 +67,5 @@ const relaunchInteraction = () => {
   display: flex;
   justify-content: flex-start;
   margin-bottom: 8px;
-}
-
-.ask-user-demo__state {
-  margin-top: 8px;
-  font-size: 12px;
-}
-
-.ask-user-demo__state pre {
-  margin: 8px 0 0;
-  padding: 10px;
-  overflow: auto;
-  background: #f5f5f5;
-  border-radius: 6px;
 }
 </style>
