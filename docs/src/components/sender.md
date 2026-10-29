@@ -147,16 +147,20 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 基础语音交互
 
-`auto-insert` 默认为 `true`，会把最终识别结果插入编辑器；关闭后，应用可以只通过 `speech-final` 接收结果并自行决定后续处理。
+`auto-insert` 默认为 `true`：默认将每次新增的确定文本追加到编辑器，保留原输入；设置 `speech-config.autoReplace: true` 后，完整预览会覆盖整个输入框，结束时仅保留本轮累计确定文本；设置 `auto-insert: false` 则只发送事件，不写入编辑器。
+
+替换模式在首次有效结果到达后才覆盖已有输入，全程没有有效结果时保留原输入。每轮录音独立累计；运行中修改 `auto-insert`、`autoReplace` 只影响后续结果，不追溯改写已经追加的内容。
 
 <demo
   vue="../../demos/sender/voice-input.vue"
   :vueFiles="['../../demos/sender/voice-input.vue', '../../demos/sender/mockSpeechHandler.ts']"
   title="基础语音输入"
-  description="使用本地 Mock 处理器对比自动写入编辑器和仅接收识别事件。"
+  description="使用本地 Mock 处理器对比追加、整框替换和仅接收事件。"
 />
 
 浏览器内置处理器是 `VoiceButton` 在未传 `customHandler` 时的默认实现。它会请求麦克风权限，且可用性取决于浏览器；正式产品应处理不支持、拒绝授权和识别失败等情况。
+
+内置 Handler 的 `continuous` 控制是否持续识别，`autoReplace` 控制编辑器写入方式，两者独立。`lang` 可设置为 `en`、`zh`、`zh-CN`、`en-US` 等语言标签；省略时不设置原生 `recognition.lang`，遵循页面 `<html lang>`，再回退浏览器语言。`lang`、`continuous`、`interimResults` 只配置内置 Handler，自定义服务需自行配置。修改这些参数或 `customHandler` 后，从下一轮启动生效，当前会话继续使用启动时的 Handler 和参数。
 
 #### 第三方语音服务
 
@@ -479,7 +483,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `tooltip`           | 按钮的 Tooltip 内容                                           | `TooltipContent`                                                              | —                   | 否   |
 | `tooltip-placement` | Tooltip 位置                                                  | `TooltipPlacement`                                                            | `'top'`             | 否   |
 | `speech-config`     | 浏览器或自定义语音处理器配置                                  | `SpeechConfig`                                                                | —                   | 否   |
-| `auto-insert`       | 收到最终识别结果时是否插入编辑器                              | `boolean`                                                                     | `true`              | 否   |
+| `auto-insert`       | 是否自动写入编辑器；关闭后仅发送事件，优先于 `autoReplace`     | `boolean`                                                                     | `true`              | 否   |
 | `on-button-click`   | 点击拦截器；调用 `preventDefault()` 后由应用接管录音开始/停止 | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                   | 否   |
 
 ### Slots
@@ -550,9 +554,9 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | 事件名           | 触发时机                     | 回调参数                        |
 | ---------------- | ---------------------------- | ------------------------------- |
 | `speech-start`   | 语音处理器开始识别时         | `() => void`                    |
-| `speech-interim` | 语音处理器返回中间识别结果时 | `(transcript: string) => void`  |
-| `speech-final`   | 语音处理器返回最终结果时     | `(transcript: string) => void`  |
-| `speech-end`     | 语音处理器结束时             | `(transcript?: string) => void` |
+| `speech-interim` | 当前会话的完整预览，包含已确定文本；空字符串表示撤回 | `(transcript: string) => void`  |
+| `speech-final`   | 本次新增的确定文本，每次均为增量，相同文本也逐次保留 | `(transcript: string) => void`  |
+| `speech-end`     | 正常结束，返回当前会话累计确定文本；无结果时可省略 | `(transcript?: string) => void` |
 | `speech-error`   | 语音处理器报告错误时         | `(error: Error) => void`        |
 
 ### Methods / Expose
@@ -581,7 +585,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | 公开成员      | 说明                       | 签名或类型    |
 | ------------- | -------------------------- | ------------- |
 | `start`       | 请求语音处理器开始识别     | `() => void`  |
-| `stop`        | 停止识别并释放处理器       | `() => void`  |
+| `stop`        | 请求停止，结束前仍可能返回最终结果 | `() => void`  |
 | `speechState` | 当前录音、支持性与错误状态 | `SpeechState` |
 
 ### Composables
@@ -745,13 +749,21 @@ function handleSubmit(text: string, data?: StructuredData) {
 | 字段                 | 说明                                                                             | 类型                                                                          | 默认值                   |
 | -------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------ |
 | `customHandler`      | 替换浏览器内置识别器；处理器负责支持性检查、启动、停止和资源清理                 | `SpeechHandler`                                                               | 浏览器 Web Speech 处理器 |
-| `lang`               | 浏览器内置识别器使用的语言                                                       | `string`                                                                      | `navigator.language`     |
+| `lang`               | 内置识别语言，如 `en`、`zh`、`zh-CN`、`en-US`                                    | `string`                                                                      | 原生默认：页面语言，再回退浏览器语言 |
 | `continuous`         | 浏览器内置识别器是否持续识别                                                     | `boolean`                                                                     | `false`                  |
 | `interimResults`     | 浏览器内置识别器是否返回中间结果                                                 | `boolean`                                                                     | `true`                   |
-| `autoReplace`        | 公开类型中的兼容字段；当前 `VoiceButton` 和内置处理器不会读取该值                | `boolean`                                                                     | —                        |
-| `onVoiceButtonClick` | 公开类型中的兼容字段；当前点击拦截应使用 `VoiceButton` 的 `on-button-click` Prop | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                        |
+| `autoReplace`        | 自动写入时，使用完整预览及累计确定文本覆盖整个输入框；会覆盖已有输入             | `boolean`                                                                     | `false`                  |
+| `onVoiceButtonClick` | 已弃用，仅保留兼容类型；点击拦截使用 `VoiceButton` 的 `on-button-click` Prop      | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                        |
 
 `SpeechHandler` 的完整接口如下。`start` 应通过回调报告识别过程；`stop` 必须停止录音、网络连接和计时器等外部资源。
+
+- `onFinal(text)` 只发送本次新增的确定文本；`A → B` 累计为 `AB`，`你好 → 你好` 累计为 `你好你好`，不可按字符串内容去重。
+- `onInterim(text)` 发送本轮完整预览，包含已确定文本；分句服务需由适配器拼接，并支持临时文本修正、缩短和撤回。
+- `onEnd(text?)` 发送本轮累计确定文本。自然结束和手动停止共用收尾逻辑，完成后调用一次 `onEnd`，失败调用 `onError`，不重复报告结束。
+- `stop()` 请求停止并清理资源；返回的 Promise 不代替识别结束回调，结束前仍可能返回 final。启动期间被停止后，延迟返回的权限或连接结果不得重新开启录音。
+- 错误结束保留已确定文本，丢弃未确认预览；卸载后的回调会被忽略。
+
+**迁移说明：**原来发送累计 final 的自定义适配器必须改为增量 final；组件不再通过 `startsWith`、`endsWith` 或字符串相等判断重复。拦截点击请迁移到 `on-button-click`，弃用字段 `onVoiceButtonClick` 不参与运行逻辑。
 
 ```ts
 interface SpeechHandler {

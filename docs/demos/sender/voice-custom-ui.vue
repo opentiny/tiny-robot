@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { TrSender, VoiceButton } from '@opentiny/tiny-robot'
 import PressToTalkOverlay from './PressToTalkOverlay.vue'
+import { MockSpeechHandler } from './mockSpeechHandler'
 
 const TrSenderRef = ref<InstanceType<typeof TrSender>>()
 const voiceButtonRef = ref<InstanceType<typeof VoiceButton>>()
@@ -12,21 +13,61 @@ const isMobile = ref(false)
 const isCanceling = ref(false)
 const startY = ref(0)
 const cancelThreshold = 30
+const speechConfig = { customHandler: new MockSpeechHandler() }
+const isBusy = ref(false)
+const finalText = ref('')
+const submittedText = ref('')
+
+const beginRecording = () => {
+  if (isBusy.value) return
+  isBusy.value = true
+  isCanceling.value = false
+  finalText.value = ''
+  voiceButtonRef.value?.start()
+}
+
+const handleSpeechEnd = async (transcript?: string) => {
+  const text = transcript ?? finalText.value
+  const canceled = isCanceling.value
+  showMobileVoiceUI.value = false
+  finalText.value = ''
+  // 等待编辑器同步后再提交，取消状态保留到结束，丢弃停止后的 final。
+  if (!canceled && text.trim()) {
+    inputText.value = text
+    await nextTick()
+    TrSenderRef.value?.submit()
+  }
+  isBusy.value = false
+  isCanceling.value = false
+}
+
+const handleSpeechError = () => {
+  showMobileVoiceUI.value = false
+  isBusy.value = false
+  finalText.value = ''
+  isCanceling.value = false
+}
+
+const handleButtonClick = (_isRecording: boolean, preventDefault: () => void) => {
+  preventDefault()
+  if (isBusy.value) voiceButtonRef.value?.stop()
+  else beginRecording()
+}
 
 // 按下开始录音
 const handleTouchStart = (e: TouchEvent | MouseEvent) => {
-  const clientY = e instanceof TouchEvent ? e.touches[0].clientY : e.clientY
+  if (isBusy.value) return
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
   startY.value = clientY
   showMobileVoiceUI.value = true
-  isCanceling.value = false
-  voiceButtonRef.value?.start()
+  beginRecording()
 }
 
 // 移动检测是否取消
 const handleTouchMove = (e: TouchEvent | MouseEvent) => {
   if (!showMobileVoiceUI.value) return
 
-  const currentY = e instanceof TouchEvent ? e.touches[0].clientY : e.clientY
+  const currentY = 'touches' in e ? e.touches[0].clientY : e.clientY
   const slideDistance = startY.value - currentY
   isCanceling.value = slideDistance > cancelThreshold
 }
@@ -37,17 +78,14 @@ const handleTouchEnd = () => {
 
   if (isCanceling.value) {
     // 取消录音（清空识别内容）
-    inputText.value = ''
+    finalText.value = ''
   } else {
     // 正常结束，如果有识别内容则提交
-    if (inputText.value.trim()) {
-      TrSenderRef.value?.submit()
-    }
+    // 请求停止后仍可能返回 final，统一在 speech-end 中写入并提交。
   }
 
   voiceButtonRef.value?.stop()
   showMobileVoiceUI.value = false
-  isCanceling.value = false
 }
 </script>
 
@@ -63,14 +101,30 @@ const handleTouchEnd = () => {
         @mousemove.prevent="handleTouchMove"
         @mouseup.prevent="handleTouchEnd"
       >
-        <tr-sender v-show="!showMobileVoiceUI" ref="TrSenderRef" v-model="inputText" mode="single" class="chat-input">
+        <tr-sender
+          v-show="!showMobileVoiceUI"
+          ref="TrSenderRef"
+          v-model="inputText"
+          mode="single"
+          class="chat-input"
+          @submit="submittedText = $event"
+        >
           <!-- PC 端：使用 VoiceButton -->
-          <template v-if="!isMobile" #actions-inline>
-            <VoiceButton ref="voiceButtonRef" />
+          <template #actions-inline>
+            <VoiceButton
+              v-show="!isMobile"
+              ref="voiceButtonRef"
+              :auto-insert="false"
+              :speech-config="speechConfig"
+              :on-button-click="handleButtonClick"
+              @speech-final="finalText += $event"
+              @speech-end="handleSpeechEnd"
+              @speech-error="handleSpeechError"
+            />
           </template>
 
           <!-- 移动端：使用自定义"按住说话"区域替换编辑器 -->
-          <template v-else #content>
+          <template v-if="isMobile" #content>
             <div
               class="press-to-talk-area"
               @touchstart.prevent="handleTouchStart"
@@ -91,8 +145,9 @@ const handleTouchEnd = () => {
     </div>
     <div>
       <span style="margin-right: 20px">是否是移动端</span>
-      <tiny-switch v-model="isMobile"></tiny-switch>
+      <tiny-switch v-model="isMobile" :disabled="isBusy"></tiny-switch>
     </div>
+    <p aria-live="polite">已提交：{{ submittedText }}</p>
   </div>
 </template>
 

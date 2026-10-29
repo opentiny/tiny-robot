@@ -5,23 +5,22 @@ interface ParsedSpeechResult {
   interimTranscript: string
 }
 
-export function parseSpeechRecognitionResult(event: SpeechRecognitionEvent): ParsedSpeechResult {
+export function parseSpeechRecognitionResult(
+  event: SpeechRecognitionEvent,
+  finalizedIndices = new Set<number>(),
+): ParsedSpeechResult {
   let finalTranscript = ''
   let interimTranscript = ''
 
-  for (let index = event.resultIndex; index < event.results.length; index++) {
+  for (let index = 0; index < event.results.length; index++) {
     const result = event.results[index]
     const transcript = result[0]?.transcript ?? ''
 
-    if (!transcript) {
-      continue
-    }
-
-    if (result.isFinal) {
+    if (result.isFinal && index >= event.resultIndex && !finalizedIndices.has(index)) {
+      finalizedIndices.add(index)
       finalTranscript += transcript
-    } else {
-      interimTranscript += transcript
     }
+    interimTranscript += transcript
   }
 
   return {
@@ -38,9 +37,11 @@ export class WebSpeechHandler implements SpeechHandler {
   private recognition?: SpeechRecognition
   private options: SpeechConfig
   private finalizedTranscript: string = ''
+  private finalizedIndices = new Set<number>()
 
   private resetSessionTranscript(): void {
     this.finalizedTranscript = ''
+    this.finalizedIndices.clear()
   }
 
   /**
@@ -52,7 +53,9 @@ export class WebSpeechHandler implements SpeechHandler {
     // 配置识别参数
     this.recognition.continuous = this.options.continuous ?? false
     this.recognition.interimResults = this.options.interimResults ?? true
-    this.recognition.lang = this.options.lang ?? navigator.language
+    if (this.options.lang !== undefined) {
+      this.recognition.lang = this.options.lang
+    }
   }
 
   constructor(options: SpeechConfig) {
@@ -82,33 +85,31 @@ export class WebSpeechHandler implements SpeechHandler {
     if (!this.recognition || !callbacks) return
 
     this.recognition.onstart = () => {
-      this.resetSessionTranscript()
       callbacks.onStart()
     }
 
     this.recognition.onend = () => {
-      callbacks.onEnd(this.finalizedTranscript || undefined)
+      const transcript = this.finalizedTranscript || undefined
       this.cleanup()
       this.resetSessionTranscript()
+      callbacks.onEnd(transcript)
     }
 
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const { finalTranscript, interimTranscript } = parseSpeechRecognitionResult(event)
+      const { finalTranscript, interimTranscript } = parseSpeechRecognitionResult(event, this.finalizedIndices)
 
       if (finalTranscript) {
         this.finalizedTranscript += finalTranscript
         callbacks.onFinal(finalTranscript)
       }
 
-      if (interimTranscript) {
-        callbacks.onInterim(this.finalizedTranscript + interimTranscript)
-      }
+      callbacks.onInterim(interimTranscript)
     }
 
     this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      callbacks.onError(new Error(event.error))
       this.resetSessionTranscript()
       this.cleanup()
+      callbacks.onError(new Error(event.error))
     }
   }
 
@@ -139,6 +140,7 @@ export class WebSpeechHandler implements SpeechHandler {
     try {
       this.recognition.start()
     } catch (error) {
+      this.cleanup()
       callbacks.onError(error instanceof Error ? error : new Error('语音识别启动失败'))
     }
   }
@@ -149,12 +151,13 @@ export class WebSpeechHandler implements SpeechHandler {
   stop(): void {
     if (!this.recognition) return
 
+    // 原生 end 前仍可能返回 final，必须保留事件监听。
     try {
       this.recognition.stop()
     } catch (error) {
       this.cleanup()
       this.resetSessionTranscript()
-      console.warn('停止语音识别时发生错误:', error)
+      throw error
     }
   }
 }

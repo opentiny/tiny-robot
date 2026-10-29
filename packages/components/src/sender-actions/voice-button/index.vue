@@ -19,9 +19,11 @@ const { editor, disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
 const isAutoReplace = computed(() => props.speechConfig?.autoReplace ?? false)
 const committedTranscript = shallowRef('')
+let hasReplacement = false
 
 const resetSpeechSession = () => {
   committedTranscript.value = ''
+  hasReplacement = false
 }
 
 const focusEditor = () => {
@@ -32,32 +34,17 @@ const focusEditor = () => {
 const appendTranscript = (transcript: string) => {
   if (!props.autoInsert || !editor.value || !transcript) return
 
-  editor.value.commands.insertContent(transcript + ' ')
+  hasReplacement = false
   focusEditor()
+  editor.value.commands.insertContent(transcript + ' ')
 }
 
 const replaceTranscript = (transcript: string) => {
-  if (!props.autoInsert || !editor.value || !transcript) return
+  if (!props.autoInsert || !editor.value || (!transcript && !hasReplacement)) return
 
+  hasReplacement = true
   editor.value.commands.setContent(transcript)
   focusEditor()
-}
-
-const mergeCommittedTranscript = (transcript: string) => {
-  if (!transcript) {
-    return committedTranscript.value
-  }
-
-  if (!committedTranscript.value || transcript.startsWith(committedTranscript.value)) {
-    committedTranscript.value = transcript
-    return committedTranscript.value
-  }
-
-  if (committedTranscript.value !== transcript && !committedTranscript.value.endsWith(transcript)) {
-    committedTranscript.value += transcript
-  }
-
-  return committedTranscript.value
 }
 
 const getSpeechOptions = (): SpeechHookOptions => ({
@@ -73,21 +60,25 @@ const getSpeechOptions = (): SpeechHookOptions => ({
     emit('speech-interim', transcript)
   },
   onFinal: (transcript: string) => {
+    committedTranscript.value += transcript
     if (isAutoReplace.value) {
-      replaceTranscript(mergeCommittedTranscript(transcript))
+      replaceTranscript(committedTranscript.value)
     } else {
       appendTranscript(transcript)
     }
     emit('speech-final', transcript)
   },
   onEnd: (transcript?: string) => {
-    if (editor.value) {
-      focusEditor()
+    if (isAutoReplace.value && hasReplacement) {
+      replaceTranscript(committedTranscript.value)
     }
     resetSpeechSession()
     emit('speech-end', transcript)
   },
   onError: (error: Error) => {
+    if (isAutoReplace.value && hasReplacement) {
+      replaceTranscript(committedTranscript.value)
+    }
     resetSpeechSession()
     emit('speech-error', error)
   },
