@@ -436,6 +436,67 @@ emitBubbleEvent({
 
 ### 工具调用确认
 
+该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用；完成允许或拒绝后，还可以点击“再次发起审批”重复演示。消息列表会在限定高度的区域内滚动，顶部操作区始终保持可见。
+
+<demo
+  vue="../../demos/bubble/tool-approval.vue"
+  title="确认工具调用"
+  description="工具等待执行时，用户可以允许或拒绝本次调用。"
+/>
+
+如果应用使用 `toolPlugin`，可以将它加入 `useMessage` 的 `plugins`，并通过 `shouldPauseToolCall` 控制哪些工具需要用户确认：
+
+```ts
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+const message = useMessage({
+  responseProvider,
+  plugins: [
+    toolPlugin({
+      getTools,
+      callTool,
+
+      // 根据工具名称、参数或用户权限决定是否需要确认
+      shouldPauseToolCall: (toolCall) => toolCall.function.name === 'send_email',
+    }),
+  ],
+})
+```
+
+当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“允许”和“拒绝”按钮。应用监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
+
+- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“允许”会让 Tool 渲染器触发 `tool-call:resume`，payload 为 `{ toolCallId: string }`；Bubble 不会执行工具，也不会自行修改工具状态。
+- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“拒绝”会让 Tool 渲染器触发 `tool-call:reject`，payload 同样为 `{ toolCallId: string }`；Bubble 不会自行拒绝工具调用。
+- 应用必须把 `toolCallId` 和对应命令传给 `message.dispatchCommand`（或当前会话的 `engine.dispatchCommand`）。kit 随后负责执行工具或标记为 `denied`，更新 tool 消息，并继续当前回合。
+- 应用负责处理命令的异步错误，并根据需要展示处理中、成功或失败状态。
+
+```ts
+if (event.name !== 'tool-call:resume' && event.name !== 'tool-call:reject') {
+  return
+}
+
+const payload = event.payload
+if (!payload || typeof payload !== 'object' || !('toolCallId' in payload)) {
+  return
+}
+
+const { toolCallId } = payload as { toolCallId?: unknown }
+if (typeof toolCallId !== 'string' || !toolCallId) {
+  return
+}
+
+const command = event.name === 'tool-call:resume' ? TOOL_RESUME_COMMAND : TOOL_REJECT_COMMAND
+await message.dispatchCommand(command, { toolCallId })
+```
+
+如果使用 `useConversation`，事件处理方式相同，只需要将命令发送给当前会话的引擎：
+
+```ts
+await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
+```
+
+更详细的 `toolPlugin` 配置和命令说明，请参考 [工具插件 API](../tools/message)。
+
 #### AskUser {#askuser}
 
 AskUser 的输入是 assistant 消息中的 `ask_user` 函数调用。使用 Bubble 默认内容解析器时，只需提供 `tool_calls`；`function.arguments` 必须是包含 `questions` 的 JSON 字符串：
@@ -520,67 +581,6 @@ Bubble 从 `function.arguments` 解析问题并渲染内置表单。独立使用
   title="Kit 多问题与跳过"
   description="真实模拟工具调用暂停、提前结束 AskUser、恢复工具和模型后续回复。"
 />
-
-该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用；完成允许或拒绝后，还可以点击“再次发起审批”重复演示。消息列表会在限定高度的区域内滚动，顶部操作区始终保持可见。
-
-<demo
-  vue="../../demos/bubble/tool-approval.vue"
-  title="确认工具调用"
-  description="工具等待执行时，用户可以允许或拒绝本次调用。"
-/>
-
-如果应用使用 `toolPlugin`，可以将它加入 `useMessage` 的 `plugins`，并通过 `shouldPauseToolCall` 控制哪些工具需要用户确认：
-
-```ts
-import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
-
-const message = useMessage({
-  responseProvider,
-  plugins: [
-    toolPlugin({
-      getTools,
-      callTool,
-
-      // 根据工具名称、参数或用户权限决定是否需要确认
-      shouldPauseToolCall: (toolCall) => toolCall.function.name === 'send_email',
-    }),
-  ],
-})
-```
-
-当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“允许”和“拒绝”按钮。应用监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
-
-- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“允许”会让 Tool 渲染器触发 `tool-call:resume`，payload 为 `{ toolCallId: string }`；Bubble 不会执行工具，也不会自行修改工具状态。
-- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“拒绝”会让 Tool 渲染器触发 `tool-call:reject`，payload 同样为 `{ toolCallId: string }`；Bubble 不会自行拒绝工具调用。
-- 应用必须把 `toolCallId` 和对应命令传给 `message.dispatchCommand`（或当前会话的 `engine.dispatchCommand`）。kit 随后负责执行工具或标记为 `denied`，更新 tool 消息，并继续当前回合。
-- 应用负责处理命令的异步错误，并根据需要展示处理中、成功或失败状态。
-
-```ts
-if (event.name !== 'tool-call:resume' && event.name !== 'tool-call:reject') {
-  return
-}
-
-const payload = event.payload
-if (!payload || typeof payload !== 'object' || !('toolCallId' in payload)) {
-  return
-}
-
-const { toolCallId } = payload as { toolCallId?: unknown }
-if (typeof toolCallId !== 'string' || !toolCallId) {
-  return
-}
-
-const command = event.name === 'tool-call:resume' ? TOOL_RESUME_COMMAND : TOOL_REJECT_COMMAND
-await message.dispatchCommand(command, { toolCallId })
-```
-
-如果使用 `useConversation`，事件处理方式相同，只需要将命令发送给当前会话的引擎：
-
-```ts
-await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
-```
-
-更详细的 `toolPlugin` 配置和命令说明，请参考 [工具插件 API](../tools/message)。
 
 ## API
 
