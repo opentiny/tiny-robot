@@ -1,9 +1,10 @@
 import { onClickOutside } from '@vueuse/core'
-import { computed, nextTick, ref, type Ref } from 'vue'
+import { computed, nextTick, ref, shallowRef, watch, type Ref } from 'vue'
 
 export interface UseRenameEditorProps<T extends { title: string }> {
   renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
   onItemTitleChange: (newTitle: string, item: T) => void
+  resolveItem?: (item: T) => T | undefined
 }
 
 export interface UseRenameEditorReturn<T extends { title: string }> {
@@ -20,8 +21,15 @@ export interface UseRenameEditorReturn<T extends { title: string }> {
 export const useRenameEditor = <T extends { title: string }>({
   renameControlOnClickOutside,
   onItemTitleChange,
+  resolveItem,
 }: UseRenameEditorProps<T>): UseRenameEditorReturn<T> => {
-  const editingItem = ref<T | undefined>(undefined) as Ref<T | undefined>
+  const editingTarget = shallowRef<T | undefined>(undefined)
+  const editingItem = computed(() => {
+    const target = editingTarget.value
+    if (!target) return undefined
+
+    return resolveItem ? resolveItem(target) : target
+  })
   const editorRefList = ref<HTMLInputElement[] | null>(null)
   const editorRef = computed(() => editorRefList.value?.at(0))
   const editorConfirmRefList = ref<HTMLButtonElement[] | null>(null)
@@ -31,7 +39,7 @@ export const useRenameEditor = <T extends { title: string }>({
   const editorValue = ref<string>('')
 
   const handleEdit = (item: T) => {
-    editingItem.value = item
+    editingTarget.value = item
     editorValue.value = item.title
     nextTick(() => {
       const input = editorRef.value
@@ -43,17 +51,27 @@ export const useRenameEditor = <T extends { title: string }>({
   }
 
   const handleEditCancel = () => {
-    editingItem.value = undefined
+    editingTarget.value = undefined
     editorValue.value = ''
   }
 
   const handleEditConfirm = () => {
-    if (editingItem.value) {
-      onItemTitleChange(editorValue.value, editingItem.value)
+    const item = editingItem.value
+    if (item) {
+      onItemTitleChange(editorValue.value, item)
     }
-    editingItem.value = undefined
-    editorValue.value = ''
+    handleEditCancel()
   }
+
+  watch(
+    editingItem,
+    (item, previousItem) => {
+      if (previousItem && !item) {
+        handleEditCancel()
+      }
+    },
+    { flush: 'sync' },
+  )
 
   if (renameControlOnClickOutside === 'confirm' || renameControlOnClickOutside === 'cancel') {
     onClickOutside(

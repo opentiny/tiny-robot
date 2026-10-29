@@ -1,0 +1,168 @@
+<script setup lang="ts">
+import { markRaw, ref } from 'vue'
+import Bubble from '../../../components/src/bubble/Bubble.vue'
+import BubbleProvider from '../../../components/src/bubble/BubbleProvider.vue'
+import { BubbleRenderers } from '../../../components/src/bubble/renderers/allRenderers'
+import type {
+  BubbleBoxRendererMatch,
+  BubbleContentRendererMatch,
+  BubbleEvent,
+  BubbleMessage,
+} from '../../../components/src/bubble/index.type'
+import FallbackBoxRenderer from './FallbackBoxRenderer.vue'
+import FallbackContentRenderer from './FallbackContentRenderer.vue'
+import SecondaryContentRenderer from './SecondaryContentRenderer.vue'
+import TestBoxRenderer from './TestBoxRenderer.vue'
+import TestContentRenderer from './TestContentRenderer.vue'
+import TestErrorRenderer from './TestErrorRenderer.vue'
+
+const customContent: BubbleMessage['content'] = [{ type: 'custom', text: 'Provider content' }]
+const unknownContent: BubbleMessage['content'] = [{ type: 'unknown', label: 'Unknown content' }]
+const sourceContent: BubbleMessage['content'] = [{ type: 'source', text: 'Source content' }]
+const splitErrorContent: BubbleMessage['content'] = [
+  { type: 'text', text: 'Segment one' },
+  { type: 'text', text: 'Segment two' },
+]
+
+const contentMatches: BubbleContentRendererMatch[] = [
+  {
+    find: (_message, content) => content.type === 'custom',
+    renderer: markRaw(SecondaryContentRenderer),
+    priority: 20,
+  },
+  {
+    find: (_message, content) => content.type === 'custom',
+    renderer: markRaw(TestContentRenderer),
+    priority: -10,
+    attributes: { 'data-match-attribute': 'content-priority' },
+  },
+]
+
+const boxMatches: BubbleBoxRendererMatch[] = [
+  {
+    find: (_messages, content) => content?.type === 'custom',
+    renderer: markRaw(TestBoxRenderer),
+    priority: -10,
+    attributes: (_messages, content, index) => ({
+      'data-match-attribute': 'box-priority',
+      'data-match-content-type': content?.type,
+      'data-match-content-index': String(index),
+    }),
+  },
+]
+
+const lastStateChange = ref('')
+const lastBubbleEvent = ref('')
+
+const recordState = (payload: unknown) => {
+  lastStateChange.value = JSON.stringify(payload)
+}
+
+const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; contentIndex: number }) => {
+  lastBubbleEvent.value = JSON.stringify(payload)
+}
+</script>
+
+<template>
+  <main>
+    <section data-testid="matched-provider">
+      <BubbleProvider
+        :box-renderer-matches="boxMatches"
+        :content-renderer-matches="contentMatches"
+        :box-attributes="(_messages, _content, index) => ({ 'data-provider-box-index': String(index) })"
+        :content-attributes="(_message, _content, index) => ({ 'data-provider-content-index': String(index) })"
+        :store="{ label: 'provider-store' }"
+      >
+        <Bubble
+          role="assistant"
+          :content="customContent"
+          content-render-mode="split"
+          @state-change="recordState"
+          @bubble-event="recordBubbleEvent"
+        />
+      </BubbleProvider>
+      <output data-testid="state-output">{{ lastStateChange }}</output>
+      <output data-testid="event-output">{{ lastBubbleEvent }}</output>
+    </section>
+
+    <section data-testid="single-provider">
+      <BubbleProvider
+        :box-renderer-matches="boxMatches"
+        :box-attributes="
+          (_messages, content, index) => ({
+            'data-provider-content-type': content?.type,
+            'data-provider-content-index': String(index),
+          })
+        "
+      >
+        <Bubble role="assistant" :content="customContent" />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="provider-fallbacks">
+      <BubbleProvider
+        :fallback-box-renderer="FallbackBoxRenderer"
+        :fallback-content-renderer="SecondaryContentRenderer"
+      >
+        <Bubble role="assistant" :content="unknownContent" />
+        <Bubble
+          data-testid="prop-fallback-bubble"
+          role="assistant"
+          :content="unknownContent"
+          :fallback-content-renderer="FallbackContentRenderer"
+        />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="nested-provider">
+      <BubbleProvider :content-renderer-matches="contentMatches" :store="{ label: 'outer-store' }">
+        <BubbleProvider :content-renderer-matches="contentMatches" :store="{ label: 'inner-store' }">
+          <Bubble role="assistant" :content="customContent" />
+        </BubbleProvider>
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="resolved-provider">
+      <BubbleProvider :content-renderer-matches="contentMatches">
+        <Bubble
+          role="assistant"
+          :content="sourceContent"
+          :content-resolver="() => [{ type: 'custom', text: 'Resolved provider content' }]"
+        />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="error-provider">
+      <BubbleProvider :error-renderer="TestErrorRenderer">
+        <Bubble
+          data-testid="provider-error-bubble"
+          id="provider-error"
+          role="assistant"
+          content="Provider partial"
+          :state="{ error: { message: 'Provider failure' } }"
+        />
+        <Bubble
+          data-testid="provider-split-error-bubble"
+          id="provider-split-error"
+          role="assistant"
+          :content="splitErrorContent"
+          :state="{ error: { message: 'Split provider failure' } }"
+          content-render-mode="split"
+        />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="nested-error-provider">
+      <BubbleProvider :error-renderer="BubbleRenderers.Error">
+        <BubbleProvider>
+          <Bubble
+            data-testid="nested-unconfigured-error-bubble"
+            role="assistant"
+            content="Nested historical content"
+            :state="{ error: { message: 'Must stay opt-in' } }"
+          />
+        </BubbleProvider>
+      </BubbleProvider>
+    </section>
+  </main>
+</template>

@@ -51,6 +51,13 @@ export interface SenderContext {
   hasContent: Ref<boolean>
 
   /**
+   * 编辑器内是否有文本内容
+   *
+   * 不包含附件、图片等外部内容，主要用于清空按钮等只作用于编辑器文本的场景。
+   */
+  hasEditorContent: Ref<boolean>
+
+  /**
    * 是否可以提交
    *
    * 综合判断：

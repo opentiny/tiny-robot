@@ -1,7 +1,15 @@
 /**
  * Sender 组件样式
- * CSS 变量统一在 src/styles/components/sender.less 中定义
+ * 共享 CSS 变量统一在 src/styles/components/sender.less 中定义
+ * Sender 动作区的局部布局变量收口在当前文件
  */
+
+.tr-sender {
+  --tr-sender-action-button-size: var(--tr-sender-button-size, 32px);
+  --tr-sender-action-button-padding: 4px;
+  --tr-sender-action-gap: 4px;
+  --tr-sender-action-submit-gap: 12px;
+}
 
 // 紧凑尺寸 - size="small"
 .tr-sender--small {
@@ -17,4 +25,6 @@
   --tr-sender-button-size-submit: var(--tr-sender-button-size-submit-small);
   --tr-sender-prefix-padding-right: var(--tr-sender-prefix-padding-right-small);
   --tr-sender-actions-padding-right: var(--tr-sender-actions-padding-right-small);
+  --tr-sender-action-button-padding: 3px;
+  --tr-sender-action-submit-gap: 10px;
 }

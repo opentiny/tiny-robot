@@ -9,7 +9,6 @@ body,
   --rainbow-prev: #009ff7;
   --rainbow-next: #c76dd1;
   --vp-c-brand-soft: rgba(25, 25, 52, 0.1);
-  --vp-c-brand-1: #191919;
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: -webkit-linear-gradient(120deg, var(--rainbow-prev) 30%, var(--rainbow-next));
   --vp-home-hero-image-background-image: linear-gradient(-45deg, var(--rainbow-prev) 30%, var(--rainbow-next));
@@ -36,10 +35,72 @@ body,
   margin: 0;
 }
 
+/* HTML 快速帮助演示需要足够的高度展示正文和划词浮层。 */
+.VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
+  min-height: 540px !important;
+}
+
+@media (max-width: 640px) {
+  .VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
+    min-height: 900px !important;
+  }
+}
+
+/* 主题示例内容较短；预览区随 iframe 高度布局，避免溢出并遮住下方边框。 */
+.qa-theme-demo .vitepress-demo-plugin__container > .vitepress-demo-plugin-preview {
+  height: auto !important;
+}
+
+.VPDoc:has(h1[id='quickassist-智能帮助']) .qa-theme-demo .vitepress-demo-plugin-preview iframe {
+  display: block;
+  min-height: 340px !important;
+}
+
 /* 暗色模式下的 Demo 插件样式 */
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.demo-container-page-bg .vitepress-demo-plugin__container {
+  background-color: var(--vp-c-bg);
+}
+
+/* 新扩展文档 Demo 的辅助控制区，不依赖全局 button 默认样式。 */
+.demo-aux-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.demo-aux-control {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--vp-c-text-2);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.demo-aux-control:hover:not(:disabled) {
+  background: var(--vp-c-bg-soft);
+}
+
+.demo-aux-control:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.demo-aux-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 /* Bubble 组件 Demo 样式 */
@@ -50,6 +111,11 @@ div:has(h1[id='bubble-气泡组件']) {
   table {
     overflow: auto;
   }
+}
+
+/* Chat Runtime API tables contain long public TypeScript signatures. */
+div:has(h1[id='chat-运行时']) table {
+  overflow-x: auto;
 }
 
 /* ===== VitePress 导航覆盖 ===== */
@@ -78,7 +144,9 @@ div:has(h1[id='bubble-气泡组件']) {
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   position: relative;
 }
 
@@ -99,6 +167,21 @@ div:has(h1[id='bubble-气泡组件']) {
 .VPSidebarItem.level-1.is-link.is-active.has-active > .item .link > .text {
   color: #1476ff;
 }
+
+.dark .VPSidebarItem .link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--vp-c-text-1);
+}
+
+.dark .VPSidebarItem.is-active .link {
+  background-color: rgba(20, 118, 255, 0.14);
+  border: 1px solid rgba(20, 118, 255, 0.2);
+}
+
+.dark .VPSidebarItem.level-1.is-link.is-active.has-active > .item .link > .text {
+  color: var(--vp-c-brand-1);
+}
+
 .main-content .group {
   margin-top: 22px;
 }
@@ -111,11 +194,10 @@ div:has(h1[id='bubble-气泡组件']) {
   border-radius: 12px;
 }
 .main-content .items .item .link {
-  padding: 0;
   margin: 0;
-  padding-left: 16px;
-  height: 36px;
-  line-height: 36px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 6px 0 6px 16px;
 }
 .main-content .items .item .text {
   padding: 0;
@@ -147,8 +229,8 @@ div:has(h1[id='bubble-气泡组件']) {
   padding-top: 2rem;
 }
 .VPDoc .vp-doc .vp-adaptive-theme {
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
 }
 
 .VPDocAside {
@@ -222,8 +304,68 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .main-content > .Layout {
-  min-height: calc(100vh - 113px);
-  min-height: calc(100dvh - 113px);
+  min-height: calc(100vh - var(--vp-nav-height) - var(--vp-nav-bottom-height) - 1px);
+  min-height: calc(100dvh - var(--vp-nav-height) - var(--vp-nav-bottom-height) - 1px);
+}
+
+/* ===== 文档页宽屏布局优化 ===== */
+.main-content {
+  --tr-doc-aside-width: 224px;
+  --tr-doc-side-gap: clamp(48px, 2.5vw, 96px);
+  --tr-doc-content-max-width: clamp(920px, 60vw, 4640px);
+  --tr-doc-demo-content-max-width: clamp(1200px, 68vw, 5200px);
+}
+
+@media (min-width: 1280px) {
+  .main-content .VPDoc.has-aside .container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--tr-doc-aside-width);
+    column-gap: var(--tr-doc-side-gap);
+    align-items: start;
+    justify-content: stretch;
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .main-content .VPDoc.has-aside > .container > .content {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .main-content .VPDoc.has-aside .content-container {
+    width: 100%;
+    max-width: min(100%, var(--tr-doc-content-max-width)) !important;
+    margin: 0 auto;
+  }
+
+  .main-content .VPDoc:has(.vitepress-demo-plugin__container) .content-container,
+  .main-content .VPDoc:has(.vitepress-demo-plugin-placeholder__container) .content-container {
+    max-width: min(100%, var(--tr-doc-demo-content-max-width)) !important;
+  }
+
+  .main-content .VPDoc.has-aside > .container > .aside {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: var(--tr-doc-aside-width) !important;
+    max-width: var(--tr-doc-aside-width) !important;
+    padding-left: 0 !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .main-content .VPContent.has-sidebar {
+    padding-left: calc(var(--vp-sidebar-width) + var(--tr-doc-side-gap)) !important;
+    padding-right: var(--tr-doc-side-gap) !important;
+  }
+
+  .main-content .VPSidebar {
+    width: var(--vp-sidebar-width) !important;
+    padding-left: 32px !important;
+  }
 }
 
 /* ===== 响应式布局 ===== */
@@ -254,9 +396,13 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .version-badge--deprecated {
-  background-color: #fef0f0;
-  color: #f56c6c;
-  border: 1px solid #fde2e2;
+  padding: 1px 6px;
+  background-color: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-3);
+  border: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .version-badge--beta {
@@ -279,9 +425,8 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .dark .version-badge--deprecated {
-  background-color: rgba(245, 108, 108, 0.15);
-  color: #f89898;
-  border-color: rgba(245, 108, 108, 0.25);
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--vp-c-text-2);
 }
 
 .dark .version-badge--beta {

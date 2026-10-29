@@ -1,24 +1,43 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { TrSender, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
+import { MockSpeechHandler } from './mockSpeechHandler'
 
 const content = ref('')
 const message = ref('')
+const speechConfig = { customHandler: new MockSpeechHandler() }
+let messageTimer: ReturnType<typeof setTimeout> | undefined
+
+const showMessage = (value: string) => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+
+  message.value = value
+  messageTimer = setTimeout(() => {
+    message.value = ''
+    messageTimer = undefined
+  }, 3000)
+}
 
 const handleSubmit = (text: string) => {
-  message.value = `已提交: ${text}`
+  showMessage(`已提交: ${text}`)
   content.value = ''
-  setTimeout(() => (message.value = ''), 3000)
 }
 
 const handleFiles = (files: File[]) => {
-  message.value = `选择了 ${files.length} 个文件: ${files.map((f) => f.name).join(', ')}`
-  setTimeout(() => (message.value = ''), 3000)
+  showMessage(`已选择 ${files.length} 个文件`)
 }
 
 const handleVoiceFinal = (text: string) => {
   content.value += text + ' '
 }
+
+onBeforeUnmount(() => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+})
 </script>
 
 <template>
@@ -41,7 +60,13 @@ const handleVoiceFinal = (text: string) => {
         />
 
         <!-- 语音按钮 -->
-        <VoiceButton tooltip="语音输入" tooltip-placement="top" @speech-final="handleVoiceFinal" />
+        <VoiceButton
+          :speech-config="speechConfig"
+          :auto-insert="false"
+          tooltip="模拟语音输入"
+          tooltip-placement="top"
+          @speech-final="handleVoiceFinal"
+        />
       </template>
     </tr-sender>
 

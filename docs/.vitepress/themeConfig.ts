@@ -7,26 +7,43 @@ const sharedSidebarItems = [
       { text: '快速开始', link: 'quick-start' },
       { text: '主题配置', link: 'theme-config' },
       { text: '更新日志', link: 'update-log' },
+      { text: 'CLI 接入', link: 'cli-integration' },
+    ],
+  },
+  {
+    text: 'Chat 套件',
+    base: '/suites/',
+    items: [
+      { text: '快速上手', link: 'quick-start' },
+      { text: '界面与交互配置', link: 'chat' },
+      { text: '数据与逻辑配置', link: 'chat-runtime' },
     ],
   },
   {
     text: '组件',
     base: '/components/',
     items: [
-      { text: 'Container 容器', link: 'container' },
+      { text: 'Layout 布局', link: 'layout' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
+      { text: 'ModelSelector 模型选择器', link: 'model-selector' },
       { text: 'Prompts 提示集', link: 'prompts' },
       { text: 'Welcome 欢迎', link: 'welcome' },
       { text: 'Feedback 气泡反馈', link: 'feedback' },
       { text: 'History 历史', link: 'history' },
+      { text: 'Anchor 锚点', link: 'anchor' },
       { text: 'DropdownMenu 下拉菜单', link: 'dropdown-menu' },
       { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
       { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
-      { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
+      { text: 'MCP 扩展添加与详情', link: 'mcp-extension' },
+      { text: 'Skill 扩展导入与详情', link: 'skill-extension' },
       { text: 'Theme 主题', link: 'theme' },
+      { text: 'Container 容器', link: 'container' },
+      { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      { text: 'QuickAssist 智能帮助', link: 'quick-assist' },
     ],
   },
   {
@@ -35,37 +52,66 @@ const sharedSidebarItems = [
     items: [
       { text: 'useMessage 消息数据管理', link: 'message' },
       { text: 'useConversation 会话数据管理', link: 'conversation' },
+      { text: 'Skill 技能接入', link: 'skill' },
       { text: 'AIClient 模型交互工具类', link: 'ai-client' },
       { text: '工具函数', link: 'utils' },
     ],
+  },
+  {
+    text: '最佳实践',
+    base: '/best-practices/',
+    items: [{ text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' }],
+  },
+  {
+    text: '图标',
+    items: [{ text: 'SVG 图标', link: '/icons/' }],
   },
 ]
 
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
-  { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
-  { text: '迁移指南', link: '/migration/bubble-migration', activeMatch: '/migration/' },
+  { text: '演示', link: '/examples/chat-tiny-robot', activeMatch: '/examples/' },
+  { text: '迁移指南', link: '/migration/', activeMatch: '/migration/' },
 ]
 
 const sidebar = {
   '/guide/': sharedSidebarItems,
   '/components/': sharedSidebarItems,
   '/tools/': sharedSidebarItems,
+  '/best-practices/': sharedSidebarItems,
+  '/icons/': sharedSidebarItems,
+  '/suites/': sharedSidebarItems,
   '/examples/': [
     {
       text: '演示',
       base: '/examples/',
-      items: [{ text: '综合示例', link: 'assistant' }],
+      items: [
+        { text: 'TinyRobot', link: 'chat-tiny-robot' },
+        { text: '豆包', link: 'chat-doubao' },
+        { text: 'WorkHelper', link: 'chat-worker-helper' },
+        { text: 'DeepSeek', link: 'chat-deepseek' },
+        { text: 'Gemini', link: 'chat-gemini' },
+        { text: 'Assistant 综合示例', link: 'assistant' },
+      ],
     },
   ],
   '/migration/': [
     {
-      text: '迁移指南',
-      base: '/migration/',
+      text: 'v1.0（从 v0.5.1 升级）',
+      base: '/migration/v1.0/',
       items: [
-        { text: 'Bubble 气泡', link: 'bubble-migration' },
-        { text: 'useMessage 迁移', link: 'use-message-migration' },
-        { text: 'useConversation 迁移', link: 'use-conversation-migration' },
+        { text: 'Container 容器', link: 'container' },
+        { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      ],
+    },
+    {
+      text: 'v0.4（从 v0.3.x 升级）',
+      base: '/migration/v0.4/',
+      items: [
+        { text: 'Bubble 气泡', link: 'bubble' },
+        { text: 'Sender 消息输入框', link: 'sender' },
+        { text: 'useMessage 消息数据管理', link: 'use-message' },
+        { text: 'useConversation 会话数据管理', link: 'use-conversation' },
       ],
     },
   ],

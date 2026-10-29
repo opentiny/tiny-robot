@@ -1,19 +1,23 @@
-<template>
-  <div class="tr-question__no-data-wrapper">
-    <slot>
-      <img class="tr-question__no-data" src="../../assets/svgs/no-data.svg" />
-      <span class="tr-question__no-data-text">暂时没有内容</span>
-    </slot>
-  </div>
-</template>
+<script setup lang="ts">
+import { IconNoData } from '@opentiny/tiny-robot-svgs'
+</script>
 
 <style lang="less">
 :root {
-  --tr-suggestion-popover-no-data-color: #191919;
+  --tr-suggestion-popover-no-data-color: var(--tr-text-primary);
   --tr-suggestion-popover-no-data-font-size: 12px;
   --tr-suggestion-popover-no-data-line-height: 24px;
 }
 </style>
+
+<template>
+  <div class="tr-question__no-data-wrapper">
+    <slot>
+      <IconNoData class="tr-question__no-data" />
+      <span class="tr-question__no-data-text">暂时没有内容</span>
+    </slot>
+  </div>
+</template>
 
 <style scoped lang="less">
 .tr-question__no-data-wrapper {

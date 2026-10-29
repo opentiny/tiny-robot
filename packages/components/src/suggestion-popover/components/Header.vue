@@ -9,7 +9,7 @@ const props = defineProps<Pick<SuggestionPopoverProps, 'icon' | 'title'>>()
   <div class="tr-question__header">
     <component v-if="props.icon" :is="props.icon" />
     <span v-else class="tr-question__header-icon">
-      <IconSparkles style="color: #1476ff" />
+      <IconSparkles />
     </span>
     <h3 class="tr-question__header-title">{{ props.title }}</h3>
   </div>
@@ -37,6 +37,7 @@ const props = defineProps<Pick<SuggestionPopoverProps, 'icon' | 'title'>>()
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: var(--tr-suggestion-popover-header-icon-color);
   }
 
   .tr-question__header-title {

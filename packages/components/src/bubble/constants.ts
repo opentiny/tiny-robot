@@ -1,5 +1,13 @@
 import type { Component, InjectionKey, MaybeRefOrGetter } from 'vue'
-import { BubbleBoxRendererMatch, BubbleContentRendererMatch, BubbleMessageGroup } from './index.type'
+import {
+  BubbleBoxAttributesConfig,
+  BubbleBoxRendererMatch,
+  BubbleContentAttributesConfig,
+  BubbleContentRendererMatch,
+  BubbleEvent,
+  BubbleErrorRendererProps,
+  BubbleMessageGroup,
+} from './index.type'
 
 /**
  * Injection key for bubble message group
@@ -14,6 +22,9 @@ export const BUBBLE_BOX_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<Arra
 export const BUBBLE_BOX_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> =
   Symbol('bubble-box-fallback-renderer')
 
+export const BUBBLE_BOX_ATTRIBUTES_KEY: InjectionKey<MaybeRefOrGetter<BubbleBoxAttributesConfig | undefined>> =
+  Symbol('bubble-box-attributes')
+
 export const BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component | undefined>> = Symbol(
   'bubble-box-prop-fallback-renderer',
 )
@@ -25,6 +36,9 @@ export const BUBBLE_CONTENT_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter
   'bubble-content-fallback-renderer',
 )
 
+export const BUBBLE_CONTENT_ATTRIBUTES_KEY: InjectionKey<MaybeRefOrGetter<BubbleContentAttributesConfig | undefined>> =
+  Symbol('bubble-content-attributes')
+
 export const BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component | undefined>> = Symbol(
   'bubble-content-prop-fallback-renderer',
 )
@@ -35,8 +49,11 @@ export const BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrG
  */
 export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('bubble-store')
 
-export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unknown) => void> =
-  Symbol('bubble-state-change-fn')
+export const BUBBLE_EVENT_FN_KEY: InjectionKey<(event: BubbleEvent) => void> = Symbol('bubble-event-fn')
+
+export const BUBBLE_ERROR_RENDERER_KEY: InjectionKey<
+  MaybeRefOrGetter<Component<BubbleErrorRendererProps> | null | undefined>
+> = Symbol('bubble-error-renderer')
 
 /**
  * Bubble list 上下文的注入键

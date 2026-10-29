@@ -31,7 +31,7 @@ const entries = {
   index: './src/index.ts',
 }
 
-const componentWhitelist = ['assets', 'shared', 'styles']
+const componentWhitelist = ['assets', 'shared', 'styles', 'vanilla']
 
 // 为每个组件添加入口
 const components = readdirSync(resolve(__dirname, 'src'), { withFileTypes: true })
@@ -69,6 +69,7 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@opentiny/vue',
+        '@opentiny/tiny-robot-kit',
         '@opentiny/tiny-robot-svgs',
         'markdown-it',
         'dompurify',

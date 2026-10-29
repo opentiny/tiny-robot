@@ -169,20 +169,9 @@ onClickOutside(
 
 <style lang="less">
 :root {
-  --tr-flow-layout-item-bg-color: rgba(0, 0, 0, 0.04);
-  --tr-flow-layout-item-border-color: transparent;
-  --tr-flow-layout-item-hover-bg-color: rgba(0, 0, 0, 0.08);
-  --tr-flow-layout-item-selected-bg-color: white;
-  --tr-flow-layout-item-selected-border-color: black;
   --tr-flow-layout-item-font-size: 14px;
   --tr-flow-layout-item-line-height: 24px;
   --tr-flow-layout-item-icon-size: 16px;
-
-  --tr-flow-layout-dropdown-bg-color: white;
-  --tr-flow-layout-dropdown-box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
-  --tr-flow-layout-dropdown-selected-bg-color: white;
-  --tr-flow-layout-dropdown-selected-border-color: black;
-  --tr-flow-layout-dropdown-item-hover-bg-color: rgba(0, 0, 0, 0.04);
 }
 </style>
 
@@ -199,6 +188,7 @@ onClickOutside(
     align-items: center;
     gap: 8px;
     background-color: var(--tr-flow-layout-item-bg-color);
+    color: var(--tr-flow-layout-item-color);
     border-radius: 8px;
     border: 1px solid var(--tr-flow-layout-item-border-color);
     transition: background-color 0.3s ease;
@@ -222,6 +212,7 @@ onClickOutside(
     width: var(--tr-flow-layout-item-icon-size);
     height: var(--tr-flow-layout-item-icon-size);
     flex-shrink: 0;
+    color: inherit;
   }
 
   .tr-flow-layout__item-label {
@@ -255,6 +246,7 @@ onClickOutside(
         gap: 8px;
         padding: 5px 11px;
         width: 100%;
+        color: var(--tr-flow-layout-dropdown-item-color);
         border-radius: 8px;
         transition: background-color 0.3s ease;
         border: 1px solid transparent;

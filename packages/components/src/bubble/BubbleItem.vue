@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Bubble from './Bubble.vue'
 import { setupBubbleMessageGroup } from './composables'
-import type { BubbleMessageGroup, BubbleProps, BubbleRoleConfig, BubbleSlots } from './index.type'
+import type { BubbleEvent, BubbleMessageGroup, BubbleProps, BubbleRoleConfig, BubbleSlots } from './index.type'
 
 const props = defineProps<{
   messageGroup: BubbleMessageGroup
@@ -14,6 +14,7 @@ defineSlots<BubbleSlots>()
 
 const emit = defineEmits<{
   (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
+  (e: 'bubble-event', payload: BubbleEvent & { messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide messages for each BubbleItem instance
@@ -27,6 +28,7 @@ setupBubbleMessageGroup(() => props.messageGroup)
     :content-render-mode="contentRenderMode"
     :content-resolver="contentResolver"
     @state-change="emit('state-change', $event)"
+    @bubble-event="emit('bubble-event', $event)"
   >
     <template #prefix="slotProps">
       <slot name="prefix" v-bind="slotProps"></slot>

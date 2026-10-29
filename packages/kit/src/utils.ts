@@ -5,6 +5,14 @@
 
 import type { ChatMessage, ChatCompletionResponse, ChatCompletionStreamResponse, StreamHandler } from './types'
 
+export const getUniqueStringArray = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  return [...new Set(value.filter((item): item is string => typeof item === 'string'))]
+}
+
 /**
  * 处理SSE流式响应
  * @param response fetch响应对象

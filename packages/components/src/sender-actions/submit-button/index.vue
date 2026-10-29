@@ -148,15 +148,10 @@ const handleClick = () => {
 </style>
 
 <style lang="less">
+@import '../styles/tooltip.less';
+
 /* 全局样式：自定义 TinyTooltip 样式 */
-.tr-submit-button-tooltip-popper {
-  .tiny-tooltip__popper {
-    padding: 6px 12px;
-    background-color: rgba(0, 0, 0, 0.85);
-    color: white;
-    border-radius: 4px;
-    font-size: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
+.tiny-tooltip.tiny-tooltip__popper.tr-submit-button-tooltip-popper {
+  .tr-sender-tooltip-light-popper-mixin();
 }
 </style>

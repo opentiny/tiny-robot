@@ -1,5 +1,5 @@
 <template>
-  <div class="tiny-robot-layout">
+  <div class="tr-layout">
     <!-- 自定义顶部导航栏 -->
     <CustomHeader />
 
@@ -44,7 +44,7 @@ const DefaultLayout = DefaultTheme.Layout
 </script>
 
 <style scoped>
-.tiny-robot-layout {
+.tr-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;

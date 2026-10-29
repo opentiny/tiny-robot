@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   size: 'normal',
   submitType: 'enter',
   enterkeyhint: 'send',
+  hasExternalContent: false,
   extensions: () => [],
   autoSize: () => ({ minRows: 1, maxRows: 5 }),
 })
@@ -59,6 +60,9 @@ defineExpose(expose)
       </template>
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />
+      </template>
+      <template v-if="$slots['input-prefix']" #input-prefix>
+        <slot name="input-prefix" />
       </template>
       <template v-if="$slots.content" #content="slotProps">
         <slot name="content" v-bind="slotProps" />

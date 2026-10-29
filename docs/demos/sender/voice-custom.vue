@@ -7,6 +7,7 @@ import { MockSpeechHandler } from './speechHandlers'
 const inputText = ref('')
 const speechStatus = ref('')
 const interimResult = ref('')
+const submittedContent = ref('')
 
 // 语音配置 - 使用模拟处理器
 const speechConfig = {
@@ -35,13 +36,12 @@ const handleSpeechEnd = () => {
 }
 
 const handleSpeechError = (error: Error) => {
-  speechStatus.value = ''
+  speechStatus.value = `❌ ${error.message}`
   interimResult.value = ''
-  console.error('语音识别错误:', error)
 }
 
 const handleSubmit = (text: string) => {
-  console.log('提交内容:', text)
+  submittedContent.value = text
 }
 </script>
 
@@ -74,6 +74,8 @@ const handleSubmit = (text: string) => {
         </template>
       </tr-sender>
     </div>
+
+    <p v-if="submittedContent" style="margin: 0; color: #666" aria-live="polite">已提交：{{ submittedContent }}</p>
 
     <!-- 使用说明 -->
     <div style="padding: 16px; background: #fffbe6; border-radius: 8px; border-left: 4px solid #faad14">

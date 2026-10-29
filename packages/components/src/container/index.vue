@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconCancelFullScreen, IconClose, IconFullScreen } from '@opentiny/tiny-robot-svgs'
+import { IconClose, IconEnterFullScreen, IconExitFullScreen } from '@opentiny/tiny-robot-svgs'
 import { computed } from 'vue'
 import IconButton from '../icon-button'
 import { ContainerEmits, ContainerProps, ContainerSlots } from './index.type'
@@ -13,7 +13,7 @@ const fullscreen = defineModel<ContainerProps['fullscreen']>('fullscreen')
 
 defineSlots<ContainerSlots>()
 
-const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFullScreen : IconFullScreen))
+const fullscreenToggleIcon = computed(() => (fullscreen.value ? IconExitFullScreen : IconEnterFullScreen))
 
 const emit = defineEmits<ContainerEmits>()
 
@@ -37,7 +37,7 @@ const handleClose = () => {
         <icon-button
           size="28"
           svg-size="20"
-          :icon="IconFullScreenSwitcher"
+          :icon="fullscreenToggleIcon"
           @click="fullscreen = !fullscreen"
         ></icon-button>
         <icon-button size="28" svg-size="20" :icon="IconClose" @click="handleClose"></icon-button>

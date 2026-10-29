@@ -1,0 +1,9 @@
+{
+  "extends": "../components/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "types": ["vite/client", "node"]
+  },
+  "include": ["component/**/*.ts", "component/**/*.vue", "../components/src/vite-env.d.ts"]
+}

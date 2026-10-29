@@ -4,7 +4,7 @@ import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore, useCopyCleanup } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
-import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
+import type { BubbleEvent, BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
@@ -15,8 +15,21 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
 
 defineSlots<BubbleListSlots>()
 
+type BubbleStateChangePayload = {
+  key: string
+  value: unknown
+  messageIndex: number
+  contentIndex: number
+}
+
+type BubbleEventPayload = BubbleEvent & {
+  messageIndex: number
+  contentIndex: number
+}
+
 const emit = defineEmits<{
-  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
+  (e: 'state-change', payload: BubbleStateChangePayload): void
+  (e: 'bubble-event', payload: BubbleEventPayload): void
 }>()
 
 // Provide bubble store if not already provided
@@ -35,32 +48,28 @@ const isRoleHidden = (role: string | undefined): boolean => {
   return Boolean(props.roleConfigs?.[role]?.hidden)
 }
 
-const listRef = ref<HTMLDivElement | null>(null)
-let scrollToBottomFn: (behavior?: ScrollBehavior) => Promise<void> = async () => {}
+const scrollContainerRef = ref<HTMLDivElement | null>(null)
+const contentRef = ref<HTMLDivElement | null>(null)
+const lastMessage = computed(() => props.messages.at(-1))
 
-if (props.autoScroll) {
-  const lastMessage = computed(() => props.messages.at(-1))
+const { scrollToBottom } = useAutoScroll({
+  scrollRef: scrollContainerRef,
+  contentRef,
+  enabled: () => props.autoScroll,
+})
 
-  const { scrollToBottom } = useAutoScroll(listRef, () => [
-    props.messages.length,
-    lastMessage.value?.content,
-    lastMessage.value?.reasoning_content,
-  ])
-  scrollToBottomFn = scrollToBottom
-
-  watch(
-    () => lastMessage.value?.role,
-    async (role) => {
-      if (role === 'user') {
-        await nextTick()
-        scrollToBottom('smooth')
-      }
-    },
-  )
-}
+watch(
+  () => lastMessage.value?.role,
+  async (role) => {
+    if (props.autoScroll && role === 'user') {
+      await nextTick()
+      scrollToBottom('smooth')
+    }
+  },
+)
 
 // 设置复制事件处理器，清理复制文本中的多余换行
-useCopyCleanup(listRef)
+useCopyCleanup(scrollContainerRef)
 
 /**
  * 按角色分组
@@ -92,7 +101,6 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
         role: messageRole,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     }
     // 创建新组后统一更新 hidden 状态
@@ -138,7 +146,6 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
         role: isDivider ? dividerRole : messageRole,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     }
     // 创建新组后统一更新 hidden 状态
@@ -169,36 +176,76 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
   }
 })
 
+const resolveMessageIndex = (group: BubbleMessageGroup, messageIndex: number): number | undefined => {
+  const resolvedMessageIndex = group.messageIndexes[messageIndex]
+
+  if (resolvedMessageIndex === undefined) {
+    console.warn(
+      '[BubbleList] Missing messageIndexes mapping; event was not emitted. Ensure custom groupStrategy returns messageIndexes aligned with messages.',
+      {
+        messageIndex,
+        messageIndexes: group.messageIndexes,
+      },
+    )
+    return undefined
+  }
+
+  return resolvedMessageIndex
+}
+
+const handleStateChange = (group: BubbleMessageGroup, event: BubbleStateChangePayload): void => {
+  const messageIndex = resolveMessageIndex(group, event.messageIndex)
+
+  if (messageIndex === undefined) {
+    return
+  }
+
+  emit('state-change', { ...event, messageIndex })
+}
+
+const handleBubbleEvent = (group: BubbleMessageGroup, event: BubbleEventPayload): void => {
+  const messageIndex = resolveMessageIndex(group, event.messageIndex)
+
+  if (messageIndex === undefined) {
+    return
+  }
+
+  emit('bubble-event', { ...event, messageIndex })
+}
+
 defineExpose({
-  scrollToBottom: scrollToBottomFn,
+  scrollToBottom,
 })
 </script>
 
 <template>
-  <div class="tr-bubble-list" ref="listRef">
-    <BubbleItem
-      v-for="(group, index) in messageGroups"
-      :key="index"
-      :role="group.role || props.fallbackRole"
-      :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
-      :message-group="group"
-      :content-render-mode="props.contentRenderMode"
-      :content-resolver="props.contentResolver"
-      @state-change="emit('state-change', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
-    >
-      <template #prefix="slotProps">
-        <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
-      </template>
-      <template #suffix="slotProps">
-        <slot name="suffix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
-      </template>
-      <template #content-footer="slotProps">
-        <slot name="content-footer" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
-      </template>
-      <template #after="slotProps">
-        <slot name="after" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
-      </template>
-    </BubbleItem>
+  <div class="tr-bubble-list" ref="scrollContainerRef">
+    <div class="tr-bubble-list__content" ref="contentRef">
+      <BubbleItem
+        v-for="(group, index) in messageGroups"
+        :key="index"
+        :role="group.role || props.fallbackRole"
+        :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
+        :message-group="group"
+        :content-render-mode="props.contentRenderMode"
+        :content-resolver="props.contentResolver"
+        @state-change="handleStateChange(group, $event)"
+        @bubble-event="handleBubbleEvent(group, $event)"
+      >
+        <template #prefix="slotProps">
+          <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+        </template>
+        <template #suffix="slotProps">
+          <slot name="suffix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+        </template>
+        <template #content-footer="slotProps">
+          <slot name="content-footer" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+        </template>
+        <template #after="slotProps">
+          <slot name="after" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+        </template>
+      </BubbleItem>
+    </div>
   </div>
 </template>
 
@@ -206,13 +253,14 @@ defineExpose({
 .tr-bubble-list {
   --gap: var(--tr-bubble-list-gap);
   --padding: var(--tr-bubble-list-padding);
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: var(--padding);
 }
 
-.tr-bubble-list {
+.tr-bubble-list__content {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
-  overflow-y: auto;
-  padding: var(--padding);
 }
 </style>

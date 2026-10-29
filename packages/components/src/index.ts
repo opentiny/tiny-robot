@@ -1,16 +1,19 @@
 import './styles/root.css'
 import './styles/components/index.css'
 
-import { App } from 'vue'
+import type { App } from 'vue'
 import Attachments from './attachments'
 import { Bubble, BubbleList, BubbleProvider } from './bubble'
 import Container from './container'
+import Anchor from './anchor'
 import Conversations from './conversations'
 import DragOverlay from './drag-overlay'
 import DropdownMenu from './dropdown-menu'
 import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
+import { Layout, LayoutAsideToggle, LayoutProxyScrollbar } from './layout'
+import ModelSelector from './model-selector'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
 import SenderCompat from './sender-compat'
@@ -20,6 +23,11 @@ import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
+import ExtensionManager, { ExtensionCard, ExtensionCardGrid } from './extension-manager'
+import McpExtensionForm from './mcp-extension-form'
+import McpExtensionDetail from './mcp-extension-detail'
+import SkillImportForm from './skill-import-form'
+import SkillExtensionDetail from './skill-extension-detail'
 import {
   ActionButton,
   SubmitButton,
@@ -36,11 +44,14 @@ import {
 export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
+export * from './anchor/index.type'
 export * from './drag-overlay/index.type'
 export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
+export * from './layout/index.type'
+export * from './model-selector/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './sender-actions/index.type'
@@ -50,12 +61,22 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
+export * from './mcp-extension-form/index.type'
+export * from './mcp-extension-detail/index.type'
+export * from './mcp-extension-storage/index.type'
+export * from './skill-import-form/index.type'
+export * from './skill-extension-detail/index.type'
+export * from './extension-manager/public.type'
 
+export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
+export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
+  useBubbleErrorRenderer,
+  useBubbleEventFn,
   useBubbleStateChangeFn,
   useMessageContent,
   useOmitMessageFields,
@@ -65,19 +86,25 @@ export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
-
+export { createMcpExtensionStorage, createMemoryMcpExtensionStorage } from './mcp-extension-storage'
+export type { LegacyUseAutoScrollOptions, UseAutoScrollOptions, UseAutoScrollReturn } from './shared/composables'
 const components = [
   Attachments,
   Bubble,
   BubbleList,
   BubbleProvider,
   Container,
+  Anchor,
   Conversations,
   DragOverlay,
   DropdownMenu,
   Feedback,
   History,
   IconButton,
+  Layout,
+  LayoutProxyScrollbar,
+  LayoutAsideToggle,
+  ModelSelector,
   Prompt,
   Prompts,
   Sender,
@@ -89,6 +116,13 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  McpExtensionForm,
+  McpExtensionDetail,
+  SkillImportForm,
+  SkillExtensionDetail,
+  ExtensionManager,
+  ExtensionCard,
+  ExtensionCardGrid,
   ActionButton,
   SubmitButton,
   ClearButton,
@@ -118,6 +152,8 @@ export {
   BubbleProvider as TrBubbleProvider,
   Container,
   Container as TrContainer,
+  Anchor,
+  Anchor as TrAnchor,
   Conversations,
   Conversations as TrConversations,
   DragOverlay,
@@ -130,6 +166,14 @@ export {
   History as TrHistory,
   IconButton,
   IconButton as TrIconButton,
+  Layout,
+  Layout as TrLayout,
+  LayoutProxyScrollbar,
+  LayoutProxyScrollbar as TrLayoutProxyScrollbar,
+  LayoutAsideToggle,
+  LayoutAsideToggle as TrLayoutAsideToggle,
+  ModelSelector,
+  ModelSelector as TrModelSelector,
   Prompt,
   Prompt as TrPrompt,
   Prompts,
@@ -152,6 +196,20 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  McpExtensionForm,
+  McpExtensionForm as TrMcpExtensionForm,
+  McpExtensionDetail,
+  McpExtensionDetail as TrMcpExtensionDetail,
+  SkillImportForm,
+  SkillImportForm as TrSkillImportForm,
+  SkillExtensionDetail,
+  SkillExtensionDetail as TrSkillExtensionDetail,
+  ExtensionManager,
+  ExtensionManager as TrExtensionManager,
+  ExtensionCard,
+  ExtensionCard as TrExtensionCard,
+  ExtensionCardGrid,
+  ExtensionCardGrid as TrExtensionCardGrid,
   ActionButton,
   ActionButton as TrActionButton,
   SubmitButton,

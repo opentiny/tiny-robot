@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSuggestionItem, SuggestionTextPart, StructuredData } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem, SuggestionTextPart } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const highlightMode = ref<'auto' | 'precise' | 'custom'>('auto')
+const selectedItem = ref('')
 
 // 模式说明
 const modeDescription = computed(() => {
@@ -122,22 +123,14 @@ const extensions = [
   TrSender.Suggestion.configure({
     items: currentSuggestions,
     onSelect: (item) => {
-      console.log('选中建议:', item.content)
+      selectedItem.value = item.content
     },
   }),
 ]
-
-const handleSubmit = (text: string, data?: StructuredData) => {
-  console.log('📝 提交内容：', text)
-  console.log('📋 结构化数据：', data)
-  console.log('🎨 当前高亮模式：', highlightMode.value)
-}
 </script>
 
 <template>
   <div class="demo-highlight">
-    <h3>高亮模式对比</h3>
-
     <div class="mode-selector">
       <label>
         <input type="radio" v-model="highlightMode" value="auto" />
@@ -155,12 +148,8 @@ const handleSubmit = (text: string, data?: StructuredData) => {
 
     <p class="mode-description">{{ modeDescription }}</p>
 
-    <tr-sender
-      v-model="input"
-      :extensions="extensions"
-      placeholder="输入 ECS 或 CDN 查看不同高亮效果..."
-      @submit="handleSubmit"
-    />
+    <tr-sender v-model="input" :extensions="extensions" placeholder="输入 ECS 或 CDN 查看不同高亮效果..." />
+    <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
   </div>
 </template>
 
@@ -195,5 +184,13 @@ const handleSubmit = (text: string, data?: StructuredData) => {
   color: #666;
   font-size: 14px;
   border-radius: 2px;
+}
+
+.demo-result {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 14px;
 }
 </style>

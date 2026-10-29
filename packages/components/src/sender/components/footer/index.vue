@@ -14,8 +14,11 @@ const slotScope = useSlotScope()
     </div>
     <div class="tr-sender-footer-right">
       <WordCounter v-if="showWordLimit && maxLength" />
-      <slot name="footer-right" v-bind="slotScope" />
-      <DefaultActionButtons />
+      <DefaultActionButtons>
+        <template v-if="$slots['footer-right']" #prepend>
+          <slot name="footer-right" v-bind="slotScope" />
+        </template>
+      </DefaultActionButtons>
     </div>
   </div>
 </template>

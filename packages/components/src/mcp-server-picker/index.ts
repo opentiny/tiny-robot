@@ -9,4 +9,8 @@ const install = function <T>(app: App<T>) {
 
 MCPServerPicker.install = install
 
+/**
+ * @deprecated Since v1.0. Use ExtensionManager (`TrExtensionManager`) instead.
+ * This entry point remains available for compatibility and will be removed in a future release.
+ */
 export default MCPServerPicker as typeof MCPServerPicker & { install: typeof install }

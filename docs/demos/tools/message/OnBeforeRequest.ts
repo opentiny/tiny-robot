@@ -1,5 +1,6 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import { useMessage, sseStreamToGenerator } from '@opentiny/tiny-robot-kit'
+import { ref } from 'vue'
 
 interface ImportMetaEnv {
   BASE_URL?: string
@@ -10,6 +11,7 @@ interface ImportMetaWithEnv extends ImportMeta {
 const meta = typeof import.meta !== 'undefined' ? (import.meta as ImportMetaWithEnv) : null
 const baseUrl = meta?.env?.BASE_URL || ''
 const apiUrl = window.parent?.location.origin || location.origin + baseUrl
+const lastRequestSummary = ref('尚未发送请求')
 
 // 插件：在 onBeforeRequest 中修改 requestBody，注入 system 消息和 temperature
 const modifyRequestPlugin: UseMessagePlugin = {
@@ -20,6 +22,7 @@ const modifyRequestPlugin: UseMessagePlugin = {
       ...requestBody.messages,
     ]
     ;(requestBody as Record<string, unknown>).temperature = 0.7
+    lastRequestSummary.value = `已注入 system 消息；temperature = 0.7；消息数 = ${requestBody.messages.length}`
   },
 }
 
@@ -27,7 +30,7 @@ const modifyRequestPlugin: UseMessagePlugin = {
  * useMessage onBeforeRequest：插件在请求前修改 requestBody（注入 system、追加参数等）
  */
 export function useMessageOnBeforeRequest() {
-  return useMessage({
+  const message = useMessage({
     responseProvider: async (requestBody, abortSignal) => {
       const response = await fetch(`${apiUrl}/api/chat/completions`, {
         method: 'POST',
@@ -48,4 +51,6 @@ export function useMessageOnBeforeRequest() {
       },
     ],
   })
+
+  return { ...message, lastRequestSummary }
 }

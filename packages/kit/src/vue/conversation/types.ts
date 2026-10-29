@@ -70,7 +70,7 @@ export interface UseConversationReturn {
   deleteConversation: (id: string) => Promise<void>
   clear: () => void
   updateConversationTitle: (id: string, title?: string) => void
-  saveMessages: (id?: string) => void
-  sendMessage: (content: string) => void
+  saveMessages: (id?: string) => Promise<void>
+  sendMessage: (content: string) => Promise<void>
   abortActiveRequest: () => Promise<void>
 }

@@ -1,8 +1,12 @@
 ---
 outline: [1, 3]
+badge: deprecated
 ---
 
 # MCP Server Picker 插件选择器
+
+> [!WARNING]
+> `McpServerPicker` 自 v1.0 起弃用，未来会移除。迁移到 `ExtensionManager` 请参见 [McpServerPicker 迁移指南](../migration/v1.0/mcp-server-picker)。
 
 MCP Server Picker 组件是一个用于展示和管理插件的组件，支持已安装插件和插件市场两个标签页，可以进行插件的添加、删除和启用/禁用操作。
 
@@ -25,10 +29,10 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 ```typescript
 const handlePluginAdd = (plugin: PluginInfo) => {
   const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)!
-  
+
   // 设置为加载状态
   targetPlugin.addState = 'loading'
-  
+
   // 异步添加插件
   addPluginToServer(plugin)
     .then(() => {
@@ -59,6 +63,8 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | marketPlugins              | `PluginInfo[]`            | `[]`                                                              | 市场插件列表                                 |
 | enableSearch               | `boolean`                 | `true`                                                            | 是否启用搜索功能                             |
 | searchPlaceholder          | `string`                  | `'搜索插件'`                                                      | 搜索框占位符                                 |
+| installedSearchFn          | `(query: string, item: PluginInfo) => boolean` | - | 已安装插件搜索函数 |
+| marketSearchFn             | `(query: string, item: PluginInfo) => boolean` | - | 市场插件搜索函数 |
 | enableMarketCategoryFilter | `boolean`                 | `true`                                                            | 是否启用市场分类筛选功能                     |
 | marketCategoryOptions      | `MarketCategoryOption[]`  | `[]`                                                              | 市场分类选项列表                             |
 | marketCategoryPlaceholder  | `string`                  | `'按照分类筛选'`                                                  | 分类筛选下拉框占位符                         |
@@ -92,8 +98,6 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | 事件名                   | 说明                   | 回调参数                                                |
 | ------------------------ | ---------------------- | ------------------------------------------------------- |
 | market-category-change   | 市场分类筛选变化       | `(category: string)`                                    |
-| installedSearchFn        | 已添加插件搜索函数     | `(query: string, item: PluginInfo) => boolean`          |
-| marketSearchFn           | 市场插件搜索函数       | `(query: string, item: PluginInfo) => boolean`          |
 | update:visible           | 面板显示状态变化       | `(visible: boolean)`                                    |
 | update:activeCount       | 激活插件数量变化       | `(count: number)`                                       |
 | tab-change               | 标签页切换             | `(activeTab: 'installed' \| 'market')`                  |

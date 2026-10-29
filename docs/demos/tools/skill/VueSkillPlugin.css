@@ -1,0 +1,137 @@
+.skill-chat-demo {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.skill-chat-demo .chat-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.skill-chat-demo .chat-area > :first-child {
+  flex: 1;
+  max-height: 480px;
+}
+
+.skill-chat-demo .skill-sidebar {
+  border: 1px solid color-mix(in srgb, var(--tr-text-primary) 8%, transparent);
+  border-radius: 8px;
+  background: var(--tr-container-bg-default);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.skill-chat-demo .sidebar-section {
+  min-width: 0;
+}
+
+.skill-chat-demo .sidebar-section h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.skill-chat-demo .sidebar-hint {
+  color: var(--tr-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.skill-chat-demo .skill-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-chat-demo .skill-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--tr-text-primary) 8%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.skill-chat-demo .skill-option input {
+  flex: none;
+  margin-top: 2px;
+}
+
+.skill-chat-demo .skill-option strong,
+.skill-chat-demo .skill-option small {
+  display: block;
+}
+
+.skill-chat-demo .skill-option strong {
+  font-size: 12px;
+}
+
+.skill-chat-demo .skill-option small {
+  margin-top: 2px;
+  color: var(--tr-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.skill-chat-demo .selected-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.skill-chat-demo .selected-summary span {
+  color: var(--tr-text-secondary);
+  font-size: 11px;
+}
+
+.skill-chat-demo .selected-summary strong {
+  border-radius: 999px;
+  background: var(--tr-container-bg-default-2);
+  color: var(--tr-color-primary);
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.skill-chat-demo .selected-summary em {
+  color: var(--tr-text-tertiary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.skill-chat-demo .subsection-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--tr-text-secondary);
+}
+
+.skill-chat-demo .sidebar-pre {
+  margin: 0 0 10px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--tr-container-bg-default-2);
+  padding: 8px;
+  color: var(--tr-text-primary);
+  font-size: 11px;
+  line-height: 1.5;
+  min-height: 60px;
+  max-height: 150px;
+}
+
+.skill-chat-demo .sidebar-pre:last-child {
+  margin-bottom: 0;
+}
+
+@container (max-width: 640px) {
+  .skill-chat-demo .skill-sidebar {
+    grid-template-columns: 1fr;
+  }
+}

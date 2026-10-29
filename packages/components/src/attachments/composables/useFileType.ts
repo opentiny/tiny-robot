@@ -1,5 +1,6 @@
 import { computed, Component, ComputedRef } from 'vue'
 import { FileType, BaseFileType, FileTypeMatcher, Attachment, RawFileAttachment, UrlAttachment } from '../index.type'
+import { getStringDetectionCandidates, getUrlDisplayName } from '../utils'
 import {
   IconFileImage,
   IconFilePdf,
@@ -160,9 +161,14 @@ export function useFileType(options: UseFileTypeOptions = {}) {
    */
   const detectFileType = (file: File | string): FileType => {
     const matchers = getAllMatchers()
+    const stringCandidates = typeof file === 'string' ? getStringDetectionCandidates(file) : []
 
     for (const matcher of matchers) {
-      if (matcher.matcher(file)) {
+      if (typeof file !== 'string' && matcher.matcher(file)) {
+        return matcher.type
+      }
+
+      if (typeof file === 'string' && stringCandidates.some((candidate) => matcher.matcher(candidate))) {
         return matcher.type
       }
     }
@@ -191,11 +197,11 @@ export function useFileType(options: UseFileTypeOptions = {}) {
   }
 
   type RawFileItem = RawFileAttachment
-  type UrlSizeItem = UrlAttachment
-  type InputItem = RawFileItem | UrlSizeItem | Partial<Attachment>
+  type UrlItem = UrlAttachment
+  type InputItem = Attachment | Partial<Attachment>
 
-  const isUrlSizeItem = (item: InputItem): item is UrlSizeItem => {
-    return typeof item.url === 'string' && !!item.url && typeof item.size === 'number'
+  const isUrlItem = (item: InputItem): item is UrlItem => {
+    return typeof item.url === 'string' && !!item.url
   }
 
   const isRawFileItem = (item: InputItem): item is RawFileItem => {
@@ -208,13 +214,15 @@ export function useFileType(options: UseFileTypeOptions = {}) {
    * @returns 标准化的文件附件对象列表
    */
   const normalizeAttachments = (items: InputItem[]): Attachment[] => {
-    return items.map((item) => {
-      if (isUrlSizeItem(item)) {
-        return transformUrlItem(item)
-      } else if (isRawFileItem(item)) {
-        return transformRawFileItem(item)
+    return items.reduce<Attachment[]>((normalizedItems, item) => {
+      if (isRawFileItem(item)) {
+        normalizedItems.push(transformRawFileItem(item))
+      } else if (isUrlItem(item)) {
+        normalizedItems.push(transformUrlItem(item))
       }
-    }) as Attachment[]
+
+      return normalizedItems
+    }, [])
   }
 
   type CommonProps = Pick<Attachment, 'id' | 'name' | 'status' | 'message'>
@@ -227,20 +235,23 @@ export function useFileType(options: UseFileTypeOptions = {}) {
   })
 
   /**
-   * 根据文件URL和大小更新文件附件对象
-   * @param item 含url和size的原始数据
+   * 根据文件URL更新文件附件对象
+   * @param item 含url的原始数据
    * @returns 标准化的UrlAttachment对象
    */
-  const transformUrlItem = (item: UrlSizeItem): UrlAttachment => {
+  const transformUrlItem = (item: UrlItem): UrlAttachment => {
     const common = getCommonProps(item)
     const url = item.url!
-    const size = item.size!
-    const parsedName = url.split('/').pop() || ''
+    const urlDisplayName = getUrlDisplayName(url)
+    const resolvedName = common.name || urlDisplayName
+    const fileTypeFromName = detectFileType(resolvedName)
+    const inferredFileType = fileTypeFromName === 'other' ? detectFileType(url) : fileTypeFromName
+
     return {
       ...common,
-      name: common.name || parsedName,
-      fileType: detectFileType(parsedName),
-      size,
+      name: resolvedName,
+      fileType: item.fileType ?? inferredFileType,
+      size: item.size,
       url,
     }
   }
@@ -256,9 +267,9 @@ export function useFileType(options: UseFileTypeOptions = {}) {
     return {
       ...common,
       name: common.name || rawFile.name,
-      fileType: detectFileType(rawFile),
+      fileType: item.fileType ?? detectFileType(rawFile),
       rawFile,
-      size: item.size || rawFile.size,
+      size: item.size ?? rawFile.size,
       url: item.url,
     }
   }

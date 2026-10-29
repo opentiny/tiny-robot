@@ -39,6 +39,8 @@ export type {
   SenderEmits,
   SenderSlots,
   SenderContext,
+  SenderExternalPayload,
+  SenderSubmitExtra,
   UseEditorReturn,
   UseModeSwitchReturn,
   UseSuggestionReturn,

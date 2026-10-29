@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { BubbleContentRendererProps, ChatMessageContent, ChatMessageContentItem } from '../index.type'
+import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { useContentResolver } from './useContentResolver'
 
 export const useMessageContent = <T extends ChatMessageContent = ChatMessageContent>(
@@ -10,7 +10,7 @@ export const useMessageContent = <T extends ChatMessageContent = ChatMessageCont
   const content = computed(() => {
     const resolvedContent = contentResolver(props.message)
     return Array.isArray(resolvedContent)
-      ? (resolvedContent.at(props.contentIndex) as ChatMessageContentItem)
+      ? (resolvedContent.at(props.contentIndex) ?? { type: 'text', text: '' })
       : { type: 'text', text: resolvedContent || '' }
   })
 

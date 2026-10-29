@@ -24,11 +24,11 @@ defineSlots<WelcomeSlots>()
 <style lang="less" scoped>
 .tr-welcome {
   --title-font: 40px;
-  --title-color: rgb(25, 25, 25);
+  --title-color: var(--tr-text-primary);
   --title-font-size: 40px;
   --title-line-height: 56px;
   --title-font-weight: 600;
-  --description-color: rgb(25, 25, 25);
+  --description-color: var(--tr-text-secondary);
   --description-font-size: 20px;
   --description-line-height: 34px;
   --description-font-weight: 500;
@@ -45,6 +45,7 @@ defineSlots<WelcomeSlots>()
 
 .tr-welcome__icon {
   margin-right: 16px;
+  color: var(--title-color);
 }
 
 .tr-welcome__title {

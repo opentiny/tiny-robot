@@ -3,7 +3,7 @@
     :data="data"
     :selected="selected"
     :show-rename-controls="isTouchDevice"
-    rename-control-on-click-outside="cancel"
+    :rename-control-on-click-outside="isTouchDevice ? 'cancel' : 'confirm'"
     @item-click="(item) => (selected = item.id)"
     @item-title-change="(newTitle, item) => (item.title = newTitle)"
     @item-action="(item) => console.log(item)"
@@ -13,6 +13,8 @@
   <tr-history
     :data="groups"
     :selected="selected2"
+    :show-rename-controls="isTouchDevice"
+    :rename-control-on-click-outside="isTouchDevice ? 'cancel' : 'confirm'"
     @item-click="(item) => (selected2 = item.id)"
     @item-title-change="(newTitle, item) => (item.title = newTitle)"
     @item-action="(item) => console.log(item)"

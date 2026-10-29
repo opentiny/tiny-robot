@@ -1,16 +1,6 @@
-<template>
-  <section class="empty-state" role="status" aria-live="polite">
-    <IconEmptySearch v-if="hasSearchQuery" class="empty-state__illustration" />
-    <img v-else src="../../assets/svgs/no-data.svg" class="empty-state__illustration" />
-    <p class="empty-state__message">
-      {{ message }}
-    </p>
-  </section>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconEmptySearch } from '@opentiny/tiny-robot-svgs'
+import { IconEmptySearch, IconNoData } from '@opentiny/tiny-robot-svgs'
 
 interface EmptyStateProps {
   searchQuery: string
@@ -23,6 +13,16 @@ const props = withDefaults(defineProps<EmptyStateProps>(), {
 const hasSearchQuery = computed(() => !!props.searchQuery?.trim())
 const message = computed(() => (hasSearchQuery.value ? '暂无搜索结果' : '暂无数据'))
 </script>
+
+<template>
+  <section class="empty-state" role="status" aria-live="polite">
+    <IconEmptySearch v-if="hasSearchQuery" class="empty-state__illustration" />
+    <IconNoData v-else class="empty-state__illustration" />
+    <p class="empty-state__message">
+      {{ message }}
+    </p>
+  </section>
+</template>
 
 <style lang="less" scoped>
 .empty-state {

@@ -32,13 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  BubbleListProps,
-  BubbleMessage,
-  BubbleMessageGroup,
-  BubbleRoleConfig,
-  TrBubbleList,
-} from '@opentiny/tiny-robot'
+import { TrBubbleList } from '@opentiny/tiny-robot'
+import type { BubbleListProps, BubbleMessage, BubbleMessageGroup, BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
 
@@ -96,7 +91,6 @@ const groupByTime = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role: message.role || 'assistant',
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     } else {
       lastGroup.messages.push(message)
@@ -123,7 +117,6 @@ const groupByTurn = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       }
       groups.push(currentGroup)
     } else if (currentGroup) {
@@ -136,7 +129,6 @@ const groupByTurn = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       }
       groups.push(fallbackGroup)
       currentGroup = fallbackGroup

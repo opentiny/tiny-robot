@@ -2,9 +2,9 @@
   "name": "robot-root",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
+    "dev": "pnpm build:components && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "node scripts/build-docs.js",
@@ -13,11 +13,11 @@
     "build:playground": "pnpm -F @opentiny/tiny-robot-playground build",
     "build:deps": "pnpm -F @opentiny/tiny-robot-* -F \"!@opentiny/tiny-robot-playground\" build",
     "dev:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot dev",
-    "build:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot build",
+    "build:components": "pnpm -r --filter @opentiny/tiny-robot-chat... build",
     "dev:kit": "pnpm -F @opentiny/tiny-robot-kit dev",
     "build:kit": "pnpm -F @opentiny/tiny-robot-kit build",
     "build:svgs": "pnpm -F @opentiny/tiny-robot-svgs build",
-    "test": "pnpm -F tiny-robot-test test",
+    "test": "pnpm test:quick-assist-package && pnpm -F tiny-robot-test test",
     "test:ui": "pnpm -F tiny-robot-test test:ui",
     "test:headed": "pnpm -F tiny-robot-test test:headed",
     "test:debug": "pnpm -F tiny-robot-test test:debug",
@@ -25,6 +25,9 @@
     "dev:test": "pnpm -F tiny-robot-test dev",
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
+    "set-version": "node scripts/set-publish-version.js",
+    "test:release-scripts": "node --test scripts/set-publish-version.test.js scripts/verify-publish-versions.test.js",
+    "test:quick-assist-package": "node packages/test/scripts/check-quick-assist-package.mjs",
     "lint": "eslint . --fix",
     "prepare": "husky install"
   },
@@ -36,14 +39,9 @@
     "eslint-plugin-vue": "^10.0.0",
     "husky": "^9.1.7",
     "jiti": "^2.4.2",
-    "lerna": "^7.2.0",
+    "lerna": "^9.0.7",
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
     "typescript": "^5.2.2"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "vitepress-demo-plugin@1.5.0": "patches/vitepress-demo-plugin@1.5.0.patch"
-    }
   }
 }

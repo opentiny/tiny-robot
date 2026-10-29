@@ -85,6 +85,11 @@ export interface TemplateOptions {
    * HTML 属性
    */
   HTMLAttributes?: Record<string, unknown>
+
+  /**
+   * 下拉菜单挂载目标
+   */
+  appendTo?: string | HTMLElement
 }
 
 // ===== 模块扩展声明 =====

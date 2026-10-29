@@ -38,6 +38,8 @@ export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & 
 export {
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
+  useBubbleErrorRenderer,
+  useBubbleEventFn,
   useBubbleStateChangeFn,
   useMessageContent,
   useOmitMessageFields,

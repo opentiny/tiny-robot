@@ -116,6 +116,5 @@ const handleFileChange = (event: Event) => {
 .demo-section h4 {
   margin-top: 0;
   margin-bottom: 16px;
-  color: #333;
 }
 </style>
