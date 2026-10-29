@@ -297,6 +297,7 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 组件内置了以下渲染器，可以通过 `BubbleRenderers` 访问：
 
+- [`BubbleRenderers.AskUser`](#askuser) - AskUser 问题收集与确认渲染器
 - `BubbleRenderers.Box` - 默认 Box 渲染器
 - `BubbleRenderers.Text` - 文本内容渲染器（默认 Content 渲染器）
 - `BubbleRenderers.Image` - 图片渲染器
@@ -496,6 +497,57 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 
 更详细的 `toolPlugin` 配置和命令说明，请参考 [工具插件 API](../tools/message)。
 
+#### AskUser {#askuser}
+
+AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本、单选、多选和自定义回答。
+
+使用默认内容解析器时，Bubble 可直接从 assistant 消息的 `tool_calls` 中解析 `ask_user`。`function.arguments` 为包含 `questions` 的 JSON 字符串，具体配置见下方示例和 [AskUser 协议](../tools/message#askuser-协议)。
+
+表单状态由应用维护，需监听 Bubble 发出的 `state-change`，将新状态写回消息的 `state`。单个表单的状态保存在 `state.askUser` 中，类型为 `AskUserState`；多个表单则使用按交互 ID 索引的 `AskUserStateMap`。
+
+##### 场景一：单选或自定义回答
+
+设置 `multiSelect: false` 时用户最多选择一个候选答案；`allowCustom: true` 会额外提供自定义输入，用户可以选择一个候选项，也可以填写候选项之外的答案。
+
+<demo
+  vue="../../demos/bubble/ask-user-choice.vue"
+  title="单选或自定义回答"
+  description="选择预发布或生产环境，也可以输入其他发布环境。"
+/>
+
+##### 场景二：多选
+
+设置 `multiSelect: true` 后，用户可以同时选择多个候选项。本例用于选择发布涉及的服务。
+
+<demo
+  vue="../../demos/bubble/ask-user-multiple.vue"
+  title="多选服务"
+  description="一次选择本次发布涉及的多个服务。"
+/>
+
+##### 场景三：多步骤问答
+
+一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。可通过 `summary` 设置步骤条短标题，`question` 用于展示完整问题描述。
+
+<demo
+  vue="../../demos/bubble/ask-user-text-confirm.vue"
+  title="文本说明与巡检确认"
+  description="填写变更说明，并选择发布后是否需要巡检摘要。"
+/>
+
+##### 场景四：接入 Kit 与提前提交
+
+通过 `toolPlugin({ askUser: true })` 注册 AskUser 工具，Kit 收到调用后会暂停并等待用户回答。使用 `useAskUserRuntime(message)` 处理 `state-change` 和 `bubble-event`，提交后由 Kit 校验答案、恢复工具调用，并将结果返回模型继续回复。
+
+本例中，填写发布环境和涉及服务后，可在“变更说明”步骤点击“跳过”提前提交。已填答案会保留，未答题标记为 `skipped`，随后可查看工具恢复后的模型回复。
+
+<demo
+  vue="../../demos/bubble/ask-user-kit.vue"
+  :vueFiles="['../../demos/bubble/ask-user-kit.vue', '../../demos/bubble/ask-user-kit.ts']"
+  title="接入 Kit 与提前提交"
+  description="真实模拟工具调用暂停、提前结束 AskUser、恢复工具和模型后续回复。"
+/>
+
 ## API
 
 ### 公开导出
@@ -505,7 +557,7 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `TrBubble` / `Bubble`                 | 展示单个消息或消息组                                                                         |
 | `TrBubbleList` / `BubbleList`         | 分组并展示消息列表，提供自动滚动方法                                                         |
 | `TrBubbleProvider` / `BubbleProvider` | 为后代 Bubble 统一配置渲染器、attributes、错误渲染器与共享存储                               |
-| `BubbleRenderers`                     | 内置 Box、Text、Image、Markdown、Loading、Reasoning、Tool、Tools、ToolRole、Error 渲染器集合 |
+| `BubbleRenderers`                     | 内置 AskUser、Box、Text、Image、Markdown、Loading、Reasoning、Tool、Tools、ToolRole、Error 渲染器集合 |
 | `BubbleRendererMatchPriority`         | 内置匹配优先级常量：`LOADING`、`NORMAL`、`CONTENT`、`ROLE`                                   |
 
 ### Props
@@ -580,8 +632,14 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `state:update`        | `{ key: string; value: unknown }`      | 请求应用更新消息的 `state`；组件随后额外触发 `state-change`，不会自行持久化状态。     |
 | `tool-call:resume`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“允许”触发；应用需转发 `TOOL_RESUME_COMMAND`。     |
 | `tool-call:reject`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“拒绝”触发；应用需转发 `TOOL_REJECT_COMMAND`。      |
+| `ask-user:step-change` | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId: string }` | AskUser 切换步骤时触发；点击“下一步”或进度步骤时触发。 |
+| `ask-user:submit`      | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'submitted'; stepId?: string }` | AskUser 提交当前结果时触发；应用可在此处校验答案或继续后续流程。 |
+| `ask-user:retry`       | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId?: string }` | AskUser 处于 `error` 状态时点击“重试”触发。 |
+| `ask-user:toggle`      | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: AskUserStatus; expanded: boolean }` | 展开或收起已提交的答案时触发。 |
 
 `bubble-event` 的回调参数还包含 `messageIndex` 和 `contentIndex`。工具审批事件只负责通知应用，Bubble 不会执行工具、拒绝调用或修改工具状态；请由 `toolPlugin` / `useMessage`（或会话引擎）处理对应命令。
+
+AskUser 的每次交互都会先通过 `state:update` 请求更新状态，再发出对应的 `ask-user:*` 事件。对于 AskUser，`state:update` 的 payload 为 `{ key: 'askUser'; value: AskUserStateValue }`；应用应同步该值，否则组件重新渲染后会回到旧状态。
 
 ### Slots
 
@@ -643,6 +701,13 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `BubbleSlots`                         | 组件插槽         | Bubble 插槽                               |
 | `BubbleListSlots`                     | 组件插槽         | BubbleList 插槽                           |
 | `BubbleMessage`                       | 消息数据         | 消息基础类型                              |
+| `AskUserContent`                      | AskUser 内容     | `type: 'ask_user'` questions 内容项        |
+| `AskUserQuestion`                     | AskUser 配置     | 当前协议中的问题                              |
+| `AskUserQuestionOption`               | AskUser 配置     | 当前协议中的选项                              |
+| `AskUserStatus`                       | AskUser 状态     | AskUser 的交互状态                        |
+| `AskUserState`                        | AskUser 状态     | AskUser 在消息 `state.askUser` 中保存的状态 |
+| `AskUserStateMap`                     | AskUser 状态     | 多个 AskUser 按交互 ID 保存的状态集合       |
+| `AskUserStateValue`                   | AskUser 状态     | 单个状态或多个状态集合                     |
 | `BubbleErrorInfo`                     | 错误数据         | 消息错误信息                              |
 | `BubbleErrorRendererProps`            | 渲染器属性       | 消息级错误渲染器接收的属性                |
 | `BubbleMessageGroup`                  | 分组数据         | BubbleList 分组结果                       |
@@ -732,6 +797,59 @@ type ChatMessageContentItem = {
 | --------------- | -------- | ------------------------------------------------ |
 | `type`          | `string` | 消息类型，用于选择对应的渲染器                   |
 | `[key: string]` | `any`    | 其他字段可自由扩展，用于携带消息所需的自定义数据 |
+
+以下为 AskUser 相关类型的完整定义：
+
+```typescript
+interface AskUserQuestionOption {
+  label: string
+  description?: string
+}
+
+interface AskUserQuestionBase {
+  id: string
+  summary?: string
+  question: string
+}
+
+interface AskUserTextQuestion extends AskUserQuestionBase {
+  options?: never
+  multiSelect?: never
+  allowCustom?: never
+}
+
+interface AskUserChoiceQuestion extends AskUserQuestionBase {
+  options: AskUserQuestionOption[]
+  multiSelect: boolean
+  allowCustom: boolean
+}
+
+type AskUserQuestion = AskUserTextQuestion | AskUserChoiceQuestion
+
+interface AskUserContent {
+  type: 'ask_user'
+  id?: string
+  heading?: string
+  questions: AskUserQuestion[]
+}
+
+type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'cancelled' | 'error'
+
+interface AskUserState {
+  status: AskUserStatus
+  currentStep: number
+  answers: Record<string, unknown>
+  completedStepIds: string[]
+  expanded?: boolean
+  error?: string
+  retryable?: boolean
+  updatedAt?: number
+}
+
+type AskUserStateMap = Record<string, AskUserState>
+
+type AskUserStateValue = AskUserState | AskUserStateMap
+```
 
 以下为 `ToolCall` 的完整定义：
 

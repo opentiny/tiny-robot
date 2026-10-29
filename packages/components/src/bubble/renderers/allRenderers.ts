@@ -1,4 +1,5 @@
 import Box from './Box.vue'
+import AskUser from './AskUser.vue'
 import Error from './Error.vue'
 import Image from './Image.vue'
 import Loading from './Loading.vue'
@@ -10,6 +11,7 @@ import ToolRole from './ToolRole.vue'
 import Tools from './Tools.vue'
 
 export const BubbleRenderers = {
+  AskUser,
   Box,
   Error,
   Image,

@@ -1,4 +1,5 @@
 import { inject, MaybeRefOrGetter, provide, toValue } from 'vue'
+import { resolveBubbleMessageContent } from './useAskUser'
 import type { BubbleMessage, BubbleProps } from '../index.type'
 
 const BUBBLE_CONTENT_RESOLVER_KEY = Symbol('BUBBLE_CONTENT_RESOLVER_KEY')
@@ -24,7 +25,7 @@ export const useContentResolver = (contentResolver?: MaybeRefOrGetter<Resolver>)
         const fn = toValue(source)
         return fn?.(message)
       }
-    : (message: BubbleMessage) => message.content
+    : resolveBubbleMessageContent
 
   return resolveContent
 }

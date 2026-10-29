@@ -10,6 +10,7 @@ import {
   useBubbleMessageGroup,
   useContentResolver,
   useCopyCleanup,
+  resolveBubbleMessageContent,
 } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
 import type { BubbleEvent, BubbleMessage, BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
@@ -18,7 +19,7 @@ const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
   shape: 'corner',
   contentRenderMode: 'single',
-  contentResolver: (message: BubbleMessage) => message.content,
+  contentResolver: resolveBubbleMessageContent,
 })
 
 defineSlots<BubbleSlots>()
