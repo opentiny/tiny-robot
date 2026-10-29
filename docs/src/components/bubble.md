@@ -499,48 +499,11 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 
 #### AskUser {#askuser}
 
-AskUser 的输入是 assistant 消息中的 `ask_user` 函数调用。使用 Bubble 默认内容解析器时，只需提供 `tool_calls`；`function.arguments` 必须是包含 `questions` 的 JSON 字符串：
+AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本、单选、多选和自定义回答。
 
-```ts
-const message = {
-  role: 'assistant',
-  tool_calls: [
-    {
-      id: 'call-ask-user-1',
-      type: 'function',
-      function: {
-        name: 'ask_user',
-        arguments: JSON.stringify({
-          heading: '发布确认',
-          questions: [
-            {
-              id: 'environment',
-              question: '发布到哪个环境？',
-              options: [{ label: '预发布' }, { label: '生产' }],
-              multiSelect: false,
-              allowCustom: true,
-            },
-          ],
-        }),
-      },
-    },
-  ],
-}
-```
+使用默认内容解析器时，Bubble 可直接从 assistant 消息的 `tool_calls` 中解析 `ask_user`。`function.arguments` 为包含 `questions` 的 JSON 字符串，具体配置见下方示例和 [AskUser 协议](../tools/message#askuser-协议)。
 
-Bubble 从 `function.arguments` 解析问题并渲染内置表单。独立使用 Bubble 时，AskUser 的交互 ID 取自 `tool_call.id`。Bubble 只负责渲染和发出状态、交互事件；应用需要监听 `state-change` 并把 `askUser` 状态写回对应消息的 `state`。示例一到三直接展示这种用法，表单提交只更新本地消息状态，不会执行或恢复工具调用。若同一条消息包含多个 AskUser，状态会按交互 ID 组织为 `AskUserStateMap`；单个 AskUser 使用 `AskUserState`。
-
-问题配置遵循 Kit 的 AskUser 协议：`heading` 可选，`questions` 是有序的问题列表，每题使用唯一的 `id` 和完整的 `question`。多题时可提供简短的 `summary`，用于步骤条标签，完整问题仍显示在表单下方。没有 `options` 时显示文本输入；提供 `options` 时，必须设置 `multiSelect` 和 `allowCustom`，前者选择单选或多选，后者允许在候选项外输入答案。选项的 `label` 是显示文字，也是返回值；`description` 是可选说明。启用自定义答案时，选择“其他”会显示输入框。文本题和单选题返回字符串，多选题返回字符串数组；跳过的问题会在 Kit 校验后的结果中标记为 `skipped`。
-
-问题按顺序逐题填写。单题只显示“提交”；多题时，非最后一步显示“下一步”和“跳过”，最后一步显示“提交”和“跳过”。可以通过进度步骤回看已填写的问题；“跳过”会立即结束本次信息收集，保留已填写答案，并将未填写的问题标记为 `skipped`。“提交”也会将未填写的问题标记为 `skipped`。依赖先前答案的问题应放在后续的 AskUser 调用中；Kit 每次 assistant 响应只支持一个 `ask_user` 调用。
-
-接入 Kit 时，`toolPlugin({ askUser: true })` 注册 `ask_user` 工具。插件收到模型的工具调用后解析参数，将用于展示的 `type: 'ask_user'` 内容项追加到 assistant 消息，并暂停该工具调用。此时 Bubble 渲染的是 Kit 写入的内容项；它的 UI 交互 ID 根据消息 ID 和内容索引生成，Kit 则通过 `state.askUserRuntime.toolCallId` 记录待恢复的工具调用 ID，两者用途不同。应用使用 `useAskUserRuntime(message)` 处理 Bubble 事件：`state-change` 更新消息状态，提交事件触发答案校验并恢复原工具调用，随后工具结果返回模型继续生成回复。场景四展示完整的 Kit 流程。
-
-| 问题配置                                     | 渲染方式                                           |
-| -------------------------------------------- | -------------------------------------------------- |
-| 不提供 `options`                             | 文本输入                                           |
-| 提供 `options` 且 `multiSelect: false`       | 单选；`allowCustom: true` 时可以输入自定义答案     |
-| 提供 `options` 且 `multiSelect: true`        | 多选；`allowCustom: true` 时可以输入自定义答案     |
+表单状态由应用维护，需监听 Bubble 发出的 `state-change`，将新状态写回消息的 `state`。单个表单的状态保存在 `state.askUser` 中，类型为 `AskUserState`；多个表单则使用按交互 ID 索引的 `AskUserStateMap`。
 
 ##### 场景一：单选或自定义回答
 
@@ -564,7 +527,7 @@ Bubble 从 `function.arguments` 解析问题并渲染内置表单。独立使用
 
 ##### 场景三：文本与确认
 
-一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。
+一组彼此独立的问题可以同时包含自由文本和确认题。确认题使用单选选项表达，答案会以选中的标签返回。可通过 `summary` 设置步骤条短标题，`question` 用于展示完整问题描述。
 
 <demo
   vue="../../demos/bubble/ask-user-text-confirm.vue"
@@ -572,13 +535,15 @@ Bubble 从 `function.arguments` 解析问题并渲染内置表单。独立使用
   description="填写变更说明，并选择发布后是否需要巡检摘要。"
 />
 
-##### 场景四：多问题与跳过
+##### 场景四：接入 Kit 与提前提交
 
-这个示例接入 Kit：`toolPlugin({ askUser: true })` 注册并暂停 AskUser 工具调用，`useAskUserRuntime` 在提交后校验答案并恢复原调用。填写发布环境和涉及服务后，在“变更说明”步骤点击“跳过”，观察已填写答案保留，未填写的问题标记为 `skipped`。
+通过 `toolPlugin({ askUser: true })` 注册 AskUser 工具，Kit 收到调用后会暂停并等待用户回答。使用 `useAskUserRuntime(message)` 处理 `state-change` 和 `bubble-event`，提交后由 Kit 校验答案、恢复工具调用，并将结果返回模型继续回复。
+
+本例中，填写发布环境和涉及服务后，可在“变更说明”步骤点击“跳过”提前提交。已填答案会保留，未答题标记为 `skipped`，随后可查看工具恢复后的模型回复。
 
 <demo
   vue="../../demos/bubble/ask-user-kit.vue"
-  title="Kit 多问题与跳过"
+  title="接入 Kit 与提前提交"
   description="真实模拟工具调用暂停、提前结束 AskUser、恢复工具和模型后续回复。"
 />
 
