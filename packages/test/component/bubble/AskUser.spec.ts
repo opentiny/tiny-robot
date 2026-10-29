@@ -56,6 +56,32 @@ test.describe('AskUser renderer', () => {
     await expect(list.locator('[data-type="ask-user"]')).toHaveCount(1)
   })
 
+  test('forwards content attributes to AskUser rendered from a tool call', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, { props: { withContentAttributes: true } })
+
+    await expect(component.getByTestId('synthetic-ask-user')).toHaveAttribute('data-type', 'ask-user')
+  })
+
+  test('does not duplicate content attributes when AskUser and ordinary tools render together', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, {
+      props: { withContentAttributes: true, withOrdinaryTool: true },
+    })
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble.getByTestId('synthetic-ask-user')).toHaveCount(1)
+    await expect(bubble.locator('.tr-bubble__tools')).not.toHaveAttribute('data-testid')
+    await expect(bubble.locator('[data-type="tool-call"]')).toHaveCount(1)
+  })
+
+  test('shows malformed ask_user calls in the tool list', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, { props: { malformedAskUser: true } })
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble.locator('[data-type="ask-user"]')).toHaveCount(0)
+    await expect(bubble.locator('[data-type="tool-call"]')).toHaveCount(1)
+    await expect(bubble.locator('[data-type="tool-call"] .title')).toHaveText('ask_user')
+  })
+
   test('preserves an unsubmitted draft when equivalent state is replaced', async ({ mount }) => {
     const component = await mount(AskUserFixture)
     const bubble = component.getByTestId('ask-user-bubble')
