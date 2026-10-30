@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ref, shallowRef } from 'vue'
+import type { Ref } from 'vue'
 import type {
   ChatConversation,
+  ChatRequestState,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
   ChatRuntimeActions,
@@ -12,7 +14,7 @@ import { useChatRuntimeAdapter } from './useChatRuntimeAdapter'
 function createRuntime(
   conversationId: string,
   send: ChatRuntimeActions['send'] = async () => true,
-): { runtime: ChatRuntime; activeConversation: ReturnType<typeof ref<ChatConversation>> } {
+): { runtime: ChatRuntime; activeConversation: Ref<ChatConversation> } {
   const activeConversation = ref<ChatConversation>({
     id: conversationId,
     title: conversationId,
@@ -35,6 +37,78 @@ function createRuntime(
 
   return { runtime, activeConversation }
 }
+
+describe('useChatRuntimeAdapter sender turn state', () => {
+  it('keeps a paused turn cancellable without changing its request state or messages', async () => {
+    const { runtime, activeConversation } = createRuntime('paused')
+    activeConversation.value.requestState = 'paused'
+    activeConversation.value.messages = [
+      { role: 'assistant', content: 'Waiting for approval', streamState: 'finished' },
+    ]
+    runtime.composer.submitDisabled = ref(true)
+    runtime.actions.abort = vi.fn(async () => {
+      activeConversation.value.requestState = 'aborted'
+    })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    expect(adapter.inputValue.value).toBe('')
+    expect(adapter.data.value.sender).toMatchObject({ loading: true, disabled: false, submitDisabled: true })
+    expect(adapter.data.value.request?.state).toBe('paused')
+    expect(activeConversation.value.requestState).toBe('paused')
+    expect(adapter.data.value.bubble?.messages).toBe(activeConversation.value.messages)
+    expect(adapter.data.value.bubble?.messages?.[0].streamState).toBe('finished')
+
+    await adapter.abort()
+
+    expect(runtime.actions.abort).toHaveBeenCalledOnce()
+    expect(adapter.data.value.request?.state).toBe('aborted')
+    expect(adapter.data.value.sender?.loading).toBe(false)
+  })
+
+  it('keeps the stop state through pause and resume, then releases it when the turn ends', () => {
+    const { runtime, activeConversation } = createRuntime('turn')
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    const states: readonly [ChatRequestState, boolean][] = [
+      ['idle', false],
+      ['processing', true],
+      ['paused', true],
+      ['processing', true],
+      ['completed', false],
+      ['processing', true],
+      ['paused', true],
+      ['aborted', false],
+      ['error', false],
+    ]
+
+    for (const [state, loading] of states) {
+      activeConversation.value.requestState = state
+      expect(adapter.data.value.sender?.loading, state).toBe(loading)
+      expect(adapter.data.value.request?.state).toBe(state)
+    }
+  })
+
+  it('derives the stop state from the selected conversation, including an empty selection', () => {
+    const { runtime, activeConversation: pausedConversation } = createRuntime('paused')
+    pausedConversation.value.requestState = 'paused'
+    const { activeConversation: idleConversation } = createRuntime('idle')
+    const activeConversation = shallowRef<ChatConversation | null>(pausedConversation.value)
+    const adapter = useChatRuntimeAdapter({
+      runtime: { ...runtime, activeConversation },
+      onActionError: () => undefined,
+    })
+
+    expect(adapter.data.value.sender?.loading).toBe(true)
+    activeConversation.value = idleConversation.value
+    expect(adapter.data.value.sender?.loading).toBe(false)
+    expect(adapter.data.value.request?.state).toBe('idle')
+    activeConversation.value = null
+    expect(adapter.data.value.sender?.loading).toBe(false)
+    expect(adapter.data.value.request).toBeUndefined()
+    activeConversation.value = pausedConversation.value
+    expect(adapter.data.value.sender?.loading).toBe(true)
+    expect(adapter.data.value.request?.state).toBe('paused')
+  })
+})
 
 describe('useChatRuntimeAdapter error channels', () => {
   it('reports send failures while preserving request state and message-scoped errors', async () => {

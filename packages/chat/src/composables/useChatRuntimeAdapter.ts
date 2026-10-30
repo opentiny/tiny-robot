@@ -164,7 +164,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       },
       bubble: { messages: active?.messages ?? [] },
       sender: {
-        loading: active?.requestState === 'processing',
+        loading: active?.requestState === 'processing' || active?.requestState === 'paused',
         disabled: Boolean(runtime.value.composer.disabled?.value),
         submitDisabled: Boolean(runtime.value.composer.submitDisabled?.value),
       },
