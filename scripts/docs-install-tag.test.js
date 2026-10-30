@@ -38,10 +38,11 @@ test('stable docs and unrelated dependencies keep their original install command
   assert.equal(tagTinyRobotPackages('npm ls @opentiny/tiny-robot', 'beta'), 'npm ls @opentiny/tiny-robot')
 })
 
-test('the docs release channel is derived from the published VitePress base path', () => {
-  assert.equal(resolveDocsDistTag({ VITEPRESS_BASE: '/tiny-robot/beta/' }), 'beta')
-  assert.equal(resolveDocsDistTag({ VITEPRESS_BASE: '/tiny-robot/latest/' }), 'latest')
-  assert.equal(resolveDocsDistTag({}), 'latest')
+test('the docs release channel is derived from the published package version', () => {
+  assert.equal(resolveDocsDistTag('1.0.0-alpha.3'), 'alpha')
+  assert.equal(resolveDocsDistTag('1.0.0-beta.2'), 'beta')
+  assert.equal(resolveDocsDistTag('1.0.0-rc.1'), 'rc')
+  assert.equal(resolveDocsDistTag('1.0.0'), 'latest')
 })
 
 test('the Markdown plugin changes shell fences without changing source-code fences', () => {

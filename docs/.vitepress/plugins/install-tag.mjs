@@ -1,12 +1,11 @@
+import { assertPublishVersion } from '../../../scripts/publish-version-utils.js'
+
 const TINY_ROBOT_PACKAGE_PATTERN = /@opentiny\/tiny-robot(?:-(?:chat|cli|kit|svgs))?(?![\w./-])(?:@[^\s"'`]+)?/g
 const INSTALL_COMMAND_PATTERN = /^\s*(?:(?:pnpm|yarn)\s+add|npm\s+(?:install|i)|npx)\s+.*$/gm
 const SHELL_LANGUAGES = new Set(['bash', 'sh', 'shell', 'zsh'])
-const PRERELEASE_DIST_TAGS = new Set(['alpha', 'beta', 'rc'])
 
-export function resolveDocsDistTag(environment = process.env) {
-  const baseSegments = environment.VITEPRESS_BASE?.split('/').filter(Boolean) ?? []
-  const baseDistTag = baseSegments.at(-1)
-  return PRERELEASE_DIST_TAGS.has(baseDistTag) ? baseDistTag : 'latest'
+export function resolveDocsDistTag(packageVersion) {
+  return assertPublishVersion(packageVersion).distTag
 }
 
 export function tagTinyRobotPackages(source, distTag) {
