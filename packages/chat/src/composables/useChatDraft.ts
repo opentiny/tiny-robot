@@ -11,14 +11,15 @@ export interface ChatDraft {
 
 export interface UseChatDraftOptions {
   send: (payload: ChatSendPayload) => Promise<boolean>
+  prepareSend?: () => (payload: ChatSendPayload) => Promise<boolean>
   allowEmptyText?: boolean
   abort?: () => Promise<void> | void
 }
 
 export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
   const inputValue = shallowRef('')
-  let latestSendId = 0
   let inputRevision = 0
+  const pendingSends = new Map<number, { count: number; accepted: boolean; previousInputValue: string }>()
 
   function setInputValue(value: string) {
     inputRevision++
@@ -29,6 +30,20 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
     inputRevision++
   }
 
+  function completeSend(revision: number, accepted: boolean) {
+    const pending = pendingSends.get(revision)
+    if (!pending) return
+
+    pending.count--
+    pending.accepted ||= accepted
+    if (pending.count) return
+
+    pendingSends.delete(revision)
+    if (!pending.accepted && inputRevision === revision && inputValue.value === '') {
+      inputValue.value = pending.previousInputValue
+    }
+  }
+
   async function send(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
 
@@ -36,28 +51,27 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
       return false
     }
 
-    const sendId = ++latestSendId
     const revisionAtClear = inputRevision
     const previousInputValue = inputValue.value
+    const send = options.prepareSend?.() ?? options.send
+    const pending = pendingSends.get(revisionAtClear)
+    if (pending) {
+      pending.count++
+    } else {
+      pendingSends.set(revisionAtClear, { count: 1, accepted: false, previousInputValue })
+    }
+    let accepted = false
 
     try {
       inputValue.value = ''
       await Promise.resolve()
-      const accepted = await options.send({
+      accepted = await send({
         ...payload,
         text,
       })
-
-      if (!accepted && sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
-        inputValue.value = previousInputValue
-      }
-
       return accepted
-    } catch (error) {
-      if (sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
-        inputValue.value = previousInputValue
-      }
-      throw error
+    } finally {
+      completeSend(revisionAtClear, accepted)
     }
   }
 

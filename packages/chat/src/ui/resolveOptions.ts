@@ -1,4 +1,4 @@
-import { createDefaultChatUIOptions } from './defaults'
+import { createDefaultChatUIOptions, DEFAULT_CHAT_MOBILE_BREAKPOINT } from './defaults'
 import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from '../types'
 import type { DefaultChatUIOptions } from './defaults'
 import type {
@@ -8,6 +8,7 @@ import type {
   ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
+  ChatExtensionsOptions,
   ChatLabels,
   ChatLayoutOptions,
   ChatMcpOptions,
@@ -23,7 +24,9 @@ import type {
 } from '../types'
 
 export interface ResolvedChatLayoutOptions {
+  showScrollToBottom: boolean
   surface: ResolvedChatSurfaceOptions
+  mobileBreakpoint: number
   emptyState: 'start' | 'center'
   composer: ResolvedChatComposerLayoutOptions
   contentMaxWidth: ChatCssSize
@@ -78,6 +81,7 @@ export type ResolvedChatPromptsOptions = Omit<ChatPromptsOptions, 'items'> & {
 export type ResolvedChatSenderOptions = ChatSenderOptions
 export type ResolvedChatModelOptions = ChatModelOptions
 export type ResolvedChatMcpOptions = ChatMcpOptions
+export type ResolvedChatExtensionsOptions = ChatExtensionsOptions
 
 export interface ResolvedChatUIOptions {
   layout: ResolvedChatLayoutOptions
@@ -91,6 +95,7 @@ export interface ResolvedChatUIOptions {
   sender: false | ResolvedChatSenderOptions
   model: false | ResolvedChatModelOptions
   mcp: false | ResolvedChatMcpOptions
+  extensions: false | ResolvedChatExtensionsOptions
 }
 
 export function resolveChatUIOptions(options: ChatUIOptions | undefined): ResolvedChatUIOptions {
@@ -109,6 +114,7 @@ export function resolveChatUIOptions(options: ChatUIOptions | undefined): Resolv
     sender: resolveSender(defaults.sender, options?.sender),
     model: resolveModel(options?.model),
     mcp: resolveMcp(options?.mcp),
+    extensions: resolveExtensions(options?.extensions),
   }
 }
 
@@ -124,6 +130,8 @@ function resolveLayout(
   options: ChatLayoutOptions | undefined,
 ): ResolvedChatLayoutOptions {
   return {
+    showScrollToBottom: options?.showScrollToBottom ?? defaults.showScrollToBottom,
+    mobileBreakpoint: resolveMobileBreakpoint(options?.mobileBreakpoint ?? defaults.mobileBreakpoint),
     surface: {
       mode: options?.surface?.mode ?? defaults.surface.mode,
       floatingOptions: options?.surface?.floatingOptions,
@@ -138,6 +146,10 @@ function resolveLayout(
     leftAside: resolveLeftAside(defaults.leftAside, options?.leftAside),
     rightAside: resolveRightAside(options?.rightAside),
   }
+}
+
+function resolveMobileBreakpoint(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : DEFAULT_CHAT_MOBILE_BREAKPOINT
 }
 
 function resolveLeftAside(
@@ -320,6 +332,27 @@ function resolveMcp(options: false | ChatMcpOptions | undefined): false | Resolv
   }
 
   return options ?? {}
+}
+
+function resolveExtensions(
+  options: false | Readonly<ChatExtensionsOptions> | undefined,
+): false | ResolvedChatExtensionsOptions {
+  if (!options) return false
+
+  const seen = new Set<string>()
+  const tabs = options.tabs.filter((tab) => {
+    if (tab.id === CHAT_MCP_RIGHT_ASIDE_PANEL_ID || seen.has(tab.id)) return false
+    seen.add(tab.id)
+    return true
+  })
+
+  if (tabs.length === 0) return false
+
+  return {
+    tabs,
+    defaultActiveTab: tabs.some((tab) => tab.id === options.defaultActiveTab) ? options.defaultActiveTab : undefined,
+    overlayOpen: options.overlayOpen === true,
+  }
 }
 
 function withoutUndefined<T extends object>(value: T | undefined): Partial<T> {

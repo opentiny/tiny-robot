@@ -10,13 +10,16 @@ import type {
   LayoutFloatingOptions,
   LayoutFloatingState,
   ModelSelectorProps,
+  ExtensionManagerTab,
 } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo } from '../base'
+import type { ChatConversationInfo, ChatIcon } from '../base'
+import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
 
 export interface ChatUIProps {
+  isEmpty?: boolean
   inputValue?: string
   defaultInputValue?: string
   data?: Readonly<ChatUIData>
@@ -29,6 +32,7 @@ export interface ChatUIProps {
 }
 
 export interface ChatUIOptions {
+  anchor?: false | Readonly<ChatAnchorOptions>
   layout?: Readonly<ChatLayoutOptions>
   brand?: Readonly<ChatBrandOptions>
   labels?: Readonly<Partial<ChatLabels>>
@@ -40,9 +44,19 @@ export interface ChatUIOptions {
   sender?: false | Readonly<ChatSenderOptions>
   model?: false | Readonly<ChatModelOptions>
   mcp?: false | Readonly<ChatMcpOptions>
+  extensions?: false | Readonly<ChatExtensionsOptions>
+}
+
+export interface ChatAnchorOptions {
+  visible?: boolean
+  /** Viewport width in pixels; intentionally independent of the Chat panel width. */
+  minWidth?: number
 }
 
 export interface ChatLayoutOptions {
+  /** Show the built-in scroll-to-bottom button in the main or footer region. */
+  readonly showScrollToBottom?: boolean
+  readonly mobileBreakpoint?: number
   readonly composer?: Readonly<ChatComposerLayoutOptions>
   readonly surface?: Readonly<ChatSurfaceOptions>
   readonly emptyState?: 'start' | 'center'
@@ -82,6 +96,7 @@ export interface ChatLabels {
   searchModel: string
   modelEmptyText: string
   mcp: string
+  extensions: string
   mcpInstallServer: string
   mcpRemoveServer: string
   thinkingFeature: string
@@ -141,14 +156,43 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
+export type ChatSenderToolbarItem = Readonly<
+  {
+    visible?: boolean
+    disabled?: boolean
+  } & (
+    | {
+        type: 'builtin'
+        id: ChatBuiltInModelFeature | 'model' | 'mcp'
+      }
+    | {
+        type: 'custom'
+        id: string
+        label: string
+        icon?: ChatIcon
+        active?: boolean
+        onClick: () => void
+      }
+  )
+>
+
 export interface ChatSenderOptions extends Omit<
   SenderProps,
   'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
 > {
   readonly defaultActions?: ChatSenderDefaultActions
+  readonly toolbar?:
+    | readonly ChatSenderToolbarItem[]
+    | ((defaults: readonly ChatSenderToolbarItem[]) => readonly ChatSenderToolbarItem[])
 }
 
 export interface ChatModelOptions {
   readonly appendTo?: ModelSelectorProps['appendTo']
 }
 export type ChatMcpOptions = Record<string, never>
+
+export interface ChatExtensionsOptions {
+  readonly tabs: readonly ExtensionManagerTab[]
+  readonly defaultActiveTab?: string
+  readonly overlayOpen?: boolean
+}

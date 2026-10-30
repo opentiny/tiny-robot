@@ -172,7 +172,7 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 
 #### useAutoScroll
 
-`useAutoScroll` 是 BubbleList 内部使用的公开组合式函数。新代码推荐使用对象参数，并分别传入滚动容器和承载全部内容的内部元素：
+`useAutoScroll` 用于在内容增长时自动跟随到底部，向上浏览时暂停跟随。分别传入滚动容器和承载全部内容的元素：
 
 ```ts
 import { useAutoScroll } from '@opentiny/tiny-robot'
@@ -203,7 +203,8 @@ const { scrollToBottom, arrivedState } = useAutoScroll({
 
 | 返回值           | 类型                                           | 说明                                    |
 | ---------------- | ---------------------------------------------- | --------------------------------------- |
-| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部；不受 `enabled` 限制。 |
+| `pause`          | `() => void`                                  | 暂停自动跟随，适用于跳转到指定消息。 |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部并恢复跟随；不受 `enabled` 限制。 |
 | `arrivedState`   | `UseScrollReturn['arrivedState']`              | 当前是否到达各滚动边界的响应式状态。    |
 
 旧的位置参数签名仍为兼容性保留，但已弃用：
@@ -317,6 +318,8 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 <demo vue="../../demos/bubble/reasoning.vue" title="推理内容渲染器" description="使用内置 Reasoning 渲染器展示可展开的推理内容。" />
 
 <demo vue="../../demos/bubble/tools.vue" title="工具调用渲染器" description="使用内置 Tool 与 Tools 渲染器展示工具调用状态和结果。" />
+
+工具描述超过一行时会自动截断，鼠标悬停在描述上可以通过原生提示查看完整内容。
 
 #### 实现自定义渲染器
 

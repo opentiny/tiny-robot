@@ -12,6 +12,7 @@ test.describe('BubbleList auto-scroll demo', () => {
     await page.route('https://assets.science.nasa.gov/**', async (route) => {
       await route.fulfill({ body: earthriseImage, contentType: 'image/svg+xml' })
     })
+    await page.clock.install()
   })
 
   test('does not render the asynchronous region before it is triggered', async ({ mount }) => {
@@ -21,8 +22,8 @@ test.describe('BubbleList auto-scroll demo', () => {
   })
 
   test('shows the loading region for 500ms, then mounts a compact image card at once', async ({ mount, page }) => {
-    await page.clock.install()
     const component = await mount(BubbleListAutoScrollDemo)
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000)
     const region = component.locator('.async-content')
     const button = component.getByRole('button', { name: '模拟图片异步加载' })
     const list = component.locator('.tr-bubble-list')
@@ -34,13 +35,14 @@ test.describe('BubbleList auto-scroll demo', () => {
     await expect(region).toContainText('图片加载中…')
     await expect(region.getByRole('img')).toHaveCount(0)
 
-    await page.clock.fastForward(400)
+    await page.clock.runFor(499)
     await expect(region).toContainText('图片加载中…')
     await expect(region.getByRole('img')).toHaveCount(0)
 
-    await page.clock.fastForward(100)
+    await page.clock.runFor(1)
     await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
     await expect(region).toContainText('Earthrise · Apollo 8')
+    await page.clock.resume()
 
     const sizes = await component.locator('.scroll-container').evaluate((container) => {
       const content = container.querySelector<HTMLElement>('.async-content')!
@@ -57,15 +59,15 @@ test.describe('BubbleList auto-scroll demo', () => {
   })
 
   test('creates one asynchronous region per source message', async ({ mount, page }) => {
-    await page.clock.install()
     const component = await mount(BubbleListAutoScrollDemo)
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000)
     const sourceBubble = component.locator('.tr-bubble').filter({
       hasText: '当然，这是 Apollo 8 拍摄的 Earthrise：',
     })
     const loadButton = component.getByRole('button', { name: '模拟图片异步加载' })
 
     await loadButton.click()
-    await page.clock.fastForward(500)
+    await page.clock.runFor(500)
     await expect(sourceBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
 
     await component.getByRole('button', { name: '添加消息' }).click()
@@ -77,18 +79,18 @@ test.describe('BubbleList auto-scroll demo', () => {
     await expect(component.locator('.async-content')).toHaveCount(2)
     await expect(sourceBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
 
-    await page.clock.fastForward(500)
+    await page.clock.runFor(500)
     await expect(laterBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
   })
 
   test('replays asynchronous loading for the current source message', async ({ mount, page }) => {
-    await page.clock.install()
     const component = await mount(BubbleListAutoScrollDemo)
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000)
     const region = component.locator('.async-content')
     const loadButton = component.getByRole('button', { name: '模拟图片异步加载' })
 
     await loadButton.click()
-    await page.clock.fastForward(500)
+    await page.clock.runFor(500)
     await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
 
     await loadButton.click()
@@ -96,18 +98,18 @@ test.describe('BubbleList auto-scroll demo', () => {
     await expect(region).toContainText('图片加载中…')
     await expect(region.getByRole('img')).toHaveCount(0)
 
-    await page.clock.fastForward(500)
+    await page.clock.runFor(500)
     await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
   })
 
   test('aligns a loaded user asynchronous region to the end', async ({ mount, page }) => {
-    await page.clock.install()
     const component = await mount(BubbleListAutoScrollDemo)
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000)
 
     await component.getByRole('button', { name: '添加消息' }).click()
     const userBubble = component.locator('.tr-bubble').filter({ hasText: '第 3 条消息' })
     await component.getByRole('button', { name: '模拟图片异步加载' }).click()
-    await page.clock.fastForward(500)
+    await page.clock.runFor(500)
     await expect(userBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
 
     const alignment = await userBubble.evaluate((bubble) => {

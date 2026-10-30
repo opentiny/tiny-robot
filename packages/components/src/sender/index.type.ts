@@ -365,11 +365,12 @@ export interface SenderSlots {
   content?: (props: { editor: unknown }) => unknown
 
   /**
-   * 单行模式内联操作按钮插槽
+   * 操作按钮插槽：单行模式位于默认操作按钮前，多行模式位于底部右侧。
+   * 两种模式均提供 SenderSlotScope；示例中的 mode 可为 'single' 或 'multiple'。
    *
    * @example
    * ```vue
-   * <sender>
+   * <sender :mode="mode">
    *   <template #actions-inline="{ insert, focus, disabled }">
    *     <voice-input @result="insert" :disabled="disabled" />
    *     <file-upload @select="handleFiles" />
