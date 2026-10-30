@@ -1,0 +1,1 @@
+import{a6 as e}from"./theme.CCZNgx5c.js";import{N as o,aL as a,v as t,J as r,bk as s}from"./framework.Dl3tIi3O.js";const n={class:"demo-container"},p=o({__name:"word-limit",setup(l){return(m,c)=>(a(),t("div",n,[r(s(e),{"default-value":"测试超出字数限制，当前已经超过了字数限制。",placeholder:"最多输入 20 个字符...","max-length":20,"show-word-limit":"",mode:"multiple"})]))}});export{p as default};
