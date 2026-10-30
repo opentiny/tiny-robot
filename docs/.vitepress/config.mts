@@ -1,9 +1,15 @@
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
+import { installPackageTagPlugin, resolveDocsDistTag } from './plugins/install-tag.mjs'
 import { themeConfig } from './themeConfig'
+
+const publishedPackage = JSON.parse(
+  readFileSync(new URL('../../packages/components/package.json', import.meta.url), 'utf8'),
+)
 
 const devAlias = {
   '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
@@ -68,6 +74,7 @@ export default defineConfig({
           return code.replace(/import\.meta\.env\.BASE_URL/g, `'${process.env.VITEPRESS_BASE || '/'}'`)
         },
       })
+      md.use(installPackageTagPlugin, { distTag: resolveDocsDistTag(publishedPackage.version) })
       // 添加 Markdown 内容中的版本标记支持
       md.use(MarkdownBadgePlugin)
     },
