@@ -71,6 +71,7 @@ const sharedSidebarItems = [
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
   { text: '演示', link: '/examples/chat-tiny-robot', activeMatch: '/examples/' },
+  { text: '实验', link: '/experiments/chat-web-component', activeMatch: '/experiments/' },
   { text: '迁移指南', link: '/migration/', activeMatch: '/migration/' },
 ]
 
@@ -92,6 +93,16 @@ const sidebar = {
         { text: 'DeepSeek', link: 'chat-deepseek' },
         { text: 'Gemini', link: 'chat-gemini' },
         { text: 'Assistant 综合示例', link: 'assistant' },
+      ],
+    },
+  ],
+  '/experiments/': [
+    {
+      text: '实验',
+      base: '/experiments/',
+      items: [
+        { text: 'TrChat Web Component', link: 'chat-web-component' },
+        { text: 'P0 验收基线', link: 'chat-web-component-p0-baselines' },
       ],
     },
   ],

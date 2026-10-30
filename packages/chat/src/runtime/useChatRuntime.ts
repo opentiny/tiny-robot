@@ -1,5 +1,5 @@
 import { useConversation, type UseConversationOptions, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatBeforeSend, ChatComposerRuntime, ChatMcpRuntime } from '../types'
+import type { ChatBeforeSend, ChatComposerRuntime, ChatMcpRuntime, ChatTransformSendPayload } from '../types'
 import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
 import {
   createProviderModelRuntime,
@@ -27,13 +27,14 @@ export interface UseChatRuntimeOptions {
   }
   titleGenerator?: (text: string) => string
   beforeSend?: ChatBeforeSend
+  transformSendPayload?: ChatTransformSendPayload
   composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
   modelProviders?: readonly ChatProviderConfig[]
   mcp?: UseChatRuntimeMcpAdapter
   mcpServers?: ChatMcpServers
 }
 
-export function useChatRuntime(options: UseChatRuntimeOptions) {
+export function createChatRuntimeLifecycle(options: UseChatRuntimeOptions) {
   const conversationOptions: NonNullable<UseChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
   const userUseMessageOptions = conversationOptions.useMessageOptions
@@ -79,14 +80,22 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
     useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
   })
 
-  return useChatRuntimeFromConversation({
-    conversation,
-    titleGenerator: resolveTitle,
-    beforeSend: options.beforeSend,
-    composer: {
-      ...composerOptions,
-      model: providerRuntime?.model,
-      mcp: resolvedMcp?.runtime,
-    },
-  })
+  return {
+    runtime: useChatRuntimeFromConversation({
+      conversation,
+      titleGenerator: resolveTitle,
+      beforeSend: options.beforeSend,
+      transformSendPayload: options.transformSendPayload,
+      composer: {
+        ...composerOptions,
+        model: providerRuntime?.model,
+        mcp: resolvedMcp?.runtime,
+      },
+    }),
+    dispose: () => conversation.dispose?.() ?? Promise.resolve(),
+  }
+}
+
+export function useChatRuntime(options: UseChatRuntimeOptions) {
+  return createChatRuntimeLifecycle(options).runtime
 }

@@ -24,13 +24,20 @@ import {
   resolveStreamState,
 } from './messageIdentity'
 import { useChatStreamState } from './useChatStreamState'
-import type { ChatRequestView } from '../../types'
-import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
+import type {
+  ChatBubbleEventPayload,
+  ChatBubbleRenderers,
+  ChatBubbleStateChangePayload,
+  ChatLabels,
+  ChatMessageItem,
+  ChatRequestView,
+} from '../../types'
 import type {
   ResolvedChatBubbleOptions,
   ResolvedChatPromptsOptions,
   ResolvedChatWelcomeOptions,
 } from '../resolveOptions'
+import { resolveBubbleRendererMatches } from './resolveBubbleRenderers'
 
 const props = defineProps<{
   messages: readonly ChatMessageItem[]
@@ -39,18 +46,21 @@ const props = defineProps<{
   welcome: false | ResolvedChatWelcomeOptions
   prompts: false | ResolvedChatPromptsOptions
   labels: ChatLabels
+  busy: boolean
   isEmpty: boolean
   centerEmptyState: boolean
   centerWelcomeComposer: boolean
   conversationId?: string | null
   request?: ChatRequestView
   anchorEnabled?: boolean
+  bubbleRenderers?: Readonly<ChatBubbleRenderers>
 }>()
 
 const emit = defineEmits<{
   promptClick: [event: MouseEvent, item: PromptProps]
   bubbleStateChange: [payload: ChatBubbleStateChangePayload]
   bubbleEvent: [payload: ChatBubbleEventPayload]
+  rendererError: [error: unknown]
 }>()
 
 const fallbackAiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
@@ -151,12 +161,23 @@ const contentAttributes: BubbleContentAttributesResolver = (message, content, co
     key: (attributes?.key as string | number | symbol | undefined) ?? JSON.stringify([item.renderKey, contentIndex]),
   })
 }
+const bubbleRendererMatches = computed(() =>
+  resolveBubbleRendererMatches(props.bubbleRenderers, (error) => emit('rendererError', error)),
+)
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
   errorRenderer: BubbleRenderers.Error,
   ...props.options.bubbleProvider,
   boxAttributes,
   contentAttributes,
+  contentRendererMatches: [
+    ...bubbleRendererMatches.value.contentRendererMatches,
+    ...(props.options.bubbleProvider?.contentRendererMatches ?? []),
+  ],
+  boxRendererMatches: [
+    ...bubbleRendererMatches.value.boxRendererMatches,
+    ...(props.options.bubbleProvider?.boxRendererMatches ?? []),
+  ],
 }))
 type BubbleListViewProps = ResolvedChatBubbleOptions['bubbleList'] & {
   autoScroll: false
@@ -247,6 +268,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     :class="{
       'is-message-state': !isEmpty,
     }"
+    :role="isEmpty ? undefined : 'log'"
+    :aria-live="isEmpty ? undefined : 'polite'"
+    :aria-relevant="isEmpty ? undefined : 'additions text'"
+    :aria-busy="isEmpty ? undefined : busy"
   >
     <slot>
       <template v-if="props.isEmpty">

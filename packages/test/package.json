@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "pnpm run test:e2e && pnpm run test:ct",
     "test:e2e": "playwright test",
+    "test:experimental": "playwright test -c playwright.experimental.config.ts",
+    "type-check:experimental": "tsc --noEmit -p tsconfig.experimental.json",
     "test:ct": "playwright test -c playwright-ct.config.ts",
     "type-check:ct": "vue-tsc --noEmit -p tsconfig.ct.json",
     "type-check:quick-assist": "vue-tsc --noEmit -p tsconfig.quick-assist.json",

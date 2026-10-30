@@ -1,0 +1,100 @@
+@import '@opentiny/tiny-robot-chat/experimental/web-component.css';
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #172033;
+  background: #eef2f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  min-height: 36px;
+  border: 1px solid #d7deea;
+  border-radius: 10px;
+  padding: 0 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.probe-shell {
+  min-height: 100dvh;
+  padding: 16px;
+}
+
+.probe-shell > header {
+  width: min(100%, 1280px);
+  margin: 0 auto 12px;
+  border: 1px solid #dce3ed;
+  border-radius: 16px;
+  padding: 14px 18px;
+  background: #fff;
+}
+
+.probe-shell > header p,
+.probe-shell > header h1 {
+  margin: 0;
+}
+
+.probe-shell > header p {
+  color: #66748b;
+  font-size: 12px;
+}
+
+.probe-shell > header h1 {
+  font-size: 20px;
+}
+
+.probe-card,
+.probe-controls {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+  border: 1px solid #dce3ed;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.probe-card {
+  height: min(650px, calc(100dvh - 190px));
+  min-height: 480px;
+  overflow: hidden;
+}
+
+tr-chat {
+  --tr-layout-height: 100%;
+
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+tr-chat-ui[data-testid='react-floating-chat'] {
+  display: block;
+}
+
+.probe-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.probe-controls span {
+  margin-left: auto;
+  color: #66748b;
+}

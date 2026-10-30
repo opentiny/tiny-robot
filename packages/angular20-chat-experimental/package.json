@@ -1,0 +1,58 @@
+{
+  "name": "@opentiny/tiny-robot-angular20-experimental",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test --watch=false --browsers=ChromeHeadless",
+    "test:proxy": "node --test deepseek-proxy.spec.cjs",
+    "test:package": "node --test ../../scripts/verify-published-alpha-consumers.test.js",
+    "pretest:e2e": "pnpm test:package",
+    "test:e2e": "playwright test"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^20.3.0",
+    "@angular/compiler": "^20.3.0",
+    "@angular/core": "^20.3.0",
+    "@angular/forms": "^20.3.0",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/router": "^20.3.0",
+    "@opentiny/tiny-robot-chat": "1.0.0-alpha.0",
+    "@opentiny/tiny-robot-kit": "1.0.0-alpha.0",
+    "dompurify": "^3.3.1",
+    "markdown-it": "^14.1.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "vue": "^3.3.11",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.39",
+    "@angular/cli": "^20.3.39",
+    "@angular/compiler-cli": "^20.3.0",
+    "@playwright/test": "1.62.0",
+    "@types/jasmine": "~5.1.0",
+    "jasmine-core": "~5.9.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.9.2"
+  }
+}

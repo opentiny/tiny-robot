@@ -44,4 +44,23 @@ const slotScope = useSlotScope()
     margin-left: auto;
   }
 }
+
+@container chat-composer (max-width: 400px) {
+  .tr-sender-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+
+    &-left {
+      flex: 1 1 100%;
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    &-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+}
 </style>

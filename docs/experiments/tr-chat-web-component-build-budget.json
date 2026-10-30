@@ -1,0 +1,7 @@
+{
+  "strategy": "self-contained",
+  "bundlesVue": true,
+  "jsGzipBytes": 665600,
+  "cssGzipBytes": 49152,
+  "rationale": "The experimental Web Component remains self-contained for cross-framework consumption. These ceilings allow the validated baseline while failing material dependency or style growth."
+}
