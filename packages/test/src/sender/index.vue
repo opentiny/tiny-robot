@@ -27,6 +27,7 @@ const result = ref('')
 const submitDetail = ref('')
 
 const isMultipleMode = ref(false)
+const constrainedWidth = ref(false)
 const clearable = ref(false)
 const loading = ref(false)
 const disabled = ref(false)
@@ -324,6 +325,10 @@ onBeforeUnmount(() => {
             <tiny-switch data-testid="toggle-external-content-btn" v-model="hasExternalContent"></tiny-switch>
           </div>
           <div class="control-item">
+            <label>constrainedWidth:</label>
+            <tiny-switch data-testid="toggle-constrained-width-btn" v-model="constrainedWidth"></tiny-switch>
+          </div>
+          <div class="control-item">
             <label>attachmentsSource:</label>
             <tiny-switch data-testid="toggle-attachments-source-btn" v-model="attachmentsSourceMounted"></tiny-switch>
           </div>
@@ -405,38 +410,57 @@ onBeforeUnmount(() => {
       </p>
     </div>
 
-    <Sender
-      :key="componentKey"
-      ref="senderRef"
-      v-model="content"
-      data-testid="test-sender"
-      :mode="mode"
-      :size="size"
-      :clearable="clearable"
-      :loading="loading"
-      :disabled="disabled"
-      :extensions="extensions"
-      :max-length="maxLength"
-      :show-word-limit="showWordLimit"
-      :placeholder="placeholder"
-      :submit-type="submitType"
-      :has-external-content="hasExternalContent"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-      @clear="handleClear"
-    >
-      <template v-if="attachmentsSourceMounted" #header>
-        <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
-      </template>
+    <div :class="{ 'sender-width-constraint': constrainedWidth }">
+      <Sender
+        :key="componentKey"
+        ref="senderRef"
+        v-model="content"
+        data-testid="test-sender"
+        :mode="mode"
+        :size="size"
+        :clearable="clearable"
+        :loading="loading"
+        :disabled="disabled"
+        :extensions="extensions"
+        :max-length="maxLength"
+        :show-word-limit="showWordLimit"
+        :placeholder="placeholder"
+        :submit-type="submitType"
+        :has-external-content="hasExternalContent"
+        @submit="handleSubmit"
+        @cancel="handleCancel"
+        @clear="handleClear"
+      >
+        <template v-if="attachmentsSourceMounted" #header>
+          <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
+        </template>
 
-      <template #input-prefix>
-        <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
-      </template>
+        <template #input-prefix>
+          <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
+        </template>
 
-      <template #footer>
-        <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
-      </template>
-    </Sender>
+        <template #footer>
+          <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
+        </template>
+
+        <template #actions-inline="{ insert, disabled, loading, hasContent }">
+          <button
+            data-testid="actions-inline-btn"
+            type="button"
+            :disabled="disabled || loading"
+            :data-has-content="hasContent"
+            @mousedown.prevent
+            @click="insert('插入')"
+          >
+            单行操作
+          </button>
+        </template>
+
+        <template #footer-right>
+          <button data-testid="footer-right-btn" type="button">多行操作</button>
+        </template>
+      </Sender>
+    </div>
 
     <div id="template-select-teleport-target" data-testid="template-select-teleport-target"></div>
   </div>
@@ -489,5 +513,10 @@ onBeforeUnmount(() => {
 
 #template-select-teleport-target {
   position: relative;
+}
+
+.sender-width-constraint {
+  width: 320px;
+  max-width: 100%;
 }
 </style>

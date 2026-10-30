@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconSearch, IconThink } from '@opentiny/tiny-robot-svgs'
+import { IconSearch, IconAtom } from '@opentiny/tiny-robot-svgs'
 import ChatToolbarButton from './ChatToolbarButton.vue'
 import type { ChatBuiltInModelFeature, ChatLabels, ChatModelView } from '../../types'
 
@@ -19,8 +19,8 @@ const featureLabels: Record<ChatBuiltInModelFeature, keyof ChatLabels> = {
   thinking: 'thinkingFeature',
   search: 'searchFeature',
 }
-const featureIcons: Record<ChatBuiltInModelFeature, typeof IconThink> = {
-  thinking: IconThink,
+const featureIcons: Record<ChatBuiltInModelFeature, typeof IconAtom> = {
+  thinking: IconAtom,
   search: IconSearch,
 }
 
