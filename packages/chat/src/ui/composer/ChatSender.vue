@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
+import { TrAttachments, TrSender, UploadButton } from '@opentiny/tiny-robot'
+import type { Attachment, SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
@@ -11,15 +11,15 @@ import type {
   ChatLabels,
   ChatMcpView,
   ChatModelView,
-  ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
   SenderDragPayload,
+  ResolvedChatSenderView,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
-  sender: Required<ChatSenderView>
+  sender: ResolvedChatSenderView
   value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
@@ -33,6 +33,9 @@ const emit = defineEmits<{
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
+  attachmentsSelect: [files: File[]]
+  'update:attachments': [attachments: Attachment[]]
+  attachmentError: [error: Error]
   'update:value': [value: string]
   openMcpPanel: []
   openExtensionsPanel: []
@@ -128,7 +131,17 @@ function handleUpdateSenderValue(value: string) {
 }
 
 function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData'], extra?: SenderSubmitExtra) {
-  emit('submit', { text, structuredData, externalPayloads: extra?.externalPayloads })
+  const attachments = extra?.externalPayloads.find((payload) => payload.source === 'attachments')?.payload
+  emit('submit', {
+    text,
+    structuredData,
+    externalPayloads: extra?.externalPayloads,
+    attachments: Array.isArray(attachments) ? (attachments as Attachment[]) : undefined,
+  })
+}
+
+function handleAttachmentsUpdate(attachments: Attachment[]) {
+  emit('update:attachments', attachments)
 }
 
 function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: boolean }) {
@@ -183,7 +196,14 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     @drop.capture="handleSenderDrag($event, (payload) => emit('senderDrop', payload))"
     @paste.capture="emit('senderPaste', $event)"
   >
-    <template v-if="$slots['sender-header']" #header>
+    <template v-if="sender.attachments !== undefined || $slots['sender-header']" #header>
+      <TrAttachments
+        v-if="sender.attachments?.length"
+        :items="[...sender.attachments]"
+        variant="card"
+        wrap
+        @update:items="handleAttachmentsUpdate"
+      />
       <slot name="sender-header" />
     </template>
     <template v-if="$slots['sender-content']" #content="slotProps">
@@ -231,7 +251,16 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
       </div>
       <slot name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
     </template>
-    <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
+    <template v-if="sender.attachments !== undefined || $slots['sender-footer-right']" #footer-right="slotProps">
+      <UploadButton
+        v-if="sender.attachments !== undefined"
+        accept="*"
+        multiple
+        tooltip="添加附件"
+        tooltip-placement="top"
+        @select="emit('attachmentsSelect', $event)"
+        @error="emit('attachmentError', $event)"
+      />
       <slot name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
     </template>
   </TrSender>

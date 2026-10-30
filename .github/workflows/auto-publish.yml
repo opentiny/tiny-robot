@@ -61,6 +61,9 @@ jobs:
       - name: Run Build Components
         run: pnpm build
 
+      - name: Verify chat package build output
+        run: pnpm test:chat-dist
+
       - name: Parse Publish tag
         id: parse_tag
         run: |

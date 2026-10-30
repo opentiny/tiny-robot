@@ -15,6 +15,8 @@ import type {
 import type { ChatConversationInfo, ChatIcon } from '../base'
 import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatUIData } from './data'
+import type { ChatRenderers } from './renderers'
+import type { ChatBubbleRenderers } from './bubbleRenderers'
 
 export type ChatCssSize = string | number
 
@@ -29,6 +31,8 @@ export interface ChatUIProps {
   defaultRightAsideOpen?: boolean
   activeRightAsidePanelId?: ChatRightAsidePanelId
   defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
+  renderers?: Readonly<ChatRenderers>
+  bubbleRenderers?: Readonly<ChatBubbleRenderers>
 }
 
 export interface ChatUIOptions {

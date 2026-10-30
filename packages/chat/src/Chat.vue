@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type {
+  Attachment,
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
   ExtensionManagerTabChangeEvent,
@@ -26,6 +27,7 @@ import type {
   ChatRuntimeActionErrorPayload,
   ChatHistoryData,
   ChatRightAsidePanelId,
+  ChatSendPayload,
   ChatSwitchConversationPayload,
   SenderDragPayload,
   LayoutFloatingDragDetail,
@@ -33,6 +35,8 @@ import type {
   LayoutFloatingState,
   ChatUISlots,
   ChatUIOptions,
+  ChatRenderers,
+  ChatBubbleRenderers,
 } from './types'
 
 interface ChatUIActions {
@@ -57,6 +61,9 @@ const props = withDefaults(
     activeRightAsidePanelId?: ChatRightAsidePanelId
     defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
     historyData?: ChatHistoryData
+    attachments?: readonly Attachment[]
+    renderers?: Readonly<ChatRenderers>
+    bubbleRenderers?: Readonly<ChatBubbleRenderers>
   }>(),
   {
     rightAsideOpen: undefined,
@@ -67,6 +74,7 @@ const props = withDefaults(
 const slots = defineSlots<ChatUISlots>()
 
 const emit = defineEmits<{
+  'renderer-error': [error: unknown]
   'update:floating-state': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragDetail]
   'floating-drag': [detail: LayoutFloatingDragDetail]
@@ -76,6 +84,9 @@ const emit = defineEmits<{
   'floating-resize-end': [detail: LayoutFloatingResizeDetail]
   'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
   'history-action': [payload: ChatHistoryActionPayload]
+  'attachments-select': [files: File[]]
+  'update:attachments': [attachments: Attachment[]]
+  'attachment-error': [error: Error]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'extension-action': [payload: ExtensionManagerActionEvent]
   'extension-name-click': [payload: ExtensionManagerNameClickEvent]
@@ -98,6 +109,7 @@ const adapter = useChatRuntimeAdapter({
   runtime: () => props.runtime,
   title: () => props.title,
   historyData: () => props.historyData,
+  attachments: () => props.attachments,
   onActionError: (payload) => emit('runtime-action-error', payload),
 })
 
@@ -132,6 +144,11 @@ function handleRenameConversation(payload: ChatRenameConversationPayload) {
 
 function handleModelSelect(payload: ChatModelSelectPayload) {
   return adapter.selectModel(payload.modelId)
+}
+
+async function handleSubmit(payload: ChatSendPayload) {
+  const sent = await adapter.send(payload)
+  if (sent && payload.attachments?.length) emit('update:attachments', [])
 }
 
 function handleModelFeatureChange(payload: ChatModelFeatureChangePayload) {
@@ -250,6 +267,8 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     :default-right-aside-open="props.defaultRightAsideOpen"
     :active-right-aside-panel-id="props.activeRightAsidePanelId"
     :default-active-right-aside-panel-id="props.defaultActiveRightAsidePanelId"
+    :renderers="props.renderers"
+    :bubble-renderers="props.bubbleRenderers"
     :input-value="adapter.inputValue.value"
     @create-conversation="adapter.clearActiveConversation"
     @switch-conversation="handleSwitchConversation"
@@ -274,9 +293,12 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @floating-resize-start="handleFloatingResizeStart"
     @floating-resize="handleFloatingResize"
     @floating-resize-end="handleFloatingResizeEnd"
-    @submit="adapter.send"
+    @submit="handleSubmit"
     @cancel="adapter.abort"
     @clear="() => adapter.setInputValue('')"
+    @attachments-select="emit('attachments-select', $event)"
+    @update:attachments="emit('update:attachments', $event)"
+    @attachment-error="emit('attachment-error', $event)"
     @update:input-value="adapter.setInputValue"
     @model-select="handleModelSelect"
     @model-feature-change="handleModelFeatureChange"
@@ -286,6 +308,7 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @mcp-remove-server="handleMcpRemoveServer"
     @mcp-server-enabled-change="handleMcpServerEnabledChange"
     @mcp-tool-enabled-change="handleMcpToolEnabledChange"
+    @renderer-error="emit('renderer-error', $event)"
     @extension-action="emit('extension-action', $event)"
     @extension-name-click="emit('extension-name-click', $event)"
     @extension-tab-change="emit('extension-tab-change', $event)"

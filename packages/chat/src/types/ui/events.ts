@@ -3,6 +3,7 @@ import type { ChatSendPayload } from '../commands'
 import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatRightAsidePanelId } from './options'
 import type {
+  Attachment,
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
@@ -98,6 +99,7 @@ export type ChatBubbleEventPayload = {
 }
 
 export interface ChatUIEmits {
+  'renderer-error': [error: unknown]
   'update:floating-state': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragDetail]
   'floating-drag': [detail: LayoutFloatingDragDetail]
@@ -109,6 +111,9 @@ export interface ChatUIEmits {
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
+  'attachments-select': [files: File[]]
+  'update:attachments': [attachments: Attachment[]]
+  'attachment-error': [error: Error]
   'create-conversation': []
   'switch-conversation': [payload: ChatSwitchConversationPayload]
   'rename-conversation': [payload: ChatRenameConversationPayload]

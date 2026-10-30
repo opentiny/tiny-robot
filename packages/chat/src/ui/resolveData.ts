@@ -20,6 +20,7 @@ export function resolveChatUIData(data: ChatUIData | undefined, labels: ChatLabe
       loading: data?.sender?.loading ?? defaults.sender.loading,
       disabled: data?.sender?.disabled ?? defaults.sender.disabled,
       submitDisabled: data?.sender?.submitDisabled ?? defaults.sender.submitDisabled,
+      attachments: data?.sender?.attachments,
     },
     request: data?.request,
     model: data?.model ?? defaults.model,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import AsideResizeTrigger from './AsideResizeTrigger.vue'
 import type { LayoutAsideResizeDetail } from '../index.type'
 import type { LayoutAsideState } from '../internal.type'
@@ -11,6 +11,8 @@ defineOptions({
 interface LayoutAsideContentProps {
   panel: LayoutAsideState
   oppositeDockWidth: number
+  drawerId: string
+  accessibleName: string
 }
 
 const asideRef = ref<HTMLElement | null>(null)
@@ -21,6 +23,39 @@ const emit = defineEmits<{
   (event: 'aside-resize-start', value: LayoutAsideResizeDetail): void
   (event: 'aside-resize-end', value: LayoutAsideResizeDetail): void
 }>()
+
+function parseCssTime(value: string): number {
+  const trimmed = value.trim()
+  const amount = Number.parseFloat(trimmed)
+  if (!Number.isFinite(amount)) return 0
+  return trimmed.endsWith('ms') ? amount : amount * 1000
+}
+
+async function waitForDrawerReveal(aside: HTMLElement): Promise<void> {
+  const style = getComputedStyle(aside)
+  const durations = style.transitionDuration.split(',').map(parseCssTime)
+  const delays = style.transitionDelay.split(',').map(parseCssTime)
+  const totalDuration = Math.max(0, ...durations.map((duration, index) => duration + (delays[index] ?? delays[0] ?? 0)))
+
+  if (totalDuration === 0) {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    return
+  }
+
+  await new Promise<void>((resolve) => {
+    let timeoutId = 0
+    const finish = () => {
+      aside.removeEventListener('transitionend', handleTransitionEnd)
+      window.clearTimeout(timeoutId)
+      resolve()
+    }
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === aside) finish()
+    }
+    aside.addEventListener('transitionend', handleTransitionEnd)
+    timeoutId = window.setTimeout(finish, totalDuration + 50)
+  })
+}
 
 const asideClass = computed(() => [
   `tr-layout__aside--${props.panel.side}`,
@@ -33,10 +68,38 @@ const asideClass = computed(() => [
     'tr-layout__aside--hidden': props.panel.isHidden.value,
   },
 ])
+
+watch(props.panel.isOpen, async (open) => {
+  if (!open || !props.panel.isDrawer.value) return
+  await nextTick()
+  const aside = asideRef.value
+  if (!aside) return
+  aside.focus({ preventScroll: true })
+  await waitForDrawerReveal(aside)
+  if (!props.panel.isOpen.value || !props.panel.isDrawer.value || asideRef.value !== aside) return
+  const focusable = Array.from(
+    aside.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).find((element) => element.checkVisibility() && !element.closest('.is-hidden, [aria-hidden="true"], [inert]'))
+  const target = focusable ?? aside
+  target.focus({ preventScroll: true })
+  if (document.activeElement !== target) aside.focus({ preventScroll: true })
+})
 </script>
 
 <template>
-  <aside ref="asideRef" class="tr-layout__aside" :class="asideClass" :inert="props.panel.isHidden.value || undefined">
+  <aside
+    :id="drawerId"
+    ref="asideRef"
+    class="tr-layout__aside"
+    :class="asideClass"
+    :inert="props.panel.isHidden.value || undefined"
+    :role="props.panel.isDrawer.value ? 'dialog' : undefined"
+    :aria-modal="props.panel.isDrawer.value ? 'true' : undefined"
+    :aria-label="props.panel.isDrawer.value ? accessibleName : undefined"
+    :tabindex="props.panel.isDrawer.value ? -1 : undefined"
+  >
     <AsideResizeTrigger
       v-if="panel.canResize.value"
       :side="panel.side"

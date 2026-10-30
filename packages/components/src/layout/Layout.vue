@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
 import { provideLayoutContext } from './composables/useLayoutContext'
@@ -32,6 +32,10 @@ const hasLeftAside = computed(() => Boolean(slots['left-aside']))
 const hasHeader = computed(() => Boolean(slots.header))
 const hasFooter = computed(() => Boolean(slots.footer))
 const hasRightAside = computed(() => Boolean(slots['right-aside']))
+const layoutId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+const leftDrawerId = `tr-layout-${layoutId}-left-drawer`
+const rightDrawerId = `tr-layout-${layoutId}-right-drawer`
+const drawerOpeners = new Map<'left' | 'right', HTMLElement>()
 
 function onAsideOpenChange(detail: LayoutAsideOpenDetail): void {
   emitAsideOpenChangeEvents(emit, detail)
@@ -65,11 +69,13 @@ function toggleDrawer(panel: LayoutAsideState, sibling: LayoutAsideState, siblin
   setDrawerOpen(panel, sibling, !panel.isOpen.value, siblingPresent)
 }
 
-function toggleLeftDrawer(): void {
+function toggleLeftDrawer(opener?: HTMLElement | null): void {
+  if (opener) drawerOpeners.set('left', opener)
   toggleDrawer(leftPanel, rightPanel, hasRightAside.value)
 }
 
-function toggleRightDrawer(): void {
+function toggleRightDrawer(opener?: HTMLElement | null): void {
+  if (opener) drawerOpeners.set('right', opener)
   toggleDrawer(rightPanel, leftPanel, hasLeftAside.value)
 }
 
@@ -89,14 +95,82 @@ function closeDrawers(): void {
   }
 }
 
+const focusableSelector = [
+  'button:not([disabled])',
+  'a[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
+function getVisibleDrawer(): HTMLElement | null {
+  const id = isLeftDrawerVisible.value ? leftDrawerId : isRightDrawerVisible.value ? rightDrawerId : null
+  return id ? document.getElementById(id) : null
+}
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+    (element) =>
+      !element.hasAttribute('inert') &&
+      element.getAttribute('aria-hidden') !== 'true' &&
+      element.checkVisibility() &&
+      !element.closest('.is-hidden, [aria-hidden="true"], [inert]'),
+  )
+}
+
+async function restoreDrawerFocus(side: 'left' | 'right'): Promise<void> {
+  await nextTick()
+  if (isDrawerVisible.value) return
+  const opener = drawerOpeners.get(side)
+  if (opener?.isConnected) opener.focus()
+}
+
+watch(isLeftDrawerVisible, (visible, previous) => {
+  if (!visible && previous) void restoreDrawerFocus('left')
+})
+
+watch(isRightDrawerVisible, (visible, previous) => {
+  if (!visible && previous) void restoreDrawerFocus('right')
+})
+
+function handleDrawerKeydown(event: KeyboardEvent): void {
+  if (!isDrawerVisible.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeDrawers()
+    return
+  }
+  if (event.key !== 'Tab') return
+  const drawer = getVisibleDrawer()
+  if (!drawer) return
+  const focusable = getFocusableElements(drawer)
+  if (focusable.length === 0) {
+    event.preventDefault()
+    drawer.focus()
+    return
+  }
+  const first = focusable[0]
+  const last = focusable.at(-1)!
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 provideLayoutContext({
   rootEl,
   left: {
     isOpen: leftPanel.isOpen,
+    drawerId: leftDrawerId,
     toggle: toggleLeftDrawer,
   },
   right: {
     isOpen: rightPanel.isOpen,
+    drawerId: rightDrawerId,
     toggle: toggleRightDrawer,
   },
 })
@@ -200,11 +274,13 @@ const surfaceStyle = computed<Record<string, string>>(() => {
     @floating-resize="emit('floating-resize', $event)"
     @floating-resize-end="emit('floating-resize-end', $event)"
   >
-    <div class="tr-layout__body">
+    <div class="tr-layout__body" @keydown="handleDrawerKeydown">
       <AsideContent
         v-if="hasLeftAside"
         :panel="leftPanel"
         :opposite-dock-width="rightDockWidth"
+        :drawer-id="leftDrawerId"
+        :accessible-name="props.leftAside?.ariaLabel ?? 'Navigation'"
         @width-change="setLeftAsideWidth"
         @aside-resize-start="onAsideResizeStart"
         @aside-resize-end="onAsideResizeEnd"
@@ -212,15 +288,15 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         <slot name="left-aside" />
       </AsideContent>
 
-      <header v-if="hasHeader" class="tr-layout__header">
+      <header v-if="hasHeader" class="tr-layout__header" :inert="isDrawerVisible || undefined">
         <slot name="header" />
       </header>
 
-      <main class="tr-layout__main">
+      <main class="tr-layout__main" :inert="isDrawerVisible || undefined">
         <slot name="main" />
       </main>
 
-      <footer v-if="hasFooter" class="tr-layout__footer">
+      <footer v-if="hasFooter" class="tr-layout__footer" :inert="isDrawerVisible || undefined">
         <slot name="footer" />
       </footer>
 
@@ -228,6 +304,8 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         v-if="hasRightAside"
         :panel="rightPanel"
         :opposite-dock-width="leftDockWidth"
+        :drawer-id="rightDrawerId"
+        :accessible-name="props.rightAside?.ariaLabel ?? 'Side panel'"
         @width-change="setRightAsideWidth"
         @aside-resize-start="onAsideResizeStart"
         @aside-resize-end="onAsideResizeEnd"

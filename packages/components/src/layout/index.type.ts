@@ -60,6 +60,7 @@ export interface LayoutAsideOptions {
   collapsedWidth?: number
   collapseEffect?: LayoutAsideCollapseEffect
   resizable?: boolean
+  ariaLabel?: string
 }
 
 export interface LayoutAsidePanelsProps {
