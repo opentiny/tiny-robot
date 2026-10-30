@@ -8,6 +8,7 @@ import { TemplateSelectDropdownPluginKey } from './plugins'
 import type { SelectOption, TemplateOptions } from '../types'
 import { closeAllDropdowns, setupClickOutside } from './dropdown-manager'
 import { useTeleportTarget } from '../../../../shared/composables'
+import { isImeKeyEvent } from '../../ime'
 
 interface NodeAttrs {
   id: string
@@ -161,6 +162,7 @@ const updatePosition = () => {
 
 const handleKeyDown = (event: KeyboardEvent) => {
   if (!showDropdown.value) return
+  if (isImeKeyEvent(event, props.editor.view)) return
 
   switch (event.key) {
     case 'ArrowUp':

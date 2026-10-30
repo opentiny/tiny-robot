@@ -7,6 +7,12 @@ import { useChatCaseRuntime } from './shared/createChatRuntime'
 
 const showHelp = shallowRef(false)
 const currentTemplate = shallowRef<TemplateItem[]>([])
+const helpText = computed(() => {
+  if (currentTemplate.value.length > 1)
+    return '报告模板已填入，文本块可以编辑，下拉字段可以选择。内容超过 300 字时无法提交。'
+  if (currentTemplate.value.length) return '常用问题已填入，可以修改后发送。内容超过 300 字时无法提交。'
+  return '@ 用于插入对象名称，不会切换模型；点击“写报告”或“常用问题”填入内容。'
+})
 const mentions: MentionItem[] = [
   { label: '产品组', value: 'product' },
   { label: '研发组', value: 'engineering' },
@@ -18,7 +24,7 @@ const inputDisabled = computed(() =>
   Boolean(runtime.composer.disabled?.value || runtime.composer.submitDisabled?.value),
 )
 
-const ui: ChatUIOptions = {
+const ui = computed<ChatUIOptions>(() => ({
   layout: { leftAside: false },
   welcome: { title: '输入区配置', description: '输入 @ 选择对象，或使用下方按钮填入内容。' },
   sender: {
@@ -28,12 +34,29 @@ const ui: ChatUIOptions = {
     showWordLimit: true,
     clearable: true,
     extensions,
+    toolbar: (defaults) => [
+      ...defaults,
+      {
+        type: 'custom',
+        id: 'report',
+        label: '写报告',
+        disabled: inputDisabled.value,
+        onClick: fillReportTemplate,
+      },
+      {
+        type: 'custom',
+        id: 'common-question',
+        label: '常用问题',
+        disabled: inputDisabled.value,
+        onClick: fillCommonQuestion,
+      },
+    ],
     defaultActions: {
       submit: { tooltip: '发送给项目助手' },
       clear: { tooltip: '清空输入内容' },
     },
   },
-}
+}))
 
 function fillReportTemplate() {
   currentTemplate.value = [
@@ -69,28 +92,8 @@ function fillCommonQuestion() {
       <TrChat :runtime="runtime" :ui="ui">
         <template v-if="showHelp" #sender-header>
           <p id="sender-options-help" class="sender-options-demo__help">
-            @ 用于插入对象名称，不会切换模型；模板中的文本块可以编辑，下拉字段可以选择。内容超过 300 字时无法提交。
+            {{ helpText }}
           </p>
-        </template>
-        <template #sender-footer>
-          <div class="sender-options-demo__actions">
-            <button
-              class="sender-options-demo__button"
-              type="button"
-              :disabled="inputDisabled"
-              @click="fillReportTemplate"
-            >
-              写报告
-            </button>
-            <button
-              class="sender-options-demo__button"
-              type="button"
-              :disabled="inputDisabled"
-              @click="fillCommonQuestion"
-            >
-              常用问题
-            </button>
-          </div>
         </template>
         <template #sender-footer-right>
           <button
@@ -131,12 +134,6 @@ function fillCommonQuestion() {
   min-height: 0;
 }
 
-.sender-options-demo__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 .sender-options-demo__button {
   min-height: 30px;
   padding: 4px 8px;
@@ -148,11 +145,6 @@ function fillCommonQuestion() {
   font-size: 12px;
   white-space: nowrap;
   cursor: pointer;
-}
-
-.sender-options-demo__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .sender-options-demo__help {

@@ -95,7 +95,24 @@ export const TemplateBlock = Node.create<TemplateOptions>({
   // 使用 Vue 组件渲染
   addNodeView() {
     // @ts-expect-error - Vue SFC type compatibility
-    return VueNodeViewRenderer(TemplateBlockView)
+    const renderNodeView = VueNodeViewRenderer(TemplateBlockView)
+    return (props) => {
+      const nodeView = renderNodeView(props)
+      const ignoreMutation = nodeView.ignoreMutation?.bind(nodeView)
+      nodeView.ignoreMutation = (mutation) => {
+        // 删空组合文本可能移除内容容器，必须让 ProseMirror 重新解析并重建。
+        if (
+          mutation.type === 'childList' &&
+          Array.from(mutation.removedNodes).some(
+            (node) => node instanceof HTMLElement && node.hasAttribute('data-node-view-content'),
+          )
+        ) {
+          return false
+        }
+        return ignoreMutation?.(mutation) ?? false
+      }
+      return nodeView
+    }
   },
 
   // 添加插件

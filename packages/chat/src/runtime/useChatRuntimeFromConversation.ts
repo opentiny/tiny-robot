@@ -1,4 +1,4 @@
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
@@ -22,7 +22,7 @@ type KitConversationInfo = UseConversationReturn['conversations']['value'][numbe
 type KitConversation = NonNullable<UseConversationReturn['activeConversation']['value']>
 type UseKitChatComposerOptions = ChatRuntime['composer']
 
-interface KitRuntimeSendPayload extends ChatSendPayload {
+export interface KitRuntimeSendPayload extends ChatSendPayload {
   readonly conversationId: string | null
   runConfig?: ChatRunConfig
 }
@@ -31,7 +31,7 @@ export interface UseChatRuntimeFromConversationOptions {
   conversation: UseConversationReturn
   titleGenerator?: TitleGenerator
   beforeSend?: ChatBeforeSend
-  send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
+  send?: (payload: KitRuntimeSendPayload) => boolean | void | Promise<boolean | void>
   composer?: UseKitChatComposerOptions
 }
 const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo => {
@@ -47,6 +47,27 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime {
   const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
+  const creatingConversationForSend = shallowRef(false)
+  const customSendConversationSnapshots = new Set<Set<string>>()
+  const occupiedTargets = shallowRef(new Set<string>())
+  let previousConversationId = conversation.activeConversationId.value
+  watch(
+    conversation.activeConversationId,
+    (id) => {
+      if (id !== previousConversationId) {
+        const isCreatedConversation = conversation.conversations.value.some((item) => item.id === id)
+        const creationSnapshot =
+          id === null
+            ? undefined
+            : [...customSendConversationSnapshots].find((snapshot) => !snapshot.has(id) && isCreatedConversation)
+        const createdForCustomSend = previousConversationId === null && id !== null && Boolean(creationSnapshot)
+        previousConversationId = id
+        if (createdForCustomSend && creationSnapshot) customSendConversationSnapshots.delete(creationSnapshot)
+        else if (!creatingConversationForSend.value) conversationNavigationRevision.value++
+      }
+    },
+    { flush: 'sync' },
+  )
   const resolveTitle = titleGenerator ?? createDefaultChatTitle
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
@@ -68,17 +89,21 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   })
 
   const sourceComposer = composerOptions ?? {}
+  const getTargetKey = (id: string | null) => (id === null ? 'empty' : `conversation:${id}`)
   const submitDisabled = computed(() => {
     const model = sourceComposer.model
     const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
-    const noUsableModel = !send && Boolean(model && (!selectedModel || selectedModel.disabled))
+    const noUsableModel = Boolean(model && (!selectedModel || selectedModel.disabled))
     const active = activeKitConversation.value
+    const targetKey = getTargetKey(active?.id ?? null)
 
     return (
       Boolean(sourceComposer.submitDisabled?.value) ||
-      !areEnabledMcpToolsReady(sourceComposer.mcp) ||
-      noUsableModel ||
-      Boolean(!send && active && !active.engine.canStartTurn.value)
+      occupiedTargets.value.has(targetKey) ||
+      (!send &&
+        (!areEnabledMcpToolsReady(sourceComposer.mcp) ||
+          noUsableModel ||
+          Boolean(active && !active.engine.canStartTurn.value)))
     )
   })
   const composer: ChatRuntime['composer'] = {
@@ -125,6 +150,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     await targetConversation.engine.send({
       role: 'user',
       content: nextText,
+      ...(payload.externalPayloads ? { externalPayloads: payload.externalPayloads } : {}),
       metadata: {
         createdAt: now,
         updatedAt: now,
@@ -141,50 +167,99 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
 
   async function handleSend(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
-
-    if ((!text && !send) || composer.disabled?.value || composer.submitDisabled?.value) {
-      return false
-    }
-
     let targetConversation = conversation.activeConversation.value
     const targetConversationId = targetConversation?.id ?? null
-
-    const effectivePayload = {
-      ...payload,
-      text,
-      conversationId: targetConversationId,
-      runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
+    const targetEngine = targetConversation?.engine
+    const navigationRevision = conversationNavigationRevision.value
+    const targetKey = getTargetKey(targetConversationId)
+    if (occupiedTargets.value.has(targetKey)) return false
+    occupiedTargets.value = new Set(occupiedTargets.value).add(targetKey)
+    const eligible = () => {
+      const model = composer.model
+      const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
+      return (
+        !composer.disabled?.value &&
+        !sourceComposer.submitDisabled?.value &&
+        (Boolean(send) ||
+          (areEnabledMcpToolsReady(composer.mcp) &&
+            (!model || Boolean(selectedModel && !selectedModel.disabled)) &&
+            (!targetEngine || targetEngine.canStartTurn.value)))
+      )
     }
+    try {
+      if ((!text && !send) || !eligible()) {
+        return false
+      }
 
-    const beforeSendResult = await beforeSend?.(
-      createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig),
-    )
+      if (
+        (conversation.activeConversation.value?.id ?? null) !== targetConversationId ||
+        conversationNavigationRevision.value !== navigationRevision ||
+        conversation.activeConversation.value?.engine !== targetEngine
+      ) {
+        return false
+      }
 
-    if (beforeSendResult === 'reject') {
-      return false
-    }
+      const effectivePayload = {
+        ...payload,
+        text,
+        conversationId: targetConversationId,
+        runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
+      }
 
-    if (beforeSendResult === 'handled') {
+      const beforeSendResult = beforeSend
+        ? await beforeSend(createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig))
+        : undefined
+
+      if (beforeSendResult === 'reject') {
+        return false
+      }
+
+      if (beforeSendResult === 'handled') {
+        return true
+      }
+
+      if (
+        (conversation.activeConversation.value?.id ?? null) !== targetConversationId ||
+        conversationNavigationRevision.value !== navigationRevision ||
+        conversation.activeConversation.value?.engine !== targetEngine ||
+        !eligible()
+      ) {
+        return false
+      }
+
+      if (send) {
+        const customSendSnapshot =
+          targetConversationId === null ? new Set(conversation.conversations.value.map((item) => item.id)) : undefined
+        if (customSendSnapshot) customSendConversationSnapshots.add(customSendSnapshot)
+        try {
+          const result = await send(effectivePayload)
+          return result !== false
+        } finally {
+          if (customSendSnapshot) customSendConversationSnapshots.delete(customSendSnapshot)
+        }
+      }
+      if (targetConversationId === null) {
+        creatingConversationForSend.value = true
+        let created: KitConversation
+        try {
+          created = conversation.createConversation({ title: resolveTitle(text) })
+        } finally {
+          creatingConversationForSend.value = false
+        }
+        targetConversation = created ?? conversation.activeConversation.value
+        if (targetConversation) {
+          occupiedTargets.value = new Set(occupiedTargets.value).add(getTargetKey(targetConversation.id))
+        }
+      }
+      if (!targetConversation) return false
+      await sendDefaultMessage(effectivePayload, targetConversation)
       return true
+    } finally {
+      const next = new Set(occupiedTargets.value)
+      next.delete(targetKey)
+      if (targetConversationId === null && targetConversation) next.delete(getTargetKey(targetConversation.id))
+      occupiedTargets.value = next
     }
-
-    if ((conversation.activeConversation.value?.id ?? null) !== targetConversationId) {
-      return false
-    }
-
-    if (!send && targetConversation && !targetConversation.engine.canStartTurn.value) {
-      return false
-    }
-
-    if (!send && !targetConversation) {
-      targetConversation = conversation.createConversation({ title: resolveTitle(text) })
-    }
-
-    const task = send
-      ? Promise.resolve(send(effectivePayload))
-      : Promise.resolve(sendDefaultMessage(effectivePayload, targetConversation!))
-    await task
-    return true
   }
 
   return {
@@ -196,7 +271,6 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       clearActiveConversation: () => {
         if (conversation.activeConversationId.value === null) return
         conversation.activeConversationId.value = null
-        conversationNavigationRevision.value++
       },
       send: handleSend,
       abort: async () => {
@@ -204,25 +278,15 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       },
       createConversation: (payload) => {
         conversation.createConversation(payload)
-        conversationNavigationRevision.value++
       },
       switchConversation: async (id) => {
-        const previousId = conversation.activeConversationId.value
         await conversation.switchConversation(id)
-        if (conversation.activeConversationId.value !== previousId) {
-          conversationNavigationRevision.value++
-        }
       },
       renameConversation: (id, title) => {
         conversation.updateConversationTitle(id, title)
       },
       deleteConversation: async (id) => {
-        const previousId = conversation.activeConversationId.value
         await conversation.deleteConversation(id)
-
-        if (conversation.activeConversationId.value !== previousId) {
-          conversationNavigationRevision.value++
-        }
       },
     },
   }
