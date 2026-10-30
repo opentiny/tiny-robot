@@ -27,6 +27,7 @@
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
     "set-version": "node scripts/set-publish-version.js",
     "test:release-scripts": "node --test scripts/prepare-publish-packages.test.js scripts/set-publish-version.test.js scripts/verify-publish-versions.test.js scripts/verify-chat-experimental-exports.test.js",
+    "test:chat-dist": "node --test scripts/verify-chat-experimental-dist.test.js",
     "test:package-install": "node scripts/test-package-install.js",
     "lint": "eslint . --fix",
     "prepare": "husky install"
