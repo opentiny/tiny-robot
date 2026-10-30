@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
+import { installPackageTagPlugin, resolveDocsDistTag } from './plugins/install-tag.mjs'
 import { themeConfig } from './themeConfig'
 
 const devAlias = {
@@ -68,6 +69,7 @@ export default defineConfig({
           return code.replace(/import\.meta\.env\.BASE_URL/g, `'${process.env.VITEPRESS_BASE || '/'}'`)
         },
       })
+      md.use(installPackageTagPlugin, { distTag: resolveDocsDistTag() })
       // 添加 Markdown 内容中的版本标记支持
       md.use(MarkdownBadgePlugin)
     },
