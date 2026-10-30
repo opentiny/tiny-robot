@@ -1,0 +1,696 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-28T00:00:00.000Z",
+  "examples": [
+    {
+      "id": "basic",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Owned Runtime modelProviders preserve the baseline model selector, default layout, input, send, and response flow."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial and completed-answer screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "layout-presets",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/layout-presets.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "The same data and ui options drive all five presets; element remounting preserves the Vue key-based state reset semantics."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired screenshots for default, compact, focus, footer-composer, and centered-composer states."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "welcome-prompts",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/welcome-prompts.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "prompt-click CustomEvent updates the TrSender template; checkbox controls and new-conversation actions preserve the Vue behavior."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial and prompt-filled screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "sender-options",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/sender-options.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Mention, Template, maxLength, clear, Light DOM help, and custom toolbar actions preserve the Vue baseline behavior."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, mention-popup, and structured-template screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "sender-toolbar",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/sender-toolbar.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Toolbar ordering, custom active state, visible, disabled, and narrow-layout behavior reuse the native TrChat toolbar contract."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired active and narrow/disabled toolbar screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed ordering, accessible-name, custom-active, visibility, disabled, and narrow-layout assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside first-batch acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside first-batch acceptance scope." }
+      }
+    },
+    {
+      "id": "extension-tabs",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/extension-tabs.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Native extension tabs and events are retained; Vue scoped slots map to DOM renderers for header actions and the controlled overlay."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired Skills-list and detail-overlay screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed tab switching, switch action write-back, name detail, import action, renderer overlay, and restoration assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside first-batch acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside first-batch acceptance scope." }
+      }
+    },
+    {
+      "id": "bubble-options",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/bubble-options.vue",
+      "behavior": { "status": "direct", "evidence": "Message data and serializable Bubble options pass unchanged." },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, tools-expanded, and custom-interaction screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-error",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/runtime-error.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "The same Runtime exposes the failed send, runtime-action-error notification, error bubble, and successful recovery send."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired failed-send and same-Runtime recovery screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "history-groups",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/history-groups.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Native Runtime history is grouped from conversation metadata; switching, message restoration, selection, and rename match the Vue baseline."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial-group and switched/renamed screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "slots-basic",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/slots-basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Static slots use Light DOM and scoped slots use Node renderers with AbortSignal cleanup."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, feedback, and expanded-aside screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "right-aside-panel",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/right-aside-panel.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Vue scoped slots map to DOM renderers, while v-model state maps to properties, update events, and element methods."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired release-preview and reference-source screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "floating-layout",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/floating-layout.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Vue v-model maps to floatingState plus floating-state-update property reassignment, and the scoped header slot maps to a DOM renderer."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial and moved/resized floating-window screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "responsive-layout",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/responsive-layout.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Container width and ui property changes drive the native Dock and Drawer layouts without horizontal overflow."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired 760px Dock and 390px Drawer screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "controlled-ui",
+      "group": "Chat",
+      "baseline": "docs/demos/chat/controlled-ui.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Vue v-model maps to input-value-update plus property reassignment; submit, cancel, message append, loading, and recovery match the baseline flow."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, processing, and cancelled/recovered screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-actions",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-actions.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Owned Runtime readiness, element send(), abort, recovery, and completion match the Vue baseline; external request-state controls currently poll the Vue readable because no framework-neutral subscription is exposed."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired waiting, processing, and stopped screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-before-send",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-before-send.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "A real Sender submission exercises beforeSend reject with preserved input and continue with user and assistant messages."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, rejected/preserved, and completed screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-composer",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-composer.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Runtime composer readables preserve normal, disabled, and submit-disabled states; Vue composer-before maps to a DOM renderer context."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired normal, disabled, and submit-disabled screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-conversations",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-conversations.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Seeded history loading, createConversation(), list updates, and bidirectional switching match the Vue baseline."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial-history, created, and switched screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-send",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-send.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "The send element method preserves empty-text payloads and the default false versus custom true Runtime result."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial and completed two-card screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": {
+          "status": "direct",
+          "evidence": "Firefox core registration, renderer, responsive, and send smoke passed."
+        },
+        "webkit": {
+          "status": "direct",
+          "evidence": "WebKit core registration, renderer, responsive, and send smoke passed."
+        }
+      }
+    },
+    {
+      "id": "runtime-adapter",
+      "group": "Runtime",
+      "baseline": "docs/demos/chat/runtime-adapter.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "A real Runtime Adapter maps its reactive data and input to DOM properties, and ChatUI CustomEvents back to adapter actions."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial and completed-message screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed its dedicated UI and interaction scenario plus shared readiness, bounded-height, and overflow invariants."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside core smoke scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside core smoke scope." }
+      }
+    },
+    {
+      "id": "runtime-subscription",
+      "group": "P0",
+      "baseline": "docs/demos/chat/runtime-subscription.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Vue readable observation maps to getRuntimeSnapshot() plus runtime-state-change; initial, processing, stopped, and completed states match without polling."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, stopped, and completed screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed snapshot/event subscription, abort, recovery, and no-polling assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside P0 acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside P0 acceptance scope." }
+      }
+    },
+    {
+      "id": "complex-properties",
+      "group": "P0",
+      "baseline": "docs/demos/chat/complex-properties.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "The shallow property contract requires whole-object reassignment; data, ui, renderers, and bubbleRenderers update together while nested mutation intentionally does not render."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, nested-mutation, and whole-replacement screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed nested-mutation, whole-replacement, renderer-update, and restore assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside P0 acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside P0 acceptance scope." }
+      }
+    },
+    {
+      "id": "runtime-ownership",
+      "group": "P0",
+      "baseline": "docs/demos/chat/runtime-ownership.vue",
+      "behavior": {
+        "status": "direct",
+        "evidence": "Owned Runtime replacement disposes the old instance, injected Runtime survives detach/reinsert, and distinct storageKey namespaces remain isolated."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved paired initial, owned-replacement, and injected-runtime screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed owned/injected lifecycle, reconnect, continued-send, and storage-isolation assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside P0 acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside P0 acceptance scope." }
+      }
+    },
+    {
+      "id": "event-contract",
+      "group": "P1",
+      "baseline": "docs/demos/chat/controlled-ui.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "The native TrChatUI controlled interaction is retained while standard DOM events expose direct detail, bubbling, composed propagation, repeated updates, and cancelable history actions."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved the Vue controlled UI baseline plus Web Component initial, repeated-update, and canceled-action screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed repeated input-value-update assertions and preventDefault propagation for the real history delete action."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside P1 acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside P1 acceptance scope." }
+      }
+    },
+    {
+      "id": "initialization-timing",
+      "group": "P1",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "The native TrChatUI surface is wrapped in a delayed-registration harness that verifies pre-upgrade complex and primitive properties, synchronous controlled write-back, one ready event, public methods, and reconnect."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual comparison saved the Vue basic baseline plus Web Component before-upgrade, after-upgrade, and reconnected screenshots."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed a single-layout upgrade, property preservation, controlled panel normalization, post-connect assignment, public method, and ready-once reconnect assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside P1 acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside P1 acceptance scope." }
+      }
+    },
+    {
+      "id": "performance-stress",
+      "group": "P1",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "A dedicated host harness exercises 200 rendered messages, 100 whole-object updates, 30 conversation swaps, and 30 element remounts while preserving one usable native TrChatUI layout."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual inspection saved baseline, completed long-session, and completed remount screenshots; the native TrChatUI layout and composer remained usable."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Chromium passed functional stress plus GC-normalized JS heap, Document, DOM node, event-listener, and conservative duration budgets."
+        },
+        "firefox": {
+          "status": "not-run",
+          "evidence": "Chromium-only performance instrumentation uses the DevTools protocol."
+        },
+        "webkit": {
+          "status": "not-run",
+          "evidence": "Chromium-only performance instrumentation uses the DevTools protocol."
+        }
+      }
+    },
+    {
+      "id": "ssr-safe-import",
+      "group": "P0",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "The experimental package publishes a Node condition that imports without DOM globals and defers customElements registration to the browser; the browser condition still registers and renders native TrChatUI."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual inspection confirms that conditional exports do not alter the native TrChatUI browser surface."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Browser entry rendered and the Node import contract passed its dedicated automation."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." }
+      }
+    },
+    {
+      "id": "unified-error-contract",
+      "group": "P1",
+      "baseline": "docs/demos/chat/runtime-error.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Runtime, renderer, network/adapter, attachment, element, and host failures share a stable tr-chat-error detail while runtime-action-error, attachment-error, and experimental-error remain backward compatible."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual interaction captured initial, normalized error, and recovered states on the native TrChat layout."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Runtime, renderer, network, and host sources passed detail and recovery assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." }
+      }
+    },
+    {
+      "id": "bundle-budget",
+      "group": "P0",
+      "baseline": "docs/demos/chat/basic.vue",
+      "behavior": {
+        "status": "adapted",
+        "evidence": "Production artifacts are measured recursively and fail automation above 650 KiB JavaScript gzip or 48 KiB CSS gzip; the current cross-framework strategy intentionally remains self-contained."
+      },
+      "visual": {
+        "status": "direct",
+        "evidence": "Chromium manual inspection confirms the budget status card coexists with an unchanged native TrChatUI surface."
+      },
+      "browsers": {
+        "chromium": {
+          "status": "direct",
+          "evidence": "Budget values, ceilings, pass status, and native layout passed browser assertions."
+        },
+        "firefox": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." },
+        "webkit": { "status": "not-run", "evidence": "Outside this release-readiness acceptance scope." }
+      }
+    }
+  ],
+  "summary": {
+    "behaviorCoverage": { "covered": 29, "applicable": 29, "percent": 100 },
+    "browserValidation": {
+      "chromiumExamplesPassed": 29,
+      "chromiumExamplesTotal": 29,
+      "percent": 100,
+      "uiAssertions": true,
+      "interactionAssertions": true,
+      "pixelDiff": false
+    }
+  },
+  "measurements": {
+    "stable": {
+      "js": { "rawBytes": 157197, "gzipBytes": 38202 },
+      "css": { "rawBytes": 14000, "gzipBytes": 2655 }
+    },
+    "experimental": {
+      "js": { "rawBytes": 2350245, "gzipBytes": 621452 },
+      "css": { "rawBytes": 323383, "gzipBytes": 43164 },
+      "bundlesVue": true
+    },
+    "firstMount": {
+      "samplesMs": [2.1, 1, 0.9, 0.9, 0.9],
+      "minMs": 0.9,
+      "medianMs": 0.9,
+      "maxMs": 2.1,
+      "consoleErrors": []
+    },
+    "longSession": {
+      "messages": 200,
+      "updates": 100,
+      "conversationSwaps": 30,
+      "remounts": 30,
+      "updateDurationMs": 2077,
+      "remountDurationMs": 2420,
+      "postGcDelta": {
+        "usedJSHeapBytes": -175668,
+        "documents": 0,
+        "nodes": -377,
+        "eventListeners": -21
+      },
+      "consoleErrors": []
+    }
+  },
+  "realServices": {
+    "streaming": {
+      "status": "not-run",
+      "evidence": "TR_CHAT_REAL_API_URL, TR_CHAT_REAL_MODEL_ID, and TR_CHAT_REAL_API_KEY were not available."
+    },
+    "mcp": {
+      "status": "not-run",
+      "evidence": "TR_CHAT_REAL_MCP_URL was not available."
+    }
+  }
+}
