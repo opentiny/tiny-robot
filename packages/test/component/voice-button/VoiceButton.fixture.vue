@@ -12,6 +12,7 @@ const props = withDefaults(
     replace?: boolean
     autoInsert?: boolean
     initial?: string
+    intercept?: boolean
   }>(),
   { autoInsert: true },
 )
@@ -32,6 +33,12 @@ const speechConfig = computed(() => ({
   customHandler: selected.value === null ? undefined : handlers[selected.value],
 }))
 const events: Event[] = []
+const onButtonClick = (isActive: boolean, preventDefault: () => void) => {
+  record('click', String(isActive))
+  preventDefault()
+  if (isActive) voice.value?.stop()
+  else voice.value?.start()
+}
 let restart = 0
 let cancelRestart = false
 const record = (name: string, text?: string) => {
@@ -118,6 +125,7 @@ window.voiceFixture = {
         ref="voice"
         :speech-config="speechConfig"
         :auto-insert="autoInsert"
+        :on-button-click="intercept ? onButtonClick : undefined"
         @speech-start="record('start')"
         @speech-interim="record('interim', $event)"
         @speech-final="record('final', $event)"

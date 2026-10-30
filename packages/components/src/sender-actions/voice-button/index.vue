@@ -96,7 +96,7 @@ const handleClick = async () => {
   // 拦截器支持
   if (props.onButtonClick) {
     let prevented = false
-    await props.onButtonClick(speechState.isRecording, () => {
+    await props.onButtonClick(isActive.value, () => {
       prevented = true
     })
     if (prevented) return

@@ -212,6 +212,30 @@ test.describe('写入行为', () => {
 })
 
 test.describe('生命周期', () => {
+  for (const deferred of [false, true]) {
+    test(`点击拦截器按会话状态切换，等待停止时不重复请求；启动延迟=${deferred}`, async ({ mount, page }) => {
+      const component = await mount(VoiceButtonFixture, { props: { deferred, intercept: true } })
+      const button = component.locator('.tr-action-button')
+      await button.click()
+      expect((await snapshot(page)).starts).toEqual([1, 0])
+      expect((await snapshot(page)).recording).toBe(!deferred)
+      await button.click()
+      expect((await snapshot(page)).stops).toEqual([1, 0])
+      await button.click()
+      expect((await snapshot(page)).stops).toEqual([1, 0])
+      await page.evaluate(() => window.voiceFixture.emit('end'))
+      await button.click()
+      const state = await snapshot(page)
+      expect(state.starts).toEqual([2, 0])
+      expect(state.events.filter(({ name }) => name === 'click').map(({ text }) => text)).toEqual([
+        'false',
+        'true',
+        'true',
+        'false',
+      ])
+    })
+  }
+
   test('启动中再次点击取消，迟到的 start 不激活录音', async ({ mount, page }) => {
     const component = await mount(VoiceButtonFixture, { props: { deferred: true } })
     const button = component.locator('.tr-action-button')
