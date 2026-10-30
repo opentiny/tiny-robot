@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vanilla browser bundles</title>
+    <style>
+      body {
+        margin: 32px;
+        font: 16px/1.6 sans-serif;
+      }
+      #editor {
+        width: 700px;
+        height: 260px;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="term">浏览器产物智能帮助</p>
+    <div id="editor"></div>
+    <script type="module">
+      import globalUrl from '../../components/dist/vanilla/vanilla.global.js?url'
+      import umdUrl from '../../components/dist/vanilla/vanilla.umd.js?url'
+      import loaderUrl from '../node_modules/monaco-editor/min/vs/loader.js?url'
+      import probeUrl from './browser-bundle-probe.js?url'
+
+      const mode = new URLSearchParams(location.search).get('mode') ?? 'global'
+      const useAmd = mode.endsWith('-amd')
+      const state = (window.browserBundle = { requests: [], ready: false })
+      const loadScript = (url) =>
+        new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+          script.src = url
+          script.onload = resolve
+          script.onerror = () => reject(new Error(`Failed to load ${url}`))
+          document.head.appendChild(script)
+        })
+      const requireModules = (modules) =>
+        new Promise((resolve, reject) => {
+          window.require(modules, (...exports) => resolve(exports), reject)
+        })
+      const createEditor = () =>
+        window.monaco.editor.create(document.querySelector('#editor'), {
+          value: 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: demo-app',
+          language: 'yaml',
+          minimap: { enabled: false },
+          automaticLayout: true,
+        })
+
+      try {
+        if (useAmd) {
+          await loadScript(loaderUrl)
+          state.originalDefine = window.define
+          state.originalAmd = window.define.amd
+          state.originalRequire = window.require
+          window.require.config({
+            paths: {
+              vs: new URL('.', new URL(loaderUrl, location.href)).href.replace(/\/$/, ''),
+              tinyRobotVanilla: new URL(umdUrl, location.href).href.replace(/\.js$/, ''),
+              tinyRobotProbe: new URL(probeUrl, location.href).href.replace(/\.js$/, ''),
+            },
+          })
+        }
+        if (mode === 'global-monaco-amd') {
+          await requireModules(['vs/editor/editor.main'])
+          state.editor = createEditor()
+        }
+        if (mode === 'umd-amd') {
+          ;[state.api] = await requireModules(['tinyRobotVanilla'])
+        } else {
+          await loadScript(mode === 'umd' ? umdUrl : globalUrl)
+          state.api = window.TinyRobotVanilla
+        }
+        state.options = {
+          include: ['#term'],
+          adapter: { submit: (request) => state.requests.push(request) },
+        }
+        state.qa = state.api.createQuickAssist(state.options)
+        if (useAmd) {
+          if (!state.editor) {
+            // Also cover loading the real editor after the bundle.
+            await requireModules(['vs/editor/editor.main'])
+            state.editor = createEditor()
+          }
+          state.activateSelection = () => {
+            const selection = state.editor.getSelection()
+            const model = state.editor.getModel()
+            if (!selection || selection.isEmpty() || !model) return
+            const position = selection.getEndPosition()
+            state.qa.activate({
+              source: 'monaco',
+              text: model.getValueInRange(selection),
+              getRect: () => {
+                const cursor = state.editor.getScrolledVisiblePosition(position)
+                if (!cursor) return null
+                const host = state.editor.getDomNode().getBoundingClientRect()
+                return new DOMRect(host.left + cursor.left, host.top + cursor.top, 1, cursor.height)
+              },
+            })
+          }
+          state.editor.onMouseUp(state.activateSelection)
+          state.selectLines = () => {
+            state.editor.setSelection(new window.monaco.Selection(1, 1, 2, 17))
+            state.activateSelection()
+          }
+          // A second anonymous module must still be associated and executed correctly.
+          state.laterModule = (await requireModules(['tinyRobotProbe']))[0].loaded
+        }
+        state.ready = true
+      } catch (error) {
+        state.error = error.stack ?? String(error)
+        console.error(error)
+      }
+    </script>
+  </body>
+</html>

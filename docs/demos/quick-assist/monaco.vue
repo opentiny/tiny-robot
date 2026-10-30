@@ -70,6 +70,7 @@ function explainSelection() {
   // 选词完成后由示例主动调用通用 API，仍未引入官方编辑器桥接器。
   quickAssist?.activate({
     source: 'monaco',
+    autoFill: false, // 本次不预填代码，保留上下文，不修改实例默认设置。
     text,
     suggestions: [
       {

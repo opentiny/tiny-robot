@@ -62,6 +62,8 @@ export interface QuickAssistActivationView {
 
 /** Options for this activation only; instance defaults are left unchanged. */
 export interface QuickAssistActivationOptions {
+  /** Override input.autoFill for this activation only, without changing instance defaults. */
+  autoFill?: boolean
   /** Defaults to trigger. popover opens the input immediately, bypassing showDelay and the entry button. */
   open?: 'trigger' | 'popover'
   /** Replace this session's static suggestions; [] hides them. Supplying this also opts out of the instance provider. */
@@ -140,6 +142,7 @@ export interface SuggestionFactory {
 /** A request frozen immediately before handing work to the host adapter. */
 export interface AIRequest {
   source: string
+  /** Trimmed user input for manual submissions, or the clicked suggestion's label. */
   query: string
   prompt: string
   context: QuickAssistContext
@@ -204,6 +207,7 @@ export type ValidateSuggestion = (suggestion: Suggestion, context: QuickAssistCo
 export type MergeSuggestions = (base: Suggestion[], incoming: Suggestion[], context: QuickAssistContext) => Suggestion[]
 
 export type BuildPromptInput = {
+  /** Trimmed user input for manual submissions, or the clicked suggestion's label. */
   query: string
   context: QuickAssistContext
   suggestion?: Suggestion
@@ -225,14 +229,28 @@ export interface QuickAssistAttrs {
   suggestion?: QuickAssistAttributeMap | ((suggestion: Suggestion) => QuickAssistAttributeMap)
 }
 
-export interface QuickAssistMessages {
-  inputLabel?: string
+export interface QuickAssistInputOptions {
+  /** Placeholder shown when the input is empty. */
+  placeholder?: string
+  /** Accessible name of the textarea; the dialog uses trigger.label. */
+  ariaLabel?: string
+  /** Accessible name and tooltip for the submit button. */
   submitLabel?: string
+  /** Validation message shown when maxLength is exceeded. */
+  maxLengthExceededMessage?: string
+  /** Maximum visible lines before internal scrolling. Defaults to 2. */
+  maxRows?: number
+  /** Optional Unicode code point limit. Omitted means unlimited, without a counter. */
+  maxLength?: number
+  /** Prefill selected/activated text. Defaults to true. */
+  autoFill?: boolean
+}
+
+/** Status messages for the recommendation area. Input text belongs to input options. */
+export interface QuickAssistMessages {
   loading?: string
   empty?: string
   error?: string
-  defaultExplain?: string | ((text: string) => string)
-  defaultUseCase?: string | ((text: string) => string)
 }
 
 export interface QuickAssistOptions {
@@ -243,6 +261,7 @@ export interface QuickAssistOptions {
   exclude?: string[]
   selection?: QuickAssistSelectionOptions
   trigger?: QuickAssistTriggerOptions
+  input?: QuickAssistInputOptions
   nearbyContext?: QuickAssistNearbyContextOptions
   getNearbyContext?: GetNearbyContext
   getContext?: GetBusinessContext

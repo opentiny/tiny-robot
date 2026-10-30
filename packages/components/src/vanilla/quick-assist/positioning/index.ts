@@ -106,7 +106,7 @@ function getViewport(
   }
 }
 
-/** Shared by real and virtual triggers so opening/repositioning a popover cannot drift. */
+/** Shared selection/line placement rules for both the trigger and the popover. */
 export function computePosition(options: {
   anchor: DOMRectReadOnly
   lineAnchors?: SelectionLineAnchors

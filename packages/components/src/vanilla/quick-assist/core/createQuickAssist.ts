@@ -1,14 +1,8 @@
+import { DEFAULT_INPUT, DEFAULT_MESSAGES } from '../defaults'
 import { QuickAssistStageError } from './errors'
 import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
-import {
-  computePosition,
-  getSelectionLineAnchors,
-  observeAnchor,
-  getSnapshotRect,
-  positionElement,
-} from '../positioning'
-import type { SelectionLineAnchors } from '../positioning'
+import { getSelectionLineAnchors, observeAnchor, getSnapshotRect, positionElement } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
 import { captureSelectionSnapshot, createSelectionController, isDefaultTextValid } from '../selection'
 import { expandShortcut, getActivationRect, observeActivationPosition } from '../positioning/activation'
@@ -31,22 +25,10 @@ import type {
   QuickAssistEvent,
   QuickAssistErrorStage,
   QuickAssistInstance,
-  QuickAssistMessages,
   QuickAssistOptions,
-  QuickAssistPlacement,
   SelectionSnapshot,
   Suggestion,
 } from '../types'
-
-const DEFAULT_MESSAGES: Required<QuickAssistMessages> = {
-  inputLabel: '请输入问题',
-  submitLabel: '发送问题',
-  loading: '正在加载推荐…',
-  empty: '暂无推荐',
-  error: '推荐加载失败',
-  defaultExplain: '解释 {text}',
-  defaultUseCase: '{text}适用场景',
-}
 
 function currentDocument(options: QuickAssistOptions): Document {
   const root = options.root ?? (typeof document === 'undefined' ? undefined : document)
@@ -63,10 +45,29 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (input.validateSuggestion !== undefined && typeof input.validateSuggestion !== 'function') {
     throw new Error('QuickAssist validateSuggestion must be a function')
   }
-  const maxSuggestions = input.maxSuggestions ?? 3
+  const maxSuggestions = input.maxSuggestions ?? 2
   if (!Number.isInteger(maxSuggestions) || maxSuggestions <= 0) {
     throw new Error('QuickAssist maxSuggestions must be a positive integer')
   }
+  const inputOptions = {
+    maxRows: input.input?.maxRows ?? DEFAULT_INPUT.maxRows,
+    maxLength: input.input?.maxLength,
+    autoFill: input.input?.autoFill ?? DEFAULT_INPUT.autoFill,
+    placeholder: input.input?.placeholder ?? DEFAULT_INPUT.placeholder,
+    ariaLabel: input.input?.ariaLabel ?? DEFAULT_INPUT.ariaLabel,
+    submitLabel: input.input?.submitLabel ?? DEFAULT_INPUT.submitLabel,
+    maxLengthExceededMessage: input.input?.maxLengthExceededMessage ?? DEFAULT_INPUT.maxLengthExceededMessage,
+  }
+  if (!Number.isInteger(inputOptions.maxRows) || inputOptions.maxRows <= 0) {
+    throw new Error('QuickAssist input.maxRows must be a positive integer')
+  }
+  if (
+    inputOptions.maxLength !== undefined &&
+    (!Number.isInteger(inputOptions.maxLength) || inputOptions.maxLength <= 0)
+  ) {
+    throw new Error('QuickAssist input.maxLength must be a positive integer')
+  }
+  if (typeof inputOptions.autoFill !== 'boolean') throw new Error('QuickAssist input.autoFill must be a boolean')
   const selectionInput = input.selection ?? {}
   if (selectionInput.validateActivation !== undefined && typeof selectionInput.validateActivation !== 'function') {
     throw new Error('QuickAssist selection.validateActivation must be a function')
@@ -108,6 +109,7 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     include: [...(input.include ?? [])],
     exclude: [...(input.exclude ?? [])],
     maxSuggestions,
+    input: inputOptions,
     selection: {
       forwardOnly,
       maxTextLength,
@@ -150,48 +152,6 @@ function normalizeActivation(activation: QuickAssistActivation): QuickAssistActi
     anchorElement: activation.anchorElement ?? snapshot.anchorElement,
     selection: snapshot,
   }
-}
-
-function makeRect(root: Document, left: number, top: number, width: number, height: number): DOMRectReadOnly {
-  const DOMRectConstructor = root.defaultView?.DOMRect
-  if (DOMRectConstructor) return new DOMRectConstructor(left, top, width, height)
-  const right = left + width
-  const bottom = top + height
-  return {
-    x: left,
-    y: top,
-    left,
-    top,
-    right,
-    bottom,
-    width,
-    height,
-    toJSON: () => ({ left, top, right, bottom, width, height }),
-  } as DOMRectReadOnly
-}
-
-/** Calculate where the (currently hidden) Trigger would sit for a moved Range. */
-function getVirtualTriggerRect(
-  root: Document,
-  anchor: DOMRectReadOnly,
-  size: { width: number; height: number },
-  placement: QuickAssistPlacement,
-  offset: number,
-  lineAnchors?: SelectionLineAnchors,
-): DOMRectReadOnly {
-  const view = root.defaultView
-  const { left, top } = computePosition({
-    anchor,
-    lineAnchors,
-    placement,
-    offset,
-    ...size,
-    viewport: {
-      width: view?.innerWidth ?? root.documentElement.clientWidth,
-      height: view?.innerHeight ?? root.documentElement.clientHeight,
-    },
-  })
-  return makeRect(root, left, top, size.width, size.height)
 }
 
 /** Framework-free QuickAssist orchestration and lifecycle. */
@@ -318,6 +278,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const submit = (candidate: QuickAssistSession, query: string, suggestion?: Suggestion): void => {
     if (!isCurrent(candidate) || !candidate.context || candidate.submitStarted) return
+    if (!suggestion && resolved.input?.maxLength !== undefined && Array.from(query).length > resolved.input.maxLength)
+      return
     const normalizedQuery = query.trim()
     if (!normalizedQuery && !suggestion) return
     const adapter = resolved.adapter
@@ -372,9 +334,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     candidate.state = 'composer'
     stopAnchorObservation()
     const snapshot = snapshotOf(candidate.activation)
-    const triggerAtOpen = triggerElement?.getBoundingClientRect() ?? null
-    const triggerSize = triggerAtOpen ? { width: triggerAtOpen.width, height: triggerAtOpen.height } : undefined
-    const triggerPlacement = (triggerElement?.dataset.placement as QuickAssistPlacement) ?? resolved.trigger.placement
+    const hadTrigger = !!triggerElement
     triggerElement = null
     const popover = ui.showPopover({
       session: candidate,
@@ -382,47 +342,18 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       onSuggestionClick: (suggestion) => {
         if (!isCurrent(candidate)) return
         emit({ type: 'suggestion_click', sessionId: candidate.id, suggestionId: suggestion.id })
-        submit(candidate, candidate.inputValue, suggestion)
+        submit(candidate, suggestion.label, suggestion)
       },
       onClose: () => closeSession('escape'),
     })
-    if (triggerAtOpen) emit({ type: 'trigger_click', sessionId: candidate.id })
+    if (hadTrigger) emit({ type: 'trigger_click', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
     emit({ type: 'popover_show', sessionId: candidate.id })
     if (!isCurrent(candidate)) return
-    const getPopoverAnchor = (): DOMRectReadOnly | null => {
-      const selectionRect = readAnchor(candidate)
-      if (!selectionRect) return null
-      if (!triggerSize) return selectionRect
-      return getVirtualTriggerRect(
-        resolved.root,
-        selectionRect,
-        triggerSize,
-        triggerPlacement,
-        resolved.trigger.offset,
-        snapshot ? getSelectionLineAnchors(snapshot) : undefined,
-      )
-    }
-    const positionPopover = (): void => {
-      const anchor = getPopoverAnchor()
-      if (!anchor) return
-      positionElement({
-        element: popover,
-        anchor,
-        placement: 'auto',
-        offset: resolved.trigger.offset,
-      })
-    }
-    if (triggerAtOpen) {
-      positionElement({
-        element: popover,
-        anchor: triggerAtOpen,
-        placement: 'auto',
-        offset: resolved.trigger.offset,
-      })
-    } else {
-      positionPopover()
-    }
+    // Use the same selection/line anchor and placement rules as the trigger.
+    // Anchoring to the removed trigger adds its height and a second offset.
+    const positionPopover = (): void => reposition(popover, candidate)
+    positionPopover()
     if (snapshot) {
       anchorCleanup = observeAnchor({
         element: popover,
@@ -452,7 +383,6 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
             validateSuggestion: resolved.validateSuggestion,
             mergeSuggestions: resolved.mergeSuggestions,
             maxSuggestions: resolved.maxSuggestions,
-            messages: resolved.messages,
           })
         : recommendationModule
     const hasProvider = !!provider
@@ -613,7 +543,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       controller: new AbortController(),
       state: 'trigger',
       suggestions: [],
-      inputValue: activation.text ?? '',
+      inputValue: (external?.autoFill ?? resolved.input?.autoFill ?? true) ? (activation.text ?? '') : '',
       originalActiveElement: resolved.root.activeElement,
       submitStarted: false,
     }
@@ -689,6 +619,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         typeof input.getRect !== 'function'
       )
         throw new Error('QuickAssist activation requires source, text and getRect')
+      if (input.autoFill !== undefined && typeof input.autoFill !== 'boolean') {
+        throw new Error('QuickAssist activation.autoFill must be a boolean')
+      }
       const text = input.text.trim()
       if (input.open !== undefined && input.open !== 'trigger' && input.open !== 'popover') {
         throw new Error('QuickAssist activation.open must be trigger or popover')
@@ -891,11 +824,11 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         validateSuggestion: configuration.validateSuggestion,
         mergeSuggestions: configuration.mergeSuggestions,
         maxSuggestions: configuration.maxSuggestions,
-        messages: configuration.messages,
       })
       nextUI = createQuickAssistUI({
         root: configuration.root,
         attrs: configuration.attrs,
+        input: configuration.input,
         messages: configuration.messages,
         triggerLabel: configuration.trigger.label,
         onCallbackError: (sessionId, error) => emitError(sessionId, 'callback', error),
