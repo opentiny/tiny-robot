@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useSenderContext } from '../../sender/context'
 import { useSpeechHandler } from './useSpeechHandler'
 import ActionButton from '../action-button/index.vue'
 import { IconVoice, IconRecordingWave } from '@opentiny/tiny-robot-svgs'
 import type { VoiceButtonProps, VoiceButtonEmits } from './index.type'
+import type { SpeechHookOptions } from './speech.types'
 
 const props = withDefaults(defineProps<VoiceButtonProps>(), {
   tooltipPlacement: 'top',
@@ -16,40 +17,78 @@ const emit = defineEmits<VoiceButtonEmits>()
 // 从 Context 获取最小依赖：只需要 editor 和 disabled
 const { editor, disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
+const isAutoReplace = computed(() => props.speechConfig?.autoReplace ?? false)
+const committedTranscript = shallowRef('')
+let hasReplacement = false
 
-// 语音配置 - 使用普通对象而不是 computed，避免每次都创建新对象
-const speechOptions = {
+const resetSpeechSession = () => {
+  committedTranscript.value = ''
+  hasReplacement = false
+}
+
+const focusEditor = () => {
+  if (!editor.value) return
+  editor.value.commands.focus('end')
+}
+
+const appendTranscript = (transcript: string) => {
+  if (!props.autoInsert || !editor.value || !transcript) return
+
+  hasReplacement = false
+  focusEditor()
+  editor.value.commands.insertContent({ type: 'text', text: transcript + ' ' })
+}
+
+const replaceTranscript = (transcript: string) => {
+  if (!props.autoInsert || !editor.value || (!transcript && !hasReplacement)) return
+
+  hasReplacement = true
+  editor.value.commands.setContent({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: transcript ? [{ type: 'text', text: transcript }] : [] }],
+  })
+  focusEditor()
+}
+
+const getSpeechOptions = (): SpeechHookOptions => ({
   ...props.speechConfig,
   onStart: () => {
+    resetSpeechSession()
     emit('speech-start')
   },
   onInterim: (transcript: string) => {
+    if (isAutoReplace.value) {
+      replaceTranscript(transcript)
+    }
     emit('speech-interim', transcript)
   },
   onFinal: (transcript: string) => {
-    // 自动插入到编辑器(可配置)
-    if (props.autoInsert && editor.value) {
-      // 插入内容
-      editor.value.commands.insertContent(transcript + ' ')
-      // 确保光标在内容末尾
-      editor.value.commands.focus('end')
+    committedTranscript.value += transcript
+    if (isAutoReplace.value) {
+      replaceTranscript(committedTranscript.value)
+    } else {
+      appendTranscript(transcript)
     }
     emit('speech-final', transcript)
   },
   onEnd: (transcript?: string) => {
-    // 结束后聚焦编辑器，确保光标可见
-    if (editor.value) {
-      editor.value.commands.focus('end')
+    if (isAutoReplace.value && hasReplacement) {
+      replaceTranscript(committedTranscript.value)
     }
+    resetSpeechSession()
     emit('speech-end', transcript)
   },
   onError: (error: Error) => {
+    if (isAutoReplace.value && hasReplacement) {
+      replaceTranscript(committedTranscript.value)
+    }
+    resetSpeechSession()
     emit('speech-error', error)
   },
-}
+})
 
 // 使用语音 Hook
-const { speechState, start, stop } = useSpeechHandler(speechOptions)
+const { speechState, isActive, start, stop } = useSpeechHandler(getSpeechOptions)
 
 // 处理点击
 const handleClick = async () => {
@@ -57,12 +96,12 @@ const handleClick = async () => {
   // 拦截器支持
   if (props.onButtonClick) {
     let prevented = false
-    await props.onButtonClick(speechState.isRecording, () => {
+    await props.onButtonClick(isActive.value, () => {
       prevented = true
     })
     if (prevented) return
   }
-  if (speechState.isRecording) {
+  if (isActive.value) {
     stop()
   } else {
     start()

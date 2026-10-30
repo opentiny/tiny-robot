@@ -7,6 +7,7 @@ import { MockSpeechHandler } from './speechHandlers'
 const inputText = ref('')
 const speechStatus = ref('')
 const interimResult = ref('')
+const finalResult = ref('')
 const submittedContent = ref('')
 
 // 语音配置 - 使用模拟处理器
@@ -19,19 +20,20 @@ const speechConfig = {
 const handleSpeechStart = () => {
   speechStatus.value = '🎤 正在录音...'
   interimResult.value = ''
+  finalResult.value = ''
 }
 
 const handleSpeechInterim = (transcript: string) => {
   interimResult.value = transcript
 }
 
-const handleSpeechFinal = () => {
-  speechStatus.value = '✅ 识别完成'
-  interimResult.value = ''
+const handleSpeechFinal = (transcript: string) => {
+  finalResult.value += transcript
+  interimResult.value = finalResult.value
 }
 
 const handleSpeechEnd = () => {
-  speechStatus.value = ''
+  speechStatus.value = '✅ 识别完成'
   interimResult.value = ''
 }
 

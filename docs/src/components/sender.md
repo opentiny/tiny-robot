@@ -147,22 +147,40 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 基础语音交互
 
-`auto-insert` 默认为 `true`，会把最终识别结果插入编辑器；关闭后，应用可以只通过 `speech-final` 接收结果并自行决定后续处理。
+可以按需选择识别文字的填入方式：
+
+- **追加文字（默认）**：`auto-insert` 默认为 `true`，每次将新确认的文字追加到输入框，保留已有内容。
+- **替换全部内容**：设置 `speech-config.autoReplace: true`，在输入框中显示本次录音的识别文字，识别过程中可能变化；结束时只保留已确认的文字。**这会覆盖输入框中已有的内容。**
+- **自行处理文字**：设置 `auto-insert: false`，通过语音事件获取识别文字，不自动填入输入框。此时 `autoReplace` 不生效。
+
+替换模式收到第一段非空的识别文字后才覆盖已有内容；整次录音都没有收到文字时，保留原输入。若已显示的文字最终未被确认，结束时会清空，不恢复原输入。
+
+每次录音的文字单独计算。录音过程中更改 `auto-insert` 或 `autoReplace`，只影响之后收到的文字，不会重新处理已填入的内容。填入的文字会保留原有空格和换行，不会被当作 HTML 解析。
+
+点击开始后，即使还在等待麦克风授权或服务连接，也可以再次点击请求停止。停止后仍可能收到最后确认的文字。
 
 <demo
   vue="../../demos/sender/voice-input.vue"
   :vueFiles="['../../demos/sender/voice-input.vue', '../../demos/sender/mockSpeechHandler.ts']"
   title="基础语音输入"
-  description="使用本地 Mock 处理器对比自动写入编辑器和仅接收识别事件。"
+  description="使用模拟语音识别，对比追加文字、替换全部内容和自行处理文字三种方式。"
 />
 
-浏览器内置处理器是 `VoiceButton` 在未传 `customHandler` 时的默认实现。它会请求麦克风权限，且可用性取决于浏览器；正式产品应处理不支持、拒绝授权和识别失败等情况。
+未设置 `customHandler` 时，`VoiceButton` 使用浏览器自带的语音识别，需要麦克风权限。不同浏览器的支持情况不同，使用时需要处理不支持、拒绝授权和识别失败的情况。
+
+浏览器语音识别支持以下设置：
+
+- `lang`：识别语言，例如 `zh-CN`（中文）或 `en-US`（英语）。未设置时使用页面语言，页面未指定语言时使用浏览器语言。
+- `continuous`：是否持续识别，与文字追加或替换的方式无关。
+- `interimResults`：是否返回尚未确认的识别文字。
+
+这些设置仅用于浏览器语音识别；接入自定义服务时，需要自行配置。更改这些设置或 `customHandler` 后，下次录音生效。本次录音仍使用原来的设置，并可通过按钮停止；结束或失败后，按钮再根据新服务的支持情况显示或隐藏。
 
 #### 第三方语音服务
 
 支持集成第三方语音识别服务（如阿里云、百度、Azure 等）。这是高级集成示例，需要应用提供服务端代理、鉴权信息和浏览器录音权限，不属于基础使用的运行前提。
 
-<demo vue="../../demos/sender/voice-custom.vue" :vueFiles="['../../demos/sender/voice-custom.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="先用本地 Mock handler 验证接入流程，再参考 speechHandlers.ts 接入受保护的服务端代理。" />
+<demo vue="../../demos/sender/voice-custom.vue" :vueFiles="['../../demos/sender/voice-custom.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="先用模拟语音识别运行示例，再参考 speechHandlers.ts，通过自己的服务端接入第三方语音服务。" />
 
 :::warning 参考实现不是可直接部署的服务
 `speechHandlers.ts` 展示阿里云一句话识别和实时识别所需的录音、API 调用与流式处理结构。示例中的代理地址和鉴权信息都是占位配置，应用必须在服务端保护凭据并实现对应代理。
@@ -171,6 +189,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 #### 自定义录音 UI
 
 支持完全自定义语音录制界面，适用于移动端按住说话等场景。
+
+松开后，示例会等待识别结束，通过 `speech-end` 获取本次录音已确认的全部文字，再填入并提交。上滑取消或触摸被系统中断时，会停止录音，忽略之后返回的文字，保留原输入且不提交。识别结束或失败后，才能开始下一次录音。
 
 <demo vue="../../demos/sender/voice-custom-ui.vue" title="移动端按住说话" description="自定义录音 UI，展示移动端按住说话的交互模式。" />
 
@@ -192,7 +212,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
   vue="../../demos/sender/actions-enhanced.vue"
   :vueFiles="['../../demos/sender/actions-enhanced.vue', '../../demos/sender/mockSpeechHandler.ts']"
   title="增强按钮"
-  description="通过插槽添加 Upload、Voice 等增强按钮；语音按钮使用本地 Mock，上传内容随消息提交见下方示例。"
+  description="通过插槽添加上传、语音等按钮；语音按钮使用模拟识别，上传内容随消息提交见下方示例。"
 />
 
 **配置详见**：[UploadButton 属性](#uploadbutton)、[VoiceButton 属性](#voicebutton)
@@ -478,9 +498,11 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `size`              | 按钮尺寸                                                      | `'small' \| 'normal'`                                                         | `normal`（32px）    | 否   |
 | `tooltip`           | 按钮的 Tooltip 内容                                           | `TooltipContent`                                                              | —                   | 否   |
 | `tooltip-placement` | Tooltip 位置                                                  | `TooltipPlacement`                                                            | `'top'`             | 否   |
-| `speech-config`     | 浏览器或自定义语音处理器配置                                  | `SpeechConfig`                                                                | —                   | 否   |
-| `auto-insert`       | 收到最终识别结果时是否插入编辑器                              | `boolean`                                                                     | `true`              | 否   |
-| `on-button-click`   | 点击拦截器；调用 `preventDefault()` 后由应用接管录音开始/停止 | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                   | 否   |
+| `speech-config`     | 浏览器语音识别或自定义语音服务的设置                          | `SpeechConfig`                                                                | —                   | 否   |
+| `auto-insert`       | 是否自动写入编辑器；关闭后仅发送事件，优先于 `autoReplace`     | `boolean`                                                                     | `true`              | 否   |
+| `on-button-click`   | 自定义按钮点击行为；调用 `preventDefault()` 可取消默认操作，再自行开始或停止录音 | `(isActive: boolean, preventDefault: () => void) => void \| Promise<void>` | —                   | 否   |
+
+`on-button-click` 的 `isActive` 表示本次录音尚未结束，包括准备开始、正在识别和正在停止。自定义点击行为时，值为 `true` 应调用 `stop()`，为 `false` 应调用 `start()`。`speechState.isRecording` 仅表示已开始识别，不包含准备开始的阶段。
 
 ### Slots
 
@@ -547,13 +569,13 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 #### VoiceButton Events
 
-| 事件名           | 触发时机                     | 回调参数                        |
+| 事件名           | 说明                         | 回调参数                        |
 | ---------------- | ---------------------------- | ------------------------------- |
-| `speech-start`   | 语音处理器开始识别时         | `() => void`                    |
-| `speech-interim` | 语音处理器返回中间识别结果时 | `(transcript: string) => void`  |
-| `speech-final`   | 语音处理器返回最终结果时     | `(transcript: string) => void`  |
-| `speech-end`     | 语音处理器结束时             | `(transcript?: string) => void` |
-| `speech-error`   | 语音处理器报告错误时         | `(error: Error) => void`        |
+| `speech-start`   | 确认开始识别时触发，不是点击按钮时触发 | `() => void`                    |
+| `speech-interim` | 识别文字更新时触发，返回本次录音当前的全部文字，包含已确认部分；文字可能变化，空字符串表示当前全部文字被清空 | `(transcript: string) => void`  |
+| `speech-final`   | 确认一段文字时触发，只返回这次新确认的部分；多次返回相同文字时，也会分别保留 | `(transcript: string) => void`  |
+| `speech-end`     | 正常结束识别时触发，返回本次录音已确认的全部文字；没有识别结果时，参数可省略 | `(transcript?: string) => void` |
+| `speech-error`   | 识别失败时触发，返回错误信息 | `(error: Error) => void`        |
 
 ### Methods / Expose
 
@@ -580,8 +602,8 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 | 公开成员      | 说明                       | 签名或类型    |
 | ------------- | -------------------------- | ------------- |
-| `start`       | 请求语音处理器开始识别     | `() => void`  |
-| `stop`        | 停止识别并释放处理器       | `() => void`  |
+| `start`       | 请求开始语音识别           | `() => void`  |
+| `stop`        | 请求停止，结束前仍可能返回最终结果 | `() => void`  |
 | `speechState` | 当前录音、支持性与错误状态 | `SpeechState` |
 
 ### Composables
@@ -590,6 +612,11 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | ------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `useSenderContext`             | 在 Sender 内部的自定义子组件中读取编辑器、状态和操作 | `() => SenderContext`；必须在 `TrSender` 组件树内调用，否则抛出错误              |
 | `useSenderContentRegistration` | 为 Sender 注册附件等不写入编辑器的外部提交内容       | `() => SenderContentRegister \| undefined`；不在 `TrSender` 内时返回 `undefined` |
+| `useSpeechHandler`             | 读取语音识别状态，并开始或停止录音                   | `(options: MaybeRefOrGetter<SpeechHookOptions>) => SpeechHandlerResult` |
+
+`useSpeechHandler()` 返回 `speechState`、`start()`、`stop()` 和 `isActive`。通过 `isActive.value` 判断本次录音是否尚未结束，包括准备开始、正在识别和正在停止；`speechState.isRecording` 仅在确认开始识别后为 `true`。
+
+识别过程中再次调用 `start()`，会先停止本次录音，结束后自动开始下一次。调用 `stop()` 可以取消这次自动开始，包括在 `onEnd` 中调用。
 
 `useSenderContentRegistration()` 返回的注册函数接收稳定的 `source` 和普通值、Ref 或 Getter 形式的 `payload`，并返回注销函数。Sender 会持续读取响应式 payload；提交时复制当前注册项，作为 `extra.externalPayloads` 传给 `submit`。注册组件卸载时必须调用注销函数；`TrAttachments` 已在内部完成注册与清理。
 
@@ -744,14 +771,24 @@ function handleSubmit(text: string, data?: StructuredData) {
 
 | 字段                 | 说明                                                                             | 类型                                                                          | 默认值                   |
 | -------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------ |
-| `customHandler`      | 替换浏览器内置识别器；处理器负责支持性检查、启动、停止和资源清理                 | `SpeechHandler`                                                               | 浏览器 Web Speech 处理器 |
-| `lang`               | 浏览器内置识别器使用的语言                                                       | `string`                                                                      | `navigator.language`     |
-| `continuous`         | 浏览器内置识别器是否持续识别                                                     | `boolean`                                                                     | `false`                  |
-| `interimResults`     | 浏览器内置识别器是否返回中间结果                                                 | `boolean`                                                                     | `true`                   |
-| `autoReplace`        | 公开类型中的兼容字段；当前 `VoiceButton` 和内置处理器不会读取该值                | `boolean`                                                                     | —                        |
-| `onVoiceButtonClick` | 公开类型中的兼容字段；当前点击拦截应使用 `VoiceButton` 的 `on-button-click` Prop | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                        |
+| `customHandler`      | 接入自定义语音服务，需提供检查是否支持、开始识别和停止并清理资源的方法           | `SpeechHandler`                                                               | 浏览器语音识别           |
+| `lang`               | 浏览器语音识别的语言，如 `en`、`zh`、`zh-CN`、`en-US`                            | `string`                                                                      | 页面语言；未指定时使用浏览器语言 |
+| `continuous`         | 浏览器语音识别是否持续进行                                                       | `boolean`                                                                     | `false`                  |
+| `interimResults`     | 浏览器语音识别是否返回尚未确认的文字                                             | `boolean`                                                                     | `true`                   |
+| `autoReplace`        | 自动填入文字时，是否用本次识别的文字替换整个输入框；会覆盖已有内容               | `boolean`                                                                     | `false`                  |
+| `onVoiceButtonClick` | 已弃用且不生效，请改用 `VoiceButton` 的 `on-button-click`                        | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                        |
 
-`SpeechHandler` 的完整接口如下。`start` 应通过回调报告识别过程；`stop` 必须停止录音、网络连接和计时器等外部资源。
+#### 接入自定义语音服务
+
+通过 `customHandler` 接入服务时，需要提供以下 `SpeechHandler` 方法。`start` 通过 `SpeechCallbacks` 通知识别进度和结果；`stop` 需要停止录音，并关闭网络连接、清除计时器等。
+
+- `onFinal(text)`：每次只传新确认的文字，不要重复传之前的部分。例如，先后传入 `A`、`B`，结果为 `AB`；两次传入 `你好`，结果为 `你好你好`，不能因为文字相同就省略一次。
+- `onInterim(text)`：传入本次录音当前的全部识别文字，包含已确认部分。如果服务每次只返回一句，需要先自行拼接；文字发生修改、缩短或被清空时，也需要传入更新后的完整内容。
+- `onEnd(text?)`：识别结束后调用一次，传入本次录音已确认的全部文字，没有结果时可省略参数。无论是自动结束还是手动停止，都需要通知结束；失败时调用 `onError`，不要再调用 `onEnd`。
+- `stop()`：请求停止并清理资源。即使返回的 Promise 已完成，仍需通过 `onEnd` 或 `onError` 通知结束；结束前可能继续收到新确认的文字。如果在等待授权或连接时被停止，之后收到授权或连接成功的结果，也不能重新开启录音。
+- 使用自动替换时，识别失败会保留已确认的文字，移除尚未确认的部分。组件移除后，不再处理语音服务返回的结果。
+
+**升级已有接入代码：**如果原来每次调用 `onFinal` 都传入此前识别的全部文字，需要改为只传这次新确认的部分。自定义按钮点击行为请使用 `on-button-click`，旧字段 `onVoiceButtonClick` 已不生效。
 
 ```ts
 interface SpeechHandler {

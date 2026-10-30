@@ -2,8 +2,14 @@
   "extends": "../components/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "paths": { "@opentiny/tiny-robot": ["../components/src/index.ts"] },
     "allowSyntheticDefaultImports": true,
     "types": ["vite/client", "node"]
   },
-  "include": ["component/**/*.ts", "component/**/*.vue", "../components/src/vite-env.d.ts"]
+  "include": [
+    "component/**/*.ts",
+    "component/**/*.vue",
+    "../components/src/vite-env.d.ts",
+    "../components/node_modules/@types/dom-speech-recognition/index.d.ts"
+  ]
 }
