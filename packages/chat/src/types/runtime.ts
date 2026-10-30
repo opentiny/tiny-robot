@@ -44,6 +44,8 @@ export interface ChatBeforeSendContext {
 
 export type ChatBeforeSend = (context: ChatBeforeSendContext) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
 
+export type ChatTransformSendPayload = (payload: ChatSendPayload) => ChatSendPayload | Promise<ChatSendPayload>
+
 export interface ChatMcpRunConfig {
   serverIds: readonly string[]
   toolIds: Readonly<Record<string, readonly string[]>>

@@ -1,5 +1,5 @@
 import { computed, shallowRef, watch } from 'vue'
-import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
+import type { ChatMessage, UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
   ChatConversationInfo,
@@ -8,6 +8,7 @@ import type {
   ChatRunConfig,
   ChatRuntime,
   ChatSendPayload,
+  ChatTransformSendPayload,
 } from '../types'
 import {
   areEnabledMcpToolsReady,
@@ -31,6 +32,7 @@ export interface UseChatRuntimeFromConversationOptions {
   conversation: UseConversationReturn
   titleGenerator?: TitleGenerator
   beforeSend?: ChatBeforeSend
+  transformSendPayload?: ChatTransformSendPayload
   send?: (payload: KitRuntimeSendPayload) => boolean | void | Promise<boolean | void>
   composer?: UseKitChatComposerOptions
 }
@@ -45,7 +47,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 }
 
 export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime {
-  const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
+  const { conversation, titleGenerator, beforeSend, transformSendPayload, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
   const creatingConversationForSend = shallowRef(false)
   const customSendConversationSnapshots = new Set<Set<string>>()
@@ -136,8 +138,9 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
 
   async function sendDefaultMessage(payload: KitRuntimeSendPayload, targetConversation: KitConversation) {
     const nextText = payload.text.trim()
+    const content = payload.structuredData?.length ? payload.structuredData : nextText
 
-    if (!nextText) {
+    if (!content || (Array.isArray(content) && content.length === 0)) {
       return null
     }
 
@@ -149,7 +152,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
 
     await targetConversation.engine.send({
       role: 'user',
-      content: nextText,
+      content: content as ChatMessage['content'],
       ...(payload.externalPayloads ? { externalPayloads: payload.externalPayloads } : {}),
       metadata: {
         createdAt: now,
@@ -166,7 +169,9 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   }
 
   async function handleSend(payload: ChatSendPayload): Promise<boolean> {
-    const text = payload.text.trim()
+    const transformedPayload = transformSendPayload ? await transformSendPayload({ ...payload }) : payload
+    const text = transformedPayload.text.trim()
+    const hasStructuredData = Boolean(transformedPayload.structuredData?.length)
     let targetConversation = conversation.activeConversation.value
     const targetConversationId = targetConversation?.id ?? null
     const targetEngine = targetConversation?.engine
@@ -187,7 +192,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       )
     }
     try {
-      if ((!text && !send) || !eligible()) {
+      if ((!text && !hasStructuredData && !send) || !eligible()) {
         return false
       }
 
@@ -200,14 +205,14 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       }
 
       const effectivePayload = {
-        ...payload,
+        ...transformedPayload,
         text,
         conversationId: targetConversationId,
         runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
       }
 
       const beforeSendResult = beforeSend
-        ? await beforeSend(createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig))
+        ? await beforeSend(createBeforeSendContext({ ...transformedPayload, text }, effectivePayload.runConfig))
         : undefined
 
       if (beforeSendResult === 'reject') {

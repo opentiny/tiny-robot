@@ -73,4 +73,9 @@ export interface UseConversationReturn {
   saveMessages: (id?: string) => Promise<void>
   sendMessage: (content: string) => Promise<void>
   abortActiveRequest: () => Promise<void>
+  /**
+   * Release in-memory engines and persistence watchers without deleting
+   * conversations or messages from the configured storage.
+   */
+  dispose?: () => Promise<void>
 }

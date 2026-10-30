@@ -46,7 +46,8 @@ export interface LayoutAsideState {
 
 export interface LayoutAsideToggleContext {
   isOpen: ComputedRef<boolean>
-  toggle: () => void
+  drawerId: string
+  toggle: (opener?: HTMLElement | null) => void
 }
 
 export interface LayoutContext {

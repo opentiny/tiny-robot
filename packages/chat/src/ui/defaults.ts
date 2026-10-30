@@ -11,7 +11,7 @@ import type {
   ChatModelView,
   ChatPromptsOptions,
   ChatSenderOptions,
-  ChatSenderView,
+  ResolvedChatSenderView,
   ChatSurfaceOptions,
   ChatWelcomeOptions,
 } from '../types'
@@ -23,7 +23,7 @@ export interface DefaultChatUIData {
   bubble: {
     messages: []
   }
-  sender: Required<ChatSenderView>
+  sender: ResolvedChatSenderView
   model: ChatModelView | undefined
   mcp: ChatMcpView | undefined
 }

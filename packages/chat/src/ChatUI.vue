@@ -3,6 +3,7 @@ import { useWindowSize } from '@vueuse/core'
 import { computed, h, nextTick, onBeforeUpdate, shallowRef } from 'vue'
 import { TrAnchor, TrLayout } from '@opentiny/tiny-robot'
 import type {
+  Attachment,
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
   ExtensionManagerTabChangeEvent,
@@ -18,6 +19,7 @@ import ChatHeader from './ui/layout/ChatHeader.vue'
 import ChatMessages from './ui/messages/ChatMessages.vue'
 import ChatRightAside from './ui/layout/ChatRightAside.vue'
 import ChatMcpPanel from './ui/layout/ChatMcpPanel.vue'
+import { ChatRendererOutlet } from './ui/renderers/ChatRendererOutlet'
 import { useChatAsideState } from './composables/useChatAsideState'
 import { createDefaultChatUIOptions } from './ui/defaults'
 import { resolveChatUIData } from './ui/resolveData'
@@ -35,6 +37,7 @@ import type {
   ChatModelFeatureChangePayload,
   ChatModelReasoningEffortChangePayload,
   ChatRightAsidePanelOptions,
+  ChatSenderSlotProps,
   ChatSendPayload,
   SenderDragPayload,
   ChatUIEmits,
@@ -84,12 +87,21 @@ const isMobileViewport = computed(() => {
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
-const hasRightAsidePanelSlot = computed(() =>
-  Boolean(currentSlots.value['layout-right-aside'] || currentSlots.value['layout-right-aside-panel']),
+const hasRightAsidePanelCustomization = computed(() =>
+  Boolean(
+    currentSlots.value['layout-right-aside'] ||
+    currentSlots.value['layout-right-aside-panel'] ||
+    props.renderers?.['layout-right-aside'] ||
+    props.renderers?.['layout-right-aside-panel'],
+  ),
 )
 
-const hasLegacyLeftAsideSlot = computed(() => Boolean(currentSlots.value['layout-left-aside']))
-const hasLayoutEmptyStateSlot = computed(() => Boolean(currentSlots.value['layout-empty-state']))
+const hasLegacyLeftAsideCustomization = computed(() =>
+  Boolean(currentSlots.value['layout-left-aside'] || props.renderers?.['layout-left-aside']),
+)
+const hasLayoutEmptyStateCustomization = computed(() =>
+  Boolean(currentSlots.value['layout-empty-state'] || props.renderers?.['layout-empty-state']),
+)
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
@@ -113,7 +125,7 @@ const hasRegisteredExtensions = computed(() => Boolean(registeredExtensions.valu
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
   const panels =
-    hasRightAsidePanelSlot.value && effectiveRightAsideLayout.value !== false
+    hasRightAsidePanelCustomization.value && effectiveRightAsideLayout.value !== false
       ? effectiveRightAsideLayout.value.panels
       : []
 
@@ -162,6 +174,20 @@ const activeRightAsidePanel = computed(() => asideState.resolvedRightAsidePanel.
 const activeRightAsidePanelOptions = computed(() =>
   availableRightAsidePanels.value.find((panel) => panel.id === activeRightAsidePanel.value),
 )
+const rightAsidePanelRendererContext = computed(() => ({
+  panelId: activeRightAsidePanel.value,
+  panel: activeRightAsidePanelOptions.value,
+  panels: availableRightAsidePanels.value,
+  openRightAside: asideState.openRightAside,
+  closeRightAside: asideState.closeRightAside,
+  toggleRightAside: asideState.toggleRightAside,
+  activateRightAsidePanel: asideState.activateRightAsidePanel,
+  isRightAsideOpen: asideState.resolvedRightAsideOpen.value,
+}))
+const rightAsideTitleRendererContext = computed(() => ({
+  panelId: activeRightAsidePanel.value,
+  panel: activeRightAsidePanelOptions.value,
+}))
 const bubbleRoleConfigs = computed(
   () => resolvedOptions.value.bubble.bubbleList.roleConfigs ?? { system: { hidden: true } },
 )
@@ -169,7 +195,33 @@ const visibleMessages = computed(() =>
   resolvedData.value.bubble.messages.filter((message) => !isMessageHidden(message.role)),
 )
 const isEmpty = computed(() => props.isEmpty ?? visibleMessages.value.length === 0)
-const hasLayoutMainSlot = computed(() => Boolean(currentSlots.value['layout-main']))
+const mainRendererContext = computed(() => ({
+  messages: visibleMessages.value,
+  request: resolvedData.value.request,
+  conversation: resolvedData.value.conversation,
+}))
+const emptyStateRendererContext = computed(() => ({
+  messages: visibleMessages.value,
+  request: resolvedData.value.request,
+  conversation: resolvedData.value.conversation,
+  isEmpty: true as const,
+}))
+const headerRendererContext = computed(() => ({
+  title: resolvedData.value.conversation.title,
+  isEmpty: isEmpty.value,
+  conversation: resolvedData.value.conversation,
+  createConversation: handleCreateConversation,
+  isLeftAsideOpen: asideState.resolvedLeftAsideOpen.value,
+  openLeftAside: asideState.openLeftAside,
+  closeLeftAside: asideState.closeLeftAside,
+  toggleLeftAside: asideState.toggleLeftAside,
+  openRightAside: asideState.openRightAside,
+  closeRightAside: asideState.closeRightAside,
+}))
+const hasLayoutMainCustomization = computed(() =>
+  Boolean(currentSlots.value['layout-main'] || props.renderers?.['layout-main']),
+)
+const layoutMainRenderer = computed(() => props.renderers?.['layout-main'])
 const isAnchorEnabled = computed(() => {
   const anchor = props.ui?.anchor
   return Boolean(
@@ -177,11 +229,11 @@ const isAnchorEnabled = computed(() => {
     anchor.visible !== false &&
     viewportWidth.value >= (anchor.minWidth ?? 768) &&
     !isEmpty.value &&
-    !hasLayoutMainSlot.value,
+    !hasLayoutMainCustomization.value,
   )
 })
 const isCustomEmptyStateActive = computed(
-  () => isEmpty.value && hasLayoutEmptyStateSlot.value && !hasLayoutMainSlot.value,
+  () => isEmpty.value && hasLayoutEmptyStateCustomization.value && !hasLayoutMainCustomization.value,
 )
 const isEmptyStateCentered = computed(() => isEmpty.value && resolvedOptions.value.layout.emptyState === 'center')
 
@@ -193,7 +245,7 @@ const isWelcomeComposerCentered = computed(
     isSenderVisible.value &&
     resolvedOptions.value.welcome !== false &&
     resolvedOptions.value.layout.composer.welcome === 'center' &&
-    !hasLayoutMainSlot.value,
+    !hasLayoutMainCustomization.value,
 )
 const isFooterComposerVisible = computed(() => isDefaultComposerVisible.value && !isWelcomeComposerCentered.value)
 const layoutStyle = computed(() => ({
@@ -211,8 +263,18 @@ const layoutStyle = computed(() => ({
 const layoutProps = computed<LayoutProps>(() => {
   const layout = resolvedOptions.value.layout
   const asideProps = {
-    leftAside: isLeftAsideVisible.value ? asideState.leftAsideOptions.value : undefined,
-    rightAside: isRightAsideVisible.value ? asideState.rightAsideOptions.value : undefined,
+    leftAside: isLeftAsideVisible.value
+      ? {
+          ...asideState.leftAsideOptions.value,
+          ariaLabel: resolvedOptions.value.labels.collapseConversationList,
+        }
+      : undefined,
+    rightAside: isRightAsideVisible.value
+      ? {
+          ...asideState.rightAsideOptions.value,
+          ariaLabel: activeRightAsidePanelOptions.value?.title ?? resolvedOptions.value.labels.rightAsideTitle,
+        }
+      : undefined,
   }
 
   if (layout.surface.mode === 'floating') {
@@ -330,6 +392,18 @@ function handleClear() {
   emit('clear')
 }
 
+function handleAttachmentsSelect(files: File[]) {
+  emit('attachments-select', files)
+}
+
+function handleAttachmentsUpdate(attachments: Attachment[]) {
+  emit('update:attachments', attachments)
+}
+
+function handleAttachmentError(error: Error) {
+  emit('attachment-error', error)
+}
+
 function handleOpenMcpPanel() {
   if (visibleMcp.value) asideState.toggleRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
 }
@@ -416,6 +490,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
 }
 
+function handleRendererError(error: unknown) {
+  emit('renderer-error', error)
+}
+
 function handleFloatingStateUpdate(value: LayoutFloatingState) {
   emit('update:floating-state', value)
 }
@@ -463,6 +541,9 @@ const composerEvents = {
   onSubmit: handleSubmit,
   onCancel: handleCancel,
   onClear: handleClear,
+  onAttachmentsSelect: handleAttachmentsSelect,
+  'onUpdate:attachments': handleAttachmentsUpdate,
+  onAttachmentError: handleAttachmentError,
   'onUpdate:value': handleInputValue,
   onModelSelect: handleModelSelect,
   onModelFeatureChange: handleModelFeatureChange,
@@ -480,6 +561,9 @@ const composerTemplateEvents = {
   submit: handleSubmit,
   cancel: handleCancel,
   clear: handleClear,
+  attachmentsSelect: handleAttachmentsSelect,
+  'update:attachments': handleAttachmentsUpdate,
+  attachmentError: handleAttachmentError,
   'update:value': handleInputValue,
   modelSelect: handleModelSelect,
   modelFeatureChange: handleModelFeatureChange,
@@ -491,6 +575,27 @@ const composerTemplateEvents = {
   senderPaste: handleSenderPaste,
   openMcpPanel: handleOpenMcpPanel,
   openExtensionsPanel: handleOpenExtensionsPanel,
+}
+
+type ComposerRendererName = 'composer-before' | 'composer-after' | 'layout-footer'
+
+function resolveComposerCustomization(name: ComposerRendererName) {
+  const slot = slots[name]
+  if (slot) {
+    return slot
+  }
+
+  const renderer = props.renderers?.[name]
+  if (!renderer) {
+    return undefined
+  }
+
+  return (context: ChatSenderSlotProps) =>
+    h(ChatRendererOutlet, {
+      renderer,
+      context,
+      onError: handleRendererError,
+    })
 }
 
 function renderEmptyStateComposer() {
@@ -506,9 +611,9 @@ function renderEmptyStateComposer() {
       ref: composerRef,
     },
     {
-      'composer-before': currentSlots.value['composer-before'],
-      'composer-after': currentSlots.value['composer-after'],
-      'layout-footer': currentSlots.value['layout-footer'],
+      'composer-before': resolveComposerCustomization('composer-before'),
+      'composer-after': resolveComposerCustomization('composer-after'),
+      'layout-footer': resolveComposerCustomization('layout-footer'),
       'sender-header': currentSlots.value['sender-header'],
       'sender-content': currentSlots.value['sender-content'],
       'sender-actions-inline': currentSlots.value['sender-actions-inline'],
@@ -554,41 +659,109 @@ function renderEmptyStateComposer() {
         @close="asideState.closeLeftAside"
         @toggle="asideState.toggleLeftAside"
       >
-        <template v-if="hasLegacyLeftAsideSlot" #default>
-          <slot
-            name="layout-left-aside"
-            :conversation="resolvedData.conversation"
-            :is-open="asideState.resolvedLeftAsideOpen.value"
-            :is-dock="asideState.isLeftAsideDock.value"
-            :create-conversation="handleCreateConversation"
-            :switch-conversation="(id: string) => handleSwitchConversation({ id })"
-            :rename-conversation="(id: string, title: string) => handleRenameConversation({ id }, title)"
-            :delete-conversation="handleDeleteConversation"
-            :open-left-aside="asideState.openLeftAside"
-            :close-left-aside="asideState.closeLeftAside"
-            :toggle-left-aside="asideState.toggleLeftAside"
+        <template v-if="hasLegacyLeftAsideCustomization" #default="slotProps">
+          <slot v-if="$slots['layout-left-aside']" name="layout-left-aside" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
           />
         </template>
-        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-rail']" #rail="slotProps">
-          <slot name="layout-left-aside-rail" v-bind="slotProps" />
-        </template>
-        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-brand']" #brand="slotProps">
-          <slot name="layout-left-aside-brand" v-bind="slotProps" />
-        </template>
-        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-actions']" #actions="slotProps">
-          <slot name="layout-left-aside-actions" v-bind="slotProps" />
-        </template>
-        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-content']" #content="slotProps">
-          <slot name="layout-left-aside-content" v-bind="slotProps" />
-        </template>
-        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-footer']" #footer="slotProps">
-          <slot name="layout-left-aside-footer" v-bind="slotProps" />
+        <template
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-rail'] || props.renderers?.['layout-left-aside-rail'])
+          "
+          #rail="slotProps"
+        >
+          <slot v-if="$slots['layout-left-aside-rail']" name="layout-left-aside-rail" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-rail']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
         </template>
         <template
-          v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-history-item-prefix']"
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-brand'] || props.renderers?.['layout-left-aside-brand'])
+          "
+          #brand="slotProps"
+        >
+          <slot v-if="$slots['layout-left-aside-brand']" name="layout-left-aside-brand" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-brand']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
+        </template>
+        <template
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-actions'] || props.renderers?.['layout-left-aside-actions'])
+          "
+          #actions="slotProps"
+        >
+          <slot v-if="$slots['layout-left-aside-actions']" name="layout-left-aside-actions" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-actions']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
+        </template>
+        <template
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-content'] || props.renderers?.['layout-left-aside-content'])
+          "
+          #content="slotProps"
+        >
+          <slot v-if="$slots['layout-left-aside-content']" name="layout-left-aside-content" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-content']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
+        </template>
+        <template
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-footer'] || props.renderers?.['layout-left-aside-footer'])
+          "
+          #footer="slotProps"
+        >
+          <slot v-if="$slots['layout-left-aside-footer']" name="layout-left-aside-footer" v-bind="slotProps" />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-footer']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
+        </template>
+        <template
+          v-if="
+            !hasLegacyLeftAsideCustomization &&
+            ($slots['layout-left-aside-history-item-prefix'] ||
+              props.renderers?.['layout-left-aside-history-item-prefix'])
+          "
           #history-item-prefix="slotProps"
         >
-          <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
+          <slot
+            v-if="$slots['layout-left-aside-history-item-prefix']"
+            name="layout-left-aside-history-item-prefix"
+            v-bind="slotProps"
+          />
+          <ChatRendererOutlet
+            v-else
+            :renderer="props.renderers!['layout-left-aside-history-item-prefix']!"
+            :context="slotProps"
+            :on-error="handleRendererError"
+          />
         </template>
       </ChatLeftAside>
     </template>
@@ -610,8 +783,12 @@ function renderEmptyStateComposer() {
           @toggle-left-aside="asideState.toggleLeftAside"
           @open-right-aside="asideState.openRightAside"
         >
-          <template v-if="$slots['layout-header']" #default>
+          <template v-if="$slots['header-notice']" #notice>
+            <slot name="header-notice" />
+          </template>
+          <template v-if="$slots['layout-header'] || props.renderers?.['layout-header']" #default>
             <slot
+              v-if="$slots['layout-header']"
               name="layout-header"
               :title="resolvedData.conversation.title"
               :is-empty="isEmpty"
@@ -624,6 +801,12 @@ function renderEmptyStateComposer() {
               :toggle-left-aside="asideState.toggleLeftAside"
               :open-right-aside="asideState.openRightAside"
               :close-right-aside="asideState.closeRightAside"
+            />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['layout-header']!"
+              :context="headerRendererContext"
+              :on-error="handleRendererError"
             />
           </template>
         </ChatHeader>
@@ -644,12 +827,15 @@ function renderEmptyStateComposer() {
             :welcome="resolvedOptions.welcome"
             :prompts="resolvedOptions.prompts"
             :labels="resolvedOptions.labels"
+            :busy="resolvedData.sender.loading || resolvedData.request?.state === 'processing'"
             :is-empty="isEmpty"
             :center-empty-state="isEmptyStateCentered"
             :center-welcome-composer="isWelcomeComposerCentered"
+            :bubble-renderers="props.bubbleRenderers"
             @prompt-click="handlePromptClick"
             @bubble-state-change="handleBubbleStateChange"
             @bubble-event="handleBubbleEvent"
+            @renderer-error="handleRendererError"
           >
             <template v-if="$slots['layout-main']" #default>
               <slot
@@ -659,14 +845,33 @@ function renderEmptyStateComposer() {
                 :conversation="resolvedData.conversation"
               />
             </template>
-            <template v-if="!hasLayoutMainSlot && $slots['layout-empty-state']" #empty-state>
+            <template v-else-if="layoutMainRenderer" #default>
+              <ChatRendererOutlet
+                :renderer="layoutMainRenderer!"
+                :context="mainRendererContext"
+                :on-error="handleRendererError"
+              />
+            </template>
+            <template
+              v-if="
+                !hasLayoutMainCustomization && ($slots['layout-empty-state'] || props.renderers?.['layout-empty-state'])
+              "
+              #empty-state
+            >
               <slot
+                v-if="$slots['layout-empty-state']"
                 name="layout-empty-state"
                 :messages="visibleMessages"
                 :request="resolvedData.request"
                 :conversation="resolvedData.conversation"
                 :is-empty="true"
                 :render-composer="renderEmptyStateComposer"
+              />
+              <ChatRendererOutlet
+                v-else
+                :renderer="props.renderers!['layout-empty-state']!"
+                :context="emptyStateRendererContext"
+                :on-error="handleRendererError"
               />
             </template>
             <template v-if="$slots['welcome-footer']" #welcome-footer>
@@ -682,14 +887,41 @@ function renderEmptyStateComposer() {
                 v-bind="composerProps"
                 v-on="composerTemplateEvents"
               >
-                <template v-if="$slots['composer-before']" #composer-before="slotProps">
-                  <slot name="composer-before" v-bind="slotProps" />
+                <template
+                  v-if="$slots['composer-before'] || props.renderers?.['composer-before']"
+                  #composer-before="slotProps"
+                >
+                  <slot v-if="$slots['composer-before']" name="composer-before" v-bind="slotProps" />
+                  <ChatRendererOutlet
+                    v-else
+                    :renderer="props.renderers!['composer-before']!"
+                    :context="slotProps"
+                    :on-error="handleRendererError"
+                  />
                 </template>
-                <template v-if="$slots['composer-after']" #composer-after="slotProps">
-                  <slot name="composer-after" v-bind="slotProps" />
+                <template
+                  v-if="$slots['composer-after'] || props.renderers?.['composer-after']"
+                  #composer-after="slotProps"
+                >
+                  <slot v-if="$slots['composer-after']" name="composer-after" v-bind="slotProps" />
+                  <ChatRendererOutlet
+                    v-else
+                    :renderer="props.renderers!['composer-after']!"
+                    :context="slotProps"
+                    :on-error="handleRendererError"
+                  />
                 </template>
-                <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
-                  <slot name="layout-footer" v-bind="slotProps" />
+                <template
+                  v-if="$slots['layout-footer'] || props.renderers?.['layout-footer']"
+                  #layout-footer="slotProps"
+                >
+                  <slot v-if="$slots['layout-footer']" name="layout-footer" v-bind="slotProps" />
+                  <ChatRendererOutlet
+                    v-else
+                    :renderer="props.renderers!['layout-footer']!"
+                    :context="slotProps"
+                    :on-error="handleRendererError"
+                  />
                 </template>
                 <template v-if="$slots['sender-header']" #sender-header>
                   <slot name="sender-header" />
@@ -708,17 +940,44 @@ function renderEmptyStateComposer() {
                 </template>
               </ChatInputRegion>
             </template>
-            <template v-if="$slots['bubble-prefix']" #bubble-prefix="slotProps">
-              <slot name="bubble-prefix" v-bind="slotProps" />
+            <template v-if="$slots['bubble-prefix'] || props.renderers?.['bubble-prefix']" #bubble-prefix="slotProps">
+              <slot v-if="$slots['bubble-prefix']" name="bubble-prefix" v-bind="slotProps" />
+              <ChatRendererOutlet
+                v-else
+                :renderer="props.renderers!['bubble-prefix']!"
+                :context="slotProps"
+                :on-error="handleRendererError"
+              />
             </template>
-            <template v-if="$slots['bubble-suffix']" #bubble-suffix="slotProps">
-              <slot name="bubble-suffix" v-bind="slotProps" />
+            <template v-if="$slots['bubble-suffix'] || props.renderers?.['bubble-suffix']" #bubble-suffix="slotProps">
+              <slot v-if="$slots['bubble-suffix']" name="bubble-suffix" v-bind="slotProps" />
+              <ChatRendererOutlet
+                v-else
+                :renderer="props.renderers!['bubble-suffix']!"
+                :context="slotProps"
+                :on-error="handleRendererError"
+              />
             </template>
-            <template v-if="$slots['bubble-after']" #bubble-after="slotProps">
-              <slot name="bubble-after" v-bind="slotProps" />
+            <template v-if="$slots['bubble-after'] || props.renderers?.['bubble-after']" #bubble-after="slotProps">
+              <slot v-if="$slots['bubble-after']" name="bubble-after" v-bind="slotProps" />
+              <ChatRendererOutlet
+                v-else
+                :renderer="props.renderers!['bubble-after']!"
+                :context="slotProps"
+                :on-error="handleRendererError"
+              />
             </template>
-            <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
-              <slot name="bubble-content-footer" v-bind="slotProps" />
+            <template
+              v-if="$slots['bubble-content-footer'] || props.renderers?.['bubble-content-footer']"
+              #bubble-content-footer="slotProps"
+            >
+              <slot v-if="$slots['bubble-content-footer']" name="bubble-content-footer" v-bind="slotProps" />
+              <ChatRendererOutlet
+                v-else
+                :renderer="props.renderers!['bubble-content-footer']!"
+                :context="slotProps"
+                :on-error="handleRendererError"
+              />
             </template>
           </ChatMessages>
         </div>
@@ -749,7 +1008,7 @@ function renderEmptyStateComposer() {
       <div
         v-if="isFooterComposerVisible"
         class="chat-panel-content chat-panel-content--footer"
-        :class="{ 'has-composer-after': $slots['composer-after'] }"
+        :class="{ 'has-composer-after': $slots['composer-after'] || props.renderers?.['composer-after'] }"
       >
         <ChatInputRegion ref="composerRef" v-bind="composerProps" v-on="composerTemplateEvents">
           <template v-if="resolvedOptions.layout.showScrollToBottom" #scroll-actions>
@@ -761,14 +1020,35 @@ function renderEmptyStateComposer() {
               />
             </div>
           </template>
-          <template v-if="$slots['composer-before']" #composer-before="slotProps">
-            <slot name="composer-before" v-bind="slotProps" />
+          <template
+            v-if="$slots['composer-before'] || props.renderers?.['composer-before']"
+            #composer-before="slotProps"
+          >
+            <slot v-if="$slots['composer-before']" name="composer-before" v-bind="slotProps" />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['composer-before']!"
+              :context="slotProps"
+              :on-error="handleRendererError"
+            />
           </template>
-          <template v-if="$slots['composer-after']" #composer-after="slotProps">
-            <slot name="composer-after" v-bind="slotProps" />
+          <template v-if="$slots['composer-after'] || props.renderers?.['composer-after']" #composer-after="slotProps">
+            <slot v-if="$slots['composer-after']" name="composer-after" v-bind="slotProps" />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['composer-after']!"
+              :context="slotProps"
+              :on-error="handleRendererError"
+            />
           </template>
-          <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
-            <slot name="layout-footer" v-bind="slotProps" />
+          <template v-if="$slots['layout-footer'] || props.renderers?.['layout-footer']" #layout-footer="slotProps">
+            <slot v-if="$slots['layout-footer']" name="layout-footer" v-bind="slotProps" />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['layout-footer']!"
+              :context="slotProps"
+              :on-error="handleRendererError"
+            />
           </template>
           <template v-if="$slots['sender-header']" #sender-header>
             <slot name="sender-header" />
@@ -801,8 +1081,14 @@ function renderEmptyStateComposer() {
         :activate-right-aside-panel="asideState.activateRightAsidePanel"
         :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
       >
+        <ChatRendererOutlet
+          v-if="props.renderers?.['layout-right-aside']"
+          :renderer="props.renderers['layout-right-aside']"
+          :context="rightAsidePanelRendererContext"
+          :on-error="handleRendererError"
+        />
         <ChatMcpPanel
-          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && (visibleMcp || hasRegisteredExtensions)"
+          v-else-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && (visibleMcp || hasRegisteredExtensions)"
           :mcp="visibleMcp"
           :labels="resolvedOptions.labels"
           :extension-tabs="registeredExtensions?.tabs"
@@ -818,11 +1104,29 @@ function renderEmptyStateComposer() {
           @extension-name-click="handleExtensionNameClick"
           @extension-tab-change="handleExtensionTabChange"
         >
-          <template v-if="$slots['extension-header-actions']" #extension-header-actions="slotProps">
-            <slot name="extension-header-actions" v-bind="slotProps" />
+          <template
+            v-if="$slots['extension-header-actions'] || props.renderers?.['extension-header-actions']"
+            #extension-header-actions="slotProps"
+          >
+            <slot v-if="$slots['extension-header-actions']" name="extension-header-actions" v-bind="slotProps" />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['extension-header-actions']!"
+              :context="slotProps"
+              :on-error="handleRendererError"
+            />
           </template>
-          <template v-if="$slots['extension-overlay']" #extension-overlay="slotProps">
-            <slot name="extension-overlay" v-bind="slotProps" />
+          <template
+            v-if="$slots['extension-overlay'] || props.renderers?.['extension-overlay']"
+            #extension-overlay="slotProps"
+          >
+            <slot v-if="$slots['extension-overlay']" name="extension-overlay" v-bind="slotProps" />
+            <ChatRendererOutlet
+              v-else
+              :renderer="props.renderers!['extension-overlay']!"
+              :context="slotProps"
+              :on-error="handleRendererError"
+            />
           </template>
         </ChatMcpPanel>
         <ChatRightAside
@@ -838,22 +1142,36 @@ function renderEmptyStateComposer() {
               :panel-id="activeRightAsidePanel"
               :panel="activeRightAsidePanelOptions"
             />
+            <ChatRendererOutlet
+              v-else-if="props.renderers?.['layout-right-aside-title']"
+              :renderer="props.renderers['layout-right-aside-title']"
+              :context="rightAsideTitleRendererContext"
+              :on-error="handleRendererError"
+            />
             <h2 v-else class="chat-right-aside-title">
               {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
             </h2>
           </template>
-          <slot
-            v-if="activeRightAsidePanelOptions"
-            name="layout-right-aside-panel"
-            :panel-id="activeRightAsidePanel"
-            :panel="activeRightAsidePanelOptions"
-            :panels="availableRightAsidePanels"
-            :open-right-aside="asideState.openRightAside"
-            :close-right-aside="asideState.closeRightAside"
-            :toggle-right-aside="asideState.toggleRightAside"
-            :activate-right-aside-panel="asideState.activateRightAsidePanel"
-            :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
-          />
+          <template v-if="activeRightAsidePanelOptions">
+            <slot
+              v-if="$slots['layout-right-aside-panel']"
+              name="layout-right-aside-panel"
+              :panel-id="activeRightAsidePanel"
+              :panel="activeRightAsidePanelOptions"
+              :panels="availableRightAsidePanels"
+              :open-right-aside="asideState.openRightAside"
+              :close-right-aside="asideState.closeRightAside"
+              :toggle-right-aside="asideState.toggleRightAside"
+              :activate-right-aside-panel="asideState.activateRightAsidePanel"
+              :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
+            />
+            <ChatRendererOutlet
+              v-else-if="props.renderers?.['layout-right-aside-panel']"
+              :renderer="props.renderers['layout-right-aside-panel']"
+              :context="rightAsidePanelRendererContext"
+              :on-error="handleRendererError"
+            />
+          </template>
         </ChatRightAside>
       </slot>
     </template>

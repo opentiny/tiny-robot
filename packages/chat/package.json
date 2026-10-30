@@ -18,6 +18,20 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental.d.ts",
+      "browser": "./dist/experimental.js",
+      "node": "./dist/experimental-node.js",
+      "import": "./dist/experimental.js"
+    },
+    "./experimental/web-component.css": "./dist/web-component.css",
+    "./dist/*": "./dist/*"
+  },
   "sideEffects": [
     "**/*.css"
   ],
@@ -26,7 +40,9 @@
     "README*"
   ],
   "scripts": {
-    "build": "pnpm type-check && vite build",
+    "build": "pnpm type-check && pnpm build:stable && pnpm build:experimental",
+    "build:stable": "vite build",
+    "build:experimental": "vite build --config vite.experimental.config.ts",
     "dev": "vite --host 0.0.0.0",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
