@@ -1,0 +1,237 @@
+<main class="app-shell">
+  <header class="topbar">
+    <div class="product-heading">
+      <span class="product-mark" aria-hidden="true">T</span>
+      <div>
+        <p>Angular 20 · Experimental</p>
+        <h1>TrChat 应用级验证</h1>
+      </div>
+    </div>
+
+    <label class="conversation-search">
+      <span>搜索会话</span>
+      <input
+        type="search"
+        aria-label="搜索会话"
+        placeholder="搜索会话"
+        [value]="searchQuery()"
+        (input)="searchConversations($event)"
+      />
+    </label>
+
+    <div class="topbar-actions">
+      <button data-testid="new-conversation" type="button" (click)="createConversation()">
+        新建会话
+      </button>
+      <button type="button" aria-label="打开示例设置" (click)="openSettings()">设置</button>
+    </div>
+  </header>
+
+  <section class="application-status" aria-label="应用状态">
+    <span data-testid="ready-state">Element: {{ ready() ? 'ready' : 'waiting' }}</span>
+    <span>默认本地 mock · DeepSeek 经本地同源代理</span>
+    <span data-testid="attachment-submit-status">{{ attachmentSubmitStatus() }}</span>
+    @if (errorMessage()) {
+      <output data-testid="runtime-error">{{ errorMessage() }}</output>
+    }
+  </section>
+
+  <section class="chat-card" aria-label="TrChat 应用">
+    <tr-chat
+      #chat
+      data-testid="tr-chat"
+      [runtimeOptions]="runtimeOptions"
+      [ui]="ui"
+      [renderers]="renderers"
+      [historyData]="historyData()"
+      [attachments]="attachments()"
+      [rightAsideOpen]="rightAsideOpen()"
+      [activeRightAsidePanelId]="activeRightAsidePanelId()"
+      (ready)="onReady()"
+      (runtime-state-change)="onRuntimeStateChange($event)"
+      (history-action)="onHistoryAction()"
+      (extension-action)="onExtensionAction($event)"
+      (extension-name-click)="onExtensionNameClick($event)"
+      (mcp-add-server)="onMcpAvailability(true)"
+      (mcp-remove-server)="onMcpAvailability(false)"
+      (tr-chat-error)="onTrChatError($event)"
+      (attachments-select)="onAttachmentsSelect($event)"
+      (attachments-update)="onAttachmentsUpdate($event)"
+      (right-aside-open-update)="onRightAsideOpenUpdate($event)"
+      (active-right-aside-panel-id-update)="onActiveRightAsidePanelIdUpdate($event)"
+    ></tr-chat>
+  </section>
+
+  <section
+    class="scenario-dashboard"
+    aria-label="综合业务场景"
+    [attr.data-overall]="scenarioStore.overall()"
+  >
+    <div class="scenario-dashboard__heading">
+      <strong>综合业务场景</strong>
+      <span data-testid="scenario-overall">总体：{{ scenarioStore.overall() }}</span>
+      <span>Provider：{{ scenarioStore.providerMode() }}</span>
+    </div>
+    <div class="scenario-dashboard__items">
+      @for (scenario of scenarioLabels; track scenario.id) {
+        <article [attr.data-status]="scenarioStore.scenarios()[scenario.id].status">
+          <strong>{{ scenario.label }}</strong>
+          <span>{{ scenarioStore.scenarios()[scenario.id].status }}</span>
+          @if (scenarioStore.scenarios()[scenario.id].detail) {
+            <small>{{ scenarioStore.scenarios()[scenario.id].detail }}</small>
+          }
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="binding-lab" aria-label="Angular 受控状态验收">
+    <div class="binding-lab__group" data-testid="history-service-controls">
+      <strong>会话服务</strong>
+      <button
+        type="button"
+        [disabled]="!historyNextCursor() || historyLoading()"
+        (click)="loadMoreHistory()"
+      >
+        {{ historyLoading() ? '加载中…' : '加载更多' }}
+      </button>
+      <button type="button" (click)="simulateHistoryFailure()">模拟历史失败</button>
+      @if (historyError()) {
+        <span role="alert" data-testid="history-error">{{ historyError() }}</span>
+        <button type="button" (click)="retryHistory()">重试历史</button>
+      } @else {
+        <span data-testid="history-service-status">历史索引已同步</span>
+      }
+    </div>
+    <div class="binding-lab__group" data-testid="mcp-call-monitor">
+      <strong>MCP 调用</strong>
+      @if (mcpCallRecords().length === 0) {
+        <span data-testid="mcp-call-empty">尚无工具调用</span>
+      } @else {
+        @for (call of mcpCallRecords(); track call.id) {
+          <span data-testid="mcp-call-record">
+            {{ call.toolName }} · {{ call.status }}
+            @if (call.result) {
+              · {{ call.result }}
+            }
+            @if (call.error) {
+              · {{ call.error }}
+            }
+          </span>
+        }
+        <button type="button" (click)="clearMcpCalls()">清空调用记录</button>
+      }
+    </div>
+    <div class="binding-lab__group" data-testid="skill-monitor">
+      <strong>Skill 执行</strong>
+      <span data-testid="resolved-skills">
+        {{ resolvedSkillNames().length ? resolvedSkillNames().join('、') : '本轮未启用 Skill' }}
+      </span>
+    </div>
+    <div class="binding-lab__group attachment-monitor" data-testid="attachment-monitor">
+      <strong>附件处理</strong>
+      @if (processedAttachments().length === 0) {
+        <span>尚无附件</span>
+      }
+      @for (record of processedAttachments(); track record.id) {
+        <article data-testid="processed-attachment" [attr.data-state]="record.state">
+          @if (record.previewUrl) {
+            <img [src]="record.previewUrl" [alt]="record.file.name + ' 预览'" />
+          }
+          <span>{{ record.file.name }} · {{ record.state }} · {{ record.progress }}%</span>
+          @if (record.error) {
+            <span role="alert">{{ record.error }}</span>
+          }
+          @if (record.state === 'failed') {
+            <button type="button" (click)="retryAttachment(record.id)">重试附件</button>
+          }
+          <button type="button" (click)="removeAttachment(record.id)">移除附件</button>
+        </article>
+      }
+    </div>
+    <div class="binding-lab__group">
+      <strong>样式边界</strong>
+      <button type="button" (click)="toggleStyleStress()">
+        {{ styleStress() ? '关闭宿主样式压力' : '启用宿主样式压力' }}
+      </button>
+      <span data-testid="style-boundary-status">
+        宿主样式压力：{{ styleStress() ? '已启用' : '未启用' }}
+      </span>
+    </div>
+    <div class="binding-lab__group">
+      <strong>右侧面板</strong>
+      <button type="button" (click)="openAside('preview')">打开发布预览</button>
+      <button type="button" (click)="openAside('sources')">打开参考资料</button>
+      <span data-testid="aside-binding-status">
+        右侧面板：{{ rightAsideOpen() ? '打开' : '关闭' }} · 当前面板：{{ asidePanelLabel() }}
+      </span>
+    </div>
+    <div class="binding-lab__group">
+      <strong>浮动状态</strong>
+      <button type="button" (click)="openFloating()">打开浮动验收</button>
+      <button type="button" [disabled]="!floatingOpen()" (click)="closeFloating()">
+        关闭浮动验收
+      </button>
+      <span data-testid="floating-binding-status">
+        浮动窗口：{{ floatingOpen() ? '打开' : '关闭' }} · x {{ floatingState().offsetX }}px · y
+        {{ floatingState().offsetY }}px · {{ floatingState().width }} ×
+        {{ floatingState().height }}px
+      </span>
+    </div>
+  </section>
+
+  @if (floatingOpen()) {
+    <tr-chat-ui
+      data-testid="floating-chat"
+      [data]="floatingData"
+      [ui]="floatingUi"
+      [floatingState]="floatingState()"
+      (floating-state-update)="onFloatingStateUpdate($event)"
+    ></tr-chat-ui>
+  }
+
+  @if (settingsOpen()) {
+    <div class="settings-backdrop" (click)="closeSettings()">
+      <aside
+        class="settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="settings-heading">
+          <div>
+            <p>Angular 宿主业务</p>
+            <h2 id="settings-title">示例设置</h2>
+          </div>
+          <button type="button" aria-label="关闭示例设置" (click)="closeSettings()">×</button>
+        </div>
+
+        <fieldset>
+          <legend>主题</legend>
+          <button type="button" (click)="useTheme('light')">明亮主题</button>
+          <button type="button" (click)="useTheme('night')">夜间主题</button>
+        </fieldset>
+
+        <label>
+          界面语言
+          <select [value]="language()" (change)="chooseLanguage($event)">
+            <option value="zh">简体中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+
+        <label>
+          朗读音色
+          <select [value]="voice()" (change)="chooseVoice($event)">
+            <option value="clear">清晰</option>
+            <option value="calm">沉稳</option>
+          </select>
+        </label>
+
+        <p data-testid="settings-summary">{{ languageLabel() }} · {{ voiceLabel() }}</p>
+        <p class="settings-note">设置外壳由 Angular 模拟，不代表 TrChat 的账号或云端能力。</p>
+      </aside>
+    </div>
+  }
+</main>

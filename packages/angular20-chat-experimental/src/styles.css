@@ -1,0 +1,44 @@
+@layer host, tr-chat;
+
+@import '@opentiny/tiny-robot-chat/experimental/web-component.css' layer(tr-chat);
+
+@layer host {
+  html,
+  body {
+    margin: 0;
+    min-width: 0;
+    min-height: 100%;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  /*
+ * This opt-in stress fixture represents common application-wide reset and
+ * brand rules. It intentionally stays generic: selectors that target TrChat
+ * internals or use !important are outside the supported Light DOM boundary.
+ */
+  app-root[data-style-stress='enabled'] tr-chat * {
+    box-sizing: content-box;
+  }
+
+  app-root[data-style-stress='enabled'] tr-chat button {
+    min-height: 58px;
+    border: 6px solid #ff2ca0;
+    border-radius: 0;
+    padding: 18px 28px;
+    color: #63126f;
+    background: #fff08a;
+    font: italic 26px/1 monospace;
+  }
+
+  app-root[data-style-stress='enabled'] tr-chat h1,
+  app-root[data-style-stress='enabled'] tr-chat h2,
+  app-root[data-style-stress='enabled'] tr-chat h3 {
+    margin: 48px;
+    font-size: 32px;
+    line-height: 1;
+  }
+}
