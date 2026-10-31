@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import TrChat from '../../../chat/src/Chat.vue'
 import TrChatUI from '../../../chat/src/ChatUI.vue'
-import type { ChatInputActions, ChatRuntime, ChatUIOptions } from '../../../chat/src/types'
+import type { ChatInputActions, ChatRuntime, ChatUIOptions, SenderDragPayload } from '../../../chat/src/types'
 
 const props = withDefaults(
   defineProps<{
@@ -87,6 +87,12 @@ const entryProps = computed(() =>
 async function focusInput() {
   focusResult.value = (await chat.value?.focusInput()) ?? false
 }
+
+function handleSenderDrop({ event }: SenderDragPayload) {
+  senderDropFiles.value = Array.from(event.dataTransfer?.files ?? [])
+    .map((file) => file.name)
+    .join(',')
+}
 </script>
 
 <template>
@@ -116,11 +122,7 @@ async function focusInput() {
       @update:input-value="input = $event"
       @sender-drag-enter="senderDragTarget = $event.target.className"
       @sender-drag-over="($event.event.preventDefault(), (senderDragOverPrevented = $event.event.defaultPrevented))"
-      @sender-drop="
-        senderDropFiles = Array.from($event.event.dataTransfer?.files ?? [])
-          .map((file) => file.name)
-          .join(',')
-      "
+      @sender-drop="handleSenderDrop"
       @sender-paste="senderPasteCount++"
     >
       <template #layout-header="{ isEmpty }"
