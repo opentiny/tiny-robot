@@ -14,7 +14,8 @@ export type { SenderExternalPayload, SenderSubmitExtra } from './types/submit-ex
 import type { SenderSlotScope } from './types/slots'
 
 // 导出扩展类型（供用户使用）
-export type { MentionItem } from './extensions/mention'
+export type { MentionAttrs, MentionItem } from './extensions/mention'
+export type { TemplateAttrs, TemplateSelectAttrs } from './extensions/template'
 export type {
   SenderSuggestionItem,
   SuggestionOptions,
