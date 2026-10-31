@@ -65,8 +65,27 @@ describe('useChatRuntimeAdapter sender turn state', () => {
     expect(adapter.data.value.sender?.loading).toBe(false)
   })
 
+  it('does not expose a stop control for a paused turn without abort support', () => {
+    const { runtime, activeConversation } = createRuntime('paused-without-abort')
+    activeConversation.value.requestState = 'paused'
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    expect(adapter.data.value.sender?.loading).toBe(false)
+    expect(adapter.data.value.request?.state).toBe('paused')
+  })
+
+  it('preserves the processing stop state without abort support', () => {
+    const { runtime, activeConversation } = createRuntime('processing-without-abort')
+    activeConversation.value.requestState = 'processing'
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    expect(adapter.data.value.sender?.loading).toBe(true)
+    expect(adapter.data.value.request?.state).toBe('processing')
+  })
+
   it('keeps the stop state through pause and resume, then releases it when the turn ends', () => {
     const { runtime, activeConversation } = createRuntime('turn')
+    runtime.actions.abort = vi.fn()
     const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
     const states: readonly [ChatRequestState, boolean][] = [
       ['idle', false],
@@ -89,6 +108,7 @@ describe('useChatRuntimeAdapter sender turn state', () => {
 
   it('derives the stop state from the selected conversation, including an empty selection', () => {
     const { runtime, activeConversation: pausedConversation } = createRuntime('paused')
+    runtime.actions.abort = vi.fn()
     pausedConversation.value.requestState = 'paused'
     const { activeConversation: idleConversation } = createRuntime('idle')
     const activeConversation = shallowRef<ChatConversation | null>(pausedConversation.value)

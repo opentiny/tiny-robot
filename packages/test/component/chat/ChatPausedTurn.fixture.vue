@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import TrChat from '../../../chat/src/Chat.vue'
 import type { ChatRequestState, ChatRuntime } from '../../../chat/src/types'
 
-const props = defineProps<{ mode: 'single' | 'multiple' }>()
+const props = defineProps<{ mode: 'single' | 'multiple'; withoutAbort?: boolean }>()
 const state = shallowRef<ChatRequestState>('paused')
 const aborts = shallowRef(0)
 const sends = shallowRef(0)
@@ -24,10 +24,12 @@ const runtime: ChatRuntime = {
       state.value = 'completed'
       return true
     },
-    abort: () => {
-      aborts.value++
-      state.value = 'aborted'
-    },
+    abort: props.withoutAbort
+      ? undefined
+      : () => {
+          aborts.value++
+          state.value = 'aborted'
+        },
     clearActiveConversation() {},
     createConversation() {},
     switchConversation() {},
