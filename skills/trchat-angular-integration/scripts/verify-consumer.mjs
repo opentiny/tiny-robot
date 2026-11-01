@@ -51,8 +51,24 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
   });
   check('consumer manifest', () => { manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')); return 'Consumer manifest read'; });
   check('source imports', () => {
-    sources = files(join(root, 'src'), new Set(['node_modules', '.git'])).filter(path => /\.(?:[cm]?[jt]sx?|html|vue)$/.test(path)).map(path => readFileSync(path, 'utf8'));
-    if (sources.some(text => /(?:["'`])(?:@opentiny\/tiny-robot[^"'`]*\/(?:src|packages)\/|(?:(?:\.\.\/)+|\/)[^"'`]*(?:tiny-robot\/)?packages\/[^"'`]*\/src\/)/.test(text))) throw new Error('Private monorepo source import detected');
+    const roots = new Set([join(root, 'src')]);
+    const angularPath = join(root, 'angular.json');
+    if (existsSync(angularPath)) {
+      const angular = JSON.parse(readFileSync(angularPath, 'utf8'));
+      for (const project of Object.values(angular.projects || {})) {
+        if (typeof project?.sourceRoot === 'string') roots.add(resolve(root, project.sourceRoot));
+      }
+    }
+    const paths = new Set();
+    for (const sourceRoot of roots) {
+      if (sourceRoot !== root && !inside(root, sourceRoot)) throw new Error(`Angular source root is outside consumer project: ${sourceRoot}`);
+      for (const path of files(sourceRoot, new Set(['node_modules', '.git']))) {
+        if (/\.(?:[cm]?[jt]sx?|html|vue)$/.test(path)) paths.add(path);
+      }
+    }
+    if (!paths.size) throw new Error('No source files found in consumer source roots');
+    sources = [...paths].map(path => readFileSync(path, 'utf8'));
+    if (sources.some(text => /(?:["'`])(?:@opentiny\/tiny-robot[^"'`]*\/(?:src|packages)\/|(?:(?:\.\.\/)+|\/)[^"'`]*tiny-robot\/packages\/[^"'`]*\/src\/)/.test(text))) throw new Error('Private monorepo source import detected');
     return 'No private monorepo source imports detected';
   });
   const directKit = () => sources.some(text => /["'`]@opentiny\/tiny-robot-kit(?:\/[^"'`]*)?["'`]/.test(text));

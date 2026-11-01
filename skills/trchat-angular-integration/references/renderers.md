@@ -17,12 +17,12 @@ const bubbleRenderers: NonNullable<TrChatHTMLElement['bubbleRenderers']> = {
   contentRendererMatches: [
     {
       find: (_message, content) => content.type === 'notice',
-      renderer: ({ content }) => `First: ${String(content.text ?? '')}`,
+      renderer: ({ content }) => `First: ${String(content['text'] ?? '')}`,
       priority: -2,
     },
     {
       find: (_message, content) => content.type === 'notice',
-      renderer: ({ content }) => `Second: ${String(content.text ?? '')}`,
+      renderer: ({ content }) => `Second: ${String(content['text'] ?? '')}`,
       priority: -2,
     },
   ],

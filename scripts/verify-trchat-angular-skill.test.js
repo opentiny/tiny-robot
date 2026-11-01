@@ -31,6 +31,8 @@ test('renderer example uses custom notice renderers in deterministic order and p
   const guidance = readFileSync('skills/trchat-angular-integration/references/renderers.md', 'utf8');
   assert.match(guidance, /content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `First:[\s\S]*priority: -2[\s\S]*content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `Second:[\s\S]*priority: -2/);
   assert.match(guidance, /ordinary text item[\s\S]*fallback renders Markdown/);
+  assert.equal((guidance.match(/content\['text'\]/g) || []).length, 2);
+  assert.doesNotMatch(guidance, /content\.text\b/);
 });
 test('advanced guidance is linked and keeps credentials outside browser configuration', () => {
   const entry = readFileSync('skills/trchat-angular-integration/SKILL.md', 'utf8');
@@ -176,6 +178,27 @@ test('checks frozen Vue peer declarations and incompatible Vue versions', t => {
   const root = fixture(t); const robotManifest = join(root, 'node_modules', robot, 'package.json');
   const manifest = JSON.parse(readFileSync(robotManifest, 'utf8')); manifest.peerDependencies.vue = '>=2.0.0'; write(robotManifest, JSON.stringify(manifest));
   failing(report(root), /vue.*peer/i);
+});
+test('checks Angular configured source roots for private imports', t => {
+  const root = fixture(t);
+  write(join(root, 'angular.json'), JSON.stringify({ projects: { chat: { sourceRoot: 'projects/chat/src' } } }));
+  const source = join(root, 'projects/chat/src/app.ts');
+  write(source, `import '${chat}/src/private';`);
+  failing(report(root), /private.*source/i);
+});
+test('checks Angular configured source roots for direct Kit usage', t => {
+  const root = fixture(t);
+  write(join(root, 'angular.json'), JSON.stringify({ projects: { chat: { sourceRoot: 'projects/chat/src' } } }));
+  write(join(root, 'projects/chat/src/app.ts'), `import '${kit}';`);
+  failing(report(root), /direct dependency version/i);
+});
+test('fails clearly when no source files are covered', t => {
+  const root = fixture(t); rmSync(join(root, 'src'), { recursive: true });
+  failing(report(root), /no source files/i);
+});
+test('accepts unrelated local package source imports', t => {
+  const root = fixture(t); write(join(root, 'src/app.ts'), `import '../packages/domain/src/index';`);
+  assert.equal(report(root).ok, true);
 });
 test('rejects private monorepo source imports', t => { const root = fixture(t); write(join(root, 'src/app.ts'), `import x from '@opentiny/tiny-robot-chat/src/foo';`); failing(report(root), /source|private/i); });
 test('rejects absolute monorepo source imports', t => {
