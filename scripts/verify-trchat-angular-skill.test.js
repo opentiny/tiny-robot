@@ -25,6 +25,11 @@ test('renderer routing links to a public-import reference', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/renderers.md', 'utf8');
   assert.doesNotMatch(guidance, /(?:@opentiny\/tiny-robot-(?:chat|kit)\/src\/|packages\/(?:chat|kit)\/src\/)/);
 });
+test('renderer example uses custom notice renderers in deterministic order and preserves fallback', () => {
+  const guidance = readFileSync('skills/trchat-angular-integration/references/renderers.md', 'utf8');
+  assert.match(guidance, /content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `First:[\s\S]*priority: -2[\s\S]*content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `Second:[\s\S]*priority: -2/);
+  assert.match(guidance, /ordinary text item[\s\S]*fallback renders Markdown/);
+});
 test('Angular NgModule guidance opts the component out of standalone mode', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
   assert.match(guidance, /NgModule[^\n]*standalone: false/);

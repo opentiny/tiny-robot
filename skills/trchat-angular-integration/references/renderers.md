@@ -15,10 +15,14 @@ import type { TrChatHTMLElement } from '@opentiny/tiny-robot-chat/experimental';
 
 const bubbleRenderers: NonNullable<TrChatHTMLElement['bubbleRenderers']> = {
   contentRendererMatches: [
-    { find: (_message, content) => content.type === 'notice', renderer: 'text', priority: -2 },
     {
       find: (_message, content) => content.type === 'notice',
-      renderer: ({ content }) => `Notice: ${String(content.text ?? '')}`,
+      renderer: ({ content }) => `First: ${String(content.text ?? '')}`,
+      priority: -2,
+    },
+    {
+      find: (_message, content) => content.type === 'notice',
+      renderer: ({ content }) => `Second: ${String(content.text ?? '')}`,
       priority: -2,
     },
   ],
@@ -28,7 +32,7 @@ const bubbleRenderers: NonNullable<TrChatHTMLElement['bubbleRenderers']> = {
 // chatElement.bubbleRenderers = bubbleRenderers;
 ```
 
-A `notice` item matches both entries, so `text` wins. For an ordinary text item with no loading, reasoning, tool calls, or tool role, neither example nor default content match applies; TrChat's default content fallback renders Markdown. Unmatched boxes fall back to the default box renderer. Default matches can still handle other content (such as images) before fallback; omitting a match does not disable them.
+A `notice` item matches both entries, so the first custom renderer wins and displays the notice text. For an ordinary text item with no loading, reasoning, tool calls, or tool role, neither example nor default content match applies; TrChat's default content fallback renders Markdown. Unmatched boxes fall back to the default box renderer. Default matches can still handle other content (such as images) before fallback; omitting a match does not disable them.
 
 ## DOM renderers
 
