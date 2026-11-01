@@ -30,6 +30,16 @@ test('renderer example uses custom notice renderers in deterministic order and p
   assert.match(guidance, /content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `First:[\s\S]*priority: -2[\s\S]*content\.type === 'notice'[\s\S]*renderer: \(\{ content \}\) => `Second:[\s\S]*priority: -2/);
   assert.match(guidance, /ordinary text item[\s\S]*fallback renders Markdown/);
 });
+test('advanced guidance is linked and keeps credentials outside browser configuration', () => {
+  const entry = readFileSync('skills/trchat-angular-integration/SKILL.md', 'utf8');
+  for (const name of ['advanced-capabilities', 'troubleshooting']) {
+    assert.match(entry, new RegExp(`\\]\\(references/${name}\\.md\\)`));
+  }
+  const guidance = ['SKILL.md', 'references/advanced-capabilities.md', 'references/troubleshooting.md']
+    .map(path => readFileSync(join('skills/trchat-angular-integration', path), 'utf8')).join('\n');
+  assert.doesNotMatch(guidance, /(?:environment(?:\.[\w-]+)?\.ts[^\n]*DEEPSEEK_API_KEY|DEEPSEEK_API_KEY[^\n]*environment(?:\.[\w-]+)?\.ts)/i);
+  assert.doesNotMatch(guidance, /runtimeOptions\s*[=:]\s*\{[^}]*\b(?:apiKey|secret|token)\s*:/is);
+});
 test('Angular NgModule guidance opts the component out of standalone mode', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
   assert.match(guidance, /NgModule[^\n]*standalone: false/);

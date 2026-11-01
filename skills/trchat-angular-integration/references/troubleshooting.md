@@ -1,0 +1,16 @@
+# Security and troubleshooting
+
+## Credentials and boundaries
+
+Browser code, Angular environment files, source maps, generated assets, `runtimeOptions`, provider headers and MCP configuration are visible to users. Never place API keys, tokens or other secrets there. Point the browser at a same-origin application backend; the backend authenticates and authorizes callers, holds provider/MCP credentials, and forwards only permitted requests. For development, use a same-origin dev proxy to a local server that reads an ignored `.env.local` on the server side. Ensure it is untracked and never copied into browser builds. Production needs a real backend or server-side proxy; a dev proxy is not a production secret boundary. Check built assets and source maps with a harmless test secret and the consumer verifier.
+
+## Diagnose symptoms
+
+- **Missing export, dependency error or unexpected behavior:** Confirm the installed chat version is exactly `1.0.0-alpha.0`, and direct Kit imports use that same version. Check the installed manifest's `experimental` and CSS exports and actual resolved paths under the consumer's `node_modules`, including pnpm symlinks. Avoid workspace links and private source imports. Run the consumer verifier and inspect its individual findings.
+- **Configuration ignored or shown as text:** Objects, arrays, callbacks and runtime instances are JavaScript properties, not JSON attributes. Assign them to the typed element after definition; use the documented DOM event names and read `CustomEvent.detail`. For owned runtime initialization, set stable options before or immediately after connection.
+- **Events fire but Angular view stays stale:** Check the listener is registered and removed correctly; inspect its detail. For listeners outside Angular's zone, re-enter `NgZone` or update a signal/change detector as appropriate to the app's change-detection mode. Do not assume a Vue event argument array.
+- **Renderer resets or disappears:** Keep renderer objects and arrays stable across Angular change detection; replace them only for deliberate configuration changes. Verify matching priority, fallback and renderer errors using the renderer reference.
+- **Blank or collapsed host:** Load the exported global stylesheet and give the element and its ancestors a nonzero height and width. Inspect computed sizes and overflow before diagnosing the runtime.
+- **Server crash, undefined browser globals or unknown element:** Do not register or import browser-only element code on the server. Follow the browser-only registration and `CUSTOM_ELEMENTS_SCHEMA` placement in [Angular host modes](angular-host-modes.md); wait for readiness before calling methods.
+- **Hydration mismatch:** Compare server and browser markup and initialization timing. Keep browser-only registration and property assignment within the appropriate browser lifecycle, and use the host-mode guidance for the application's hydration boundary. Test an SSR response and a hydrated browser interaction; suppressing an error does not prove hydration works.
+- **Request or action failure:** Inspect `runtime-action-error`, `attachment-error`, and `tr-chat-error` detail and the same-origin server logs without logging secrets. Check that only one of `modelProviders` and `responseProvider`, and only one of `mcp` and `mcpServers`, is configured.
