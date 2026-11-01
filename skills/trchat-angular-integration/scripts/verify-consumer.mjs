@@ -3,11 +3,12 @@ import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import semver from 'semver';
 
 const CHAT = '@opentiny/tiny-robot-chat';
 const KIT = '@opentiny/tiny-robot-kit';
-const TRANSITIVE = ['@opentiny/tiny-robot', KIT, '@opentiny/tiny-robot-svgs'];
+const ROBOT = '@opentiny/tiny-robot';
+const SVGS = '@opentiny/tiny-robot-svgs';
+const EDGES = { [CHAT]: [ROBOT, KIT, SVGS], [ROBOT]: [KIT, SVGS], [KIT]: [], [SVGS]: [] };
 const VERSION = '1.0.0-alpha.0';
 const inside = (root, path) => { const rel = relative(root, path); return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel); };
 function files(dir, excluded = new Set()) {
@@ -78,26 +79,27 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
     checkOpenTiny(req, CHAT, `${CHAT}/experimental`);
     return `${CHAT} ${VERSION} resolved inside consumer node_modules`;
   });
-  for (const name of TRANSITIVE) {
-    check(`${name} installation`, () => {
-      const chat = installedPackage(req, CHAT, `${CHAT}/experimental`);
-      const chatReq = createRequire(join(chat.dir, 'package.json'));
-      checkOpenTiny(chatReq, name, name);
-      if (name === KIT && (directKit() || manifest.dependencies?.[KIT] || manifest.devDependencies?.[KIT])) checkOpenTiny(req, KIT, KIT);
-      return `${name} ${VERSION} resolved inside consumer node_modules`;
-    });
-  }
-  check('Vue peer compatibility', () => {
-    const chat = installedPackage(req, CHAT, `${CHAT}/experimental`);
-    const chatReq = createRequire(join(chat.dir, 'package.json'));
-    const kit = installedPackage(chatReq, KIT, KIT);
-    for (const [name, installed] of [[CHAT, chat], [KIT, kit]]) {
-      const resolver = createRequire(join(installed.dir, 'package.json'));
-      const vue = installedPackage(resolver, 'vue', 'vue');
-      const range = installed.manifest.peerDependencies?.vue;
-      if (range && !semver.satisfies(vue.manifest.version, range)) throw new Error(`Vue ${vue.manifest.version} does not satisfy ${name} peer range ${range}`);
-    }
-    return 'Vue satisfies installed Chat and Kit peer ranges';
+  check('OpenTiny dependency graph and Vue peers', () => {
+    const visited = new Set();
+    const visit = (resolver, name, entry = name) => {
+      const installed = checkOpenTiny(resolver, name, entry);
+      if (visited.has(installed.dir)) return;
+      visited.add(installed.dir);
+      const packageReq = createRequire(join(installed.dir, 'package.json'));
+      const expectedRange = name === CHAT || name === ROBOT ? '^3.3.11' : '>=3.0.0';
+      if (installed.manifest.peerDependencies?.vue !== expectedRange) throw new Error(`${name} Vue peer range must be ${expectedRange}`);
+      const vue = installedPackage(packageReq, 'vue', 'vue');
+      const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(vue.manifest.version || '');
+      const parts = match?.slice(1, 4).map(BigInt);
+      const compatible = parts && (expectedRange === '^3.3.11'
+        ? parts[0] === 3n && (parts[1] > 3n || (parts[1] === 3n && parts[2] >= 11n))
+        : parts[0] >= 3n);
+      if (!compatible) throw new Error(`Vue ${vue.manifest.version} does not satisfy ${name} peer range ${expectedRange}`);
+      for (const child of EDGES[name]) visit(packageReq, child);
+    };
+    visit(req, CHAT, `${CHAT}/experimental`);
+    if (directKit() || manifest.dependencies?.[KIT] || manifest.devDependencies?.[KIT]) visit(req, KIT);
+    return 'OpenTiny dependency graph and Vue peer ranges verified';
   });
   check('public exports', () => {
     for (const entry of [`${CHAT}/experimental`, `${CHAT}/experimental/web-component.css`]) realpathSync(req.resolve(entry));

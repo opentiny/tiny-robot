@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -78,7 +78,7 @@ function fixture(t, pnpm = false) {
   const modules = pnpm ? join(root, 'node_modules/.pnpm/chat/node_modules') : join(root, 'node_modules');
   for (const name of [robot, kit, svgs, 'vue']) {
     const dir = join(modules, name);
-    write(join(dir, 'package.json'), JSON.stringify({ name, version: name === 'vue' ? '3.4.0' : version, ...(name === svgs ? {} : { main: './index.js' }), ...(name === kit ? { peerDependencies: { vue: '>=3.0.0' } } : {}) }));
+    write(join(dir, 'package.json'), JSON.stringify({ name, version: name === 'vue' ? '3.4.0' : version, ...(name === svgs ? {} : { main: './index.js' }), ...(name !== 'vue' ? { peerDependencies: { vue: name === robot ? '^3.3.11' : '>=3.0.0', ...(name === robot ? { [kit]: '^1.0.0-alpha.0' } : {}) }, ...(name === robot ? { dependencies: { [svgs]: version } } : {}) } : {}) }));
     if (name !== svgs) write(join(dir, 'index.js'), '');
   }
   if (pnpm) { mkdirSync(join(root, 'node_modules/@opentiny'), { recursive: true }); symlinkSync(target, join(root, 'node_modules', chat), 'dir'); }
@@ -97,10 +97,10 @@ test('checks installed versions and direct Kit imports', t => {
   const root = fixture(t);
   write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version, [kit]: version } }));
   write(join(root, 'src/app.ts'), `import '${kit}';`);
-  write(join(root, 'node_modules', kit, 'package.json'), JSON.stringify({ name: kit, version, main: './index.js' }));
+  write(join(root, 'node_modules', kit, 'package.json'), JSON.stringify({ name: kit, version, main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
   write(join(root, 'node_modules', kit, 'index.js'), '');
   assert.equal(report(root).ok, true);
-  write(join(root, 'node_modules', kit, 'package.json'), JSON.stringify({ name: kit, version: '1.0.0', main: './index.js' }));
+  write(join(root, 'node_modules', kit, 'package.json'), JSON.stringify({ name: kit, version: '1.0.0', main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
   failing(report(root), /installed version/i);
 });
 test('rejects workspace dependencies in an installed manifest', t => {
@@ -134,6 +134,47 @@ test('rejects Vue incompatible with Chat or Kit peer ranges', t => {
   write(path, JSON.stringify({ name: 'vue', version: '3.4.0', main: './index.js' }));
   const kitPath = join(root, 'node_modules', kit, 'package.json');
   const manifest = JSON.parse(readFileSync(kitPath, 'utf8')); manifest.peerDependencies.vue = '^4.0.0'; write(kitPath, JSON.stringify(manifest));
+  failing(report(root), /vue.*peer/i);
+});
+
+test('runs as a standalone copied verifier', t => {
+  const root = fixture(t); const isolated = mkdtempSync(join(tmpdir(), 'trchat-verifier-'));
+  t.after(() => rmSync(isolated, { recursive: true, force: true }));
+  const script = join(isolated, 'verify-consumer.mjs');
+  copyFileSync('skills/trchat-angular-integration/scripts/verify-consumer.mjs', script);
+  const result = spawnSync(process.execPath, [script, root], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+test('checks nested robot dependency and peer package copies', t => {
+  for (const name of [kit, svgs]) {
+    const root = fixture(t, true); const nested = join(root, 'node_modules/.pnpm/chat/node_modules', robot, 'node_modules', name);
+    write(join(nested, 'package.json'), JSON.stringify({ name, version: '1.0.0', main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
+    write(join(nested, 'index.js'), '');
+    failing(report(root), /installed version/i);
+  }
+});
+test('checks the Vue resolved by a directly declared Kit copy', t => {
+  const root = fixture(t, true);
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version, [kit]: version } }));
+  const directKit = join(root, 'node_modules', kit);
+  write(join(directKit, 'package.json'), JSON.stringify({ name: kit, version, main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
+  write(join(directKit, 'index.js'), '');
+  write(join(directKit, 'node_modules/vue/package.json'), JSON.stringify({ name: 'vue', version: '2.7.0', main: './index.js' }));
+  write(join(directKit, 'node_modules/vue/index.js'), '');
+  failing(report(root), /vue.*peer/i);
+});
+test('rejects malformed, prerelease, and too-old Vue versions', t => {
+  const root = fixture(t); const path = join(root, 'node_modules/vue/package.json');
+  for (const vueVersion of ['3.3.10', '3.3.11-rc.1', '03.4.0', '3.4']) {
+    write(path, JSON.stringify({ name: 'vue', version: vueVersion, main: './index.js' }));
+    failing(report(root), /vue.*peer/i);
+  }
+  write(path, JSON.stringify({ name: 'vue', version: '3.3.11+build.1', main: './index.js' }));
+  assert.equal(report(root).ok, true);
+});
+test('checks frozen Vue peer declarations and incompatible Vue versions', t => {
+  const root = fixture(t); const robotManifest = join(root, 'node_modules', robot, 'package.json');
+  const manifest = JSON.parse(readFileSync(robotManifest, 'utf8')); manifest.peerDependencies.vue = '>=2.0.0'; write(robotManifest, JSON.stringify(manifest));
   failing(report(root), /vue.*peer/i);
 });
 test('rejects private monorepo source imports', t => { const root = fixture(t); write(join(root, 'src/app.ts'), `import x from '@opentiny/tiny-robot-chat/src/foo';`); failing(report(root), /source|private/i); });
