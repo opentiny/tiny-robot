@@ -9,7 +9,7 @@ Inspect the application's Angular version, package manager, compilation boundari
 
 Follow [Angular host modes](references/angular-host-modes.md) for schema placement, browser-only registration, SSR/hydration and typed element access. Load `@opentiny/tiny-robot-chat/experimental/web-component.css` globally and give the host and its ancestors a usable size. Use the public `@opentiny/tiny-robot-chat/experimental` entrypoint.
 
-Assign complex configuration as JavaScript properties, not serialized attributes. Keep `runtimeOptions` and renderer arrays stable unless an intentional change is required; consult the installed element types for properties, DOM event `detail`, and methods. Use `whenTrChatReady` before calling methods that depend on readiness. For custom renderers or advanced capabilities, inspect the public declarations and relevant installed package documentation before implementing them.
+Assign complex configuration as JavaScript properties, not serialized attributes. Keep `runtimeOptions` and renderer arrays stable unless an intentional change is required; consult the installed element types for properties, DOM event `detail`, and methods. Use `whenTrChatReady` before calling methods that depend on readiness. For built-in or custom renderers, follow the [renderer reference](references/renderers.md). For advanced capabilities, inspect the public declarations and relevant installed package documentation before implementing them.
 
 Keep provider credentials on an application-owned server or proxy; never place secrets in browser configuration, source, or generated assets. Exercise the requested interaction in the app, run its relevant checks and build, and run the read-only [consumer verifier](scripts/verify-consumer.mjs):
 

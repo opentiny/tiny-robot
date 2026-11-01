@@ -19,6 +19,12 @@ test('skill entrypoint links resolve to local resources', () => {
     assert.ok(readFileSync(resolve(root, link.split('#')[0])).length > 0, `missing or empty resource: ${link}`);
   }
 });
+test('renderer routing links to a public-import reference', () => {
+  const entry = readFileSync('skills/trchat-angular-integration/SKILL.md', 'utf8');
+  assert.match(entry, /\[renderer reference\]\(references\/renderers\.md\)/);
+  const guidance = readFileSync('skills/trchat-angular-integration/references/renderers.md', 'utf8');
+  assert.doesNotMatch(guidance, /(?:@opentiny\/tiny-robot-(?:chat|kit)\/src\/|packages\/(?:chat|kit)\/src\/)/);
+});
 test('Angular NgModule guidance opts the component out of standalone mode', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
   assert.match(guidance, /NgModule[^\n]*standalone: false/);
