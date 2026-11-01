@@ -2,13 +2,23 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { verifyAngularConsumer } from '../skills/trchat-angular-integration/scripts/verify-consumer.mjs';
 
 const chat = '@opentiny/tiny-robot-chat';
 const kit = '@opentiny/tiny-robot-kit';
 const version = '1.0.0-alpha.0';
+test('skill entrypoint links resolve to local resources', () => {
+  const root = resolve('skills/trchat-angular-integration');
+  const content = readFileSync(join(root, 'SKILL.md'), 'utf8');
+  const links = [...content.matchAll(/\]\(([^)]+)\)/g)].map(match => match[1]);
+  assert.ok(links.length > 0);
+  for (const link of links) {
+    if (/^(?:https?:|#)/.test(link)) continue;
+    assert.ok(readFileSync(resolve(root, link.split('#')[0])).length > 0, `missing or empty resource: ${link}`);
+  }
+});
 function write(path, text) { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, text); }
 function fixture(t, pnpm = false) {
   const root = mkdtempSync(join(tmpdir(), 'trchat-consumer-'));
