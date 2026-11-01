@@ -12,7 +12,7 @@ Load `@opentiny/tiny-robot-chat/experimental/web-component.css` in the applicati
 
 Call `defineTrChatElements()` only in the browser before creating the elements. Registration is idempotent for the same constructors; do not call it on the server. The package supports SSR import through its Node export, but its server registration function throws. For SSR/hydration, keep the element out of server markup and defer its creation until a browser render callback. Put `ngSkipHydration` on the Angular wrapper **component host** so Angular recreates that subtree instead of reconciling DOM modified by a custom element. Validate this boundary with the application's SSR and hydration configuration. For CSR the same wrapper works; the skip marker is only needed for hydration.
 
-The following standalone wrapper illustrates the boundary; for an NgModule remove `standalone` and the component `schemas`, declare it in the module, and put the schema on that module. Use `<app-chat-host ngSkipHydration />` in an SSR/hydrated parent template.
+The following standalone wrapper illustrates the boundary; for an NgModule set `standalone: false` in the component metadata, remove the component `schemas`, declare it in the module, and put the schema on that module. Angular 20 components default to standalone. Use `<app-chat-host ngSkipHydration />` in an SSR/hydrated parent template.
 
 ```ts
 import { afterNextRender, ChangeDetectorRef, Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, NgZone, ViewChild } from '@angular/core';

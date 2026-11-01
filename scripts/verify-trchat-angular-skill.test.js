@@ -19,6 +19,10 @@ test('skill entrypoint links resolve to local resources', () => {
     assert.ok(readFileSync(resolve(root, link.split('#')[0])).length > 0, `missing or empty resource: ${link}`);
   }
 });
+test('Angular NgModule guidance opts the component out of standalone mode', () => {
+  const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
+  assert.match(guidance, /NgModule[^\n]*standalone: false/);
+});
 function write(path, text) { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, text); }
 function fixture(t, pnpm = false) {
   const root = mkdtempSync(join(tmpdir(), 'trchat-consumer-'));
