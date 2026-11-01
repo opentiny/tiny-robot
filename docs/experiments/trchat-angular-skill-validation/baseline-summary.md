@@ -1,6 +1,6 @@
 # Baseline standalone evaluation
 
-The baseline agent received the frozen standalone prompt without the skill path. Its fixture was clean at commit `5c71bb3cdd55cd2c4415e734dc7c225d9fbf631b`. The controller used the same Node 22.23.1 environment and checks for both subjects. These results are interim: Task 7 has not independently verified browser, network, proxy, or stub behavior. Pending rows count as non-passes in the total.
+The baseline agent received the frozen standalone prompt without the skill path. Its fixture was clean at commit `5c71bb3cdd55cd2c4415e734dc7c225d9fbf631b`. The controller used Node 22.23.1 and ran the verifier, test, and build for both subjects; the skill fixture also received a standalone typecheck. These results are interim: Task 7 has not independently verified browser, network, proxy, or stub behavior. Pending rows count as non-passes in the total.
 
 ## Controller-verified evidence
 

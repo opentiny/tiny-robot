@@ -1,11 +1,12 @@
 # Skill-enabled standalone evaluation
 
-The skill-enabled agent received the frozen standalone prompt and the `skills/trchat-angular-integration` path. Its fixture was clean at commit `0d3e7bd`. The controller used the same Node 22.23.1 environment and checks for both subjects. These results are interim: Task 7 has not independently verified browser, network, proxy, or stub behavior. Pending rows count as non-passes in the total.
+The skill-enabled agent received the frozen standalone prompt and the `skills/trchat-angular-integration` path. Its fixture was clean at commit `0d3e7bd`. The controller used Node 22.23.1 and ran the verifier, test, and build for both subjects; the skill fixture also received a standalone typecheck. These results are interim: Task 7 has not independently verified browser, network, proxy, or stub behavior. Pending rows count as non-passes in the total.
 
 ## Controller-verified evidence
 
 - `node skills/trchat-angular-integration/scripts/verify-consumer.mjs <fixture> --build-dir <fixture-dist> --test-secret harmless-alpha-test-secret`: exit 0. All checks passed, including package versions, public exports/imports, ignored and untracked `.env.local`, and secret absence from build output.
-- `pnpm exec tsc -p tsconfig.app.json --noEmit`: exit 0.
+- Independent inspection found `pnpm-lock.yaml` was the sole root lockfile, matching pnpm. An import scan of `src`, `server`, and `package.json` found only `@opentiny/tiny-robot-chat/experimental` and `@opentiny/tiny-robot-kit`, with no private or workspace source paths.
+- `pnpm exec tsc -p tsconfig.app.json --noEmit`: exit 0 (additional skill-fixture check).
 - `pnpm test --watch=false --browsers=ChromeHeadless`: exit 0, 1/1 test passed.
 - `NG_BUILD_MAX_WORKERS=2 pnpm build`: exit 0; production build passed, initial bundle 2.18 MB.
 - The test and build required approved unsandboxed execution after sandbox process or bind failures. These checks do not establish browser flow traces.
@@ -14,8 +15,8 @@ The skill-enabled agent received the frozen standalone prompt and the `skills/tr
 
 | Criterion | Result | Evidence or missing evidence |
 | --- | --- | --- |
-| Registry version and provenance | Pass | Consumer verifier passed its package, version, provenance, and fixture checks. |
-| Public imports | Pass | Consumer verifier passed its public export and import checks. |
+| Registry version and provenance | Pass | Consumer verifier passed its package, version, provenance, and fixture checks; independent inspection confirmed the sole root lockfile was `pnpm-lock.yaml`, matching pnpm. |
+| Public imports | Pass | Consumer verifier passed its public export and import checks; the independent import scan found only the two published package exports and no private or workspace source paths. |
 | Registration | Pending | No independent browser observation of rendering and repeat-safe registration. |
 | Schema placement | Pass | Controller production build compiled the chat-containing template. |
 | CSS and layout | Pending | No independent desktop and 390 px layout observations. |
