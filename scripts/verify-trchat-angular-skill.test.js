@@ -35,10 +35,29 @@ test('advanced guidance is linked and keeps credentials outside browser configur
   for (const name of ['advanced-capabilities', 'troubleshooting']) {
     assert.match(entry, new RegExp(`\\]\\(references/${name}\\.md\\)`));
   }
-  const guidance = ['SKILL.md', 'references/advanced-capabilities.md', 'references/troubleshooting.md']
+  const guidance = ['SKILL.md', 'references/advanced-capabilities.md', 'references/troubleshooting.md', 'references/angular-host-modes.md', 'references/renderers.md']
     .map(path => readFileSync(join('skills/trchat-angular-integration', path), 'utf8')).join('\n');
-  assert.doesNotMatch(guidance, /(?:environment(?:\.[\w-]+)?\.ts[^\n]*DEEPSEEK_API_KEY|DEEPSEEK_API_KEY[^\n]*environment(?:\.[\w-]+)?\.ts)/i);
-  assert.doesNotMatch(guidance, /runtimeOptions\s*[=:]\s*\{[^}]*\b(?:apiKey|secret|token)\s*:/is);
+  assertSafeExamples(guidance);
+});
+function assertSafeExamples(guidance) {
+  // Examples are intentionally stricter than prose: never demonstrate this key
+  // or credential assignments in a runtimeOptions code block.
+  for (const match of guidance.matchAll(/```[^\n]*\n([\s\S]*?)```/g)) {
+    const code = match[1];
+    assert.doesNotMatch(code, /\bDEEPSEEK_API_KEY\b/i);
+    if (/\bruntimeOptions\b/.test(code)) {
+      assert.doesNotMatch(code, /\b(?:apiKey|secret|token)\s*(?::|=)/i);
+    }
+  }
+}
+test('credential checks reject multiline environment and indirect runtime examples', () => {
+  const unsafe = [
+    '```ts\n// src/environments/environment.ts\nexport const environment = {\n  DEEPSEEK_API_KEY: \'secret\',\n};\n```',
+    '```ts\nconst options = {};\nelement.runtimeOptions = options;\noptions.apiKey = \'secret\';\n```',
+  ];
+  for (const example of unsafe) assert.throws(() => assertSafeExamples(example));
+  assert.doesNotThrow(() => assertSafeExamples('```ts\nconst options = { modelProviders: [] };\nelement.runtimeOptions = options;\n```'));
+  assert.doesNotThrow(() => assertSafeExamples('Never put DEEPSEEK_API_KEY in browser configuration.'));
 });
 test('Angular NgModule guidance opts the component out of standalone mode', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
