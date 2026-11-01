@@ -46,7 +46,7 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
   check('consumer manifest', () => { manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')); return 'Consumer manifest read'; });
   check('source imports', () => {
     sources = files(join(root, 'src'), new Set(['node_modules', '.git'])).filter(path => /\.(?:[cm]?[jt]sx?|html|vue)$/.test(path)).map(path => readFileSync(path, 'utf8'));
-    if (sources.some(text => /(?:["'`])(?:@opentiny\/tiny-robot[^"'`]*\/(?:src|packages)\/|(?:\.\.\/)+[^"'`]*(?:tiny-robot\/)?packages\/[^"'`]*\/src\/)/.test(text))) throw new Error('Private monorepo source import detected');
+    if (sources.some(text => /(?:["'`])(?:@opentiny\/tiny-robot[^"'`]*\/(?:src|packages)\/|(?:(?:\.\.\/)+|\/)[^"'`]*(?:tiny-robot\/)?packages\/[^"'`]*\/src\/)/.test(text))) throw new Error('Private monorepo source import detected');
     return 'No private monorepo source imports detected';
   });
   const directKit = () => sources.some(text => /["'`]@opentiny\/tiny-robot-kit(?:\/[^"'`]*)?["'`]/.test(text));
@@ -70,7 +70,22 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
   }
   check('public exports', () => {
     for (const entry of [`${CHAT}/experimental`, `${CHAT}/experimental/web-component.css`]) realpathSync(req.resolve(entry));
-    return 'Experimental entry and CSS exports resolve';
+    const installed = packageManifest(req, CHAT, `${CHAT}/experimental`);
+    const browserTarget = (value) => {
+      if (typeof value === 'string') return value;
+      if (!value || typeof value !== 'object') return undefined;
+      for (const [condition, target] of Object.entries(value)) {
+        if (['browser', 'import', 'default'].includes(condition)) {
+          const selected = browserTarget(target);
+          if (selected) return selected;
+        }
+      }
+    };
+    const target = browserTarget(installed.manifest.exports?.['./experimental']);
+    if (!target || !target.startsWith('./')) throw new Error('Browser experimental export target is missing');
+    const path = resolve(installed.dir, target);
+    if (!inside(installed.dir, path) || !existsSync(path) || !inside(installed.dir, realpathSync(path))) throw new Error('Browser experimental export target does not resolve inside the package');
+    return 'Experimental browser entry and CSS exports resolve';
   });
   check('local environment file', () => {
     const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });

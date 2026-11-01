@@ -56,6 +56,19 @@ test('rejects package realpaths outside the consumer node_modules tree', t => {
   failing(report(root), /node_modules/i);
 });
 test('rejects private monorepo source imports', t => { const root = fixture(t); write(join(root, 'src/app.ts'), `import x from '@opentiny/tiny-robot-chat/src/foo';`); failing(report(root), /source|private/i); });
+test('rejects absolute monorepo source imports', t => {
+  const root = fixture(t); write(join(root, 'src/app.ts'), "import '/workspace/tiny-robot/packages/chat/src/index.ts';");
+  failing(report(root), /source|private/i);
+});
+test('requires the browser-facing experimental export target', t => {
+  const root = fixture(t); const path = join(root, 'node_modules', chat, 'package.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  manifest.exports['./experimental'] = { types: './experimental.d.ts', browser: './browser.js', node: './experimental.js', import: './browser.js' };
+  write(path, JSON.stringify(manifest));
+  failing(report(root), /browser/i);
+  write(join(root, 'node_modules', chat, 'browser.js'), 'export {};');
+  assert.equal(report(root).ok, true);
+});
 test("rejects Yarn Plug'n'Play with an explicit unsupported message", t => { const root = fixture(t); write(join(root, '.pnp.cjs'), ''); failing(report(root), /plug.n.play.*unsupported/i); });
 test('rejects a tracked .env.local file', t => { const root = fixture(t); execFileSync('git', ['init', '-q', root]); write(join(root, '.env.local'), 'KEY=x'); execFileSync('git', ['-C', root, 'add', '.env.local']); failing(report(root), /env.local/i); });
 test('rejects a test secret in source maps or build output', t => { const root = fixture(t); write(join(root, 'dist/main.js.map'), 'fake-secret'); failing(report(root, { buildDirs: ['dist'], testSecret: 'fake-secret' }), /secret/i); });
