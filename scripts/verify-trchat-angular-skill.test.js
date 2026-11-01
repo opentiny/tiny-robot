@@ -8,6 +8,8 @@ import { verifyAngularConsumer } from '../skills/trchat-angular-integration/scri
 
 const chat = '@opentiny/tiny-robot-chat';
 const kit = '@opentiny/tiny-robot-kit';
+const robot = '@opentiny/tiny-robot';
+const svgs = '@opentiny/tiny-robot-svgs';
 const version = '1.0.0-alpha.0';
 test('skill entrypoint links resolve to local resources', () => {
   const root = resolve('skills/trchat-angular-integration');
@@ -70,9 +72,15 @@ function fixture(t, pnpm = false) {
   write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version } }));
   write(join(root, 'src/app.ts'), `import '${chat}/experimental';`);
   const target = pnpm ? join(root, 'node_modules/.pnpm/chat/node_modules', chat) : join(root, 'node_modules', chat);
-  write(join(target, 'package.json'), JSON.stringify({ name: chat, version, type: 'module', exports: { './experimental': './experimental.js', './experimental/web-component.css': './style.css' } }));
+  write(join(target, 'package.json'), JSON.stringify({ name: chat, version, type: 'module', exports: { './experimental': './experimental.js', './experimental/web-component.css': './style.css' }, dependencies: { [robot]: version, [kit]: version, [svgs]: version }, peerDependencies: { vue: '^3.3.11' } }));
   write(join(target, 'experimental.js'), 'export {};');
   write(join(target, 'style.css'), '');
+  const modules = pnpm ? join(root, 'node_modules/.pnpm/chat/node_modules') : join(root, 'node_modules');
+  for (const name of [robot, kit, svgs, 'vue']) {
+    const dir = join(modules, name);
+    write(join(dir, 'package.json'), JSON.stringify({ name, version: name === 'vue' ? '3.4.0' : version, ...(name === svgs ? {} : { main: './index.js' }), ...(name === kit ? { peerDependencies: { vue: '>=3.0.0' } } : {}) }));
+    if (name !== svgs) write(join(dir, 'index.js'), '');
+  }
   if (pnpm) { mkdirSync(join(root, 'node_modules/@opentiny'), { recursive: true }); symlinkSync(target, join(root, 'node_modules', chat), 'dir'); }
   return root;
 }
@@ -108,6 +116,25 @@ test('rejects package realpaths outside the consumer node_modules tree', t => {
   const root = fixture(t); const path = join(root, 'node_modules', chat); const outside = join(root, 'linked-chat');
   rmSync(path, { recursive: true }); write(join(outside, 'package.json'), JSON.stringify({ name: chat, version, exports: { './experimental': './index.js', './experimental/web-component.css': './style.css' } })); write(join(outside, 'index.js'), ''); write(join(outside, 'style.css'), ''); symlinkSync(outside, path, 'dir');
   failing(report(root), /node_modules/i);
+});
+
+test('rejects a transitive package linked outside consumer node_modules', t => {
+  const root = fixture(t); const path = join(root, 'node_modules', robot); const outside = join(root, 'linked-robot');
+  rmSync(path, { recursive: true }); write(join(outside, 'package.json'), JSON.stringify({ name: robot, version, main: './index.js' })); write(join(outside, 'index.js'), ''); symlinkSync(outside, path, 'dir');
+  failing(report(root), /tiny-robot.*node_modules/i);
+});
+test('rejects a missing installed Vue', t => {
+  const root = fixture(t); rmSync(join(root, 'node_modules/vue'), { recursive: true });
+  failing(report(root), /vue/i);
+});
+test('rejects Vue incompatible with Chat or Kit peer ranges', t => {
+  const root = fixture(t); const path = join(root, 'node_modules/vue/package.json');
+  write(path, JSON.stringify({ name: 'vue', version: '2.7.0', main: './index.js' }));
+  failing(report(root), /vue.*peer/i);
+  write(path, JSON.stringify({ name: 'vue', version: '3.4.0', main: './index.js' }));
+  const kitPath = join(root, 'node_modules', kit, 'package.json');
+  const manifest = JSON.parse(readFileSync(kitPath, 'utf8')); manifest.peerDependencies.vue = '^4.0.0'; write(kitPath, JSON.stringify(manifest));
+  failing(report(root), /vue.*peer/i);
 });
 test('rejects private monorepo source imports', t => { const root = fixture(t); write(join(root, 'src/app.ts'), `import x from '@opentiny/tiny-robot-chat/src/foo';`); failing(report(root), /source|private/i); });
 test('rejects absolute monorepo source imports', t => {

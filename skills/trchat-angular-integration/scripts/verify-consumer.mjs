@@ -3,9 +3,11 @@ import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import semver from 'semver';
 
 const CHAT = '@opentiny/tiny-robot-chat';
 const KIT = '@opentiny/tiny-robot-kit';
+const TRANSITIVE = ['@opentiny/tiny-robot', KIT, '@opentiny/tiny-robot-svgs'];
 const VERSION = '1.0.0-alpha.0';
 const inside = (root, path) => { const rel = relative(root, path); return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel); };
 function files(dir, excluded = new Set()) {
@@ -17,7 +19,10 @@ function files(dir, excluded = new Set()) {
   });
 }
 function packageManifest(req, name, entry) {
-  let dir = dirname(realpathSync(req.resolve(entry)));
+  let resolved;
+  try { resolved = req.resolve(`${name}/package.json`); }
+  catch { resolved = req.resolve(entry); }
+  let dir = dirname(realpathSync(resolved));
   while (true) {
     const file = join(dir, 'package.json');
     if (existsSync(file)) {
@@ -55,19 +60,45 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
     if (deps[CHAT] !== VERSION || ((directKit() || deps[KIT] !== undefined) && deps[KIT] !== VERSION)) throw new Error(`Direct dependency version must be ${VERSION} for Chat and directly used Kit`);
     return 'Direct dependency versions match alpha';
   });
-  for (const [name, entry] of [[CHAT, `${CHAT}/experimental`], [KIT, KIT]]) {
+  const installedPackage = (resolver, name, entry) => {
+    const installed = packageManifest(resolver, name, entry);
+    const modules = realpathSync(join(root, 'node_modules'));
+    if (!inside(realpathSync(root), modules) || !inside(modules, installed.dir)) throw new Error(`${name} realpath is outside consumer node_modules`);
+    return installed;
+  };
+  const checkOpenTiny = (resolver, name, entry) => {
+    const installed = installedPackage(resolver, name, entry);
+    if (installed.manifest.version !== VERSION) throw new Error(`${name} installed version must be ${VERSION}`);
+    for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+      if (Object.values(installed.manifest[section] || {}).some(value => typeof value === 'string' && value.startsWith('workspace:'))) throw new Error(`${name} installed manifest contains a workspace dependency`);
+    }
+    return installed;
+  };
+  check(`${CHAT} installation`, () => {
+    checkOpenTiny(req, CHAT, `${CHAT}/experimental`);
+    return `${CHAT} ${VERSION} resolved inside consumer node_modules`;
+  });
+  for (const name of TRANSITIVE) {
     check(`${name} installation`, () => {
-      if (name === KIT && !directKit() && !manifest.dependencies?.[KIT] && !manifest.devDependencies?.[KIT]) return 'Kit is not directly used';
-      const installed = packageManifest(req, name, entry);
-      const modules = realpathSync(join(root, 'node_modules'));
-      if (!inside(realpathSync(root), modules) || !inside(modules, installed.dir)) throw new Error(`${name} realpath is outside consumer node_modules`);
-      if (installed.manifest.version !== VERSION) throw new Error(`${name} installed version must be ${VERSION}`);
-      for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
-        if (Object.values(installed.manifest[section] || {}).some(value => typeof value === 'string' && value.startsWith('workspace:'))) throw new Error(`${name} installed manifest contains a workspace dependency`);
-      }
+      const chat = installedPackage(req, CHAT, `${CHAT}/experimental`);
+      const chatReq = createRequire(join(chat.dir, 'package.json'));
+      checkOpenTiny(chatReq, name, name);
+      if (name === KIT && (directKit() || manifest.dependencies?.[KIT] || manifest.devDependencies?.[KIT])) checkOpenTiny(req, KIT, KIT);
       return `${name} ${VERSION} resolved inside consumer node_modules`;
     });
   }
+  check('Vue peer compatibility', () => {
+    const chat = installedPackage(req, CHAT, `${CHAT}/experimental`);
+    const chatReq = createRequire(join(chat.dir, 'package.json'));
+    const kit = installedPackage(chatReq, KIT, KIT);
+    for (const [name, installed] of [[CHAT, chat], [KIT, kit]]) {
+      const resolver = createRequire(join(installed.dir, 'package.json'));
+      const vue = installedPackage(resolver, 'vue', 'vue');
+      const range = installed.manifest.peerDependencies?.vue;
+      if (range && !semver.satisfies(vue.manifest.version, range)) throw new Error(`Vue ${vue.manifest.version} does not satisfy ${name} peer range ${range}`);
+    }
+    return 'Vue satisfies installed Chat and Kit peer ranges';
+  });
   check('public exports', () => {
     for (const entry of [`${CHAT}/experimental`, `${CHAT}/experimental/web-component.css`]) realpathSync(req.resolve(entry));
     const installed = packageManifest(req, CHAT, `${CHAT}/experimental`);
