@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -84,7 +84,7 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
     const target = browserTarget(installed.manifest.exports?.['./experimental']);
     if (!target || !target.startsWith('./')) throw new Error('Browser experimental export target is missing');
     const path = resolve(installed.dir, target);
-    if (!inside(installed.dir, path) || !existsSync(path) || !inside(installed.dir, realpathSync(path))) throw new Error('Browser experimental export target does not resolve inside the package');
+    if (!inside(installed.dir, path) || !existsSync(path) || !statSync(path).isFile() || !inside(installed.dir, realpathSync(path))) throw new Error('Browser experimental export target does not resolve inside the package');
     return 'Experimental browser entry and CSS exports resolve';
   });
   check('local environment file', () => {

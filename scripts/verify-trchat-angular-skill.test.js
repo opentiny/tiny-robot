@@ -69,6 +69,13 @@ test('requires the browser-facing experimental export target', t => {
   write(join(root, 'node_modules', chat, 'browser.js'), 'export {};');
   assert.equal(report(root).ok, true);
 });
+test('rejects a directory as the browser experimental entry', t => {
+  const root = fixture(t); const path = join(root, 'node_modules', chat, 'package.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  manifest.exports['./experimental'] = { browser: './browser.js', node: './experimental.js', import: './browser.js' };
+  write(path, JSON.stringify(manifest)); mkdirSync(join(root, 'node_modules', chat, 'browser.js'));
+  failing(report(root), /browser/i);
+});
 test("rejects Yarn Plug'n'Play with an explicit unsupported message", t => { const root = fixture(t); write(join(root, '.pnp.cjs'), ''); failing(report(root), /plug.n.play.*unsupported/i); });
 test('rejects a tracked .env.local file', t => { const root = fixture(t); execFileSync('git', ['init', '-q', root]); write(join(root, '.env.local'), 'KEY=x'); execFileSync('git', ['-C', root, 'add', '.env.local']); failing(report(root), /env.local/i); });
 test('rejects a test secret in source maps or build output', t => { const root = fixture(t); write(join(root, 'dist/main.js.map'), 'fake-secret'); failing(report(root, { buildDirs: ['dist'], testSecret: 'fake-secret' }), /secret/i); });
