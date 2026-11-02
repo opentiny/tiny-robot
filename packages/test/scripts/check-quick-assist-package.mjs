@@ -122,14 +122,17 @@ for (const resolution of ['nodenext', 'node16']) {
 
 const esm = await import(new URL('dist/vanilla/index.js', packageURL).href)
 assert.equal(typeof esm.createQuickAssist, 'function')
+assert.equal(typeof esm.configureVanillaTheme, 'function')
 const umd = await readFile(new URL('dist/vanilla/vanilla.umd.js', packageURL), 'utf8')
 const sandbox = vm.createContext({})
 vm.runInContext(umd, sandbox)
 assert.equal(typeof sandbox.TinyRobotVanilla?.createQuickAssist, 'function')
+assert.equal(typeof sandbox.TinyRobotVanilla?.configureVanillaTheme, 'function')
 assert.deepEqual(Object.keys(sandbox), ['TinyRobotVanilla'])
 
 const css = await readFile(new URL('dist/vanilla/style.css', packageURL), 'utf8')
 assert.ok(css.includes('.tr-quick-assist'), 'Missing scoped QuickAssist CSS')
+assert.ok(css.includes("data-tr-vanilla-color-mode='dark'"), 'Missing standalone dark theme')
 assert.ok(!/(?:^|\})\s*:root\b/m.test(css), 'QuickAssist CSS must not install global tokens')
 await readFile(new URL('dist/vanilla/index.d.ts', packageURL))
 console.log('QuickAssist public paths, ESM/UMD import safety, CSS and NodeNext/Node16 consumer types passed.')

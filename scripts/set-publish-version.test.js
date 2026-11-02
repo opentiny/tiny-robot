@@ -8,7 +8,11 @@ import { setPublishVersion } from './set-publish-version.js'
 function createFixture({ version = '0.5.1', mutate, bomPath } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tiny-robot-set-version-'))
   for (const [name, relativePath] of PUBLISH_PACKAGES) {
-    const packageJson = mutate ? mutate({ name, version, metadata: { version: 'nested' } }, name, relativePath) : { name, version, metadata: { version: 'nested' } }
+    const initialPackageJson = { name, version, metadata: { version: 'nested' } }
+    if (name === '@opentiny/tiny-robot') {
+      initialPackageJson.peerDependencies = { '@opentiny/tiny-robot-kit': '^0.5.1' }
+    }
+    const packageJson = mutate ? mutate(initialPackageJson, name, relativePath) : initialPackageJson
     const packageFile = path.join(root, relativePath)
     fs.mkdirSync(path.dirname(packageFile), { recursive: true })
     const prefix = relativePath === bomPath ? '\ufeff' : ''
@@ -17,7 +21,9 @@ function createFixture({ version = '0.5.1', mutate, bomPath } = {}) {
   return root
 }
 function snapshots(root) {
-  return Object.fromEntries(PUBLISH_PACKAGES.map(([, relativePath]) => [relativePath, fs.readFileSync(path.join(root, relativePath), 'utf8')]))
+  return Object.fromEntries(
+    PUBLISH_PACKAGES.map(([, relativePath]) => [relativePath, fs.readFileSync(path.join(root, relativePath), 'utf8')]),
+  )
 }
 function cleanup(root) {
   fs.rmSync(root, { recursive: true, force: true })
@@ -25,14 +31,17 @@ function cleanup(root) {
 test('updates all public packages and preserves unrelated JSON content', () => {
   const root = createFixture({ bomPath: 'packages/chat/package.json' })
   try {
-    const result = setPublishVersion({ rootDir: root, version: '0.5.2' })
-    assert.deepEqual(result, { version: '0.5.2', distTag: 'latest', updated: 5 })
+    const result = setPublishVersion({ rootDir: root, version: '1.0.0-rc.3' })
+    assert.deepEqual(result, { version: '1.0.0-rc.3', distTag: 'rc', updated: 5 })
     for (const [name, relativePath] of PUBLISH_PACKAGES) {
       const raw = fs.readFileSync(path.join(root, relativePath), 'utf8')
       const packageJson = JSON.parse(raw.replace(/^\ufeff/, ''))
       assert.equal(packageJson.name, name)
-      assert.equal(packageJson.version, '0.5.2')
+      assert.equal(packageJson.version, '1.0.0-rc.3')
       assert.equal(packageJson.metadata.version, 'nested')
+      if (name === '@opentiny/tiny-robot') {
+        assert.equal(packageJson.peerDependencies['@opentiny/tiny-robot-kit'], '^1.0.0-rc.3')
+      }
       assert.equal(raw.endsWith('\n'), true)
     }
     assert.equal(fs.readFileSync(path.join(root, 'packages/chat/package.json'), 'utf8').charCodeAt(0), 0xfeff)
@@ -63,10 +72,18 @@ test('repairs an invalid current version when the target version is valid', () =
   }
 })
 test('validates every package before writing any file', () => {
-  const root = createFixture({ mutate(packageJson, name) { if (name === '@opentiny/tiny-robot-chat') packageJson.name = '@wrong/name'; return packageJson } })
+  const root = createFixture({
+    mutate(packageJson, name) {
+      if (name === '@opentiny/tiny-robot-chat') packageJson.name = '@wrong/name'
+      return packageJson
+    },
+  })
   try {
     const before = snapshots(root)
-    assert.throws(() => setPublishVersion({ rootDir: root, version: '0.5.2' }), /must describe @opentiny\/tiny-robot-chat/)
+    assert.throws(
+      () => setPublishVersion({ rootDir: root, version: '0.5.2' }),
+      /must describe @opentiny\/tiny-robot-chat/,
+    )
     assert.deepEqual(snapshots(root), before)
   } finally {
     cleanup(root)
@@ -82,7 +99,10 @@ test('rolls back files when a later write fails', () => {
       if (writes === 3) throw new Error('simulated write failure')
       fs.writeFileSync(file, content, encoding)
     }
-    assert.throws(() => setPublishVersion({ rootDir: root, version: '0.5.2', writeFile }), /Failed to update package versions: simulated write failure.*restored/)
+    assert.throws(
+      () => setPublishVersion({ rootDir: root, version: '0.5.2', writeFile }),
+      /Failed to update package versions: simulated write failure.*restored/,
+    )
     assert.deepEqual(snapshots(root), before)
   } finally {
     cleanup(root)

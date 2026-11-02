@@ -10,6 +10,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { ZERO_WIDTH_CHAR } from '../utils'
 import { NODE_TYPE_NAMES, PLUGIN_KEY_NAMES } from '../../constants'
 import { isKey, isAnyKey } from '../../utils'
+import { hasCompositionTransaction, isImeKeyEvent } from '../../ime'
 
 /**
  * 处理零宽字符逻辑
@@ -101,6 +102,9 @@ export function ensureZeroWidthChars() {
   return new Plugin({
     key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_BLOCK_ZERO_WIDTH),
     appendTransaction(transactions: readonly Transaction[], _oldState: EditorState, newState: EditorState) {
+      // 组合期间修正文档会打断输入法维护的文本范围。
+      if (hasCompositionTransaction(transactions)) return null
+
       // 只在内容发生变化时修正
       const docChanged = transactions.some((tr) => tr.docChanged)
       if (!docChanged) return null
@@ -121,6 +125,8 @@ export function keyboardNavigationPlugin() {
         const { state, dispatch } = view
         const { selection } = state
         const { $from } = selection
+
+        if (isImeKeyEvent(event, view)) return false
 
         // 处理左箭头
         if (isKey(event, 'ARROW_LEFT')) {

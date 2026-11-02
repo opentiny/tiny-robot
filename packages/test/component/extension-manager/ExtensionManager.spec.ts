@@ -60,6 +60,32 @@ test.describe('ExtensionManager section model', () => {
     await expect(manager.locator('[data-section-key="available"] li[data-card-id="beta"]')).toHaveCount(0)
   })
 
+  test('keeps tab navigation visible for one tab by default', async ({ mount }) => {
+    const component = await mount(ExtensionManagerFixture)
+    const manager = component.getByTestId('manager-host')
+
+    await component.getByTestId('remove-market-tab').click()
+
+    await expect(manager.getByRole('tablist')).toBeVisible()
+    await expect(manager.getByRole('tab', { name: 'Library tab' })).toBeVisible()
+  })
+
+  test('hides tab navigation only when configured with one tab', async ({ mount }) => {
+    const component = await mount(ExtensionManagerFixture)
+    const manager = component.getByTestId('manager-host')
+
+    await component.getByTestId('hide-single-tab').click()
+    await expect(manager.getByRole('tablist')).toBeVisible()
+
+    await component.getByTestId('remove-market-tab').click()
+
+    await expect(manager.getByRole('tablist')).toHaveCount(0)
+    await expect(manager.getByRole('tab')).toHaveCount(0)
+    await expect(manager.getByRole('tabpanel')).toHaveCount(0)
+    await expect(manager.locator('.extension-manager__sections')).not.toHaveAttribute('aria-labelledby')
+    await expect(manager.locator('li[data-card-id="alpha"]')).toBeVisible()
+  })
+
   test('uses default section headers and empty slot context', async ({ mount }) => {
     const component = await mount(ExtensionManagerFixture)
     const manager = component.getByTestId('manager-host')

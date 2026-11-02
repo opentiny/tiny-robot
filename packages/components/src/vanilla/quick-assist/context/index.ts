@@ -5,6 +5,7 @@ import type {
   GetBusinessContext,
   GetNearbyContext,
   QuickAssistContext,
+  QuickAssistActivationInput,
   QuickAssistNearbyContextOptions,
   SanitizeContext,
   SelectionSnapshot,
@@ -177,17 +178,22 @@ function pageUrl(root: Document): string | undefined {
   }
 }
 
-function createBaseContext(root: Document, snapshot: SelectionSnapshot, nearbyText?: string): QuickAssistContext {
+function createBaseContext(
+  root: Document,
+  snapshot: SelectionSnapshot | QuickAssistActivationInput,
+  nearbyText?: string,
+): QuickAssistContext {
   const page: QuickAssistContext['page'] = {}
   if (root.title) page.title = root.title
   const url = pageUrl(root)
   if (url) page.url = url
   const context: QuickAssistContext = {
-    source: 'selection',
+    source: 'range' in snapshot ? 'selection' : snapshot.source,
     text: snapshot.text,
     selection: { text: snapshot.text },
   }
   if (page.title || page.url) context.page = page
+  if (!('range' in snapshot) && snapshot.meta) context.meta = { ...snapshot.meta }
   if (nearbyText) context.nearbyText = nearbyText
   return context
 }
@@ -213,18 +219,14 @@ export function createContextModule(options: ContextModuleOptions): QuickAssistC
   return {
     async build(snapshot, signal) {
       throwIfAborted(signal)
-      const nearbyText = options.getNearbyContext
-        ? (() => {
-            const value = options.getNearbyContext?.(snapshot)
-            const limit = nearby.maxLength ?? DEFAULT_MAX_LENGTH
-            return value?.trim().slice(0, limit)
-          })()
-        : extractNearbyText(snapshot, {
-            ...nearby,
-            include: options.include,
-            exclude: options.exclude,
-          })
-      let context = createBaseContext(options.root, snapshot, nearbyText?.trim() || undefined)
+      const isDom = 'range' in snapshot
+      const nearbyText = isDom
+        ? options.getNearbyContext
+          ? options.getNearbyContext(snapshot)
+          : extractNearbyText(snapshot, { ...nearby, include: options.include, exclude: options.exclude })
+        : snapshot.getNearbyText?.()
+      const boundedNearby = nearbyText?.trim().slice(0, nearby.maxLength ?? DEFAULT_MAX_LENGTH)
+      let context = createBaseContext(options.root, snapshot, boundedNearby || undefined)
       throwIfAborted(signal)
       if (options.getContext) {
         const businessContext = await options.getContext(context, signal)

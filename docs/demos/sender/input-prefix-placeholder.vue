@@ -4,13 +4,14 @@ import { TrSender } from '@opentiny/tiny-robot'
 
 const showInputPrefix = shallowRef(true)
 const longPlaceholder =
-  '这是一段用于观察多行模式换行效果的超长占位文本，输入区域宽度不足时会自动折行，同时可以切换首行前置插槽观察缩进变化。'.repeat(
+  '这是一段用于观察多行模式换行效果的超长占位文本123123，thisisaintelligentaiframework.  输入区域宽度不足时会自动折行，同时可以切换首行前置插槽观察缩进变化。'.repeat(
     2,
   )
 </script>
 
 <template>
   <div class="demo-container">
+    <p class="demo-description">观察多行 placeholder 中中英文、数字混排时的自动换行；切换前置插槽可查看首行缩进。</p>
     <button class="toggle-button" type="button" @click="showInputPrefix = !showInputPrefix">
       {{ showInputPrefix ? '移除首行前置插槽' : '添加首行前置插槽' }}
     </button>
@@ -26,6 +27,12 @@ const longPlaceholder =
 <style scoped>
 .demo-container {
   padding: 20px;
+}
+
+.demo-description {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 14px;
 }
 
 .toggle-button {

@@ -48,3 +48,4 @@ export {
 } from './composables'
 export { BubbleRendererMatchPriority } from './constants'
 export { BubbleRenderers } from './renderers/allRenderers'
+export { getBubbleMessageGroups } from './messageGroups'

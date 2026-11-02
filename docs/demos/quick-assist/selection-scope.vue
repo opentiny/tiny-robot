@@ -38,28 +38,31 @@ onBeforeUnmount(() => quickAssist?.destroy())
 
 <style scoped>
 .qa-feature-demo {
+  color: var(--vp-c-text-1, #213547);
+  background: var(--vp-c-bg, #fff);
   padding: 18px;
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
   border-radius: 10px;
   line-height: 1.7;
 }
 .qa-feature-demo__allowed {
   padding: 8px 14px;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: var(--vp-c-bg-soft, #f5f7fa);
 }
 [data-qa-ignore] {
   padding: 8px;
   border-radius: 6px;
-  background: #fff4e5;
+  background: var(--vp-c-warning-soft, #fff4e5);
+  color: var(--vp-c-warning-1, #744c12);
 }
 .qa-feature-demo__outside {
   padding: 8px 14px;
-  border: 1px dashed #cbd3dd;
+  border: 1px dashed var(--vp-c-border, #cbd3dd);
   border-radius: 8px;
 }
 .qa-feature-demo__hint {
-  color: #536171;
+  color: var(--vp-c-text-2, #536171);
   font-size: 13px;
 }
 pre {

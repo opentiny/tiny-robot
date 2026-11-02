@@ -8,6 +8,7 @@ const props = defineProps<{
   model: ChatModelView
   labels: ChatLabels
   appendTo?: ModelSelectorProps['appendTo']
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,9 +30,10 @@ const modelOptions = computed<ModelSelectorOption[]>(() =>
 )
 
 const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
+const disabled = computed(() => props.disabled === true || props.model.selecting || props.model.reasoningSelecting)
 
 function handleModelSelect(id: string | null) {
-  if (props.model.selecting || id === props.model.selectedId) {
+  if (disabled.value || id === props.model.selectedId) {
     return
   }
 
@@ -39,7 +41,7 @@ function handleModelSelect(id: string | null) {
 }
 
 function handleReasoningEffortChange(effort: string | null) {
-  if (props.model.reasoningSelecting) {
+  if (disabled.value) {
     return
   }
 
@@ -53,7 +55,7 @@ function handleReasoningEffortChange(effort: string | null) {
     class="tr-chat-model-selector"
     :models="modelOptions"
     :model-value="model.selectedId ?? null"
-    :disabled="model.selecting || model.reasoningSelecting"
+    :disabled="disabled"
     :reasoning-effort="model.reasoning?.effort ?? null"
     :default-reasoning-effort="selectedModel?.defaultEffort ?? null"
     :append-to="props.appendTo"
@@ -94,6 +96,25 @@ function handleReasoningEffortChange(effort: string | null) {
 </template>
 
 <style scoped>
+.tr-chat-model-selector {
+  display: block;
+  width: min(180px, 100%);
+  min-width: 0;
+  flex: 0 1 180px;
+}
+
+.tr-chat-model-selector :deep(.tr-model-selector__anchor) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
 .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
   height: 32px;
   min-height: 32px;
@@ -117,6 +138,7 @@ function handleReasoningEffortChange(effort: string | null) {
 
 .tr-chat-model-selector__trigger-main {
   min-width: 0;
+  overflow: hidden;
   gap: 8px;
 }
 
@@ -127,6 +149,7 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 .tr-chat-model-selector__label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,6 +165,16 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 @container chat-composer (max-width: 640px) {
+  .tr-chat-model-selector {
+    width: auto;
+    max-width: none;
+    flex: 0 0 auto;
+  }
+
+  .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+    width: auto;
+  }
+
   .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {
     display: none;
   }

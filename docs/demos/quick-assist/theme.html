@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN" data-cf-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QuickAssist 主题切换</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --demo-bg: #ffffff;
+        --demo-text: #242424;
+        --demo-surface: #f5f5f5;
+        --demo-border: #cccccc;
+      }
+      :root[data-cf-theme='dark'] {
+        color-scheme: dark;
+        --demo-bg: #1b1b1f;
+        --demo-text: #e6e6e6;
+        --demo-surface: #29292e;
+        --demo-border: #55555b;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        min-height: 320px;
+        box-sizing: border-box;
+        background: var(--demo-bg);
+        color: var(--demo-text);
+        font:
+          14px/1.8 system-ui,
+          sans-serif;
+      }
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      select {
+        padding: 5px 10px;
+        border: 1px solid var(--demo-border);
+        border-radius: 6px;
+        background: var(--demo-bg);
+        color: inherit;
+        font: inherit;
+      }
+      #theme-text {
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--demo-surface);
+      }
+      #theme-status {
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <label>
+      颜色模式
+      <select id="theme-mode">
+        <option value="light">亮色</option>
+        <option value="dark">暗色</option>
+        <option value="auto">跟随系统</option>
+      </select>
+    </label>
+    <p id="theme-text">选中“<span id="theme-term">弹性计费</span>”，查看当前主题下的智能帮助。</p>
+    <p id="theme-status" aria-live="polite">正在加载组件…</p>
+    <script>
+      ;(async () => {
+        // 文档的 HTML 预览会复制宿主样式；移除副本，展示组件自带的配色。
+        document.querySelectorAll('style[replace="true"], link[as="style"]').forEach((element) => element.remove())
+        const root = document.documentElement
+        const select = document.querySelector('#theme-mode')
+        const status = document.querySelector('#theme-status')
+        const system = window.matchMedia('(prefers-color-scheme: dark)')
+        let previewUmdUrl
+        try {
+          previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
+        } catch {
+          // 单独打开或跨源嵌入时使用本地构建产物。
+        }
+        const script = document.createElement('script')
+        script.src =
+          previewUmdUrl ?? new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI).href
+        await new Promise((resolve, reject) => {
+          script.onload = resolve
+          script.onerror = () => reject(new Error('组件加载失败，请先构建 TinyRobot'))
+          document.head.append(script)
+        })
+
+        const { configureVanillaTheme, createQuickAssist } = window.TinyRobotVanilla
+        const syncPage = () => {
+          const mode = select.value === 'auto' ? (system.matches ? 'dark' : 'light') : select.value
+          root.setAttribute('data-cf-theme', mode)
+          status.textContent = `当前主题：${mode === 'dark' ? '暗色' : '亮色'}${select.value === 'auto' ? '（跟随系统）' : ''}，请选择示例文字。`
+        }
+        const applyMode = () => {
+          if (select.value === 'auto') {
+            configureVanillaTheme({ colorMode: 'auto' })
+          } else {
+            // 实际业务只配置一次来源，之后由业务切换 html 上的属性。
+            configureVanillaTheme({ source: { type: 'attribute', attribute: 'data-cf-theme' } })
+          }
+          syncPage()
+        }
+        applyMode()
+        const quickAssist = createQuickAssist({
+          include: ['#theme-text'],
+          adapter: {
+            submit(request) {
+              status.textContent = `已提交：${request.prompt}`
+            },
+          },
+        })
+        select.addEventListener('change', applyMode)
+        const onSystemChange = () => {
+          if (select.value === 'auto') syncPage()
+        }
+        system.addEventListener('change', onSystemChange)
+        root.dataset.quickAssistReady = 'true'
+        window.addEventListener(
+          'pagehide',
+          () => {
+            quickAssist.destroy()
+            system.removeEventListener('change', onSystemChange)
+            select.removeEventListener('change', applyMode)
+          },
+          { once: true },
+        )
+      })().catch((error) => {
+        document.querySelector('#theme-status').textContent = error.message
+      })
+    </script>
+  </body>
+</html>

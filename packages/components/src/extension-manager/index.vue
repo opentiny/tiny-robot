@@ -78,6 +78,17 @@ const filter = useFilter<ExtensionManagerItem>({
 
 const hasActiveTab = computed(() => activeTab.value !== undefined)
 const hasHeader = computed(() => Boolean(props.title || slots['header-actions']))
+const showTabNavigation = computed(() => !props.hideSingleTab || props.tabs.length !== 1)
+const tabPanelAttrs = computed(() => {
+  const tabId = activeTabId.value
+  if (!showTabNavigation.value || tabId === undefined) return {}
+
+  return {
+    role: 'tabpanel' as const,
+    id: getTabPanelDomId(tabId),
+    'aria-labelledby': getTabDomId(tabId),
+  }
+})
 
 const toCardGridItem = (item: ExtensionManagerItem): ExtensionCardGridItem => {
   const { installed, tags, ...cardItem } = item
@@ -139,6 +150,7 @@ const handleNameClick = (
     </div>
 
     <ExtensionManagerTabs
+      v-if="showTabNavigation"
       :tabs="props.tabs"
       :active-tab-id="activeTabId"
       :id-prefix="managerIdPrefix"
@@ -151,13 +163,7 @@ const handleNameClick = (
 
     <ExtensionFilterControls v-if="hasActiveTab" v-bind="filter.controls.value" />
 
-    <div
-      v-if="hasActiveTab"
-      class="extension-manager__sections"
-      role="tabpanel"
-      :id="getTabPanelDomId(activeTabId!)"
-      :aria-labelledby="getTabDomId(activeTabId!)"
-    >
+    <div v-if="hasActiveTab" class="extension-manager__sections" v-bind="tabPanelAttrs">
       <ExtensionManagerSection
         v-for="section in activeSections"
         :key="getSectionStateKey(activeTabId!, section.key)"

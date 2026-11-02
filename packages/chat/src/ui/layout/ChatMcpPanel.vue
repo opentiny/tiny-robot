@@ -7,16 +7,26 @@ import {
   TrMcpExtensionForm,
   type ExtensionManagerActionEvent,
   type ExtensionManagerNameClickEvent,
+  type ExtensionManagerTab,
+  type ExtensionManagerTabChangeEvent,
   type McpExtensionFormSubmitMeta,
   type McpExtensionFormValue,
 } from '@opentiny/tiny-robot'
 import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
-import type { ChatLabels, ChatMcpView } from '../../types'
+import type { ChatExtensionSlotProps, ChatLabels, ChatMcpView } from '../../types'
 import { createChatMcpManagerTab } from './chatMcpManager'
 
 const props = defineProps<{
-  mcp: ChatMcpView
+  mcp?: ChatMcpView
   labels: ChatLabels
+  extensionTabs?: readonly ExtensionManagerTab[]
+  defaultActiveExtensionTab?: string
+  extensionOverlayOpen?: boolean
+}>()
+
+defineSlots<{
+  'extension-header-actions'?: (props: ChatExtensionSlotProps) => unknown
+  'extension-overlay'?: (props: ChatExtensionSlotProps) => unknown
 }>()
 
 const emit = defineEmits<{
@@ -26,16 +36,26 @@ const emit = defineEmits<{
   removeServer: [payload: { id: string }]
   updateServerEnabled: [payload: { id: string; enabled: boolean }]
   updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
+  extensionAction: [payload: ExtensionManagerActionEvent]
+  extensionNameClick: [payload: ExtensionManagerNameClickEvent]
+  extensionTabChange: [payload: ExtensionManagerTabChangeEvent]
 }>()
 
 type PanelView = 'list' | 'add' | 'detail'
+const CHAT_MCP_TAB_ID = 'mcp'
 
 const view = ref<PanelView>('list')
+const activeTabId = ref<string | undefined>(
+  props.defaultActiveExtensionTab ?? (props.mcp ? CHAT_MCP_TAB_ID : props.extensionTabs?.[0]?.id),
+)
 const selectedServerId = ref<string | null>(null)
 const formValue = ref<McpExtensionFormValue>({ name: '', type: 'sse', url: '' })
-const servers = computed(() => props.mcp.servers ?? [])
-const tools = computed(() => props.mcp.tools ?? {})
-const tabs = computed(() => [createChatMcpManagerTab(props.mcp, props.labels, fallbackPluginIcon)])
+const servers = computed(() => props.mcp?.servers ?? [])
+const tools = computed(() => props.mcp?.tools ?? {})
+const tabs = computed<ExtensionManagerTab[]>(() => [
+  ...(props.mcp ? [createChatMcpManagerTab(props.mcp, props.labels, fallbackPluginIcon)] : []),
+  ...(props.extensionTabs ?? []),
+])
 const selectedServer = computed(() =>
   servers.value.find((server) => server.id === selectedServerId.value && server.installed),
 )
@@ -56,12 +76,24 @@ watch(selectedServer, (server) => {
   if (view.value === 'detail' && !server) view.value = 'list'
 })
 
+watch(
+  () => props.mcp,
+  (mcp) => {
+    if (!mcp) view.value = 'list'
+  },
+)
+
 function openAddForm() {
   formValue.value = { name: '', type: 'sse', url: '' }
   view.value = 'add'
 }
 
 function openDetail(event: ExtensionManagerNameClickEvent) {
+  if (event.tabId !== CHAT_MCP_TAB_ID) {
+    emit('extensionNameClick', event)
+    return
+  }
+
   const server = servers.value.find((item) => item.id === event.itemId)
   if (!server?.installed || server.loading) return
   selectedServerId.value = server.id
@@ -69,6 +101,11 @@ function openDetail(event: ExtensionManagerNameClickEvent) {
 }
 
 function handleAction(event: ExtensionManagerActionEvent) {
+  if (event.tabId !== CHAT_MCP_TAB_ID) {
+    emit('extensionAction', event)
+    return
+  }
+
   const server = servers.value.find((item) => item.id === event.itemId)
   if (!server || server.loading) return
 
@@ -87,6 +124,10 @@ function handleAction(event: ExtensionManagerActionEvent) {
   }
 }
 
+function handleTabChange(event: ExtensionManagerTabChangeEvent) {
+  emit('extensionTabChange', event)
+}
+
 function handleFormSubmit(config: McpExtensionFormValue, meta: McpExtensionFormSubmitMeta) {
   emit('createServer', { config, source: meta.source })
   view.value = 'list'
@@ -102,14 +143,30 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
 
 <template>
   <div class="chat-mcp-panel">
-    <template v-if="view === 'list'">
+    <slot v-if="extensionOverlayOpen" name="extension-overlay" :active-tab-id="activeTabId" />
+    <template v-else-if="view === 'list'">
       <div class="chat-mcp-panel__manager">
-        <TrExtensionManager :tabs="tabs" title="扩展" @action="handleAction" @name-click="openDetail">
+        <TrExtensionManager
+          v-model:active-tab="activeTabId"
+          :tabs="tabs"
+          :default-active-tab="defaultActiveExtensionTab"
+          hide-single-tab
+          :title="extensionTabs?.length ? labels.extensions : labels.mcp"
+          @tab-change="handleTabChange"
+          @action="handleAction"
+          @name-click="openDetail"
+        >
           <template #header-actions>
-            <button type="button" class="chat-mcp-panel__action chat-mcp-panel__add" @click="openAddForm">
+            <button
+              v-if="activeTabId === CHAT_MCP_TAB_ID"
+              type="button"
+              class="chat-mcp-panel__action chat-mcp-panel__add"
+              @click="openAddForm"
+            >
               <IconPlus class="chat-mcp-panel__action-icon" aria-hidden="true" />
               <span>{{ '自定义添加' }}</span>
             </button>
+            <slot name="extension-header-actions" :active-tab-id="activeTabId" />
             <button
               type="button"
               class="chat-mcp-panel__action chat-mcp-panel__icon-action"
@@ -168,6 +225,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
 
 <style scoped>
 .chat-mcp-panel {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   flex-direction: column;

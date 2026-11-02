@@ -59,6 +59,9 @@ export interface ChatMessageItem<
   tool_call_id?: string
   name?: string
   id?: string
+  /** Keep this stable when a message object or its server ID is replaced. */
+  renderKey?: string
+  streamState?: 'streaming' | 'finished' | 'unknown'
   loading?: boolean
   state?: S
   metadata?: Record<string, unknown>
@@ -70,3 +73,9 @@ export interface ChatStructuredDataItem {
 }
 
 export type ChatStructuredData = ChatStructuredDataItem[]
+
+export interface ChatInputActions {
+  setInputValue(value: string): void
+  clearInput(): void
+  focusInput(): Promise<boolean>
+}
