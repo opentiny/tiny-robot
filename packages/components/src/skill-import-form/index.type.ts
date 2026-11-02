@@ -4,6 +4,7 @@ interface SkillResourceBase<K extends SkillFileKind> {
   path: string
   kind: K
   resourceId: string
+  editable?: boolean
   mimeType?: string
   size?: number
   lastModified?: number

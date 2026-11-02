@@ -95,6 +95,8 @@ const jsonStr = computed(() => {
   return prettyJSON(toolCallWithResult.value, 2)
 })
 
+const argumentsJson = computed(() => prettyJSON(toolCallWithResult.value.arguments))
+
 const detail = computed(() => {
   return highlightJSON(jsonStr.value)
 })
@@ -119,6 +121,11 @@ watch(jsonStr, (_, oldValue) => {
 })
 
 const open = ref(false)
+const editing = ref(false)
+const editedArguments = ref('')
+const editError = ref(false)
+
+const canEdit = computed(() => Boolean(toolCall.value?.editable))
 
 watchEffect(() => {
   open.value = state.value.open ?? false
@@ -136,6 +143,36 @@ const emitToolAction = (action: 'resume' | 'reject') => {
     name: `tool-call:${action}`,
     payload: { toolCallId },
   })
+}
+
+const startEditing = () => {
+  editedArguments.value = argumentsJson.value
+  editError.value = false
+  editing.value = true
+}
+
+const cancelEditing = () => {
+  editError.value = false
+  editing.value = false
+}
+
+const saveEditing = () => {
+  const toolCallId = toolCall.value?.id
+  if (!toolCallId || !canEdit.value) {
+    return
+  }
+
+  try {
+    const argumentsValue = JSON.parse(editedArguments.value || '{}')
+    handleBubbleEvent({
+      name: 'tool-call:edit',
+      payload: { toolCallId, arguments: JSON.stringify(argumentsValue) },
+    })
+    editError.value = false
+    editing.value = false
+  } catch {
+    editError.value = true
+  }
 }
 
 const handleClick = () => {
@@ -180,8 +217,21 @@ const handleClick = () => {
         <tiny-button size="mini" round :reset-time="0" @click.stop="emitToolAction('reject')">拒绝</tiny-button>
       </div>
     </div>
-    <div v-show="open" class="divider"></div>
-    <div v-show="open" class="detail" v-html="detail" ref="detailRef"></div>
+    <template v-if="open">
+      <div class="divider"></div>
+      <div v-if="editing" class="edit-panel">
+        <textarea v-model="editedArguments" class="edit-input" aria-label="工具参数" @input="editError = false" />
+        <p v-if="editError" class="edit-error" role="alert">请输入合法的 JSON 参数</p>
+        <div class="edit-actions">
+          <tiny-button size="mini" :reset-time="0" @click="cancelEditing">取消</tiny-button>
+          <tiny-button type="primary" size="mini" :reset-time="0" @click="saveEditing">保存</tiny-button>
+        </div>
+      </div>
+      <template v-else>
+        <div class="detail" v-html="detail" ref="detailRef"></div>
+        <button v-if="canEdit" type="button" class="edit-trigger" @click="startEditing">编辑</button>
+      </template>
+    </template>
   </div>
 </template>
 
@@ -299,6 +349,49 @@ const handleClick = () => {
   font-family: monospace;
   max-height: var(--tr-bubble-tool-call-max-height, 300px);
   overflow-y: auto;
+}
+
+.edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-input {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid var(--tr-border-color, #d9d9d9);
+  border-radius: 4px;
+  background: var(--tr-bg-color, #fff);
+  color: inherit;
+  font: inherit;
+  font-family: monospace;
+  box-sizing: border-box;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tr-spacing-sm);
+}
+
+.edit-error {
+  margin: 0;
+  color: var(--tr-color-error, #f23030);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.edit-trigger {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tr-brand-color, #1476ff);
+  cursor: pointer;
+  font: inherit;
 }
 </style>
 
