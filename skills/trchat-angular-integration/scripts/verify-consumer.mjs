@@ -19,6 +19,59 @@ function files(dir, excluded = new Set()) {
     return entry.isDirectory() ? files(path, excluded) : entry.isFile() ? [path] : [];
   });
 }
+function parseJsonc(text) {
+  let withoutComments = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+    if (inString) {
+      withoutComments += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') {
+      inString = true;
+      withoutComments += char;
+    } else if (char === '/' && next === '/') {
+      while (i + 1 < text.length && text[i + 1] !== '\n' && text[i + 1] !== '\r') i++;
+    } else if (char === '/' && next === '*') {
+      i += 2;
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) {
+        if (text[i] === '\n' || text[i] === '\r') withoutComments += text[i];
+        i++;
+      }
+      if (i >= text.length) throw new SyntaxError('Unterminated block comment in JSONC');
+      i++;
+    } else {
+      withoutComments += char;
+    }
+  }
+
+  let withoutTrailingCommas = '';
+  inString = false;
+  escaped = false;
+  for (let i = 0; i < withoutComments.length; i++) {
+    const char = withoutComments[i];
+    if (inString) {
+      withoutTrailingCommas += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') {
+      inString = true;
+      withoutTrailingCommas += char;
+    } else if (char === ',') {
+      let next = i + 1;
+      while (/\s/.test(withoutComments[next] || '')) next++;
+      if (withoutComments[next] !== '}' && withoutComments[next] !== ']') withoutTrailingCommas += char;
+    } else {
+      withoutTrailingCommas += char;
+    }
+  }
+  return JSON.parse(withoutTrailingCommas);
+}
 function packageManifest(req, name, entry) {
   let resolved;
   try { resolved = req.resolve(`${name}/package.json`); }
@@ -54,7 +107,7 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
     const roots = new Set([join(root, 'src')]);
     const angularPath = join(root, 'angular.json');
     if (existsSync(angularPath)) {
-      const angular = JSON.parse(readFileSync(angularPath, 'utf8'));
+      const angular = parseJsonc(readFileSync(angularPath, 'utf8'));
       for (const project of Object.values(angular.projects || {})) {
         if (typeof project?.sourceRoot === 'string') roots.add(resolve(root, project.sourceRoot));
       }

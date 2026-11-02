@@ -192,6 +192,23 @@ test('checks Angular configured source roots for direct Kit usage', t => {
   write(join(root, 'projects/chat/src/app.ts'), `import '${kit}';`);
   failing(report(root), /direct dependency version/i);
 });
+test('accepts Angular JSONC and scans its configured source root', t => {
+  const root = fixture(t);
+  write(join(root, 'angular.json'), `{
+    // Angular CLI accepts comments and trailing commas.
+    "version": 1,
+    "projects": {
+      "chat": {
+        "sourceRoot": "projects/chat/src",
+      },
+    },
+  }`);
+  const source = join(root, 'projects/chat/src/app.ts');
+  write(source, `export const marker = 'safe';`);
+  assert.equal(report(root).ok, true);
+  write(source, `import '${chat}/src/private';`);
+  failing(report(root), /private.*source/i);
+});
 test('fails clearly when no source files are covered', t => {
   const root = fixture(t); rmSync(join(root, 'src'), { recursive: true });
   failing(report(root), /no source files/i);
