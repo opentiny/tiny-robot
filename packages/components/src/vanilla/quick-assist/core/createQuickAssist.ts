@@ -1,4 +1,4 @@
-import { DEFAULT_INPUT, DEFAULT_MESSAGES } from '../defaults'
+import { DEFAULT_INPUT, DEFAULT_MESSAGES, DEFAULT_SELECTION } from '../defaults'
 import { QuickAssistStageError } from './errors'
 import { copyContext, snapshotContextData } from '../context/value'
 import { createContextModule } from '../context'
@@ -51,7 +51,7 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   }
   const inputOptions = {
     maxRows: input.input?.maxRows ?? DEFAULT_INPUT.maxRows,
-    maxLength: input.input?.maxLength,
+    maxLength: input.input?.maxLength ?? undefined,
     autoFill: input.input?.autoFill ?? DEFAULT_INPUT.autoFill,
     placeholder: input.input?.placeholder ?? DEFAULT_INPUT.placeholder,
     ariaLabel: input.input?.ariaLabel ?? DEFAULT_INPUT.ariaLabel,
@@ -76,9 +76,10 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
   if (typeof forwardOnly !== 'boolean') {
     throw new Error('QuickAssist selection.forwardOnly must be a boolean')
   }
-  const maxTextLength = selectionInput.maxTextLength ?? 300
-  if (!Number.isInteger(maxTextLength) || maxTextLength <= 0) {
-    throw new Error('QuickAssist selection.maxTextLength must be a positive integer')
+  const maxTextLength =
+    selectionInput.maxTextLength === undefined ? DEFAULT_SELECTION.maxTextLength : selectionInput.maxTextLength
+  if (maxTextLength !== null && (!Number.isInteger(maxTextLength) || maxTextLength <= 0)) {
+    throw new Error('QuickAssist selection.maxTextLength must be a positive integer or null')
   }
   const triggerInput = input.trigger ?? {}
   const showDelay = triggerInput.showDelay ?? 0
@@ -113,6 +114,8 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     selection: {
       forwardOnly,
       maxTextLength,
+      maxTextLengthExceededMessage:
+        selectionInput.maxTextLengthExceededMessage ?? DEFAULT_SELECTION.maxTextLengthExceededMessage,
       validate: selectionInput.validate,
       validateActivation: selectionInput.validateActivation,
     },
@@ -278,8 +281,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const submit = (candidate: QuickAssistSession, query: string, suggestion?: Suggestion): void => {
     if (!isCurrent(candidate) || !candidate.context || candidate.submitStarted) return
-    if (!suggestion && resolved.input?.maxLength !== undefined && Array.from(query).length > resolved.input.maxLength)
-      return
+    if (!suggestion && resolved.input?.maxLength != null && Array.from(query).length > resolved.input.maxLength) return
     const normalizedQuery = query.trim()
     if (!normalizedQuery && !suggestion) return
     const adapter = resolved.adapter
@@ -321,8 +323,12 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
     }
   }
 
+  const isOverSelectionLimit = (activation: QuickAssistActivation): boolean =>
+    resolved.selection.maxTextLength !== null &&
+    Array.from((activation.text ?? activation.selection?.text ?? '').trim()).length > resolved.selection.maxTextLength
+
   const handlePopover = (candidate: QuickAssistSession): void => {
-    if (!isCurrent(candidate)) return
+    if (!isCurrent(candidate) || isOverSelectionLimit(candidate.activation)) return
     if (candidate.external) {
       const anchor = readAnchor(candidate)
       if (!isCurrent(candidate)) return
@@ -543,7 +549,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       controller: new AbortController(),
       state: 'trigger',
       suggestions: [],
-      inputValue: (external?.autoFill ?? resolved.input?.autoFill ?? true) ? (activation.text ?? '') : '',
+      inputValue:
+        (external?.autoFill ?? resolved.input?.autoFill ?? DEFAULT_INPUT.autoFill) ? (activation.text ?? '') : '',
       originalActiveElement: resolved.root.activeElement,
       submitStarted: false,
     }
@@ -589,7 +596,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       }
       invalidationCleanup = cleanup
     }
-    if (external?.open === 'popover') {
+    if (external?.open === 'popover' && !isOverSelectionLimit(activation)) {
       emit({ type: 'selection', sessionId: next.id })
       if (isCurrent(next)) handlePopover(next)
       return
@@ -636,7 +643,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       ) {
         throw new Error('QuickAssist activation.getSuggestions must be a function or null')
       }
-      if (!text || text.length > resolved.selection.maxTextLength) return
+      if (!text) return
       const frozen: QuickAssistActivationInput = {
         ...input,
         text,
@@ -658,7 +665,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       if (
         !(resolved.selection.validateActivation
           ? resolved.selection.validateActivation(view)
-          : isDefaultTextValid(text, resolved.selection.maxTextLength))
+          : isDefaultTextValid(text, Infinity))
       )
         return
       if (!enabled || destroyed || !isSourceCurrent()) return
@@ -797,7 +804,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         root: configuration.root,
         include: configuration.include,
         exclude: configuration.exclude,
-        maxTextLength: configuration.selection.maxTextLength,
+        maxTextLength: configuration.selection.maxTextLength ?? Infinity,
         forwardOnly: configuration.selection.forwardOnly,
         validate: configuration.selection.validate,
       })
@@ -829,6 +836,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         root: configuration.root,
         attrs: configuration.attrs,
         input: configuration.input,
+        selection: configuration.selection,
         messages: configuration.messages,
         triggerLabel: configuration.trigger.label,
         onCallbackError: (sessionId, error) => emitError(sessionId, 'callback', error),

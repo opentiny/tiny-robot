@@ -21,6 +21,7 @@ window.resetQuickAssist = (options = {}) => {
   document.querySelector<HTMLElement>('#chat')!.hidden = true
   window.qa = createQuickAssist({
     include: ['#scope'],
+    input: { autoFill: true }, // Explicitly exercise prefilled submission workflows.
     adapter: {
       submit(request) {
         window.qaRequests.push(request)

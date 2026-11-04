@@ -62,7 +62,7 @@ try {
   const input = page.locator('.tr-quick-assist__input')
   const open = () => demo.getByRole('button', { name: '询问“查看系统盘使用率”', exact: true }).click()
   await open()
-  await expect(input).toHaveValue('查看系统盘使用率')
+  await expect(input).toHaveValue('')
   await input.fill('第一行\n第二行\n第三行')
   await expect(input).toHaveCSS('height', '36px')
   await input.fill('单行')
@@ -111,7 +111,7 @@ try {
     documentedKeys: documentedKeys.filter((key) => /^(input|messages)\./u.test(key)),
     checks: [
       'API anchor',
-      'default prefill',
+      'default empty input',
       'grow and shrink',
       'Unicode count',
       'length validation',

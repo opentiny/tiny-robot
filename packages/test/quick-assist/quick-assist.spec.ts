@@ -589,7 +589,6 @@ test('default validation rejects invalid and excluded selections', async ({ page
     'uuid',
     'zero-uuid',
     'punctuation',
-    'long',
     'outside',
     'contenteditable',
     'monaco',
@@ -618,7 +617,7 @@ test('read-only contenteditable permits selection and nearby context while edita
   }
 })
 
-test('extending a valid selection beyond the configured limit removes the trigger', async ({ page }) => {
+test('extending a valid selection beyond the configured limit disables the trigger', async ({ page }) => {
   await page.evaluate(() => window.resetQuickAssist({ selection: { maxTextLength: 12 } }))
   await page.locator('#long').scrollIntoViewIfNeeded()
   await page.locator('#long').evaluate((element) => {
@@ -638,15 +637,15 @@ test('extending a valid selection beyond the configured limit removes the trigge
   })
   const selectedLength = await page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0)
   expect(selectedLength).toBeGreaterThan(12)
-  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeDisabled()
 })
 
-test('mouse drag beyond the configured limit leaves no trigger', async ({ page }) => {
+test('mouse drag beyond the configured limit leaves a disabled trigger', async ({ page }) => {
   await page.evaluate(() => window.resetQuickAssist({ selection: { maxTextLength: 12 } }))
   await dragSelectText(page, '#selection-limit')
   const selectedLength = await page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0)
   expect(selectedLength).toBeGreaterThan(12)
-  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeDisabled()
 })
 
 test('default trigger appears only after mouse selection ends', async ({ page }) => {
@@ -695,7 +694,7 @@ test('showDelay restarts for a newer selection and cancels an invalid selection'
   expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
   await select(page, '#term')
   await expect(page.locator(trigger)).toHaveCount(0)
-  await select(page, '#long')
+  await select(page, '#digits')
   await expect(page.locator(trigger)).toHaveCount(0)
   await page.clock.runFor(900)
   await expect(page.locator(trigger)).toHaveCount(0)
@@ -1614,7 +1613,7 @@ test('updateOptions closes stale UI and applies the new nested options', async (
   await expect(page.getByRole('button', { name: '旧任务', exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await select(page, '#long')
-  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeDisabled()
 })
 
 test('updateOptions rejects a different root document without disabling the instance', async ({ page }) => {
@@ -1662,6 +1661,8 @@ test('updateOptions replaces supplied nested groups and preserves omitted top-le
   const input = page.getByRole('textbox', { name: '请输入问题', exact: true })
   await expect(input).toBeVisible()
   await expect(page.getByRole('button', { name: '保留任务', exact: true })).toBeVisible()
+  await expect(input).toHaveValue('')
+  await input.fill('解释计费模式')
   await page.getByRole('button', { name: '新发送', exact: true }).click()
   const request = await page.evaluate(() => window.qaRequests[0])
   expect(request.context.nearbyText).toBe('计费模式 弹性计费')

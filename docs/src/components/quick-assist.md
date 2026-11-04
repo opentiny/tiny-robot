@@ -142,6 +142,8 @@ createQuickAssist({
 
 `input.placeholder` 设置空输入时的提示，`input.maxLengthExceededMessage` 设置超限校验提示。输入框和发送按钮的无障碍名称分别由 `input.ariaLabel`、`input.submitLabel` 配置，`ariaLabel` 仅标识 textarea，`submitLabel` 用于图标发送按钮的无障碍名称与正常悬停标题。弹层使用 `trigger.label` 作为对话框名称，占位文案不能代替无障碍名称。
 
+`input.autoFill` 默认为 `false`，输入框初始留空；设为 `true` 可预填选中的文字，选区上下文始终保留。
+
 `input.maxRows` 调整最多可见行数；换行和自动折行都会触发高度调整，删除内容后收缩，弹层会重新定位。
 
 默认不限制字数且不显示计数；设置 `input.maxLength` 后从空值开始显示 `0 / 上限`。按 Unicode 码点计数：中英文、换行各计 1，单个补充平面 emoji 计 1，组合 emoji 按实际码点数计数。允许粘贴超限文本，超过上限时当前字数变红、发送禁用，悬停或聚焦发送区域显示“字数超出限制”；Enter 同样不可提交。推荐问题独立提交，不受手动输入区的超限状态影响。
@@ -329,9 +331,9 @@ const quickAssist = createQuickAssist({
 
 ### 生效范围与选择长度 {#example-selection-scope}
 
-试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较划词入口是否出现。
+试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较正常入口、超限禁用入口和排除效果。
 
-<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域和有效长度的选区会显示划词入口。" />
+<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
 
 ```ts
 const quickAssist = createQuickAssist({
@@ -339,7 +341,7 @@ const quickAssist = createQuickAssist({
   include: ['#app'], // 配置后，选区中的每个文本节点都必须位于匹配区域
   exclude: ['[data-qa-ignore]', '.private-value'], // 在内置排除项上追加
   selection: {
-    maxTextLength: 300,
+    maxTextLength: 8000,
     validate(snapshot) {
       return snapshot.text.trim().length > 0
     },
@@ -347,7 +349,20 @@ const quickAssist = createQuickAssist({
 })
 ```
 
-默认拒绝空白、纯数字、纯标点/符号、明显 URL、UUID 和超出长度的选区；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会被拒绝，不会悄悄截断后发送。
+划词默认上限为 **8000**，使用 `selection.maxTextLength` 配置正整数，设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算，内部空格和换行各计 1，普通 emoji 计 1（组合 emoji 按实际码点数计数）。输入框的 `input.maxLength` 独立配置，默认不限制，也可显式设为 `null`。
+
+超限后仍在释放鼠标后显示“智能帮助”入口，文字和边框置灰，保留彩色星标；入口出现时立即显示“划词字数超出限制 当前字数/上限”，并随入口保持可见，当前字数为红色。入口不可打开，点击、Enter 和程序直接打开均不能绕过限制，也不会触发上下文或推荐请求。提示文案可通过 `selection.maxTextLengthExceededMessage` 配置。上述规则同时适用于页面划词、`activate()` 和 `registerSource()` 编辑器来源。范围、敏感区域和文本有效性校验继续生效。
+
+```ts
+selection: {
+  maxTextLength: null
+} // 不限制划词长度
+input: {
+  maxLength: null
+} // 不限制输入长度
+```
+
+默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会显示禁用入口，不会截断或发送。
 
 默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
 ::: tip 支持范围
@@ -736,7 +751,7 @@ TinyRobotVanilla.configureVanillaTheme({
 ## 交互与限制
 
 - 划词默认仅正向触发；入口默认出现在选区末行右下方，空间不足时会翻转或调整位置；打开输入浮层后仍会跟随入口对应的首末行位置。
-- 点击入口后输入框立即打开并聚焦，默认填入选中文字；按 Enter 发送，按 Shift+Enter 换行，输入法组合期间不会误发。
+- 点击入口后输入框立即打开并聚焦，默认留空，设置 `input.autoFill: true` 可填入选中文字；按 Enter 发送，按 Shift+Enter 换行，输入法组合期间不会误发。
 - 等待业务上下文构造或脱敏时，仍可编辑输入，但暂时不能提交；脱敏完成前不会调用推荐函数。
 - 点击推荐项或手动发送后，组件先关闭划词界面，再调用 `adapter`。
 - 新选区会替换旧会话。点击外部、按 Esc、锚点失效、显著滚动、路由变化或调用生命周期方法时，会清理当前界面。
@@ -762,44 +777,45 @@ TinyRobotVanilla.configureVanillaTheme({
 
 点击下方 API 表中的属性名、方法名、事件名或 CSS 变量名，可跳转到对应示例或用法说明。
 
-| 属性名                                                    | 类型                                                                                        | 默认值               | 说明                                                                                                                                           |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`root`](#example-basic)                                  | `Document`                                                                                  | `document`           | 所在文档；不接受 `ShadowRoot`                                                                                                                  |
-| [`enabled`](#example-lifecycle)                           | `boolean`                                                                                   | `true`               | 是否启用划词监听                                                                                                                               |
-| [`adapter`](#example-basic)                               | `AIAdapter`                                                                                 | —                    | 必填；由 `submit(request)` 交给应用已有的对话能力                                                                                              |
-| [`include`](#example-selection-scope)                     | `string[]`                                                                                  | —                    | 限定可触发的页面区域                                                                                                                           |
-| [`exclude`](#example-selection-scope)                     | `string[]`                                                                                  | —                    | 在内置排除规则上追加页面区域                                                                                                                   |
-| [`selection.maxTextLength`](#example-selection-scope)     | `number`                                                                                    | `300`                | 可选文字的最大长度，必须为正整数                                                                                                               |
-| [`selection.forwardOnly`](#example-direction-placement)   | `boolean`                                                                                   | `true`               | 仅正向选词触发；设为 false 允许双向选择                                                                                                        |
-| [`selection.validateActivation`](#example-activation)     | `(view: QuickAssistActivationView) => boolean`                                              | 默认文本规则         | 仅自定义激活的文本校验，不接收 DOM Range                                                                                                       |
-| [`selection.validate`](#example-selection-scope)          | `(snapshot) => boolean`                                                                     | 内置校验             | 替代默认的文本内容校验                                                                                                                         |
-| [`trigger.label`](#example-input)                         | `string`                                                                                    | `智能帮助`           | 划词入口文案                                                                                                                                   |
-| [`trigger.showDelay`](#example-trigger-delay)             | `number`                                                                                    | `0`                  | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数                                                                                               |
-| [`trigger.offset`](#example-direction-placement)          | `number`                                                                                    | `8`                  | 入口及输入浮层与选区的间距，单位为像素                                                                                                         |
-| [`trigger.placement`](#example-direction-placement)       | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'`       | 入口及输入浮层的优先位置；上方按首行、下方按末行，空间不足时调整                                                                               |
-| [`input.maxRows`](#example-input)                         | `number`                                                                                    | `2`                  | 输入区最多显示的行数，须为正整数，超过后内部滚动                                                                                               |
-| [`input.maxLength`](#example-input)                       | `number`                                                                                    | 不限制               | 可选的 Unicode 码点上限，须为正整数；配置后始终显示计数，超限不可发送                                                                          |
-| [`input.autoFill`](#example-input)                        | `boolean`                                                                                   | `true`               | 是否自动将选中或主动激活的文字填入输入区，不影响上下文                                                                                         |
-| [`input.placeholder`](#example-input)                     | `string`                                                                                    | `告诉 AI 你想做什么` | 输入为空时显示的占位文案                                                                                                                       |
-| [`input.ariaLabel`](#example-input)                       | `string`                                                                                    | `请输入问题`         | textarea 的无障碍名称，不是弹层标题                                                                                                            |
-| [`input.submitLabel`](#example-input)                     | `string`                                                                                    | `发送问题`           | 图标发送按钮的无障碍名称和悬停标题                                                                                                             |
-| [`input.maxLengthExceededMessage`](#example-input)        | `string`                                                                                    | `字数超出限制`       | 超过 input.maxLength 时在发送区域显示的校验提示                                                                                                |
-| [`nearbyContext.maxLength`](#example-nearby-context)      | `number`                                                                                    | `500`                | 附近文本的最大字符数                                                                                                                           |
-| [`nearbyContext.blockSelectors`](#example-nearby-context) | `string[]`                                                                                  | 内置选择器           | 在默认语义块之外增加候选块                                                                                                                     |
-| [`getNearbyContext`](#example-nearby-context)             | `(snapshot) => string \| undefined`                                                         | —                    | 自定义附近文本；`snapshot` 含 DOM `Range`                                                                                                      |
-| [`getContext`](#example-context)                          | `(context, signal) => Record \| Promise<Record>`                                            | —                    | 返回业务字段，合并到 `businessContext`                                                                                                         |
-| [`sanitizeContext`](#example-context)                     | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>`                    | —                    | 返回最终允许外发的完整上下文                                                                                                                   |
-| [`suggestions`](#example-suggestions)                     | `QuickAssistSuggestionInput[]`                                                              | 默认推荐             | 静态推荐或推荐生成函数                                                                                                                         |
-| [`getSuggestions`](#example-remote-suggestions)           | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`                                | —                    | 使用脱敏后的上下文获取异步推荐                                                                                                                 |
-| [`validateSuggestion`](#远程问题校验-validatesuggestion)  | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`                          | 基础格式校验         | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion)                                                 |
-| [`mergeSuggestions`](#example-remote-suggestions)         | `(base, incoming, context) => Suggestion[]`                                                 | 静态优先追加         | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
-| [`maxSuggestions`](#example-suggestions)                  | `number`                                                                                    | `2`                  | 最多展示的推荐数，必须为正整数                                                                                                                 |
-| [`buildPrompt`](#example-build-prompt)                    | `(input) => string`                                                                         | 内置构造             | 自定义提交内容                                                                                                                                 |
-| [`attrs`](#example-attrs)                                 | `QuickAssistAttrs`                                                                          | —                    | 为组件内部元素追加安全的 DOM 属性                                                                                                              |
-| [`messages.loading`](#example-suggestion-messages)        | `string`                                                                                    | `正在加载推荐…`      | 推荐加载期间显示的状态文案                                                                                                                     |
-| [`messages.empty`](#example-suggestion-messages)          | `string`                                                                                    | `暂无推荐`           | 没有可显示推荐时的状态文案                                                                                                                     |
-| [`messages.error`](#example-suggestion-messages)          | `string`                                                                                    | `推荐加载失败`       | 推荐准备或加载失败且无可显示推荐时的状态文案；不表示输入校验或发送错误                                                                         |
-| [`onEvent`](#example-events)                              | `(event) => void`                                                                           | —                    | 事件回调；回调异常不会打断组件清理                                                                                                             |
+| 属性名                                                               | 类型                                                                                        | 默认值               | 说明                                                                                                                                           |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`root`](#example-basic)                                             | `Document`                                                                                  | `document`           | 所在文档；不接受 `ShadowRoot`                                                                                                                  |
+| [`enabled`](#example-lifecycle)                                      | `boolean`                                                                                   | `true`               | 是否启用划词监听                                                                                                                               |
+| [`adapter`](#example-basic)                                          | `AIAdapter`                                                                                 | —                    | 必填；由 `submit(request)` 交给应用已有的对话能力                                                                                              |
+| [`include`](#example-selection-scope)                                | `string[]`                                                                                  | —                    | 限定可触发的页面区域                                                                                                                           |
+| [`exclude`](#example-selection-scope)                                | `string[]`                                                                                  | —                    | 在内置排除规则上追加页面区域                                                                                                                   |
+| [`selection.maxTextLength`](#example-selection-scope)                | `number \| null`                                                                            | `8000`               | Unicode 码点上限，正整数；`null` 不限制。超限显示禁用入口                                                                                      |
+| [`selection.maxTextLengthExceededMessage`](#example-selection-scope) | `string`                                                                                    | `划词字数超出限制`   | 超限提示文案，后面自动追加当前字数和上限                                                                                                       |
+| [`selection.forwardOnly`](#example-direction-placement)              | `boolean`                                                                                   | `true`               | 仅正向选词触发；设为 false 允许双向选择                                                                                                        |
+| [`selection.validateActivation`](#example-activation)                | `(view: QuickAssistActivationView) => boolean`                                              | 默认文本规则         | 仅自定义激活的文本校验，不接收 DOM Range                                                                                                       |
+| [`selection.validate`](#example-selection-scope)                     | `(snapshot) => boolean`                                                                     | 内置校验             | 替代默认的文本内容校验                                                                                                                         |
+| [`trigger.label`](#example-input)                                    | `string`                                                                                    | `智能帮助`           | 划词入口文案                                                                                                                                   |
+| [`trigger.showDelay`](#example-trigger-delay)                        | `number`                                                                                    | `0`                  | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数                                                                                               |
+| [`trigger.offset`](#example-direction-placement)                     | `number`                                                                                    | `8`                  | 入口及输入浮层与选区的间距，单位为像素                                                                                                         |
+| [`trigger.placement`](#example-direction-placement)                  | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'`       | 入口及输入浮层的优先位置；上方按首行、下方按末行，空间不足时调整                                                                               |
+| [`input.maxRows`](#example-input)                                    | `number`                                                                                    | `2`                  | 输入区最多显示的行数，须为正整数，超过后内部滚动                                                                                               |
+| [`input.maxLength`](#example-input)                                  | `number \| null`                                                                            | 不限制               | 可选的 Unicode 码点上限，须为正整数；省略或 `null` 不限制；配置后始终显示计数，超限不可发送                                                    |
+| [`input.autoFill`](#example-input)                                   | `boolean`                                                                                   | `false`               | 是否自动将选中或主动激活的文字填入输入区，不影响上下文                                                                                         |
+| [`input.placeholder`](#example-input)                                | `string`                                                                                    | `告诉 AI 你想做什么` | 输入为空时显示的占位文案                                                                                                                       |
+| [`input.ariaLabel`](#example-input)                                  | `string`                                                                                    | `请输入问题`         | textarea 的无障碍名称，不是弹层标题                                                                                                            |
+| [`input.submitLabel`](#example-input)                                | `string`                                                                                    | `发送问题`           | 图标发送按钮的无障碍名称和悬停标题                                                                                                             |
+| [`input.maxLengthExceededMessage`](#example-input)                   | `string`                                                                                    | `字数超出限制`       | 超过 input.maxLength 时在发送区域显示的校验提示                                                                                                |
+| [`nearbyContext.maxLength`](#example-nearby-context)                 | `number`                                                                                    | `500`                | 附近文本的最大字符数                                                                                                                           |
+| [`nearbyContext.blockSelectors`](#example-nearby-context)            | `string[]`                                                                                  | 内置选择器           | 在默认语义块之外增加候选块                                                                                                                     |
+| [`getNearbyContext`](#example-nearby-context)                        | `(snapshot) => string \| undefined`                                                         | —                    | 自定义附近文本；`snapshot` 含 DOM `Range`                                                                                                      |
+| [`getContext`](#example-context)                                     | `(context, signal) => Record \| Promise<Record>`                                            | —                    | 返回业务字段，合并到 `businessContext`                                                                                                         |
+| [`sanitizeContext`](#example-context)                                | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>`                    | —                    | 返回最终允许外发的完整上下文                                                                                                                   |
+| [`suggestions`](#example-suggestions)                                | `QuickAssistSuggestionInput[]`                                                              | 默认推荐             | 静态推荐或推荐生成函数                                                                                                                         |
+| [`getSuggestions`](#example-remote-suggestions)                      | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`                                | —                    | 使用脱敏后的上下文获取异步推荐                                                                                                                 |
+| [`validateSuggestion`](#远程问题校验-validatesuggestion)             | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`                          | 基础格式校验         | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion)                                                 |
+| [`mergeSuggestions`](#example-remote-suggestions)                    | `(base, incoming, context) => Suggestion[]`                                                 | 静态优先追加         | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
+| [`maxSuggestions`](#example-suggestions)                             | `number`                                                                                    | `2`                  | 最多展示的推荐数，必须为正整数                                                                                                                 |
+| [`buildPrompt`](#example-build-prompt)                               | `(input) => string`                                                                         | 内置构造             | 自定义提交内容                                                                                                                                 |
+| [`attrs`](#example-attrs)                                            | `QuickAssistAttrs`                                                                          | —                    | 为组件内部元素追加安全的 DOM 属性                                                                                                              |
+| [`messages.loading`](#example-suggestion-messages)                   | `string`                                                                                    | `正在加载推荐…`      | 推荐加载期间显示的状态文案                                                                                                                     |
+| [`messages.empty`](#example-suggestion-messages)                     | `string`                                                                                    | `暂无推荐`           | 没有可显示推荐时的状态文案                                                                                                                     |
+| [`messages.error`](#example-suggestion-messages)                     | `string`                                                                                    | `推荐加载失败`       | 推荐准备或加载失败且无可显示推荐时的状态文案；不表示输入校验或发送错误                                                                         |
+| [`onEvent`](#example-events)                                         | `(event) => void`                                                                           | —                    | 事件回调；回调异常不会打断组件清理                                                                                                             |
 
 `attrs.suggestion` 可以是属性对象，也可以是按推荐项返回属性对象的函数。事件处理器、`style`、写入 HTML 的属性、`value`、`disabled`、`type`、`id` 等会被忽略；`class` 只能追加，不能覆盖组件内部行为。
 

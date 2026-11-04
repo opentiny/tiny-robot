@@ -209,6 +209,9 @@
 .tr-quick-assist button.tr-quick-assist__submit:disabled {
   color: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
   cursor: not-allowed;
+  font-weight: 400;
+  /* Keep the immediately visible tooltip aligned with this entry. */
+  animation: none;
   opacity: 0.72;
 }
 
@@ -343,4 +346,47 @@
 .tr-quick-assist__submit-wrapper--invalid:hover .tr-quick-assist__limit-tooltip,
 .tr-quick-assist__submit-wrapper--invalid:focus .tr-quick-assist__limit-tooltip {
   display: block;
+}
+
+/* Selection limit: match the design while retaining the normal entry geometry. */
+.tr-quick-assist button.tr-quick-assist__trigger--invalid,
+.tr-quick-assist button.tr-quick-assist__trigger--invalid:hover {
+  color: var(--tr-quick-assist-selection-disabled-text, #c4c4c4);
+  border-color: var(--tr-quick-assist-selection-disabled-border, #dbdbdb);
+  background: var(--tr-quick-assist-bg);
+  box-shadow: none;
+  cursor: not-allowed;
+  font-weight: 400;
+  /* Keep the immediately visible tooltip aligned with this entry. */
+  animation: none;
+}
+
+.tr-quick-assist__selection-tooltip {
+  position: fixed;
+  z-index: 1;
+  max-width: calc(100vw - 16px);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--tr-quick-assist-bg);
+  color: var(--tr-quick-assist-text);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 12%);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.tr-quick-assist__selection-tooltip[hidden] {
+  display: none;
+}
+
+.tr-quick-assist__selection-count {
+  color: var(--tr-quick-assist-selection-error, #f63737);
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] {
+  --tr-quick-assist-selection-disabled-text: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
+  --tr-quick-assist-selection-disabled-border: var(--tr-quick-assist-border);
+  --tr-quick-assist-selection-error: var(--tr-color-error, var(--tr-vanilla-default-color-error));
 }

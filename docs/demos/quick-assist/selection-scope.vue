@@ -2,11 +2,11 @@
   <div class="qa-feature-demo">
     <div id="qa-scope-allowed" class="qa-feature-demo__allowed">
       <p>可选择区域：ECS、VPC 和 QoS 都是有效的短技术词。</p>
-      <p>这段文字明显超过本示例设置的二十四字上限，整句选中时不会出现智能帮助入口。</p>
+      <p>这段文字明显超过本示例设置的二十四字上限，整句选中时入口置灰，同时显示字数提示。</p>
       <p data-qa-ignore>排除区域：即使文字很短，也不会出现智能帮助入口。</p>
     </div>
     <p class="qa-feature-demo__outside">范围外：这里的文字没有包含在生效区域内。</p>
-    <p class="qa-feature-demo__hint">分别选择短词、整句和排除区域，对比入口是否出现。</p>
+    <p class="qa-feature-demo__hint">分别选择短词、整句和排除区域，对比正常入口、超限提示与排除效果。</p>
     <pre v-if="submitted">已提交：{{ submitted }}</pre>
   </div>
 </template>

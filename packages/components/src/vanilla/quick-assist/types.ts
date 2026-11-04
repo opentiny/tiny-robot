@@ -159,7 +159,10 @@ export type QuickAssistSuggestionInput = Suggestion | SuggestionFactory
 export interface QuickAssistSelectionOptions {
   /** Only accept selections in document order. Defaults to true. */
   forwardOnly?: boolean
-  maxTextLength?: number
+  /** Unicode code point limit after trimming. Defaults to 8000; null means unlimited. */
+  maxTextLength?: number | null
+  /** Tooltip text before the current count and limit. */
+  maxTextLengthExceededMessage?: string
   validate?: (snapshot: SelectionSnapshot) => boolean
   /** Synthetic activations only; replaces default text rules, not size/geometry checks. */
   validateActivation?: (view: QuickAssistActivationView) => boolean
@@ -240,9 +243,9 @@ export interface QuickAssistInputOptions {
   maxLengthExceededMessage?: string
   /** Maximum visible lines before internal scrolling. Defaults to 2. */
   maxRows?: number
-  /** Optional Unicode code point limit. Omitted means unlimited, without a counter. */
-  maxLength?: number
-  /** Prefill selected/activated text. Defaults to true. */
+  /** Optional Unicode code point limit. Omitted or null means unlimited, without a counter. */
+  maxLength?: number | null
+  /** Prefill selected/activated text. Defaults to false. */
   autoFill?: boolean
 }
 

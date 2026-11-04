@@ -30,7 +30,7 @@ import '@opentiny/tiny-robot/vanilla/style.css'
 
 const maxRows = ref(2)
 const limited = ref(false)
-const autoFill = ref(true)
+const autoFill = ref(false)
 const activationAutoFill = ref('inherit')
 const request = shallowRef<AIRequest>()
 let assist: QuickAssistInstance | undefined

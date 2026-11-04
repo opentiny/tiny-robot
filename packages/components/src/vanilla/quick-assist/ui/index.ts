@@ -1,4 +1,4 @@
-import { DEFAULT_INPUT, DEFAULT_MESSAGES } from '../defaults'
+import { DEFAULT_INPUT, DEFAULT_MESSAGES, DEFAULT_SELECTION } from '../defaults'
 import type {
   QuickAssistAttributeMap,
   QuickAssistActivation,
@@ -6,13 +6,16 @@ import type {
   QuickAssistMessages,
   QuickAssistInputOptions,
   QuickAssistTriggerOptions,
+  QuickAssistSelectionOptions,
   Suggestion,
 } from '../types'
 import type { QuickAssistSession } from '../core/types'
+import { positionElement } from '../positioning'
 import { bindVanillaTheme } from '../../theme/service'
 
 export interface QuickAssistUIOptions {
   root: Document
+  selection?: QuickAssistSelectionOptions
   input?: QuickAssistInputOptions
   attrs?: QuickAssistAttrs
   messages?: QuickAssistMessages
@@ -281,8 +284,57 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
         event.preventDefault()
         onClick()
       })
+      const maxLength =
+        options.selection?.maxTextLength === null
+          ? Infinity
+          : (options.selection?.maxTextLength ?? DEFAULT_SELECTION.maxTextLength)
+      const length = Array.from((activation.text ?? activation.selection?.text ?? '').trim()).length
+      let positionTriggerTooltip: (() => void) | undefined
+      if (length > maxLength) {
+        button.classList.add('tr-quick-assist__trigger--invalid')
+        button.setAttribute('aria-disabled', 'true')
+        button.removeAttribute('title')
+        const tooltip = root.createElement('span')
+        tooltip.className = 'tr-quick-assist__selection-tooltip'
+        tooltip.id = `tr-quick-assist-selection-limit-${++sparkleId}`
+        tooltip.setAttribute('role', 'tooltip')
+        const count = root.createElement('span')
+        count.className = 'tr-quick-assist__selection-count'
+        count.textContent = String(length)
+        const message =
+          options.selection?.maxTextLengthExceededMessage ?? DEFAULT_SELECTION.maxTextLengthExceededMessage
+        tooltip.append(root.createTextNode(`${message} `), count, root.createTextNode(`/${maxLength}`))
+        button.setAttribute('aria-describedby', tooltip.id)
+        // aria-disabled keeps the entry in the tab order for its explanation.
+        // Stop all click paths, including synthetic clicks and keyboard activation.
+        button.addEventListener(
+          'click',
+          (event) => {
+            event.preventDefault()
+            event.stopImmediatePropagation()
+          },
+          true,
+        )
+        const updateTooltip = () => {
+          positionElement({ element: tooltip, anchor: button.getBoundingClientRect(), placement: 'top', offset: 2 })
+        }
+        positionTriggerTooltip = updateTooltip
+        const observer = root.defaultView?.MutationObserver
+          ? new root.defaultView.MutationObserver(updateTooltip)
+          : undefined
+        observer?.observe(button, { attributes: true, attributeFilter: ['style'] })
+        const resize = root.defaultView?.ResizeObserver ? new root.defaultView.ResizeObserver(updateTooltip) : undefined
+        resize?.observe(button)
+        resize?.observe(tooltip)
+        releaseLayout = () => {
+          observer?.disconnect()
+          resize?.disconnect()
+        }
+        container.append(tooltip)
+      }
       container.append(button)
       visible = button
+      positionTriggerTooltip?.()
       return button
     },
 
@@ -349,7 +401,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       const submitTitle = submit.title
       const counter = root.createElement('span')
       counter.className = 'tr-quick-assist__counter'
-      counter.hidden = options.input?.maxLength === undefined
+      counter.hidden = options.input?.maxLength == null
       const count = root.createElement('span')
       counter.append(count, root.createTextNode(` / ${options.input?.maxLength ?? ''}`))
       const submitWrapper = root.createElement('span')
@@ -365,7 +417,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
         if (!input || !submit) return
         const length = Array.from(input.value).length
         const maxLength = options.input?.maxLength
-        const tooLong = maxLength !== undefined && length > maxLength
+        const tooLong = maxLength != null && length > maxLength
         count.textContent = String(length)
         count.classList.toggle('tr-quick-assist__count--invalid', tooLong)
         input.setAttribute('aria-invalid', String(tooLong))
@@ -555,6 +607,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
 export function createUIController(options: {
   root: Document
   trigger: QuickAssistTriggerOptions
+  selection?: QuickAssistSelectionOptions
   input?: QuickAssistInputOptions
   attrs?: QuickAssistAttrs
   messages?: QuickAssistMessages
@@ -562,6 +615,7 @@ export function createUIController(options: {
   return createQuickAssistUI({
     root: options.root,
     input: options.input,
+    selection: options.selection,
     attrs: options.attrs,
     messages: options.messages,
     triggerLabel: options.trigger.label,

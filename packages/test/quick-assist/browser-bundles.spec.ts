@@ -75,7 +75,7 @@ for (const mode of ['global', 'umd', 'global-amd', 'global-monaco-amd', 'umd-amd
     await page.locator('.tr-quick-assist__trigger').click()
     const input = page.locator('.tr-quick-assist__popover textarea')
     const text = mode.endsWith('-amd') ? 'apiVersion: apps/v1\nkind: Deployment' : '浏览器产物智能帮助'
-    await expect(input).toHaveValue(text)
+    await expect(input).toHaveValue('')
     await testInfo.attach(`${mode}-popover`, { body: await page.screenshot(), contentType: 'image/png' })
     await input.fill('解释选中的内容')
     await input.press('Enter')

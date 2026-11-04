@@ -8,6 +8,24 @@ for (const entry of ['index', 'umd']) {
       await page.waitForFunction(() => !!window.qa)
     })
 
+    test('input defaults to empty without losing selection context', async ({ page }) => {
+      await page.evaluate(() => {
+        window.qa.updateOptions({ input: {} })
+        window.qa.activate({ text: '保留选区上下文', anchor: document.querySelector('#term')!, open: 'popover' })
+      })
+      const input = page.locator('.tr-quick-assist__input')
+      await expect(input).toHaveValue('')
+      await expect(page.locator('.tr-quick-assist__submit')).toBeDisabled()
+      await input.fill('解释内容')
+      await input.press('Enter')
+      await expect.poll(() => page.evaluate(() => window.qaRequests[0]?.context.text)).toBe('保留选区上下文')
+      await page.evaluate(() => {
+        window.qa.updateOptions({ input: { autoFill: true } })
+        window.qa.activate({ text: '显式开启预填', anchor: document.querySelector('#term')!, open: 'popover' })
+      })
+      await expect(input).toHaveValue('显式开启预填')
+    })
+
     for (const multiline of [false, true]) {
       for (const twoRows of [false, true]) {
         test(`design dimensions: multiline=${multiline}, two suggestion rows=${twoRows}`, async ({ page }) => {
@@ -103,7 +121,7 @@ for (const entry of ['index', 'umd']) {
       await expect(input).toHaveCSS('height', '36px')
       await expect(page.locator('.tr-quick-assist__submit')).toBeEnabled()
       await page.evaluate(() => {
-        window.qa.updateOptions({ input: { maxRows: 3 } })
+        window.qa.updateOptions({ input: { maxRows: 3, autoFill: true } })
         window.qa.activate({ text: '一\n二\n三\n四', anchor: document.querySelector('#term')!, open: 'popover' })
       })
       await expect(input).toHaveCSS('height', '54px')
