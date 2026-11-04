@@ -118,7 +118,7 @@ function explainSelection() {
 
 onMounted(async () => {
   try {
-    // 仅在浏览器挂载后加载核心与语法着色；不加载语言服务或外部 CDN。
+    // 挂载后加载核心与语法着色；文档由 Vite 打包，Playground 通过 import map 加载。
     const monaco = await import('monaco-editor/editor/editor.api')
     await import('monaco-editor/languages/definitions/typescript/register')
     if (disposed || !editorHost.value) return
