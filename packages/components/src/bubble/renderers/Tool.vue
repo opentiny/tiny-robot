@@ -188,17 +188,27 @@ const handleClick = () => {
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
+  @card-padding: 12px;
   --tool-title-line-height: 24px;
 
   font-size: 14px;
   line-height: var(--tool-title-line-height);
-  padding: 12px;
+  padding: @card-padding;
   color: var(--tr-text-secondary);
   background-color: var(--tr-bubble-tool-call-bg);
   border-radius: 12px;
   margin-block: var(--tr-bubble-tool-call-space-y);
-  min-width: var(--tr-bubble-tool-call-min-width);
-  max-width: var(--tr-bubble-tool-call-max-width);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--tr-bubble-tool-call-max-width, 100%);
+
+  // Give the shrink-to-fit bubble a preferred width that can still shrink on narrow screens.
+  &::before {
+    content: '';
+    display: block;
+    width: calc(var(--tr-bubble-tool-call-min-width, 0px) - 2 * @card-padding);
+    max-width: 100%;
+  }
 
   &:first-child {
     margin-top: 0;

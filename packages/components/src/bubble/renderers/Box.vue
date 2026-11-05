@@ -19,6 +19,11 @@ defineProps<BubbleBoxRendererProps>()
   border: var(--tr-bubble-box-border);
   overflow: hidden;
 
+  @content-block: ~':is(p.tr-bubble__text, .tr-bubble__markdown, .tr-bubble__reasoning, .tr-bubble__tools)';
+  > :deep(@{content-block} + @{content-block}) {
+    margin-block-start: 8px;
+  }
+
   &[data-shape='rounded'] {
     border-radius: var(--tr-bubble-box-shape-rounded-radius);
   }
