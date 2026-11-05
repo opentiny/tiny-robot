@@ -43,4 +43,29 @@ test.describe('Tool approval renderer', () => {
       }),
     )
   })
+
+  test('approval buttons should follow TinyRobot light and dark color tokens', async ({ mount }) => {
+    const component = await mount(ToolApprovalFixture)
+    const approvalBubble = component.getByTestId('approval-bubble')
+    const resumeButton = approvalBubble.getByRole('button', { name: '允许' })
+    const rejectButton = approvalBubble.getByRole('button', { name: '拒绝' })
+    const getToken = (button: typeof resumeButton, token: string) =>
+      button.evaluate((element, name) => getComputedStyle(element).getPropertyValue(name).trim(), token)
+
+    const lightPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
+    const lightThemePrimary = await getToken(resumeButton, '--tr-color-primary')
+    expect(lightPrimary).toBe(lightThemePrimary)
+    expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
+      await getToken(rejectButton, '--tr-container-bg-default'),
+    )
+
+    await approvalBubble.evaluate((element) => element.setAttribute('data-tr-color-mode', 'dark'))
+
+    const darkPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
+    expect(darkPrimary).toBe(await getToken(resumeButton, '--tr-color-primary'))
+    expect(darkPrimary).not.toBe(lightPrimary)
+    expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
+      await getToken(rejectButton, '--tr-container-bg-default'),
+    )
+  })
 })

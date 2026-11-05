@@ -48,5 +48,8 @@ watchEffect(() => {
   font-size: var(--tr-bubble-text-font-size);
   line-height: var(--tr-bubble-text-line-height);
   color: var(--tr-bubble-text-color);
+  :deep(p) {
+    overflow-wrap: anywhere;
+  }
 }
 </style>

@@ -187,6 +187,8 @@ const handleClick = () => {
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
+  --tr-bubble-tool-button-primary-hover-bg: color-mix(in srgb, var(--tr-text-primary) 88%, var(--tr-text-primary));
+
   font-size: 14px;
   line-height: 24px;
   padding: 12px;
@@ -245,6 +247,34 @@ const handleClick = () => {
     grid-column: 2 / 4;
     display: flex;
     gap: var(--tr-spacing-sm);
+
+    :deep(.tiny-button.tiny-button--default) {
+      --tv-Button-bg-color-default: var(--tr-container-bg-default);
+      --tv-Button-border-color-default: var(--tr-border-color-default);
+      --tv-Button-text-color-default: var(--tr-text-primary);
+      --tv-Button-icon-color-default: var(--tr-icon-color-default);
+      --tv-Button-bg-color-active-default: var(--tr-container-bg-hover);
+      --tv-Button-border-color-active-default: var(--tr-container-bg-hover);
+      --tv-Button-text-color-active-default: var(--tr-text-primary);
+    }
+
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-bg-color-primary: var(--tr-text-primary);
+      --tv-Button-border-color-primary: var(--tr-text-primary);
+      --tv-Button-text-color-primary: var(--tr-container-bg-default);
+      --tv-Button-icon-color-primary: var(--tr-container-bg-default);
+      --tv-Button-bg-color-active-primary: var(--tr-text-secondary);
+      --tv-Button-border-color-active-primary: var(--tr-text-secondary);
+      --tv-Button-text-color-active-primary: var(--tr-container-bg-default);
+    }
+
+    :deep(.tiny-button.tiny-button--default),
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-text-color-disabled: var(--tr-text-disabled);
+      --tv-Button-bg-color-disabled: var(--tr-container-bg-disabled);
+      --tv-Button-border-color-disabled: var(--tr-border-color-disabled);
+      --tv-Button-icon-color-disabled: var(--tr-icon-color-disabled);
+    }
 
     .tiny-button + .tiny-button {
       margin-left: 0;
