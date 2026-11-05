@@ -55,8 +55,7 @@ function measureTooltipVisibility() {
 }
 
 function scheduleTooltipVisibility() {
-  stopTooltipTimer()
-  tooltipVisible.value = false
+  clearTooltipState()
 
   if (!props.expanded || !isHovered.value) {
     return
@@ -70,7 +69,16 @@ function clearTooltipState() {
   tooltipVisible.value = false
 }
 
-useEventListener(scrollport, 'scroll', clearTooltipState, { passive: true })
+useEventListener(
+  scrollport,
+  'scroll',
+  () => {
+    // Expansion can scroll the panel while the original hover target is still held.
+    if (props.hoverOverride) scheduleTooltipVisibility()
+    else clearTooltipState()
+  },
+  { passive: true },
+)
 
 function handleMouseEnter() {
   pointerOver.value = true
@@ -85,7 +93,7 @@ function handleLabelTransitionEnd(event: TransitionEvent) {
     return
   }
 
-  if (isHovered.value) {
+  if (tooltipVisible.value) {
     measureTooltipVisibility()
   }
 }

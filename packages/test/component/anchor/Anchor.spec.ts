@@ -169,9 +169,14 @@ test('keeps a lower hovered row under the pointer and collapses on exit after se
   await expect(button).toHaveCSS('height', '32px')
 })
 
-test('keeps truncated-label tooltips outside the directory scrollport', async ({ mount }) => {
+test('shows truncated-label tooltips outside the directory after expansion scrolls it', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 22, height: 240 } })
   const button = component.locator(buttonSelector).nth(2)
+  // Keep row heights animating after the label finishes, so expansion scrolls after the tooltip can appear.
+  await page.addStyleTag({
+    content:
+      '.tr-anchor__item { transition-duration: 230ms !important } .tr-anchor__item-label { transition-duration: 70ms !important }',
+  })
   await button.hover()
   await expect(button).toHaveCSS('height', '32px')
   const tooltip = component.getByRole('tooltip')
@@ -179,6 +184,34 @@ test('keeps truncated-label tooltips outside the directory scrollport', async ({
   const panel = (await component.locator('.tr-anchor__panel').boundingBox())!
   const tip = (await tooltip.boundingBox())!
   expect(tip.x + tip.width).toBeLessThan(panel.x)
+
+  await page.mouse.wheel(0, 4)
+  await expect(tooltip).toBeHidden()
+})
+
+test('uses the current focus position when a manually controlled directory expands', async ({ mount }) => {
+  const component = await mount(AnchorFixture, { props: { manual: true, count: 60, height: 300 } })
+  const frame = component.getByTestId('frame')
+  const focused = component.locator(buttonSelector).nth(7)
+  const center = async () => {
+    const box = (await focused.boundingBox())!
+    return box.y + box.height / 2
+  }
+
+  await focused.focus()
+  await expect(focused).toHaveCSS('height', '16px')
+  const initial = await center()
+  await frame.evaluate((el) => {
+    el.style.marginTop = '90px'
+  })
+  await expect.poll(center).toBeCloseTo(initial + 90, 0)
+  const before = await center()
+
+  // Change the controlled state while keyboard focus is still in the directory.
+  await component.getByTestId('toggle').dispatchEvent('click')
+  await expect(focused).toBeFocused()
+  await expect(focused).toHaveCSS('height', '32px')
+  await expect.poll(async () => Math.abs((await center()) - before)).toBeLessThan(3)
 })
 
 test('limits the directory to the visible viewport when its frame is partly offscreen', async ({ mount, page }) => {

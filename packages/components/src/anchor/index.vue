@@ -246,9 +246,11 @@ function handleKeydown(event: KeyboardEvent) {
 
 function handleFocusIn(event: FocusEvent) {
   cancelHoverExpansion()
-  floating.pinItem(event)
   interactions.isBrowsing.value = true
-  if (shouldAutoToggleExpanded.value) setExpanded(true)
+  if (shouldAutoToggleExpanded.value) {
+    if (!controller.expanded.value) floating.pinItem(event)
+    setExpanded(true)
+  }
 }
 
 let scheduledFrame: number | null = null
