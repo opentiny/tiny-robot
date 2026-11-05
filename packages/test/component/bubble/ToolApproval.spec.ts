@@ -53,8 +53,8 @@ test.describe('Tool approval renderer', () => {
       button.evaluate((element, name) => getComputedStyle(element).getPropertyValue(name).trim(), token)
 
     const lightPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
-    const lightThemePrimary = await getToken(resumeButton, '--tr-color-primary')
-    expect(lightPrimary).toBe(lightThemePrimary)
+    const lightThemeText = await getToken(resumeButton, '--tr-text-primary')
+    expect(lightPrimary).toBe(lightThemeText)
     expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
       await getToken(rejectButton, '--tr-container-bg-default'),
     )
@@ -62,7 +62,7 @@ test.describe('Tool approval renderer', () => {
     await approvalBubble.evaluate((element) => element.setAttribute('data-tr-color-mode', 'dark'))
 
     const darkPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
-    expect(darkPrimary).toBe(await getToken(resumeButton, '--tr-color-primary'))
+    expect(darkPrimary).toBe(await getToken(resumeButton, '--tr-text-primary'))
     expect(darkPrimary).not.toBe(lightPrimary)
     expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
       await getToken(rejectButton, '--tr-container-bg-default'),
