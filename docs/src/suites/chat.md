@@ -1237,7 +1237,7 @@ const props = defineProps<BubbleContentRendererProps>()
 const context = useChatRenderContext(props)
 ```
 
-返回值为 `ChatRenderContext | undefined`，在 Chat 消息渲染区域之外调用时返回 `undefined`。字段均为响应式引用：
+返回值为 `ChatRenderContext | undefined`，在 Chat 消息渲染区域之外调用时返回 `undefined`。状态字段为响应式引用：
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -1246,6 +1246,7 @@ const context = useChatRenderContext(props)
 | `messageKey` | `ComputedRef<string>` | 当前消息的稳定标识。 |
 | `contentIndex` | `ComputedRef<number>` | 当前内容索引。 |
 | `streamState` | `ComputedRef<'streaming' \| 'finished' \| 'unknown'>` | 流式生成中、已结束或状态未知。 |
+| `pauseAutoScroll` | `() => void` | 临时暂停自动跟随，在修改展开或收起状态之前同步调用。 |
 
 消息对象和服务端 ID 都可能变化时，请提供唯一且稳定的 `renderKey`。使用 `messageKey` 和 `contentIndex` 可区分渲染内容，无需解析 `messageKey`。
 

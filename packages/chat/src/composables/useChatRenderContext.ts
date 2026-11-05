@@ -5,6 +5,7 @@ import type { ChatMessageItem } from '../types'
 export interface ChatRenderEnvironment {
   scrollRoot: ComputedRef<HTMLElement | null>
   conversationId: ComputedRef<string | null | undefined>
+  pauseAutoScroll: () => void
 }
 
 export interface ChatRenderContext extends ChatRenderEnvironment {

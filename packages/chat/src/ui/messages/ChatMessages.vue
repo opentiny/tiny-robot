@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, h, mergeProps, nextTick, provide, ref, watch } from 'vue'
+import { computed, getCurrentInstance, h, mergeProps, provide, ref } from 'vue'
 import {
   BubbleRenderers,
   TrBubbleList,
   TrBubbleProvider,
   TrPrompts,
   TrWelcome,
-  useAutoScroll,
   getBubbleMessageGroups,
   type BubbleBoxAttributesResolver,
   type BubbleContentAttributesResolver,
@@ -24,6 +23,7 @@ import {
   resolveStreamState,
 } from './messageIdentity'
 import { useChatStreamState } from './useChatStreamState'
+import { useChatAutoScroll } from './useChatAutoScroll'
 import type { ChatRequestView } from '../../types'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
 import type {
@@ -70,8 +70,14 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
   },
 }
 
-const lastMessage = computed(() => props.messages.at(-1))
 const contentRef = ref<HTMLElement | null>(null)
+const { pauseFromRenderer, pauseFromAnchor, scrollToBottom } = useChatAutoScroll({
+  scrollRoot: () => props.scrollTarget,
+  contentRef,
+  enabled: () => props.options.autoScroll ?? true,
+  conversationId: () => props.conversationId,
+  lastMessageRole: () => props.messages.at(-1)?.role,
+})
 const messageIdentity = createMessageIdentity(`chat-${getCurrentInstance()!.uid}`)
 const getMessageStreamState = useChatStreamState(
   () => props.messages,
@@ -102,6 +108,7 @@ const additionalAnchorIndexes = computed(() => {
 provide(CHAT_RENDER_ENVIRONMENT, {
   scrollRoot: computed(() => props.scrollTarget),
   conversationId: computed(() => props.conversationId),
+  pauseAutoScroll: pauseFromRenderer,
 })
 const anchorItems = computed(() =>
   !props.anchorEnabled
@@ -119,7 +126,6 @@ const anchorItems = computed(() =>
         })
         .filter((item) => item.label.length > 0),
 )
-const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
 
 const resolveBoxAttributes: BubbleBoxAttributesResolver = (messages, content, contentIndex) => {
   const attributes = props.options.bubbleProvider?.boxAttributes
@@ -197,31 +203,7 @@ const promptProps = computed<ResolvedChatPromptsOptions>(() => {
 })
 const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
-const { scrollToBottom, pause } = useAutoScroll({
-  scrollRef: () => props.scrollTarget,
-  contentRef: () => contentRef.value,
-  bottomThreshold: 50,
-  enabled: () => shouldAutoScroll.value,
-})
-defineExpose({ scrollToBottom, pauseAutoScroll: pause, anchorItems })
-
-watch(
-  () => props.conversationId,
-  () => {
-    pause()
-    if (shouldAutoScroll.value) scrollToBottom()
-  },
-)
-
-watch(
-  () => lastMessage.value?.role,
-  async (role) => {
-    if (shouldAutoScroll.value && role === 'user') {
-      await nextTick()
-      scrollToBottom('smooth')
-    }
-  },
-)
+defineExpose({ scrollToBottom, pauseAutoScroll: pauseFromAnchor, anchorItems, contentTarget: contentRef })
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
   if (item.disabled) {
