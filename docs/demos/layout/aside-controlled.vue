@@ -2,20 +2,38 @@
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import { TinyButton, TinySlider } from '@opentiny/vue'
+import { useElementSize } from '@vueuse/core'
 import type { LayoutAsideOptions, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
-const leftExpandedWidth = ref(220)
+const demoRef = ref<HTMLElement | null>(null)
+const { width: demoWidth } = useElementSize(demoRef)
+const requestedLeftWidth = ref(220)
 const leftWidthMin = 160
 const leftWidthMax = 320
+const leftWidthStep = 4
+const mainWidthMin = 100
 const rightOpen = ref(false)
+
+const availableLeftWidth = computed(() => {
+  if (demoWidth.value === 0) return leftWidthMax
+  const spaceForLeftAside = Math.max(0, demoWidth.value - mainWidthMin)
+  return Math.min(leftWidthMax, Math.floor(spaceForLeftAside / leftWidthStep) * leftWidthStep)
+})
+const minLeftWidth = computed(() => Math.min(leftWidthMin, availableLeftWidth.value))
+const leftExpandedWidth = computed({
+  get: () => Math.min(requestedLeftWidth.value, availableLeftWidth.value),
+  set: (width: number) => {
+    requestedLeftWidth.value = width
+  },
+})
 
 const leftAside = computed<LayoutAsideOptions>(() => ({
   open: leftOpen.value,
   expandedWidth: leftExpandedWidth.value,
   collapsedWidth: 0,
-  minExpandedWidth: leftWidthMin,
-  maxExpandedWidth: leftWidthMax,
+  minExpandedWidth: minLeftWidth.value,
+  maxExpandedWidth: availableLeftWidth.value,
   resizable: true,
 }))
 
@@ -38,7 +56,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 </script>
 
 <template>
-  <div class="layout-slot-props-demo">
+  <div ref="demoRef" class="layout-slot-props-demo">
     <div class="layout-slot-props-demo__controls">
       <div class="layout-slot-props-demo__group">
         <span class="layout-slot-props-demo__group-label">左侧栏</span>
@@ -50,9 +68,10 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
           <TinySlider
             v-model.number="leftExpandedWidth"
             class="layout-slot-props-demo__range"
-            :min="leftWidthMin"
-            :max="leftWidthMax"
-            :step="4"
+            :min="minLeftWidth"
+            :max="availableLeftWidth"
+            :step="leftWidthStep"
+            :disabled="minLeftWidth === availableLeftWidth"
             @change="leftOpen = true"
           />
           <strong>{{ leftExpandedWidth }}px</strong>
@@ -103,6 +122,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 <style>
 .layout-slot-props-demo__layout {
   --tr-layout-height: 360px;
+  --tr-layout-main-min-width: 0px;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
   border-radius: 16px;
@@ -112,6 +132,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 <style scoped>
 .layout-slot-props-demo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -134,7 +155,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 .layout-slot-props-demo__range-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 8px 16px;
   flex-wrap: wrap;
 }
 

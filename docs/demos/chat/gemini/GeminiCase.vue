@@ -72,8 +72,12 @@ const chatUi = {
   <div class="gemini-case">
     <main class="gemini-case__chat">
       <TrChat :runtime="runtime" :ui="chatUi" :history-data="historyData">
-        <template #layout-header="{ isEmpty }">
-          <GeminiHeader :is-empty="isEmpty" />
+        <template #layout-header="{ isEmpty, isMobileViewport, isLeftAsideOpen, openLeftAside }">
+          <GeminiHeader
+            :is-empty="isEmpty"
+            :show-sidebar-trigger="isMobileViewport && !isLeftAsideOpen"
+            @open-sidebar="openLeftAside"
+          />
         </template>
 
         <template #layout-footer="slotProps">

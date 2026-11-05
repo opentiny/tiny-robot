@@ -1,13 +1,29 @@
 <script setup lang="ts">
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
+import sidebarToggleIcon from './icons/sidebar-toggle-menu.svg'
 
 defineProps<{
   isEmpty: boolean
+  showSidebarTrigger: boolean
+}>()
+
+const emit = defineEmits<{
+  openSidebar: []
 }>()
 </script>
 
 <template>
-  <div class="gemini-header" :class="{ 'is-session': !isEmpty }">
+  <div class="gemini-header" :class="{ 'is-session': !isEmpty, 'has-sidebar-trigger': showSidebarTrigger }">
+    <button
+      v-if="showSidebarTrigger"
+      class="gemini-header__sidebar"
+      type="button"
+      aria-label="展开边栏"
+      title="展开边栏"
+      @click="emit('openSidebar')"
+    >
+      <img :src="sidebarToggleIcon" alt="" width="20" height="20" />
+    </button>
     <div class="gemini-header__actions">
       <button class="gemini-upgrade" type="button" aria-label="升级" title="升级" disabled>
         <IconSparkles :size="18" />
@@ -29,10 +45,15 @@ defineProps<{
   pointer-events: none;
 }
 
+.gemini-header.has-sidebar-trigger {
+  min-height: 56px;
+}
+
 .gemini-header.is-session {
   min-height: 64px;
 }
 
+.gemini-header__sidebar,
 .gemini-header__feedback {
   display: inline-flex;
   align-items: center;
@@ -43,6 +64,7 @@ defineProps<{
   cursor: pointer;
 }
 
+.gemini-header__sidebar:hover,
 .gemini-header__feedback:hover {
   background: var(--tr-container-bg-hover);
 }
@@ -60,6 +82,13 @@ defineProps<{
   display: inline-flex;
   align-items: center;
   gap: 16px;
+  pointer-events: auto;
+}
+
+.gemini-header__sidebar {
+  position: absolute;
+  top: 12px;
+  left: 16px;
   pointer-events: auto;
 }
 
@@ -82,6 +111,7 @@ defineProps<{
   background: var(--tr-container-bg-hover);
 }
 
+.gemini-header__sidebar,
 .gemini-header__feedback {
   width: 32px;
   height: 32px;
