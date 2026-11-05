@@ -5,12 +5,13 @@ import type { AnchorItemEmits, AnchorItemProps, AnchorItemSlots } from '../inter
 
 defineOptions({ name: 'AnchorItem' })
 
-const props = defineProps<AnchorItemProps>()
+const props = withDefaults(defineProps<AnchorItemProps>(), { hoverOverride: undefined })
 const emit = defineEmits<AnchorItemEmits>()
 defineSlots<AnchorItemSlots>()
 
 const itemButtonRef = ref<HTMLButtonElement | null>(null)
-const isHovered = ref(false)
+const pointerOver = ref(false)
+const isHovered = computed(() => props.hoverOverride ?? pointerOver.value)
 const tooltipVisible = ref(false)
 const tooltipTop = ref(0)
 const tooltipHost = computed(() => itemButtonRef.value?.closest<HTMLElement>('.tr-anchor__overlay') ?? null)
@@ -33,6 +34,7 @@ const itemClass = computed(() => [
     'is-active': active.value,
     'is-expanded': props.expanded,
     'is-highlighted': props.highlighted,
+    'is-hovered': isHovered.value,
   },
 ])
 
@@ -71,13 +73,11 @@ function clearTooltipState() {
 useEventListener(scrollport, 'scroll', clearTooltipState, { passive: true })
 
 function handleMouseEnter() {
-  isHovered.value = true
-  scheduleTooltipVisibility()
+  pointerOver.value = true
 }
 
 function handleMouseLeave() {
-  isHovered.value = false
-  clearTooltipState()
+  pointerOver.value = false
 }
 
 function handleLabelTransitionEnd(event: TransitionEvent) {
@@ -90,19 +90,7 @@ function handleLabelTransitionEnd(event: TransitionEvent) {
   }
 }
 
-watch(
-  () => props.expanded,
-  (expanded) => {
-    if (!expanded) {
-      clearTooltipState()
-      return
-    }
-
-    if (isHovered.value) {
-      scheduleTooltipVisibility()
-    }
-  },
-)
+watch([() => props.expanded, isHovered], scheduleTooltipVisibility)
 </script>
 
 <template>
@@ -239,7 +227,7 @@ watch(
     text-align: left;
   }
 
-  &__list-item.is-expanded:hover &__item {
+  &__list-item.is-expanded.is-hovered &__item {
     background: var(--tr-anchor-item-bg-hover);
   }
 

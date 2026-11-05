@@ -41,12 +41,14 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
     pinnedItem =
       hovered ??
       (target instanceof HTMLElement ? target.closest<HTMLElement>('.tr-anchor__item') : null) ??
-      navEl?.querySelector<HTMLElement>('.tr-anchor__item:focus, .tr-anchor__item[aria-current]') ??
+      navEl?.querySelector<HTMLElement>('.tr-anchor__item:focus') ??
+      navEl?.querySelector<HTMLElement>('.tr-anchor__item[aria-current]') ??
       null
     if (pinnedItem && hostEl?.contains(pinnedItem)) {
       const rect = pinnedItem.getBoundingClientRect()
       pinnedCenter = rect.top + rect.height / 2
     }
+    return pinnedItem
   }
 
   function sync() {

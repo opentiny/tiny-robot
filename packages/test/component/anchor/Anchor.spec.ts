@@ -3,6 +3,40 @@ import AnchorFixture from './Anchor.fixture.vue'
 
 const buttonSelector = '.tr-anchor__item'
 
+for (const index of [0, 3]) {
+  test(`keeps short-directory item ${index + 1} clickable in place while the panel stays centered`, async ({
+    mount,
+    page,
+  }) => {
+    const component = await mount(AnchorFixture, { props: { count: 4, height: 400 } })
+    const row = component.locator(buttonSelector).nth(index)
+    const panel = component.getByTestId('anchor-overlay')
+    const frame = (await component.getByTestId('frame').boundingBox())!
+    const expectCentered = async () => {
+      const box = (await panel.boundingBox())!
+      expect(Math.abs(box.y + box.height / 2 - (frame.y + frame.height / 2))).toBeLessThan(2)
+    }
+    await expect(row).toHaveCSS('height', '16px')
+    await expectCentered()
+    const box = (await row.boundingBox())!
+    const x = box.x + box.width - 6
+    const y = box.y + box.height / 2
+    await page.mouse.move(x, y)
+    await expect(row).toHaveCSS('height', '32px')
+    await expectCentered()
+    await page.mouse.click(x, y)
+    await expect(component.getByTestId('selected')).toHaveText(`item-${index}`)
+    await expect(row).toBeFocused()
+
+    const neighbor = component.locator(buttonSelector).nth(index === 0 ? 1 : 2)
+    await neighbor.click()
+    await expect(component.getByTestId('selected')).toHaveText(index === 0 ? 'item-1' : 'item-2')
+    await page.mouse.move(750, 10)
+    await expect(row).toHaveCSS('height', '16px')
+    await expectCentered()
+  })
+}
+
 test('animates stable buttons from 16px to 32px without scaling labels or markers', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 3, height: 400 } })
   const buttons = component.locator(buttonSelector)
@@ -181,6 +215,35 @@ test('keyboard activation follows the focused item while the message current ite
   await page.keyboard.press('Escape')
   await expect(buttons.nth(2)).toBeFocused()
   await expect(buttons.nth(2)).toHaveCSS('height', '16px')
+})
+
+test('keeps the focused row in place on Escape when the current row precedes it', async ({ mount, page }) => {
+  const component = await mount(AnchorFixture, { props: { count: 22, height: 300, activeIndex: 0 } })
+  const buttons = component.locator(buttonSelector)
+  const focused = buttons.nth(15)
+  const panel = component.locator('.tr-anchor__panel')
+  const center = async () => {
+    const box = (await focused.boundingBox())!
+    return box.y + box.height / 2
+  }
+
+  await buttons.first().focus()
+  await expect(buttons.first()).toHaveCSS('height', '32px')
+  for (let index = 0; index < 15; index++) await page.keyboard.press('ArrowDown')
+  await expect(focused).toBeFocused()
+  await expect(component.locator('[aria-current="location"]')).toHaveAttribute('data-item-id', 'item-0')
+  await expect
+    .poll(async () => {
+      const box = (await panel.boundingBox())!
+      return Math.abs((await center()) - (box.y + box.height - 16))
+    })
+    .toBeLessThan(2)
+  const before = await center()
+
+  await page.keyboard.press('Escape')
+  await expect(focused).toBeFocused()
+  await expect(focused).toHaveCSS('height', '16px')
+  await expect.poll(async () => Math.abs((await center()) - before)).toBeLessThan(3)
 })
 
 test('expands after a 300ms hover and cancels when the pointer leaves early', async ({ mount, page }) => {

@@ -22,6 +22,7 @@ defineSlots<AnchorListSlots>()
       :active-id="activeId"
       :expanded="expanded"
       :highlighted="index === highlightedIndex"
+      :hover-override="retainedHoverId === undefined ? undefined : entry.item.id === retainedHoverId"
       :placement="placement"
       :tooltip-delay="tooltipDelay"
       @select="emit('select', $event)"

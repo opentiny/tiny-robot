@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
-import { computed, nextTick, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, toRefs, useAttrs, watch } from 'vue'
 import AnchorList from './components/AnchorList.vue'
 import AnchorOverlay from './components/AnchorOverlay.vue'
 import AnchorSearch from './components/AnchorSearch.vue'
@@ -135,18 +135,17 @@ const interactions = useOverlayInteractions({
 })
 
 const navRef = computed(() => overlayShellRef.value?.navEl ?? null)
+const retainedHover = shallowRef<{ item: HTMLElement; x: number; y: number }>()
+const retainedHoverId = computed(() => {
+  const id = retainedHover.value?.item.dataset.itemId
+  return id !== undefined && controller.filteredItems.value.some((entry) => entry.item.id === id) ? id : undefined
+})
+
 useEventListener(
   navRef,
-  'wheel',
+  ['wheel', 'touchmove'],
   () => {
-    interactions.isBrowsing.value = true
-  },
-  { passive: true },
-)
-useEventListener(
-  navRef,
-  'touchmove',
-  () => {
+    retainedHover.value = undefined
     interactions.isBrowsing.value = true
   },
   { passive: true },
@@ -170,7 +169,11 @@ const { start: startHoverExpansion, stop: stopHoverExpansion } = useTimeoutFn(
 )
 
 function expandFromHover() {
-  floating.pinItem(hoverEvent)
+  const item = floating.pinItem(hoverEvent)
+  // A centered panel can change which row is under a stationary pointer as the rows grow.
+  if (hoverEvent && item?.contains(document.elementFromPoint(hoverEvent.clientX, hoverEvent.clientY))) {
+    retainedHover.value = { item, x: hoverEvent.clientX, y: hoverEvent.clientY }
+  }
   hoverEvent = undefined
   setExpanded(true)
 }
@@ -180,7 +183,13 @@ function cancelHoverExpansion() {
   hoverEvent = undefined
 }
 
-watch([hostRef, expandTrigger], cancelHoverExpansion)
+watch([hostRef, expandTrigger], () => {
+  cancelHoverExpansion()
+  retainedHover.value = undefined
+})
+watch(controller.expanded, (isExpanded) => {
+  if (!isExpanded) retainedHover.value = undefined
+})
 
 function handleMouseEnter(event: MouseEvent) {
   interactions.isBrowsing.value = true
@@ -193,11 +202,46 @@ function handleMouseEnter(event: MouseEvent) {
 
 function handleMouseMove(event: MouseEvent) {
   if (hoverEvent) hoverEvent = event
+  const retained = retainedHover.value
+  if (retained && (event.clientX !== retained.x || event.clientY !== retained.y)) {
+    retainedHover.value = undefined
+  }
 }
 
 function handleMouseLeave() {
   cancelHoverExpansion()
+  retainedHover.value = undefined
   interactions.handleMouseLeave()
+}
+
+function handleRetainedHoverPress(event: MouseEvent) {
+  const retained = retainedHover.value
+  const id = retainedHoverId.value
+  if (
+    !retained ||
+    id === undefined ||
+    event.button !== 0 ||
+    event.detail === 0 ||
+    event.clientX !== retained.x ||
+    event.clientY !== retained.y ||
+    !navRef.value?.contains(retained.item) ||
+    retained.item.contains(event.target as Node)
+  ) {
+    return
+  }
+
+  // Prevent focus and activation from going to the row that moved under the pointer.
+  event.preventDefault()
+  if (event.type === 'click') {
+    event.stopPropagation()
+    retained.item.focus({ preventScroll: true })
+    handleSelect(id)
+  }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  retainedHover.value = undefined
+  interactions.handleKeydown(event)
 }
 
 function handleFocusIn(event: FocusEvent) {
@@ -295,9 +339,11 @@ onBeforeUnmount(() => {
     @mouseenter="handleMouseEnter"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
+    @mousedown.capture="handleRetainedHoverPress"
+    @click.capture="handleRetainedHoverPress"
     @focusin="handleFocusIn"
     @focusout="interactions.handleFocusOut"
-    @keydown="interactions.handleKeydown"
+    @keydown="handleKeydown"
   >
     <template v-if="hasSearchSection" #search>
       <slot
@@ -319,6 +365,7 @@ onBeforeUnmount(() => {
       :active-id="active.activeId.value"
       :expanded="controller.expanded.value"
       :highlighted-index="controller.highlightedIndex.value"
+      :retained-hover-id="retainedHoverId"
       :placement="placement"
       :tooltip-delay="tooltipDelay"
       :empty-text="emptyText"

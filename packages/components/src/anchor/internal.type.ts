@@ -52,6 +52,7 @@ export interface AnchorListProps {
   activeId?: string
   expanded: boolean
   highlightedIndex: number
+  retainedHoverId?: string
   placement: AnchorPlacement
   tooltipDelay: number
   emptyText: string
@@ -72,6 +73,7 @@ export interface AnchorItemProps {
   activeId?: string
   expanded: boolean
   highlighted: boolean
+  hoverOverride?: boolean
   placement: AnchorPlacement
   tooltipDelay: number
 }
