@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import sidebarToggleIcon from './icons/sidebar-toggle-menu.svg'
 
@@ -10,12 +11,19 @@ defineProps<{
 const emit = defineEmits<{
   openSidebar: []
 }>()
+
+const sidebarTrigger = ref<HTMLButtonElement | null>(null)
+
+defineExpose({
+  focusSidebarTrigger: () => sidebarTrigger.value?.focus({ preventScroll: true }),
+})
 </script>
 
 <template>
   <div class="gemini-header" :class="{ 'is-session': !isEmpty, 'has-sidebar-trigger': showSidebarTrigger }">
     <button
       v-if="showSidebarTrigger"
+      ref="sidebarTrigger"
       class="gemini-header__sidebar"
       type="button"
       aria-label="展开边栏"

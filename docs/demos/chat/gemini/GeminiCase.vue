@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, defineComponent, h } from 'vue'
-import { TrChat, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
+import { computed, defineComponent, h, nextTick, ref } from 'vue'
+import { TrChat, type ChatAsideOpenChangePayload, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
 import { IconNewSession, IconPlus, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import GeminiComposer from './GeminiComposer.vue'
 import GeminiHeader from './GeminiHeader.vue'
@@ -31,6 +31,21 @@ const historyData = computed<ChatHistoryData>(() => {
 
   return items.length ? [{ group: '最近', items }] : []
 })
+
+const header = ref<InstanceType<typeof GeminiHeader> | null>(null)
+const sidebarCloseButton = ref<HTMLButtonElement | null>(null)
+
+async function openSidebarFromHeader(openLeftAside: () => void) {
+  openLeftAside()
+  await nextTick()
+  sidebarCloseButton.value?.focus({ preventScroll: true })
+}
+
+function handleLeftAsideOpenChange({ open, source }: ChatAsideOpenChangePayload) {
+  if (open || source !== 'user') return
+  // Let the backdrop's pointer event finish before restoring focus.
+  requestAnimationFrame(() => header.value?.focusSidebarTrigger())
+}
 
 async function selectModel(id: string | null) {
   runtime.composer.model!.select(id)
@@ -71,12 +86,18 @@ const chatUi = {
 <template>
   <div class="gemini-case">
     <main class="gemini-case__chat">
-      <TrChat :runtime="runtime" :ui="chatUi" :history-data="historyData">
+      <TrChat
+        :runtime="runtime"
+        :ui="chatUi"
+        :history-data="historyData"
+        @left-aside-open-change="handleLeftAsideOpenChange"
+      >
         <template #layout-header="{ isEmpty, isMobileViewport, isLeftAsideOpen, openLeftAside }">
           <GeminiHeader
+            ref="header"
             :is-empty="isEmpty"
             :show-sidebar-trigger="isMobileViewport && !isLeftAsideOpen"
-            @open-sidebar="openLeftAside"
+            @open-sidebar="openSidebarFromHeader(openLeftAside)"
           />
         </template>
 
@@ -100,6 +121,7 @@ const chatUi = {
               <span>Gemini</span>
             </div>
             <button
+              ref="sidebarCloseButton"
               class="gemini-left-brand__toggle"
               type="button"
               aria-label="收起边栏"

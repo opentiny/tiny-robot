@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import { TinyButton, TinySlider } from '@opentiny/vue'
+import { TinyButton } from '@opentiny/vue'
 import { useElementSize } from '@vueuse/core'
 import type { LayoutAsideOptions, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
@@ -21,12 +21,7 @@ const availableLeftWidth = computed(() => {
   return Math.min(leftWidthMax, Math.floor(spaceForLeftAside / leftWidthStep) * leftWidthStep)
 })
 const minLeftWidth = computed(() => Math.min(leftWidthMin, availableLeftWidth.value))
-const leftExpandedWidth = computed({
-  get: () => Math.min(requestedLeftWidth.value, availableLeftWidth.value),
-  set: (width: number) => {
-    requestedLeftWidth.value = width
-  },
-})
+const leftExpandedWidth = computed(() => Math.min(requestedLeftWidth.value, availableLeftWidth.value))
 
 const leftAside = computed<LayoutAsideOptions>(() => ({
   open: leftOpen.value,
@@ -47,7 +42,12 @@ function updateLeftAsideOpen(detail: LayoutAsideOpenValue) {
 }
 
 function updateLeftAsideWidth(detail: LayoutAsideResizeValue) {
-  leftExpandedWidth.value = detail.expandedWidth
+  requestedLeftWidth.value = detail.expandedWidth
+}
+
+function handleWidthInput(event: Event) {
+  requestedLeftWidth.value = (event.currentTarget as HTMLInputElement).valueAsNumber
+  leftOpen.value = true
 }
 
 function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
@@ -65,14 +65,15 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
         </TinyButton>
         <label class="layout-slot-props-demo__range-wrap">
           <span class="layout-slot-props-demo__range-label">宽度</span>
-          <TinySlider
-            v-model.number="leftExpandedWidth"
+          <input
+            type="range"
             class="layout-slot-props-demo__range"
             :min="minLeftWidth"
             :max="availableLeftWidth"
             :step="leftWidthStep"
+            :value="leftExpandedWidth"
             :disabled="minLeftWidth === availableLeftWidth"
-            @change="leftOpen = true"
+            @input="handleWidthInput"
           />
           <strong>{{ leftExpandedWidth }}px</strong>
         </label>
@@ -166,6 +167,8 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 .layout-slot-props-demo__range {
   min-width: 160px;
   flex: 1;
+  margin: 0;
+  accent-color: var(--tr-color-primary);
 }
 
 .layout-slot-props-demo__header {
