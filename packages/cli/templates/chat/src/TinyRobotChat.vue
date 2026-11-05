@@ -27,8 +27,7 @@ function handlePromptClick({ item }: { item: PromptProps }): void {
   if (item.description) void chatRef.value?.send({ text: item.description })
 }
 
-function handleNewSession(createConversation: () => void): void {
-  createConversation()
+function handleNewSession(): void {
   showHistory.value = false
 }
 
@@ -75,7 +74,8 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem): vo
             :show-history="showHistory"
             :history-data="historyData"
             :active-conversation-id="activeConversationId"
-            @new-session="handleNewSession(createConversation)"
+            :create-conversation="createConversation"
+            @new-session="handleNewSession"
             @select-history="handleHistorySelect"
             @rename-history="handleHistoryRename"
             @history-action="handleHistoryAction"

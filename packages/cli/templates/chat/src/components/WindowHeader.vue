@@ -11,6 +11,7 @@ const props = defineProps<{
   showHistory: boolean
   historyData: readonly ChatHistoryItem[]
   activeConversationId?: string
+  createConversation: () => void
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +23,11 @@ const emit = defineEmits<{
   changeMode: [mode: DisplayMode]
   close: []
 }>()
+
+function handleNewSession(): void {
+  props.createConversation()
+  emit('newSession')
+}
 
 const IconFloatWindow = h(
   'svg',
@@ -47,7 +53,7 @@ const IconFloatWindow = h(
   <div class="chat-add-header">
     <h1 class="chat-add-header__title">OpenTiny NEXT</h1>
     <div class="chat-add-header__actions">
-      <TrIconButton :icon="IconNewSession" size="28" svg-size="20" title="新会话" @click="emit('newSession')" />
+      <TrIconButton :icon="IconNewSession" size="28" svg-size="20" title="新会话" @click="handleNewSession" />
       <div class="chat-add-header__history-trigger">
         <TrIconButton
           :icon="IconHistory"

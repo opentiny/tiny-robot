@@ -205,6 +205,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
     assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
     assert.match(dryRun.stdout, /Change Plan/)
+    assert.match(dryRun.stdout, /Dry run only\. No files were changed/)
     assert.match(dryRun.stdout, /\.env\.example/)
     assert.match(dryRun.stdout, /package\.json/)
     assert.match(dryRun.stdout, /added: @opentiny\/tiny-robot/)
@@ -222,6 +223,8 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.match(readme, /server\.proxy/)
     assert.match(readme, /https:\/\/modelcontextprotocol\.io\/mcp/)
     assert.match(readme, /path\.replace\(/)
+    assert.match(readme, /import TinyRobotChat/)
+    assert.match(readme, /\.env\.local/)
     assert.ok(!fs.existsSync(path.join(root, 'vite.config.ts')))
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
@@ -237,6 +240,8 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
     assert.match(result.stdout, /server\.proxy/)
     assert.match(result.stdout, /src\/tiny-robot-chat\/README\.md/)
+    assert.ok(result.stdout.indexOf('pnpm install') < result.stdout.indexOf('Add <TinyRobotChat />'))
+    assert.match(result.stdout, /If using Model Context MCP/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -275,6 +280,7 @@ test('add chat is idempotent and reports when no changes are necessary', () => {
     assert.equal(first.status, 0, first.stderr)
     assert.equal(second.status, 0, second.stderr)
     assert.match(second.stdout, /No changes were necessary/i)
+    assert.match(second.stdout, /src\/tiny-robot-chat\/README\.md/)
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
   } finally {
@@ -365,6 +371,7 @@ test('add chat aborts the whole operation when a feature file conflicts', () => 
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, /file conflicts detected/i)
+    assert.match(result.stderr, /No files were changed or overwritten/)
     assert.equal(fs.readFileSync(conflictingFile, 'utf8'), '<template><div>host</div></template>\n')
     assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
     assert.equal(fs.readFileSync(appFile, 'utf8'), appBefore)
