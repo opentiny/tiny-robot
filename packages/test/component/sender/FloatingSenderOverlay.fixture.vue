@@ -4,7 +4,7 @@ import type { LayoutFloatingState, LayoutProps, LayoutMode } from '../../../comp
 import Layout from '../../../components/src/layout'
 import Sender from '../../../components/src/sender'
 
-const props = withDefaults(defineProps<{ type: 'mention' | 'suggestion'; mode?: LayoutMode }>(), {
+const props = withDefaults(defineProps<{ type: 'mention' | 'suggestion'; mode?: LayoutMode; nested?: boolean }>(), {
   mode: 'floating',
 })
 
@@ -34,7 +34,12 @@ function toggleMode() {
   <button data-testid="toggle-mode" type="button" @click="toggleMode">Toggle mode</button>
   <Layout v-bind="layoutProps">
     <template #main>
-      <Sender v-model="content" :extensions="extensions" />
+      <Layout v-if="props.nested" mode="normal">
+        <template #main>
+          <Sender v-model="content" :extensions="extensions" />
+        </template>
+      </Layout>
+      <Sender v-else v-model="content" :extensions="extensions" />
     </template>
   </Layout>
   <output data-testid="content">{{ content }}</output>

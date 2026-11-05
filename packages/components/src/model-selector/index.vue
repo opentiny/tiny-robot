@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, onMounted, shallowRef, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, onScopeDispose, shallowRef, watch } from 'vue'
 import ModelSelectorPanel from './components/ModelSelectorPanel.vue'
 import ModelSelectorTrigger from './components/ModelSelectorTrigger.vue'
 import { useModelSelectorEffort } from './composables/useModelSelectorEffort'
@@ -15,8 +15,7 @@ import type {
 import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
 import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
 import { useStableId, useTeleportTarget } from '../shared/composables'
-import { getFloatingOverlayHost } from '../shared/overlayHost'
-import { useOptionalLayoutContext } from '../layout/composables/useLayoutContext'
+import { getFloatingOverlayHost, observeLayoutMode } from '../shared/overlayHost'
 
 defineOptions({ name: 'TrModelSelector' })
 
@@ -54,8 +53,12 @@ const referenceEl = shallowRef<HTMLElement | null>(null)
 const floatingEl = shallowRef<HTMLElement | null>(null)
 const isTeleportReady = shallowRef(false)
 const pendingFocusRestore = shallowRef<boolean | null>(null)
-const layoutContext = useOptionalLayoutContext()
-const isInFloatingLayout = computed(() => layoutContext?.mode.value === 'floating')
+const layoutModeRevision = shallowRef(0)
+const floatingOverlayHostState = computed(() => ({
+  host: referenceEl.value ? getFloatingOverlayHost(referenceEl.value) : null,
+  revision: layoutModeRevision.value,
+}))
+let stopObservingLayoutMode: (() => void) | null = null
 
 const baseTeleportTarget = useTeleportTarget(referenceEl)
 const teleportTarget = computed(() => {
@@ -64,8 +67,7 @@ const teleportTarget = computed(() => {
   }
 
   const defaultTarget = baseTeleportTarget.value
-  const floatingOverlayHost =
-    isInFloatingLayout.value && referenceEl.value ? getFloatingOverlayHost(referenceEl.value) : null
+  const floatingOverlayHost = floatingOverlayHostState.value.host
   const fallbackTarget = floatingOverlayHost ?? defaultTarget
   const requestedTarget = props.appendTo
 
@@ -303,7 +305,17 @@ watch(
 )
 
 onMounted(() => {
+  if (referenceEl.value) {
+    stopObservingLayoutMode = observeLayoutMode(referenceEl.value, () => {
+      layoutModeRevision.value += 1
+    })
+  }
+
   isTeleportReady.value = true
+})
+
+onScopeDispose(() => {
+  stopObservingLayoutMode?.()
 })
 </script>
 

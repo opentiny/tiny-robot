@@ -5,9 +5,12 @@ import type { LayoutFloatingState, LayoutMode, LayoutProps } from '../../../comp
 import ModelSelector from '../../../components/src/model-selector/index.vue'
 import type { ModelSelectorOption, ModelSelectorProps } from '../../../components/src/model-selector/index.type'
 
-const props = withDefaults(defineProps<{ mode?: LayoutMode; appendTo?: ModelSelectorProps['appendTo'] }>(), {
-  mode: 'floating',
-})
+const props = withDefaults(
+  defineProps<{ mode?: LayoutMode; appendTo?: ModelSelectorProps['appendTo']; nested?: boolean }>(),
+  {
+    mode: 'floating',
+  },
+)
 
 const mode = ref(props.mode)
 const modelValue = ref<string | null>('gpt-4o')
@@ -36,7 +39,23 @@ function toggleMode() {
   <div id="model-selector-custom-target" />
   <Layout v-bind="layoutProps">
     <template #main>
-      <ModelSelector v-model="modelValue" data-testid="model-selector" :models="models" :append-to="props.appendTo" />
+      <Layout v-if="props.nested" mode="normal">
+        <template #main>
+          <ModelSelector
+            v-model="modelValue"
+            data-testid="model-selector"
+            :models="models"
+            :append-to="props.appendTo"
+          />
+        </template>
+      </Layout>
+      <ModelSelector
+        v-else
+        v-model="modelValue"
+        data-testid="model-selector"
+        :models="models"
+        :append-to="props.appendTo"
+      />
     </template>
   </Layout>
   <output data-testid="model-value">{{ modelValue }}</output>

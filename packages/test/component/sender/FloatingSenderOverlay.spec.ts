@@ -41,4 +41,24 @@ test.describe('Sender popups in floating Layout', () => {
     await component.getByTestId('toggle-mode').click()
     await expect.poll(() => popup.evaluate((element) => element.parentElement === document.body)).toBe(true)
   })
+
+  test('tracks an outer Layout mode change through a nested normal Layout', async ({ mount, page }) => {
+    const component = await mount(FloatingSenderOverlayFixture, { props: { type: 'suggestion', nested: true } })
+    const editor = page.locator('.tiptap')
+    const popup = page.locator('.suggestion-list')
+
+    await editor.fill('E')
+    await expect(popup).toBeVisible()
+    await expect
+      .poll(() => popup.evaluate((element) => element.parentElement?.hasAttribute('data-tr-floating-overlay-host')))
+      .toBe(true)
+
+    await component.getByTestId('toggle-mode').click()
+    await expect.poll(() => popup.evaluate((element) => element.parentElement === document.body)).toBe(true)
+
+    await component.getByTestId('toggle-mode').click()
+    await expect
+      .poll(() => popup.evaluate((element) => element.parentElement?.hasAttribute('data-tr-floating-overlay-host')))
+      .toBe(true)
+  })
 })
