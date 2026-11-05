@@ -5,7 +5,7 @@
 import type { Editor } from '@tiptap/core'
 import type { TemplateItem } from '../../index.type'
 import type { StructuredDataItem } from '../../types/base'
-import { EXTENSION_NAMES, NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
+import { NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
 
 /**
  * 零宽字符常量
@@ -20,11 +20,20 @@ export const ZERO_WIDTH_CHAR = '\u200B'
  * 例如：请帮我分析 [模板内容1] 和 [模板内容2]
  */
 export function getTextWithTemplates(editor: Editor): string {
-  const mentionExt = editor.extensionManager.extensions.find((ext) => ext.name === EXTENSION_NAMES.MENTION)
-  const items = mentionExt ? getCombinedStructuredData(editor) : getTemplateStructuredData(editor)
-  const mentionChar = mentionExt?.options?.char || '@'
+  return getTemplateStructuredData(editor)
+    .map((item) => item.content)
+    .join('')
+}
+
+export function getTextFromStructuredData(items: StructuredDataItem[], mentionChar = '@'): string {
   return items
     .map((item) => (item.type === USER_API_TYPES.MENTION ? `${mentionChar}${item.content}` : item.content))
+    .join('')
+}
+
+export function getTextForCharacterCount(editor: Editor): string {
+  return getCombinedStructuredData(editor)
+    .map((item) => (item.type === USER_API_TYPES.MENTION ? ' ' : item.content))
     .join('')
 }
 

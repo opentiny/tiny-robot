@@ -21,7 +21,11 @@ import {
   getMentionStructuredData,
   getTextWithMentions,
 } from '../extensions'
-import { getCombinedStructuredData } from '../extensions/template/utils'
+import {
+  getCombinedStructuredData,
+  getTextForCharacterCount,
+  getTextFromStructuredData,
+} from '../extensions/template/utils'
 import { EXTENSION_NAMES } from '../extensions/constants'
 import { isImeKeyEvent } from '../extensions/ime'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
@@ -87,7 +91,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
 
   const characterCount = computed(() => {
     if (!editor.value) return 0
-    return countGraphemes(getTextWithTemplates(editor.value))
+    return countGraphemes(getTextForCharacterCount(editor.value))
   })
 
   const isOverLimit = computed(() => {
@@ -127,7 +131,12 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
       if (templateStructuredData.length > 0) {
         structuredData = templateStructuredData as StructuredData
       }
-      textContent = getTextWithTemplates(editor.value)
+      if (hasMentionExtension) {
+        const mentionExtension = extensions.find((ext) => ext.name === EXTENSION_NAMES.MENTION)
+        textContent = getTextFromStructuredData(templateStructuredData, mentionExtension?.options?.char || '@')
+      } else {
+        textContent = getTextWithTemplates(editor.value)
+      }
     }
     // Mention（提及场景）
     else if (hasMentionExtension) {
