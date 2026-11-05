@@ -187,8 +187,6 @@ const handleClick = () => {
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
-  --tr-bubble-tool-button-primary-hover-bg: color-mix(in srgb, var(--tr-text-primary) 88%, var(--tr-text-primary));
-
   font-size: 14px;
   line-height: 24px;
   padding: 12px;
@@ -266,6 +264,11 @@ const handleClick = () => {
       --tv-Button-bg-color-active-primary: var(--tr-text-secondary);
       --tv-Button-border-color-active-primary: var(--tr-text-secondary);
       --tv-Button-text-color-active-primary: var(--tr-container-bg-default);
+    }
+
+    :deep(button:focus-visible) {
+      outline: 2px solid var(--tr-text-primary);
+      outline-offset: 2px;
     }
 
     :deep(.tiny-button.tiny-button--default),

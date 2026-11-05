@@ -50,6 +50,14 @@ test.describe('Bubble', () => {
     await expect(bubble.locator('.detail-content')).toHaveText('第一段思考\n第二段思考')
   })
 
+  test('keeps long Markdown code lines scrollable within a narrow bubble', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const code = component.getByTestId('markdown-overflow-bubble').locator('pre')
+
+    await expect(code).toHaveCSS('overflow-x', 'auto')
+    expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  })
+
   test('renders loading and tool calls when answer content is empty', async ({ mount }) => {
     const component = await mount(BubbleFixture)
 

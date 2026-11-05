@@ -51,5 +51,10 @@ watchEffect(() => {
   :deep(p) {
     overflow-wrap: anywhere;
   }
+
+  :deep(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

@@ -55,17 +55,75 @@ test.describe('Tool approval renderer', () => {
     const lightPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
     const lightThemeText = await getToken(resumeButton, '--tr-text-primary')
     expect(lightPrimary).toBe(lightThemeText)
+    expect(await getToken(resumeButton, '--tv-Button-bg-color-active-primary')).toBe(
+      await getToken(resumeButton, '--tr-text-secondary'),
+    )
     expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
       await getToken(rejectButton, '--tr-container-bg-default'),
     )
+
+    const getResolvedTokenColor = (button: typeof resumeButton, token: string) =>
+      button.evaluate((element, name) => {
+        const probe = document.createElement('span')
+        probe.style.color = getComputedStyle(element).getPropertyValue(name)
+        document.body.append(probe)
+        const color = getComputedStyle(probe).color
+        probe.remove()
+        return color
+      }, token)
+
+    await resumeButton.hover()
+    const lightHoverColor = await resumeButton.evaluate((element) => getComputedStyle(element).backgroundColor)
+    expect(lightHoverColor).not.toBe(await getResolvedTokenColor(resumeButton, '--tr-color-primary'))
 
     await approvalBubble.evaluate((element) => element.setAttribute('data-tr-color-mode', 'dark'))
 
     const darkPrimary = await getToken(resumeButton, '--tv-Button-bg-color-primary')
     expect(darkPrimary).toBe(await getToken(resumeButton, '--tr-text-primary'))
     expect(darkPrimary).not.toBe(lightPrimary)
+    expect(await getToken(resumeButton, '--tv-Button-bg-color-active-primary')).toBe(
+      await getToken(resumeButton, '--tr-text-secondary'),
+    )
     expect(await getToken(rejectButton, '--tv-Button-bg-color-default')).toBe(
       await getToken(rejectButton, '--tr-container-bg-default'),
     )
+
+    const darkPrimaryColor = await getResolvedTokenColor(resumeButton, '--tr-color-primary')
+    await resumeButton.hover()
+    const darkHoverColor = await resumeButton.evaluate((element) => getComputedStyle(element).backgroundColor)
+    expect(darkHoverColor).not.toBe(darkPrimaryColor)
+  })
+
+  test('shows a theme-aware focus ring when navigating approval buttons with the keyboard', async ({ mount, page }) => {
+    const component = await mount(ToolApprovalFixture)
+    const approvalBubble = component.getByTestId('approval-bubble')
+    const resumeButton = approvalBubble.locator('.tool-actions .tiny-button--primary')
+    const rejectButton = approvalBubble.locator('.tool-actions .tiny-button--default')
+    const getThemeColor = (button: typeof rejectButton) =>
+      button.evaluate((element) => {
+        const probe = document.createElement('span')
+        probe.style.color = getComputedStyle(element).getPropertyValue('--tr-text-primary')
+        document.body.append(probe)
+        const color = getComputedStyle(probe).color
+        probe.remove()
+        return color
+      })
+
+    await page.keyboard.press('Tab')
+    await expect(resumeButton).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(rejectButton).toBeFocused()
+    expect(await rejectButton.evaluate((element) => element.matches(':focus-visible'))).toBe(true)
+    await expect(rejectButton).toHaveCSS('outline-style', 'solid')
+    await expect(rejectButton).toHaveCSS('outline-width', '2px')
+    await expect(rejectButton).toHaveCSS('outline-color', await getThemeColor(rejectButton))
+
+    await approvalBubble.evaluate((element) => element.setAttribute('data-tr-color-mode', 'dark'))
+    await page.keyboard.press('Shift+Tab')
+    await expect(resumeButton).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(rejectButton).toBeFocused()
+    expect(await rejectButton.evaluate((element) => element.matches(':focus-visible'))).toBe(true)
+    await expect(rejectButton).toHaveCSS('outline-color', await getThemeColor(rejectButton))
   })
 })

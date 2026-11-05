@@ -3,7 +3,12 @@ import { defineComponent, h, reactive } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import BubbleProvider from '../../../components/src/bubble/BubbleProvider.vue'
 import { BubbleRenderers } from '../../../components/src/bubble/renderers/allRenderers'
-import type { BubbleContentRendererMatch, BubbleMessage, ToolCall } from '../../../components/src/bubble/index.type'
+import type {
+  BubbleContentRendererMatch,
+  BubbleMessage,
+  ChatMessageContentItem,
+  ToolCall,
+} from '../../../components/src/bubble/index.type'
 import FallbackContentRenderer from './FallbackContentRenderer.vue'
 
 const avatar = h('span', { 'data-testid': 'bubble-avatar', 'aria-hidden': 'true' }, 'U')
@@ -18,6 +23,13 @@ const image = {
 }
 const imageOnlyContent: BubbleMessage['content'] = [image, image]
 const mixedImageFirstContent: BubbleMessage['content'] = [image, { type: 'text', text: 'Image caption' }]
+const markdownOverflowContent = `\`\`\`text\n${'1234567890'.repeat(12)}\n\`\`\``
+const markdownContentRendererMatches = [
+  {
+    find: (_: BubbleMessage, content: ChatMessageContentItem) => content.type === 'text',
+    renderer: BubbleRenderers.Markdown,
+  },
+]
 
 const reasoningMessage = reactive<BubbleMessage>({
   role: 'assistant',
@@ -90,6 +102,11 @@ const messageOnlyMatches: BubbleContentRendererMatch[] = [
     <Bubble data-testid="empty-split-array-bubble" role="assistant" :content="[]" content-render-mode="split" />
     <Bubble data-testid="hidden-bubble" role="assistant" content="Hidden text" hidden />
     <Bubble data-testid="reasoning-bubble" v-bind="reasoningMessage" />
+    <div style="width: 320px">
+      <BubbleProvider :content-renderer-matches="markdownContentRendererMatches">
+        <Bubble data-testid="markdown-overflow-bubble" role="assistant" :content="markdownOverflowContent" />
+      </BubbleProvider>
+    </div>
     <button data-testid="append-reasoning" @click="appendReasoning">Append reasoning</button>
     <button data-testid="finish-reasoning" @click="finishReasoning">Finish reasoning</button>
     <Bubble data-testid="loading-only-bubble" role="assistant" content="" loading />
