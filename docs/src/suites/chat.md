@@ -1224,7 +1224,7 @@ toolbar: (defaults) => [
 | `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
 | `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps` | 在消息内容下方添加内容。                                                                    |
 
-`sender-header`、`input-prefix`、`sender-content`、`sender-actions-inline`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制顶部内容显隐时，将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
+`sender-header`、`input-prefix`、`sender-content`、`sender-actions-inline`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制 `input-prefix` 显隐时，应将 `v-if` 放在插槽声明上；仅在直接子节点上使用 `v-if` 会隐藏内容但保留首行缩进。其他插槽可将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
 
 ### 自定义消息渲染上下文
 
