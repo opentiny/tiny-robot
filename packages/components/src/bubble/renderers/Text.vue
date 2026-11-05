@@ -24,9 +24,5 @@ p.tr-bubble__text {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-
-  & + p.tr-bubble__text {
-    margin-top: 0.5em;
-  }
 }
 </style>

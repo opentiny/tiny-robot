@@ -12,17 +12,15 @@ defineProps<BubbleBoxRendererProps>()
 
 <style scoped lang="less">
 .tr-bubble__box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   background-color: var(--tr-bubble-box-bg);
   padding: var(--tr-bubble-box-padding);
   border-radius: var(--tr-bubble-box-border-radius);
   box-shadow: var(--tr-bubble-box-shadow);
   border: var(--tr-bubble-box-border);
   overflow: hidden;
-
-  @content-block: ~':is(p.tr-bubble__text, .tr-bubble__markdown, .tr-bubble__reasoning, .tr-bubble__tools)';
-  > :deep(@{content-block} + @{content-block}) {
-    margin-block-start: 8px;
-  }
 
   &[data-shape='rounded'] {
     border-radius: var(--tr-bubble-box-shape-rounded-radius);
@@ -41,6 +39,7 @@ defineProps<BubbleBoxRendererProps>()
   }
 
   &[data-box-type='image'] {
+    gap: var(--tr-bubble-image-space-y);
     padding: var(--tr-bubble-box-image-padding);
     border: var(--tr-bubble-box-image-border);
   }

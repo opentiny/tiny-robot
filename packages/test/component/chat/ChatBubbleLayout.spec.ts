@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import ChatBubbleLayoutFixture from './ChatBubbleLayout.fixture.vue'
 
-test('spaces the reasoning, Markdown, and tool group within one assistant bubble', async ({ mount }) => {
+test('spaces built-in and custom renderers within one assistant bubble', async ({ mount }) => {
   const component = await mount(ChatBubbleLayoutFixture)
   const box = component.locator('.tr-bubble__box[data-role="assistant"]')
   await expect(box.locator('[data-type="markdown"]')).toHaveCount(2)
+  await expect(box.getByText('Custom weather summary')).toBeVisible()
 
   const gaps = await box.evaluate((el) => {
     const gap = (before: Element, after: Element) =>
@@ -17,7 +18,7 @@ test('spaces the reasoning, Markdown, and tool group within one assistant bubble
     }
   })
 
-  expect(gaps).toEqual({ blocks: [8, 8, 8], cards: [8] })
+  expect(gaps).toEqual({ blocks: [8, 8, 8, 8], cards: [8] })
 })
 
 test('honors the tool width override within the available bubble width', async ({ mount, page }) => {

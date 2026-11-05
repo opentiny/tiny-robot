@@ -1,10 +1,21 @@
 <script setup lang="ts">
+import { h, markRaw } from 'vue'
 import TrChatUI from '../../../chat/src/ChatUI.vue'
 import type { ChatMessageItem, ChatUIOptions } from '../../../chat/src/types'
 
 const ui: ChatUIOptions = {
   layout: { leftAside: false, rightAside: false },
   sender: false,
+  bubble: {
+    bubbleProvider: {
+      contentRendererMatches: [
+        {
+          find: (message) => message.id === 'custom',
+          renderer: markRaw(() => h('section', 'Custom weather summary')),
+        },
+      ],
+    },
+  },
 }
 
 const messages: ChatMessageItem[] = [
@@ -19,6 +30,7 @@ const messages: ChatMessageItem[] = [
     ],
     state: { open: false, toolCall: { weather: { status: 'success' }, forecast: { status: 'success' } } },
   },
+  { id: 'custom', role: 'assistant', content: 'Custom weather summary' },
   { id: 'answer', role: 'assistant', content: 'Cloudy today.' },
 ]
 </script>
