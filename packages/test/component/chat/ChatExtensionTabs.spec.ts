@@ -14,6 +14,27 @@ test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
   await expect(component.getByRole('button', { name: 'Search MCP', exact: true })).toBeVisible()
 })
 
+test('can close the extension drawer inside a narrow floating chat', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 640, height: 400 })
+  await mount(ChatExtensionTabsFixture, { props: { withSkills: false, floating: true } })
+
+  const entry = page.getByRole('button', { name: 'MCP', exact: true })
+  await entry.click()
+
+  const close = page.getByRole('button', { name: '关闭详情' })
+  await expect
+    .poll(() =>
+      close.evaluate((button) => {
+        const { x, y, width, height } = button.getBoundingClientRect()
+        return button.contains(document.elementFromPoint(x + width / 2, y + height / 2))
+      }),
+    )
+    .toBe(true)
+  await close.click()
+  await expect(close).toBeHidden()
+  await expect(entry).toBeVisible()
+})
+
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture)
 
