@@ -369,9 +369,20 @@ export const getAskUserContentFromToolCall = (toolCall: ToolCall | undefined): A
 export const resolveBubbleMessageContent = (message: {
   content?: ChatMessageContent
   tool_calls?: ToolCall[]
+  state?: Record<string, unknown>
 }): ChatMessageContent | undefined => {
+  const askUserRuntime = message.state?.askUserRuntime as { toolCallId?: unknown } | undefined
+  const toolCallStates = message.state?.toolCall as Record<string, { status?: unknown }> | undefined
   const askUserContents =
     message.tool_calls?.flatMap((toolCall) => {
+      const toolCallStatus = toolCallStates?.[toolCall.id]?.status
+      if (
+        toolCallStatus !== 'awaiting-approval' ||
+        (typeof askUserRuntime?.toolCallId === 'string' && askUserRuntime.toolCallId !== toolCall.id)
+      ) {
+        return []
+      }
+
       const content = getAskUserContentFromToolCall(toolCall)
       return content ? [content] : []
     }) ?? []
@@ -499,7 +510,11 @@ const useAskUserView = (
   const status = computed(() => state.value.status)
   const retryable = computed(() => state.value.retryable !== false)
   const isLocked = computed(
-    () => status.value === 'submitting' || status.value === 'submitted' || status.value === 'cancelled',
+    () =>
+      status.value === 'submitting' ||
+      status.value === 'submitted' ||
+      status.value === 'cancelled' ||
+      status.value === 'error',
   )
   const canGoBack = computed(() => !isLocked.value && currentStepIndex.value > 0)
   const currentAnswer = computed(() => {

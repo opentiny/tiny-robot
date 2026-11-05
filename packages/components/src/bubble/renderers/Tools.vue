@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import {
   getAskUserContentFromToolCall,
   isAskUserContent,
+  useContentResolver,
   useBubbleContentRenderer,
   useMessageContent,
   useOmitMessageFields,
@@ -19,10 +20,18 @@ const props = defineProps<BubbleContentRendererProps>()
 
 const { restMessage, restProps } = useOmitMessageFields(props, ['tool_calls'])
 const { content } = useMessageContent(props)
+const resolveContent = useContentResolver()
+const hasAskUserContent = computed(() => {
+  const messageContent = resolveContent(props.message)
+  return Array.isArray(messageContent) && messageContent.some(isAskUserContent)
+})
+const askUserContentOwnsAttributes = computed(() => isAskUserContent(content.value))
 const toolCalls = computed(
   () =>
     props.message.tool_calls?.flatMap((toolCall, index) =>
-      toolCall.function.name === 'ask_user' && getAskUserContentFromToolCall(toolCall) ? [] : [{ toolCall, index }],
+      toolCall.function.name === 'ask_user' && getAskUserContentFromToolCall(toolCall) && hasAskUserContent.value
+        ? []
+        : [{ toolCall, index }],
     ) ?? [],
 )
 const rendersSyntheticAskUser = computed(() => {
@@ -33,7 +42,6 @@ const rendersSyntheticAskUser = computed(() => {
   const rawContent = props.message.content
   return !(Array.isArray(rawContent) && isAskUserContent(rawContent[props.contentIndex]))
 })
-const askUserContentOwnsAttributes = computed(() => isAskUserContent(content.value))
 const renderer = useBubbleContentRenderer(restMessage, props.contentIndex)
 </script>
 

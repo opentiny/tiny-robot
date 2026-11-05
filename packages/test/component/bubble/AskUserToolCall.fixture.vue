@@ -10,6 +10,8 @@ const props = withDefaults(
     askUserCount?: number
     inList?: boolean
     malformedAskUser?: boolean
+    toolCallStatus?: string
+    withResolvedAskUserContent?: boolean
     withContentAttributes?: boolean
     withOrdinaryTool?: boolean
     withText?: boolean
@@ -18,6 +20,8 @@ const props = withDefaults(
     askUserCount: 1,
     inList: false,
     malformedAskUser: false,
+    toolCallStatus: undefined,
+    withResolvedAskUserContent: false,
     withContentAttributes: false,
     withOrdinaryTool: false,
     withText: false,
@@ -70,11 +74,47 @@ const toolCalls = [
     : []),
 ]
 
+const askUserContent = {
+  type: 'ask_user',
+  id: toolCalls[0].id,
+  heading: '工具调用问题',
+  questions: [
+    {
+      id: 'environment-1',
+      question: '选择发布环境',
+      options: [{ label: '预发布' }, { label: '生产' }],
+      multiSelect: false,
+      allowCustom: false,
+    },
+  ],
+}
+
+const state: Record<string, unknown> = {}
+if (props.toolCallStatus) {
+  state.toolCall = Object.fromEntries(
+    toolCalls
+      .filter((toolCall) => toolCall.function.name === 'ask_user')
+      .map((toolCall) => [toolCall.id, { status: props.toolCallStatus }]),
+  )
+}
+if (props.toolCallStatus === 'awaiting-approval' && props.askUserCount === 1) {
+  state.askUserRuntime = { toolCallId: toolCalls[0].id }
+  state.askUser = { status: 'active', currentStep: 0, answers: {}, completedStepIds: [] }
+}
+if (props.withResolvedAskUserContent) {
+  state.askUserRuntime = { toolCallId: toolCalls[0].id }
+  state.askUser = { status: 'active', currentStep: 0, answers: {}, completedStepIds: [] }
+}
+
 const message = ref<BubbleMessage>({
   role: 'assistant',
-  ...(props.withText ? { content: '请确认模型返回的发布环境。' } : {}),
+  ...(props.withResolvedAskUserContent
+    ? { content: [askUserContent] }
+    : props.withText
+      ? { content: '请确认模型返回的发布环境。' }
+      : {}),
   tool_calls: toolCalls,
-  state: {},
+  state,
 })
 
 const handleStateChange = (payload: { key: string; value: unknown }) => {

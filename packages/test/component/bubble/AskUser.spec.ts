@@ -4,6 +4,7 @@ import AskUserFixture from './AskUser.fixture.vue'
 import AskUserMultipleFixture from './AskUserMultiple.fixture.vue'
 import AskUserRadioIsolationFixture from './AskUserRadioIsolation.fixture.vue'
 import AskUserToolCallFixture from './AskUserToolCall.fixture.vue'
+import AskUserKitFixture from './AskUserKit.fixture.vue'
 
 test.describe('AskUser renderer', () => {
   test('focuses the custom answer input after selecting other', async ({ mount }) => {
@@ -17,7 +18,7 @@ test.describe('AskUser renderer', () => {
   })
 
   test('renders AskUser directly from tool_calls when content is omitted', async ({ mount }) => {
-    const component = await mount(AskUserToolCallFixture)
+    const component = await mount(AskUserToolCallFixture, { props: { toolCallStatus: 'awaiting-approval' } })
     const bubble = component.getByTestId('ask-user-tool-call-bubble')
 
     await expect(bubble.getByRole('heading', { name: '工具调用问题', exact: true })).toBeVisible()
@@ -32,8 +33,63 @@ test.describe('AskUser renderer', () => {
     await expect(bubble.locator('[aria-label="提交结果"]')).toContainText('生产')
   })
 
+  test('renders terminal Kit state for content already attached to the message', async ({ mount }) => {
+    const component = await mount(AskUserToolCallFixture, {
+      props: { toolCallStatus: 'cancelled', withResolvedAskUserContent: true },
+    })
+    const bubble = component.getByTestId('ask-user-tool-call-bubble')
+
+    await expect(bubble.locator('[data-type="ask-user"]')).toHaveCount(1)
+    await expect(bubble.getByRole('status')).toContainText('已取消本次信息收集')
+    await expect(bubble.getByRole('button', { name: '提交' })).toHaveCount(0)
+  })
+
+  test('waits for a delayed Kit stream, then delivers submitted answers to the model', async ({ mount }) => {
+    const component = await mount(AskUserKitFixture, { props: { delayToolPreparation: true } })
+    const bubbles = component.getByTestId('ask-user-kit-bubbles')
+
+    await expect(bubbles.locator('[data-type="ask-user"]')).toHaveCount(0)
+    await expect(bubbles.locator('[data-type="tool-call"]')).toHaveCount(1)
+    await component.getByTestId('finish-stream').click()
+
+    await expect(bubbles.locator('[data-type="ask-user"]')).toHaveCount(1)
+    await expect(bubbles.getByRole('textbox')).toBeDisabled()
+    await expect(bubbles.getByRole('button', { name: '跳过', exact: true })).toHaveCount(0)
+    await component.getByTestId('finish-preparation').click()
+
+    await expect(component.getByTestId('request-state')).toHaveText('paused')
+    await bubbles.getByRole('textbox').fill('Ada')
+    await bubbles.getByRole('button', { name: '跳过', exact: true }).click()
+
+    await expect(component.getByTestId('request-state')).toHaveText('completed')
+    await expect(component.getByTestId('tool-result')).toHaveText(
+      JSON.stringify({
+        outcome: 'completed',
+        answers: { name: { status: 'answered', value: 'Ada' }, notes: { status: 'skipped' } },
+      }),
+    )
+    await expect(bubbles.locator('[aria-label="提交结果"]')).toContainText('Ada')
+  })
+
+  test('keeps a Kit call cancelled by the round limit read-only', async ({ mount }) => {
+    const component = await mount(AskUserKitFixture, { props: { maxToolRounds: 0 } })
+    const bubbles = component.getByTestId('ask-user-kit-bubbles')
+
+    await expect(bubbles.locator('[data-type="ask-user"]')).toHaveCount(0)
+    await expect(bubbles.locator('[data-type="tool-call"]')).toHaveCount(1)
+    await component.getByTestId('finish-stream').click()
+
+    await expect(component.getByTestId('request-state')).toHaveText('completed')
+    await expect(bubbles.locator('[data-type="tool-call"]')).toContainText('已取消')
+    await expect(bubbles.locator('[data-type="ask-user"]')).toHaveCount(0)
+    await expect(bubbles.getByRole('textbox')).toHaveCount(0)
+    await expect(bubbles.getByRole('button', { name: '提交' })).toHaveCount(0)
+  })
+
   test('does not duplicate AskUser when content and an ask_user tool call coexist', async ({ mount }) => {
-    const component = await mount(AskUserToolCallFixture, { props: { withText: true } })
+    const component = await mount(AskUserToolCallFixture, {
+      props: { toolCallStatus: 'awaiting-approval', withText: true },
+    })
     const bubble = component.getByTestId('ask-user-tool-call-bubble')
 
     await expect(bubble).toContainText('请确认模型返回的发布环境。')
@@ -41,7 +97,9 @@ test.describe('AskUser renderer', () => {
   })
 
   test('renders each ask_user tool call once', async ({ mount }) => {
-    const component = await mount(AskUserToolCallFixture, { props: { askUserCount: 2 } })
+    const component = await mount(AskUserToolCallFixture, {
+      props: { askUserCount: 2, toolCallStatus: 'awaiting-approval' },
+    })
     const bubble = component.getByTestId('ask-user-tool-call-bubble')
 
     await expect(bubble.locator('[data-type="ask-user"]')).toHaveCount(2)
@@ -50,7 +108,9 @@ test.describe('AskUser renderer', () => {
   })
 
   test('renders an ask_user tool call once in BubbleList', async ({ mount }) => {
-    const component = await mount(AskUserToolCallFixture, { props: { inList: true, withText: true } })
+    const component = await mount(AskUserToolCallFixture, {
+      props: { inList: true, toolCallStatus: 'awaiting-approval', withText: true },
+    })
     const list = component.getByTestId('ask-user-tool-call-list')
 
     await expect(list).toContainText('请确认模型返回的发布环境。')
@@ -58,14 +118,16 @@ test.describe('AskUser renderer', () => {
   })
 
   test('forwards content attributes to AskUser rendered from a tool call', async ({ mount }) => {
-    const component = await mount(AskUserToolCallFixture, { props: { withContentAttributes: true } })
+    const component = await mount(AskUserToolCallFixture, {
+      props: { toolCallStatus: 'awaiting-approval', withContentAttributes: true },
+    })
 
     await expect(component.getByTestId('synthetic-ask-user')).toHaveAttribute('data-type', 'ask-user')
   })
 
   test('does not duplicate content attributes when AskUser and ordinary tools render together', async ({ mount }) => {
     const component = await mount(AskUserToolCallFixture, {
-      props: { withContentAttributes: true, withOrdinaryTool: true },
+      props: { toolCallStatus: 'awaiting-approval', withContentAttributes: true, withOrdinaryTool: true },
     })
     const bubble = component.getByTestId('ask-user-tool-call-bubble')
 
@@ -182,6 +244,88 @@ test.describe('AskUser renderer', () => {
 
     await expect(component.getByRole('alert')).toContainText('请求已取消')
     await expect(component.getByRole('button', { name: '重试' })).toHaveCount(0)
+  })
+
+  test('blocks mouse navigation while an AskUser error is not retryable', async ({ mount }) => {
+    const component = await mount(AskUserFixture, {
+      props: {
+        initialState: {
+          askUser: {
+            status: 'error',
+            currentStep: 0,
+            answers: {},
+            completedStepIds: [],
+            error: '终止错误',
+            retryable: false,
+          },
+        },
+      },
+    })
+    const bubble = component.getByTestId('ask-user-bubble')
+    const nextStep = bubble.locator('.tr-bubble__ask-user-progress-step').nth(1)
+
+    await expect(nextStep).toHaveAttribute('aria-disabled', 'true')
+    await nextStep.click({ force: true })
+
+    await expect(bubble.getByRole('heading', { name: '请输入项目名称。' })).toBeVisible()
+    await expect(bubble.getByRole('alert')).toContainText('终止错误')
+    await expect(bubble.getByRole('button', { name: '提交' })).toHaveCount(0)
+    await expect(component.getByTestId('last-event')).toHaveText('')
+  })
+
+  test('blocks keyboard navigation while an AskUser error is not retryable', async ({ mount }) => {
+    const component = await mount(AskUserFixture, {
+      props: {
+        initialState: {
+          askUser: {
+            status: 'error',
+            currentStep: 0,
+            answers: {},
+            completedStepIds: [],
+            error: '终止错误',
+            retryable: false,
+          },
+        },
+      },
+    })
+    const bubble = component.getByTestId('ask-user-bubble')
+    const nextStep = bubble.locator('.tr-bubble__ask-user-progress-step').nth(1)
+
+    await nextStep.focus()
+    await nextStep.press('Enter')
+
+    await expect(bubble.getByRole('heading', { name: '请输入项目名称。' })).toBeVisible()
+    await expect(bubble.getByRole('alert')).toContainText('终止错误')
+    await expect(component.getByTestId('last-event')).toHaveText('')
+  })
+
+  test('requires the retry action before navigating out of a retryable error', async ({ mount }) => {
+    const component = await mount(AskUserFixture, {
+      props: {
+        initialState: {
+          askUser: {
+            status: 'error',
+            currentStep: 0,
+            answers: {},
+            completedStepIds: [],
+            error: '请重试',
+            retryable: true,
+          },
+        },
+      },
+    })
+    const bubble = component.getByTestId('ask-user-bubble')
+    const nextStep = bubble.locator('.tr-bubble__ask-user-progress-step').nth(1)
+
+    await nextStep.click({ force: true })
+    await expect(bubble.getByRole('alert')).toContainText('请重试')
+    await expect(component.getByTestId('last-event')).toHaveText('')
+
+    await bubble.getByRole('button', { name: '重试', exact: true }).click()
+    await expect(component.getByTestId('last-event')).toHaveText('ask-user:retry')
+    await expect(bubble.getByRole('alert')).toHaveCount(0)
+    await nextStep.click()
+    await expect(bubble.getByRole('heading', { name: '请选择前端框架。' })).toBeVisible()
   })
 
   test('isolates state between multiple AskUser contents', async ({ mount }) => {

@@ -506,7 +506,11 @@ AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本
 
 使用默认内容解析器时，Bubble 可直接从 assistant 消息的 `tool_calls` 中解析 `ask_user`。`function.arguments` 为包含 `questions` 的 JSON 字符串，具体配置见下方示例和 [AskUser 协议](../tools/message#askuser-协议)。
 
+对 Kit 管理的工具调用，合成表单会等待 `state.askUserRuntime.toolCallId` 对应的 `state.toolCall` 状态进入 `awaiting-approval` 后再显示；Kit 已附加表单但调用尚未就绪时，表单保持禁用。独立使用 Bubble 时，也可以直接传入 `AskUserContent`。
+
 表单状态由应用维护，需监听 Bubble 发出的 `state-change`，将新状态写回消息的 `state`。单个表单的状态保存在 `state.askUser` 中，类型为 `AskUserState`；多个表单则使用按交互 ID 索引的 `AskUserStateMap`。
+
+表单处于 `error` 状态时，输入和步骤导航会锁定，需通过“重试”恢复；设置 `retryable: false` 后不提供重试入口。
 
 ##### 场景一：单选或自定义回答
 
@@ -541,6 +545,8 @@ AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本
 ##### 场景四：接入 Kit 与提前提交
 
 通过 `toolPlugin({ askUser: true })` 注册 AskUser 工具，Kit 收到调用后会暂停并等待用户回答。使用 `useAskUserRuntime(message)` 处理 `state-change` 和 `bubble-event`，提交后由 Kit 校验答案、恢复工具调用，并将结果返回模型继续回复。
+
+因轮数限制取消的调用不会显示可提交表单；已终止的 AskUser 表单会根据工具状态保持只读。
 
 本例中，填写发布环境和涉及服务后，可在“变更说明”步骤点击“跳过”提前提交。已填答案会保留，未答题标记为 `skipped`，随后可查看工具恢复后的模型回复。
 

@@ -65,15 +65,44 @@ const askUserIds = computed(() => {
 const hasMultipleAskUsers = computed(() => askUserIds.value.length > 1)
 const stateOwnerId = computed(() => askUserIds.value[0])
 
-const askUserState = computed(() => {
+const askUserState = computed<AskUserState | undefined>(() => {
   const storedState = props.message.state?.askUser as AskUserStateValue | undefined
+  let state: AskUserState | undefined
 
   if (isAskUserState(storedState)) {
-    return askUserContent.value?.id === stateOwnerId.value ? storedState : undefined
+    state = askUserContent.value?.id === stateOwnerId.value ? storedState : undefined
+  } else {
+    const interactionId = askUserContent.value?.id
+    state = interactionId && storedState ? (storedState as AskUserStateMap)[interactionId] : undefined
   }
 
+  const runtime = props.message.state?.askUserRuntime as { toolCallId?: unknown } | undefined
+  const runtimeToolCallId = typeof runtime?.toolCallId === 'string' ? runtime.toolCallId : undefined
   const interactionId = askUserContent.value?.id
-  return interactionId && storedState ? (storedState as AskUserStateMap)[interactionId] : undefined
+  const matchingToolCall = props.message.tool_calls?.find(
+    (call) => call.id === interactionId && call.function.name === 'ask_user',
+  )
+  const toolCallId = runtimeToolCallId ?? matchingToolCall?.id
+  const toolCallStatus = toolCallId
+    ? (props.message.state?.toolCall as Record<string, { status?: unknown }> | undefined)?.[toolCallId]?.status
+    : undefined
+
+  const initialState = { currentStep: 0, answers: {}, completedStepIds: [] }
+  if (runtimeToolCallId || ['cancelled', 'denied', 'failed'].includes(String(toolCallStatus))) {
+    if (toolCallStatus === 'cancelled' || toolCallStatus === 'denied') {
+      return { ...(state ?? initialState), status: 'cancelled', retryable: false }
+    }
+
+    if (toolCallStatus === 'failed') {
+      return { ...(state ?? initialState), status: 'error', retryable: false }
+    }
+
+    if (runtimeToolCallId && toolCallStatus !== 'awaiting-approval' && state?.status !== 'submitted') {
+      return { ...(state ?? initialState), status: 'submitting', retryable: false }
+    }
+  }
+
+  return state
 })
 
 const emitAskUserEvent = (event: Parameters<typeof emitEvent>[0]) => {
