@@ -235,6 +235,10 @@ function getChatFeatureFiles(targetDir) {
     source: getTemplateFile('src', 'index.css'),
     target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'index.css'),
   })
+  featureFiles.push({
+    source: path.join(getTemplateDir('chat-add'), 'README.md'),
+    target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'README.md'),
+  })
 
   return featureFiles
 }
@@ -447,6 +451,7 @@ function printChangeResults(targetDir, results) {
 async function addFeature(targetDir, type, options) {
   invariant(type === 'chat', `unsupported feature: ${type}`)
   const featureFiles = getChatFeatureFiles(targetDir)
+  const setupGuide = path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'README.md')
   const pkgPath = path.join(targetDir, 'package.json')
   invariant(fs.existsSync(pkgPath), 'package.json not found.')
   invariant(fs.statSync(pkgPath).isFile(), 'package.json is not a file.')
@@ -468,7 +473,7 @@ async function addFeature(targetDir, type, options) {
 
   if (prepared.changes.length === 0) {
     logSkip('No changes were necessary.')
-    console.log(`Setup guide: ${CHAT_ADD_FEATURE_DIR}/README.md`)
+    console.log(`Setup guide: ${setupGuide}`)
     return
   }
 
@@ -485,10 +490,10 @@ async function addFeature(targetDir, type, options) {
   applyChanges(prepared.changes)
   printChangeResults(targetDir, prepared.results)
   console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
-  printNextSteps({ dependencyChanged: prepared.results.dependencyChanged })
+  printNextSteps({ dependencyChanged: prepared.results.dependencyChanged, setupGuide })
 }
 
-function printNextSteps({ dependencyChanged }) {
+function printNextSteps({ dependencyChanged, setupGuide }) {
   const steps = []
   if (dependencyChanged) steps.push('Install or update project dependencies: pnpm install')
   steps.push('Add <TinyRobotChat /> to your application.')
@@ -497,7 +502,7 @@ function printNextSteps({ dependencyChanged }) {
   if (steps.length > 0) {
     console.log('\nNext Steps\n')
     for (const [index, step] of steps.entries()) console.log(`${index + 1}. ${step}\n`)
-    console.log(`Setup guide: ${CHAT_ADD_FEATURE_DIR}/README.md`)
+    console.log(`Setup guide: ${setupGuide}`)
   }
 }
 

@@ -333,7 +333,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   }
 
   async function clearActiveConversation() {
-    input.invalidate()
+    invalidateDraftForNavigation()
     await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
   }
 

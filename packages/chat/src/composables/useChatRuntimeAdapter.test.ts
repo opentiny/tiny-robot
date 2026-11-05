@@ -91,6 +91,25 @@ describe('useChatRuntimeAdapter error channels', () => {
 })
 
 describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
+  it('does not restore a rejected draft after clearing an already empty conversation', async () => {
+    let finishSend!: (accepted: boolean) => void
+    const result = new Promise<boolean>((resolve) => {
+      finishSend = resolve
+    })
+    const { runtime } = createRuntime('existing', async () => result)
+    runtime.activeConversation = shallowRef<ChatConversation | null>(null)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('old draft')
+    const sending = adapter.send({ text: 'old draft' })
+    await Promise.resolve()
+
+    await adapter.clearActiveConversation()
+    finishSend(false)
+    await expect(sending).resolves.toBe(false)
+    expect(adapter.inputValue.value).toBe('')
+    expect(runtime.conversations.value).toHaveLength(1)
+  })
+
   it('restores a rejected draft when send creates the first conversation', async () => {
     const activeConversation = shallowRef<ChatConversation | null>(null)
     const runtime: ChatRuntime = {

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type { ChatRequestState } from '../types'
 import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
+import { useChatRuntimeAdapter } from '../composables/useChatRuntimeAdapter'
 
 function createConversation(id: string, canStart = true) {
   return {
@@ -59,9 +60,15 @@ describe('useChatRuntimeFromConversation', () => {
   it('starts a new conversation only when a non-empty first message is sent', async () => {
     const harness = createHarness('existing')
     const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
 
-    await runtime.actions.clearActiveConversation()
-    await runtime.actions.clearActiveConversation()
+    adapter.setInputValue('draft in existing conversation')
+    await adapter.clearActiveConversation()
+    expect(adapter.inputValue.value).toBe('')
+    adapter.setInputValue('draft without active conversation')
+    await adapter.clearActiveConversation()
+    expect(adapter.inputValue.value).toBe('')
+    expect(runtime.activeConversation.value).toBeNull()
     expect(harness.api.createConversation).not.toHaveBeenCalled()
     expect(runtime.conversations.value).toHaveLength(1)
     await expect(runtime.actions.send({ text: '  ' })).resolves.toBe(false)

@@ -1,6 +1,6 @@
 # TinyRobot Chat Add
 
-这是用于通过 `add chat` 向现有 Vue 项目接入聊天功能的模板。模板的接入说明位于 `src/README.md`，执行 `add chat` 后位于 `src/tiny-robot-chat/README.md`。
+这是用于通过 `add chat` 向现有 Vue 项目接入聊天功能的模板。执行 `add chat` 后，接入说明位于 `src/tiny-robot-chat/README.md`。
 
 ## 启动
 
@@ -29,7 +29,7 @@ DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认�
 
 ## MCP 代理
 
-使用 `add chat` 时，CLI 不会修改业务项目的 `vite.config.*`。代理配置示例见 `src/README.md`，执行 `add chat` 后见 `src/tiny-robot-chat/README.md`。
+使用 `add chat` 时，CLI 不会修改业务项目的 `vite.config.*`。执行 `add chat` 后，代理配置示例见 `src/tiny-robot-chat/README.md`。
 
 ## 目录职责
 
