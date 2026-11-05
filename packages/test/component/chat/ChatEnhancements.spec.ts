@@ -73,6 +73,14 @@ for (const path of ['custom', 'center', 'footer'] as const) {
   })
 }
 
+for (const entry of ['ui', 'runtime'] as const) {
+  test(`${entry}: forwards the input-prefix slot to the multiline Sender`, async ({ mount }) => {
+    const component = await mount(ChatEnhancements, { props: { entry, mode: 'multiple' } })
+    await component.getByTestId('add').click()
+    await expect(component.getByTestId('input-prefix')).toBeVisible()
+  })
+}
+
 test('controlled empty state governs Header, welcome and composer placement together', async ({ mount }) => {
   const component = await mount(ChatEnhancements, { props: { path: 'custom', controlledEmpty: false } })
   await expect(component.getByTestId('empty')).toHaveText('false')

@@ -148,6 +148,25 @@ describe('useChatRuntimeFromConversation', () => {
     )
   })
 
+  it('sends attachment-only payloads through the default Kit runtime', async () => {
+    const harness = createHarness()
+    const payloads = [{ source: 'attachment', payload: { id: 'image-1' } }]
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(runtime.actions.send({ text: '  ', externalPayloads: payloads })).resolves.toBe(true)
+    expect(harness.items.get('a')?.engine.send).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'user', content: '', externalPayloads: payloads }),
+    )
+  })
+
+  it('rejects empty payloads when no attachment or custom sender is provided', async () => {
+    const harness = createHarness()
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(runtime.actions.send({ text: '  ' })).resolves.toBe(false)
+    expect(harness.items.get('a')?.engine.send).not.toHaveBeenCalled()
+  })
+
   it('honors beforeSend branches and releases an occupied target on every exit', async () => {
     const harness = createHarness()
     const handled = useChatRuntimeFromConversation({

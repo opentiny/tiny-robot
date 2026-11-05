@@ -1214,6 +1214,7 @@ toolbar: (defaults) => [
 | `composer-before`                                                                  | `ChatSenderSlotProps`              | 在输入框外上方添加内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。             |
 | `composer-after`                                                                   | `ChatSenderSlotProps`              | 在输入框外下方添加提示、链接等内容，不替换输入框；随输入区显示，`ui.sender: false` 时隐藏。 |
 | `sender-header`                                                                    | 无                                 | 在默认输入框内部上方添加内容。                                                              |
+| `input-prefix`                                                                     | 无                                 | 在默认多行输入框首行前添加内容。                                                            |
 | `sender-content`                                                                   | `{ editor }`                       | 替换默认输入框的编辑区域。                                                                  |
 | `sender-actions-inline`                                                            | `SenderSlotScope`                  | 在默认行内操作区、默认操作之前添加内容。                                                    |
 | `sender-footer`                                                                    | `SenderSlotScope`                  | 在默认多行输入框内部底部左侧添加内容，与模型和工具操作同一区域；提供插入、聚焦和状态方法。  |
@@ -1223,7 +1224,7 @@ toolbar: (defaults) => [
 | `bubble-prefix` / `bubble-suffix` / `bubble-after`                                 | `ChatBubbleSlotProps`              | 在消息周围添加内容。                                                                        |
 | `bubble-content-footer`                                                            | `ChatBubbleContentFooterSlotProps` | 在消息内容下方添加内容。                                                                    |
 
-`sender-header`、`sender-content`、`sender-actions-inline`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制顶部内容显隐时，将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
+`sender-header`、`input-prefix`、`sender-content`、`sender-actions-inline`、`sender-footer`、`sender-footer-right` 支持动态显示和更新。控制顶部内容显隐时，将 `v-if` 放在插槽声明或直接子节点上；`v-show` 或子组件内部返回空内容仍可能占位。
 
 ### 自定义消息渲染上下文
 
