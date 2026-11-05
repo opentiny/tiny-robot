@@ -48,7 +48,7 @@ const IconFloatWindow = h(
     <h1 class="chat-add-header__title">OpenTiny NEXT</h1>
     <div class="chat-add-header__actions">
       <TrIconButton :icon="IconNewSession" size="28" svg-size="20" title="新会话" @click="emit('newSession')" />
-      <span class="chat-add-header__history-trigger">
+      <div class="chat-add-header__history-trigger">
         <TrIconButton
           :icon="IconHistory"
           size="28"
@@ -78,7 +78,7 @@ const IconFloatWindow = h(
             @item-action="(action, item) => emit('historyAction', action, item)"
           />
         </div>
-      </span>
+      </div>
       <TrIconButton
         v-if="props.displayMode === 'fullscreen'"
         :icon="IconFloatWindow"

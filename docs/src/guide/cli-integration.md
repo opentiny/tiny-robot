@@ -41,12 +41,6 @@ npx @opentiny/tiny-robot-cli create <project-name> --template basic
 npx @opentiny/tiny-robot-cli create my-app --template basic
 ```
 
-CLI 还提供独立的 Chat 模板：
-
-```bash
-npx @opentiny/tiny-robot-cli create my-chat --template chat
-```
-
 ### 运行时版本
 
 `create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。通常无需指定版本；如需让生成项目使用特定 TinyRobot 版本，可通过 `--runtime-version <version>` 覆盖默认版本。
@@ -120,6 +114,8 @@ CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package
 | `package.json`         | 添加或保留 TinyRobot Chat 所需依赖 |
 
 `add chat` 不会修改 `src/main.ts`、`src/main.js`、`src/App.vue` 或 `vite.config.*`。
+
+生成的 `src/tiny-robot-chat/README.md` 包含 MCP 代理配置说明。
 
 默认交互模式会显示待变更内容并请求确认；`--yes` 直接应用变更，`--dry-run` 只预览变更计划，不写入文件。如果写入过程中失败，CLI 会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
 

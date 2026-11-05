@@ -218,6 +218,10 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(result.status, 0, result.stderr)
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')))
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/index.css')))
+    const readme = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/README.md'), 'utf8')
+    assert.match(readme, /server\.proxy/)
+    assert.match(readme, /https:\/\/modelcontextprotocol\.io\/mcp/)
+    assert.match(readme, /path\.replace\(/)
     assert.ok(!fs.existsSync(path.join(root, 'vite.config.ts')))
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
@@ -232,6 +236,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
     assert.match(result.stdout, /server\.proxy/)
+    assert.match(result.stdout, /src\/tiny-robot-chat\/README\.md/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

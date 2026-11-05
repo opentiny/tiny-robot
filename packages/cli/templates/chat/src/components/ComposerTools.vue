@@ -39,9 +39,9 @@ function submitSuggestion(item: SuggestionItem): void {
   <div class="chat-add-tools">
     <TrSuggestionPopover :append-to="overlayTarget" :data="suggestionData" @item-click="submitSuggestion">
       <template #trigger>
-        <TrSuggestionPillButton title="常用查询"
-          ><IconSparkles style="font-size: 16px; color: #1476ff"
-        /></TrSuggestionPillButton>
+        <TrSuggestionPillButton title="常用查询">
+          <IconSparkles style="font-size: 16px; color: #1476ff" />
+        </TrSuggestionPillButton>
       </template>
     </TrSuggestionPopover>
     <TrSuggestionPills class="chat-add-tools__pills">
@@ -52,9 +52,9 @@ function submitSuggestion(item: SuggestionItem): void {
         trigger="click"
         @item-click="(item) => submitSuggestion(item as SuggestionItem)"
       >
-        <template #trigger
-          ><TrSuggestionPillButton>{{ mcpMenu.title }}</TrSuggestionPillButton></template
-        >
+        <template #trigger>
+          <TrSuggestionPillButton>{{ mcpMenu.title }}</TrSuggestionPillButton>
+        </template>
       </TrDropdownMenu>
       <TrDropdownMenu
         v-for="category in templateMenus"
@@ -64,9 +64,9 @@ function submitSuggestion(item: SuggestionItem): void {
         trigger="click"
         @item-click="(item) => fillTemplate((item as unknown as { template: TemplateSuggestionItem }).template)"
       >
-        <template #trigger
-          ><TrSuggestionPillButton>{{ category.title }}</TrSuggestionPillButton></template
-        >
+        <template #trigger>
+          <TrSuggestionPillButton>{{ category.title }}</TrSuggestionPillButton>
+        </template>
       </TrDropdownMenu>
     </TrSuggestionPills>
   </div>

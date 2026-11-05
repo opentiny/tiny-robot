@@ -506,7 +506,7 @@ function printNextSteps({ dependencyChanged }) {
     ].join('\n'),
   )
   steps.push('Copy .env.example to .env.local and configure your AI provider API keys.')
-  steps.push('Add the Model Context MCP proxy to vite.config.* under server.proxy, then restart Vite.')
+  steps.push('Configure the Model Context MCP proxy in vite.config.* under server.proxy and restart Vite. See src/tiny-robot-chat/README.md.')
   if (dependencyChanged) steps.push('Install or update project dependencies: pnpm install')
   if (steps.length > 0) {
     console.log('\nNext Steps\n')
