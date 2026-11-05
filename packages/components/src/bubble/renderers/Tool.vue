@@ -188,8 +188,10 @@ const handleClick = () => {
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
+  --tool-title-line-height: 24px;
+
   font-size: 14px;
-  line-height: 24px;
+  line-height: var(--tool-title-line-height);
   padding: 12px;
   color: var(--tr-text-secondary);
   background-color: var(--tr-bubble-tool-call-bg);
@@ -264,11 +266,13 @@ const handleClick = () => {
     grid-row: 1;
     display: flex;
     align-items: center;
+    block-size: var(--tool-title-line-height);
   }
 
   .header-icon {
     font-size: 20px;
     flex-shrink: 0;
+    margin-block-start: calc((var(--tool-title-line-height) - 1em) / 2);
 
     &.icon-running {
       color: #898989;

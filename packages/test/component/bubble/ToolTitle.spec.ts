@@ -9,7 +9,7 @@ const names = [
   'search',
 ]
 
-test('keeps status and tool names on one line and truncates only long names', async ({ mount }) => {
+test('aligns tool headers on one line and truncates only long names', async ({ mount }) => {
   const component = await mount(ToolTitleFixture, { props: { names } })
   const bubble = component.locator('.tr-bubble')
   const tools = bubble.locator('[data-type="tool-call"]')
@@ -36,13 +36,17 @@ test('keeps status and tool names on one line and truncates only long names', as
     })
     expect(nameLayout, name).toEqual({ singleLine: true, clipped: name !== 'search' })
 
-    const [nameBox, statusBox, arrowBox, bubbleBox] = await Promise.all([
+    const [nameBox, statusBox, iconBox, arrowBox, bubbleBox] = await Promise.all([
       title.boundingBox(),
       status.boundingBox(),
+      icon.boundingBox(),
       arrow.boundingBox(),
       bubble.boundingBox(),
     ])
-    expect(Math.abs(nameBox!.y + nameBox!.height / 2 - (statusBox!.y + statusBox!.height / 2))).toBeLessThan(2)
+    const titleCenter = nameBox!.y + nameBox!.height / 2
+    expect(Math.abs(titleCenter - (statusBox!.y + statusBox!.height / 2))).toBeLessThan(2)
+    expect.soft(iconBox!.y + iconBox!.height / 2, `${name}: status icon`).toBeCloseTo(titleCenter, 0)
+    expect.soft(arrowBox!.y + arrowBox!.height / 2, `${name}: expand arrow`).toBeCloseTo(titleCenter, 0)
     expect(nameBox!.x + nameBox!.width).toBeLessThanOrEqual(arrowBox!.x)
     expect(arrowBox!.x + arrowBox!.width).toBeLessThanOrEqual(bubbleBox!.x + bubbleBox!.width)
   }
