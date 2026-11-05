@@ -23,6 +23,7 @@ const props = defineProps<
 >()
 
 const { toolCall, toolCallWithResult, state } = useToolCall(props)
+const toolName = computed(() => toolCall.value?.function.name || 'Untitled')
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['running', { text: '正在调用', icon: IconLoading }],
@@ -163,9 +164,9 @@ const handleClick = () => {
       <div class="header-left">
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
         <div class="tool-info">
-          <div>
+          <div class="title-row">
             <span>{{ textAndIcon.text }}&nbsp;</span>
-            <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
+            <span class="title" :title="toolName">{{ toolName }}</span>
           </div>
           <div v-if="description" class="description" :title="description">{{ description }}</div>
         </div>
@@ -225,9 +226,16 @@ const handleClick = () => {
     min-width: 0;
   }
 
+  .title-row {
+    display: flex;
+    white-space: nowrap;
+  }
+
   .title {
     color: var(--tr-text-primary);
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .description {
