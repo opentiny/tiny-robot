@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useEventListener, useResizeObserver } from '@vueuse/core'
-import { computed, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
+import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { computed, nextTick, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
 import AnchorList from './components/AnchorList.vue'
 import AnchorOverlay from './components/AnchorOverlay.vue'
 import AnchorSearch from './components/AnchorSearch.vue'
@@ -14,7 +14,8 @@ import {
 } from './composables/index'
 import type { AnchorEmits, AnchorProps, AnchorSearchOptions, AnchorSlots } from './index.type'
 import { resolveAnchorScrollRoot } from './utils/scroll'
-import { queryAnchorTargetById } from './utils/target'
+import { queryAnchorItemById, queryAnchorTargetById } from './utils/target'
+import { revealAnchorItem } from './utils/reveal'
 
 defineOptions({
   name: 'TrAnchor',
@@ -24,6 +25,7 @@ defineOptions({
 const props = withDefaults(defineProps<AnchorProps>(), {
   placement: 'right',
   expandTrigger: 'hover',
+  hoverExpandDelay: 300,
   activeOffset: 120,
   tooltipDelay: 260,
   targetFeedbackDuration: 700,
@@ -92,6 +94,7 @@ const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && 
 const shouldAutoToggleExpanded = computed(() => expandTrigger.value === 'hover')
 const scrollEventTarget = computed(() => resolveAnchorScrollRoot(scrollContainer.value))
 const floating = useFloatingOffset({
+  expanded: controller.expanded,
   container: scrollContainer,
   host: hostRef,
 })
@@ -131,7 +134,86 @@ const interactions = useOverlayInteractions({
   setExpanded,
 })
 
+const navRef = computed(() => overlayShellRef.value?.navEl ?? null)
+useEventListener(
+  navRef,
+  'wheel',
+  () => {
+    interactions.isBrowsing.value = true
+  },
+  { passive: true },
+)
+useEventListener(
+  navRef,
+  'touchmove',
+  () => {
+    interactions.isBrowsing.value = true
+  },
+  { passive: true },
+)
+
+function revealCurrentItem() {
+  nextTick(() => {
+    const nav = navRef.value
+    const item = nav && active.activeId.value ? queryAnchorItemById(nav, active.activeId.value) : null
+    if (nav && item && !interactions.isBrowsing.value) revealAnchorItem(nav, item)
+  })
+}
+
+watch([active.activeId, navRef], revealCurrentItem, { immediate: true })
+
+let hoverEvent: MouseEvent | undefined
+const { start: startHoverExpansion, stop: stopHoverExpansion } = useTimeoutFn(
+  expandFromHover,
+  () => props.hoverExpandDelay,
+  { immediate: false },
+)
+
+function expandFromHover() {
+  floating.pinItem(hoverEvent)
+  hoverEvent = undefined
+  setExpanded(true)
+}
+
+function cancelHoverExpansion() {
+  stopHoverExpansion()
+  hoverEvent = undefined
+}
+
+watch([hostRef, expandTrigger], cancelHoverExpansion)
+
+function handleMouseEnter(event: MouseEvent) {
+  interactions.isBrowsing.value = true
+  if (!shouldAutoToggleExpanded.value || controller.expanded.value) return
+
+  hoverEvent = event
+  if (props.hoverExpandDelay <= 0) expandFromHover()
+  else startHoverExpansion()
+}
+
+function handleMouseMove(event: MouseEvent) {
+  if (hoverEvent) hoverEvent = event
+}
+
+function handleMouseLeave() {
+  cancelHoverExpansion()
+  interactions.handleMouseLeave()
+}
+
+function handleFocusIn(event: FocusEvent) {
+  cancelHoverExpansion()
+  floating.pinItem(event)
+  interactions.isBrowsing.value = true
+  if (shouldAutoToggleExpanded.value) setExpanded(true)
+}
+
 let scheduledFrame: number | null = null
+let shouldRevealFocus = false
+
+function scheduleResizeMeasure() {
+  shouldRevealFocus = true
+  scheduleMeasure()
+}
 
 function scheduleMeasure() {
   if (scheduledFrame !== null) {
@@ -142,6 +224,15 @@ function scheduleMeasure() {
     scheduledFrame = null
     active.sync()
     floating.sync()
+    revealCurrentItem()
+    if (shouldRevealFocus) {
+      shouldRevealFocus = false
+      nextTick(() => {
+        const nav = navRef.value
+        const focused = nav?.querySelector<HTMLElement>('.tr-anchor__item:focus')
+        if (nav && focused) revealAnchorItem(nav, focused)
+      })
+    }
   })
 }
 
@@ -149,12 +240,13 @@ useEventListener(scrollEventTarget, 'scroll', scheduleMeasure, { passive: true }
 useEventListener(scrollEventTarget, 'wheel', active.handleUserScrollIntent, { passive: true })
 useEventListener(scrollEventTarget, 'touchmove', active.handleUserScrollIntent, { passive: true })
 useEventListener('keydown', active.handleScrollIntentKeydown)
-useEventListener('resize', scheduleMeasure, { passive: true })
+useEventListener('scroll', scheduleMeasure, { passive: true, capture: true })
+useEventListener('resize', scheduleResizeMeasure, { passive: true })
 useResizeObserver(scrollContainer, () => {
-  scheduleMeasure()
+  scheduleResizeMeasure()
 })
 useResizeObserver(floating.resizeTargets, () => {
-  scheduleMeasure()
+  scheduleResizeMeasure()
 })
 
 watch(
@@ -199,9 +291,11 @@ onBeforeUnmount(() => {
     :expanded="controller.expanded.value"
     :placement="placement"
     :floating-offset="floating.offset.value"
-    @mouseenter="shouldAutoToggleExpanded && setExpanded(true)"
-    @mouseleave="interactions.handleMouseLeave"
-    @focusin="shouldAutoToggleExpanded && setExpanded(true)"
+    :available-height="floating.availableHeight.value"
+    @mouseenter="handleMouseEnter"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
+    @focusin="handleFocusIn"
     @focusout="interactions.handleFocusOut"
     @keydown="interactions.handleKeydown"
   >

@@ -38,6 +38,7 @@ export interface AnchorOverlayProps {
   expanded: boolean
   placement: AnchorPlacement
   floatingOffset?: number
+  availableHeight?: number
 }
 
 export interface AnchorOverlayExpose {
@@ -95,6 +96,7 @@ export interface AnchorActiveSyncOptions {
 }
 
 export interface AnchorFloatingOffsetOptions {
+  expanded: Ref<boolean>
   container: Ref<HTMLElement | null | undefined>
   host: Ref<HTMLElement | null | undefined>
 }
@@ -103,7 +105,7 @@ export interface AnchorOverlayInteractionsOptions {
   overlay: Ref<AnchorOverlayExpose | null>
   highlightedId: Ref<string | undefined>
   shouldAutoCollapse: Ref<boolean>
-  handleNavigationKeydown: (event: KeyboardEvent) => boolean
+  handleNavigationKeydown: (event: KeyboardEvent, focusedId?: string) => boolean
   getHighlightedItem: () => AnchorItem | undefined
   onSelectItem: (itemId: string) => void
   setExpanded: (value: boolean) => void

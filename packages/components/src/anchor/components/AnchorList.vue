@@ -45,8 +45,9 @@ defineSlots<AnchorListSlots>()
     list-style: none;
     display: flex;
     flex-direction: column;
-    margin: 0 calc(-1 * var(--tr-anchor-surface-padding-inline));
+    margin: 0;
     padding: 0;
+    width: 100%;
   }
 
   &__empty {

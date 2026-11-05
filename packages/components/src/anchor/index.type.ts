@@ -33,6 +33,8 @@ export interface AnchorProps {
   searchQuery?: string
   placement?: AnchorPlacement
   expandTrigger?: AnchorExpandTrigger
+  /** Pointer hover time before expansion, in milliseconds. Defaults to 300. */
+  hoverExpandDelay?: number
   searchOptions?: AnchorSearchOptions
   tooltipDelay?: number
   targetFeedbackClass?: string

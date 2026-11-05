@@ -1,8 +1,10 @@
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
+import { revealAnchorItem } from '../utils/reveal'
 import type { AnchorOverlayInteractionsOptions } from '../internal.type'
 import { queryAnchorItemById } from '../utils/target'
 
 export function useOverlayInteractions(options: AnchorOverlayInteractionsOptions) {
+  const isBrowsing = ref(false)
   function isEditableEventTarget(target: EventTarget | null) {
     if (!(target instanceof HTMLElement)) {
       return false
@@ -25,7 +27,11 @@ export function useOverlayInteractions(options: AnchorOverlayInteractionsOptions
         return
       }
 
-      queryAnchorItemById(navEl, id)?.focus()
+      const item = queryAnchorItemById(navEl, id)
+      if (item) {
+        item.focus({ preventScroll: true })
+        revealAnchorItem(navEl, item)
+      }
     })
   }
 
@@ -34,27 +40,28 @@ export function useOverlayInteractions(options: AnchorOverlayInteractionsOptions
       return
     }
 
-    const handled = options.handleNavigationKeydown(event)
+    isBrowsing.value = true
+    const focusedId =
+      event.target instanceof HTMLElement
+        ? event.target.closest<HTMLElement>('.tr-anchor__item')?.dataset.itemId
+        : undefined
+    const handled = options.handleNavigationKeydown(event, focusedId)
 
     if (event.key === 'Enter' || event.key === ' ') {
       const target = options.getHighlightedItem()
       if (target) {
         event.preventDefault()
-        options.onSelectItem(target.id)
+        options.onSelectItem(focusedId ?? target.id)
         return
       }
     }
 
-    if (handled) {
+    if (handled && event.key !== 'Escape') {
       focusHighlightedItem()
     }
   }
 
   function handleMouseLeave() {
-    if (!options.shouldAutoCollapse.value) {
-      return
-    }
-
     const overlayEl = options.overlay.value?.overlayEl ?? null
     const activeElement = document.activeElement
 
@@ -67,22 +74,21 @@ export function useOverlayInteractions(options: AnchorOverlayInteractionsOptions
       return
     }
 
-    options.setExpanded(false)
+    isBrowsing.value = false
+    if (options.shouldAutoCollapse.value) options.setExpanded(false)
   }
 
   function handleFocusOut(event: FocusEvent) {
-    if (!options.shouldAutoCollapse.value) {
-      return
-    }
-
     const next = event.relatedTarget as Node | null
     const overlayEl = options.overlay.value?.overlayEl ?? null
-    if (!next || !overlayEl?.contains(next)) {
-      options.setExpanded(false)
+    if ((!next || !overlayEl?.contains(next)) && !overlayEl?.matches(':hover')) {
+      isBrowsing.value = false
+      if (options.shouldAutoCollapse.value) options.setExpanded(false)
     }
   }
 
   return {
+    isBrowsing,
     handleKeydown,
     handleMouseLeave,
     handleFocusOut,

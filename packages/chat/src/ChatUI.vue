@@ -170,8 +170,9 @@ const visibleMessages = computed(() =>
 )
 const isEmpty = computed(() => props.isEmpty ?? visibleMessages.value.length === 0)
 const hasLayoutMainSlot = computed(() => Boolean(currentSlots.value['layout-main']))
+const anchorOptions = computed(() => props.ui?.anchor || undefined)
 const isAnchorEnabled = computed(() => {
-  const anchor = props.ui?.anchor
+  const anchor = anchorOptions.value
   return Boolean(
     anchor &&
     anchor.visible !== false &&
@@ -631,7 +632,12 @@ function renderEmptyStateComposer() {
     </template>
 
     <template #main>
-      <section class="chat-panel">
+      <section
+        class="chat-panel"
+        :class="{
+          'has-anchor': isAnchorEnabled && (messagesRef?.anchorItems.length ?? 0) > 0,
+        }"
+      >
         <div ref="scrollTarget" class="chat-main-scroll-host">
           <ChatMessages
             ref="messagesRef"
@@ -726,6 +732,7 @@ function renderEmptyStateComposer() {
           v-if="isAnchorEnabled && scrollTarget"
           :items="messagesRef?.anchorItems ?? []"
           :scroll-container="scrollTarget"
+          :hover-expand-delay="anchorOptions?.hoverExpandDelay"
           target-feedback-class="tr-chat-anchor-target-active"
           :target-feedback-duration="1800"
           @select="messagesRef?.pauseAutoScroll()"
@@ -862,9 +869,19 @@ function renderEmptyStateComposer() {
 
 <style scoped>
 .chat-panel {
+  container-type: inline-size;
   position: relative;
   height: 100%;
   box-sizing: border-box;
+}
+
+.chat-panel.has-anchor {
+  --tr-anchor-width-expanded: min(240px, 40cqw);
+  --tr-chat-anchor-inset-inline-end: calc(var(--scrollbar-inline-end) + var(--tr-layout-main-scrollbar-width) + 4px);
+}
+
+.chat-panel.has-anchor .chat-main-scroll-host {
+  width: calc(100% - var(--tr-chat-anchor-inset-inline-end) - var(--tr-anchor-width-collapsed) - 8px);
 }
 
 .chat-main-scroll-host {
@@ -917,7 +934,7 @@ function renderEmptyStateComposer() {
   right: 0;
   bottom: calc(100% + 8px);
   display: flex;
-  justify-content: var(--tr-chat-scroll-button-align, flex-end);
+  justify-content: var(--tr-chat-scroll-button-align, center);
   pointer-events: none;
 }
 
