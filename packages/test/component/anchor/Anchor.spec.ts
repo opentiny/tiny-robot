@@ -68,6 +68,33 @@ test('shows current item on entry and preserves wheel browsing when current item
   expect(await panel.evaluate((el) => el.scrollTop)).toBe(0)
 })
 
+test('keeps the current row near its latest position when collapsing after wheel browsing', async ({ mount, page }) => {
+  const component = await mount(AnchorFixture, { props: { count: 80, height: 240, manual: true, activeIndex: 20 } })
+  const toggle = component.getByTestId('toggle')
+  const panel = component.locator('.tr-anchor__panel')
+  const current = component.locator('[aria-current="location"]')
+  const center = async () => {
+    const box = (await current.boundingBox())!
+    return box.y + box.height / 2
+  }
+  const scrollTop = () => panel.evaluate((el) => el.scrollTop)
+
+  await toggle.click()
+  await expect(current).toHaveCSS('height', '32px')
+  // Let the floating position finish settling before creating a new focus pin.
+  await page.waitForTimeout(250)
+  await current.focus()
+  const beforeWheel = await scrollTop()
+  await panel.hover()
+  await page.mouse.wheel(0, 64)
+  await expect.poll(scrollTop).toBeGreaterThanOrEqual(beforeWheel + 64)
+  const afterWheel = await center()
+
+  await toggle.click()
+  await expect(current).toHaveCSS('height', '16px')
+  await expect.poll(async () => Math.abs((await center()) - afterWheel)).toBeLessThan(3)
+})
+
 test('manual expansion, search and resize retain a bounded keyboard scrollport', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 60, manual: true, search: true, placement: 'left' } })
   await component.getByTestId('toggle').click()

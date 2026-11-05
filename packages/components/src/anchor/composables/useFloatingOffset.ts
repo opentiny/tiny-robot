@@ -76,8 +76,8 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
 
   watch(
     options.expanded,
-    () => {
-      if (!pinnedItem?.isConnected) pinItem()
+    (expanded) => {
+      if (!expanded || !pinnedItem?.isConnected) pinItem()
       if (transitionFrame !== null) cancelAnimationFrame(transitionFrame)
       // Slightly longer than the CSS transition, including the final layout frame.
       transitionUntil = performance.now() + 240

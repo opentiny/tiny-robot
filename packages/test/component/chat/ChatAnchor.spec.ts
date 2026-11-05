@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import ChatAnchorFixture from './ChatAnchor.fixture.vue'
 
-for (const { width, messageCount = 44 } of [
+for (const { width, messageCount = 44, contentWidthLimited = false } of [
   { width: 420 },
   { width: 756 },
-  { width: 1100 },
+  { width: 1100, contentWidthLimited: true },
   { width: 756, messageCount: 3 },
 ]) {
   test(`centers the right-hand directory vertically with ${messageCount} messages in a ${width}px Chat container`, async ({
@@ -35,6 +35,11 @@ for (const { width, messageCount = 44 } of [
     if (scrollbarLeft !== undefined) expect(compact.x + compact.width).toBeLessThan(scrollbarLeft)
     expect(compact.x).toBeGreaterThanOrEqual((await messages.boundingBox())!.x + (await messages.boundingBox())!.width)
     await expect.poll(centerOffset).toBeLessThanOrEqual(1)
+    const avatar = (await component.locator('[data-placement="end"] .tr-bubble__avatar').last().boundingBox())!
+    const marker = (await component.locator('.tr-anchor__item[aria-current] .tr-anchor__marker').boundingBox())!
+    const avatarGap = marker.x - avatar.x - avatar.width
+    expect(avatarGap).toBeGreaterThanOrEqual(16)
+    if (!contentWidthLimited) expect(avatarGap).toBeLessThanOrEqual(40)
     const initialWidth = await messages.evaluate((el) => el.clientWidth)
     const initialContentHeight = await messages.evaluate((el) => el.scrollHeight)
 
@@ -58,7 +63,7 @@ for (const { width, messageCount = 44 } of [
     await page.keyboard.press('Enter')
     await expect.poll(() => component.locator('.tr-layout__main').evaluate((el) => el.scrollTop)).toBe(0)
     await component.update({ props: { width: 360, height: 300, messageCount } })
-    await expect.poll(() => messages.evaluate((el) => el.clientWidth)).toBe(initialWidth + 360 - width)
+    await expect.poll(() => component.locator('.chat-panel').evaluate((el) => el.clientWidth)).toBe(360)
     await expect.poll(centerOffset).toBeLessThanOrEqual(1)
     await page.setViewportSize({ width: 760, height: 600 })
     await expect(anchor).toHaveCount(0)
@@ -66,6 +71,37 @@ for (const { width, messageCount = 44 } of [
     await expect(component.locator('.tr-anchor')).toBeVisible()
   })
 }
+
+test('keeps the compact directory close to messages and reserves space only for controls that exist', async ({
+  mount,
+}) => {
+  const component = await mount(ChatAnchorFixture, { props: { width: 756, height: 560, messageCount: 22 } })
+  const panel = component.locator('.chat-panel')
+  const messages = component.locator('.chat-main-scroll-host')
+  const anchor = component.locator('.tr-anchor__overlay')
+  const scrollbar = component.locator('.tr-layout-proxy-scrollbar')
+  const right = async (el: typeof panel) => {
+    const box = (await el.boundingBox())!
+    return box.x + box.width
+  }
+
+  await expect(scrollbar).toBeAttached()
+  await expect.poll(async () => (await scrollbar.boundingBox())!.x - (await right(anchor))).toBeCloseTo(4, 0)
+  const scrollableAnchorRight = await right(anchor)
+
+  await component.update({ props: { width: 756, height: 560, messageCount: 22, hideAvatars: true } })
+  await expect(component.locator('.tr-bubble__avatar')).toHaveCount(0)
+  await expect.poll(async () => (await scrollbar.boundingBox())!.x - (await right(anchor))).toBeCloseTo(4, 0)
+
+  await component.update({ props: { width: 756, height: 560, messageCount: 3, hideAvatars: true } })
+  await expect(scrollbar).toHaveCount(0)
+  await expect.poll(async () => (await right(panel)) - (await right(anchor))).toBeCloseTo(4, 0)
+  expect(await right(anchor)).toBeGreaterThan(scrollableAnchorRight)
+
+  await component.update({ props: { width: 756, height: 560, messageCount: 3, disableAnchor: true } })
+  await expect(anchor).toHaveCount(0)
+  await expect.poll(async () => (await right(panel)) - (await right(messages))).toBe(0)
+})
 
 test('uses the configured hover delay for the Chat directory', async ({ mount, page }) => {
   const component = await mount(ChatAnchorFixture, { props: { hoverExpandDelay: 600 } })

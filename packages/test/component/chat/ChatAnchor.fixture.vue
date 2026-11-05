@@ -4,7 +4,14 @@ import TrChat from '../../../chat/src/Chat.vue'
 import type { ChatMessageItem, ChatRuntime, ChatUIOptions } from '../../../chat/src/types'
 
 const props = withDefaults(
-  defineProps<{ width?: number; height?: number; hoverExpandDelay?: number; messageCount?: number }>(),
+  defineProps<{
+    width?: number
+    height?: number
+    hoverExpandDelay?: number
+    messageCount?: number
+    hideAvatars?: boolean
+    disableAnchor?: boolean
+  }>(),
   {
     width: 420,
     height: 400,
@@ -36,11 +43,18 @@ const runtime: ChatRuntime = {
     deleteConversation() {},
   },
 }
-const ui: ChatUIOptions = {
+const ui = computed<ChatUIOptions>(() => ({
   layout: { leftAside: false, rightAside: false },
-  anchor: { hoverExpandDelay: props.hoverExpandDelay },
-  bubble: { bubbleList: { roleConfigs: { user: { avatar: h('span', 'U') }, assistant: { avatar: h('span', 'A') } } } },
-}
+  anchor: props.disableAnchor ? false : { hoverExpandDelay: props.hoverExpandDelay },
+  bubble: {
+    bubbleList: {
+      roleConfigs: {
+        user: { avatar: props.hideAvatars ? undefined : h('span', 'U') },
+        assistant: { avatar: props.hideAvatars ? undefined : h('span', 'A') },
+      },
+    },
+  },
+}))
 </script>
 <template>
   <div data-testid="chat-frame" :style="{ width: `${width}px`, '--tr-layout-height': `${height}px` }">
