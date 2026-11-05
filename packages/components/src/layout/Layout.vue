@@ -91,6 +91,7 @@ function closeDrawers(): void {
 
 provideLayoutContext({
   rootEl,
+  mode: computed(() => props.mode),
   left: {
     isOpen: leftPanel.isOpen,
     toggle: toggleLeftDrawer,

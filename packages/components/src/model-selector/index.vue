@@ -15,6 +15,8 @@ import type {
 import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
 import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
 import { useStableId, useTeleportTarget } from '../shared/composables'
+import { getFloatingOverlayHost } from '../shared/overlayHost'
+import { useOptionalLayoutContext } from '../layout/composables/useLayoutContext'
 
 defineOptions({ name: 'TrModelSelector' })
 
@@ -52,6 +54,8 @@ const referenceEl = shallowRef<HTMLElement | null>(null)
 const floatingEl = shallowRef<HTMLElement | null>(null)
 const isTeleportReady = shallowRef(false)
 const pendingFocusRestore = shallowRef<boolean | null>(null)
+const layoutContext = useOptionalLayoutContext()
+const isInFloatingLayout = computed(() => layoutContext?.mode.value === 'floating')
 
 const baseTeleportTarget = useTeleportTarget(referenceEl)
 const teleportTarget = computed(() => {
@@ -59,7 +63,10 @@ const teleportTarget = computed(() => {
     return null
   }
 
-  const fallbackTarget = baseTeleportTarget.value
+  const defaultTarget = baseTeleportTarget.value
+  const floatingOverlayHost =
+    isInFloatingLayout.value && referenceEl.value ? getFloatingOverlayHost(referenceEl.value) : null
+  const fallbackTarget = floatingOverlayHost ?? defaultTarget
   const requestedTarget = props.appendTo
 
   if (!requestedTarget) {
@@ -70,11 +77,11 @@ const teleportTarget = computed(() => {
     return requestedTarget
   }
 
-  if (requestedTarget === 'body' && fallbackTarget === referenceEl.value?.ownerDocument.body) {
-    return fallbackTarget
+  if (requestedTarget === 'body' && defaultTarget === referenceEl.value?.ownerDocument.body) {
+    return defaultTarget
   }
 
-  const searchableTarget = fallbackTarget as Node & ParentNode
+  const searchableTarget = defaultTarget as Node & ParentNode
   try {
     return searchableTarget.querySelector?.(requestedTarget) ?? fallbackTarget
   } catch {
