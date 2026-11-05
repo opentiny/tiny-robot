@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ref, shallowRef } from 'vue'
 import type { Ref } from 'vue'
+import { createNativeMessageAdapter } from '../../../kit/src/message/adapters/native'
+import { createMessageEngine } from '../../../kit/src/message/core/engine'
 import type {
   ChatConversation,
   ChatRequestState,
@@ -127,6 +129,154 @@ describe('useChatRuntimeAdapter sender turn state', () => {
     activeConversation.value = pausedConversation.value
     expect(adapter.data.value.sender?.loading).toBe(true)
     expect(adapter.data.value.request?.state).toBe('paused')
+  })
+})
+
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+describe('useChatRuntimeAdapter pending aborts', () => {
+  it.each(['paused', 'processing'] as const)('ignores repeated aborts while %s cleanup is pending', async (state) => {
+    const { runtime, activeConversation } = createRuntime('turn')
+    activeConversation.value.requestState = state
+    const cleanup = deferred()
+    runtime.actions.abort = vi.fn(() => cleanup.promise)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    const first = adapter.abort()
+    const repeated = adapter.abort()
+    try {
+      expect(runtime.actions.abort).toHaveBeenCalledOnce()
+      expect(adapter.data.value.sender?.loading).toBe(true)
+    } finally {
+      cleanup.resolve()
+      await Promise.all([first, repeated])
+    }
+    await adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledTimes(2)
+  })
+
+  it('guards synchronous reentry before invoking the action', async () => {
+    const { runtime } = createRuntime('turn')
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    runtime.actions.abort = vi.fn(() => {
+      if (vi.mocked(runtime.actions.abort!).mock.calls.length === 1) void adapter.abort()
+    })
+
+    await adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledOnce()
+  })
+
+  it.each(['throw', 'reject'] as const)('reports an abort %s and allows a retry', async (failure) => {
+    const { runtime } = createRuntime('turn')
+    const error = new Error('cleanup failed')
+    const onActionError = vi.fn()
+    runtime.actions.abort = vi.fn().mockImplementationOnce(() => {
+      if (failure === 'throw') throw error
+      return Promise.reject(error)
+    })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError })
+
+    await adapter.abort()
+    expect(onActionError).toHaveBeenCalledOnce()
+    expect(onActionError).toHaveBeenCalledWith({ action: 'abort', payload: undefined, error })
+    await adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps pending aborts per conversation when switching away and back', async () => {
+    const { runtime, activeConversation } = createRuntime('a')
+    const firstConversation = activeConversation.value
+    const secondConversation = createRuntime('b').activeConversation.value
+    const firstCleanup = deferred()
+    const secondCleanup = deferred()
+    runtime.actions.abort = vi.fn(() =>
+      activeConversation.value.id === 'a' ? firstCleanup.promise : secondCleanup.promise,
+    )
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    const first = adapter.abort()
+    activeConversation.value = secondConversation
+    const second = adapter.abort()
+    activeConversation.value = firstConversation
+    const repeatedFirst = adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledTimes(2)
+    firstCleanup.resolve()
+    await Promise.all([first, repeatedFirst])
+    activeConversation.value = secondConversation
+    const repeatedSecond = adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledTimes(2)
+    secondCleanup.resolve()
+    await Promise.all([second, repeatedSecond])
+    await adapter.abort()
+    expect(runtime.actions.abort).toHaveBeenCalledTimes(3)
+  })
+
+  it('isolates replacement runtimes and retains guards when returning to a pending runtime', async () => {
+    const first = createRuntime('turn').runtime
+    const second = createRuntime('turn').runtime
+    const firstCleanup = deferred()
+    const secondCleanup = deferred()
+    first.actions.abort = vi.fn(() => firstCleanup.promise)
+    second.actions.abort = vi.fn(() => secondCleanup.promise)
+    const runtime = shallowRef(first)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    const firstAbort = adapter.abort()
+    runtime.value = second
+    const secondAbort = adapter.abort()
+    runtime.value = first
+    const repeatedFirst = adapter.abort()
+    expect(first.actions.abort).toHaveBeenCalledOnce()
+    firstCleanup.resolve()
+    await Promise.all([firstAbort, repeatedFirst])
+    runtime.value = second
+    const repeatedSecond = adapter.abort()
+    expect(second.actions.abort).toHaveBeenCalledOnce()
+    secondCleanup.resolve()
+    await Promise.all([secondAbort, repeatedSecond])
+    await adapter.abort()
+    expect(second.actions.abort).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not interrupt the Kit engine cleanup signal on repeated stop actions', async () => {
+    const cleanup = deferred()
+    const entered = deferred()
+    const signals: AbortSignal[] = []
+    const engine = createMessageEngine(createNativeMessageAdapter(), {
+      plugins: [
+        {
+          onInit: (context) => {
+            context.setRequestState('paused')
+          },
+          onTurnAbort: async (context) => {
+            signals.push(context.abortSignal)
+            entered.resolve()
+            await cleanup.promise
+          },
+        },
+      ],
+    })
+    const { runtime } = createRuntime('turn')
+    runtime.actions.abort = () => engine.abort()
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    const first = adapter.abort()
+    await entered.promise
+    const repeated = adapter.abort()
+    try {
+      expect(signals[0].aborted).toBe(false)
+    } finally {
+      cleanup.resolve()
+      await Promise.all([first, repeated])
+    }
+    expect(signals).toHaveLength(1)
+    expect(engine.getState().requestState).toBe('aborted')
   })
 })
 

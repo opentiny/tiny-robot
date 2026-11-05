@@ -32,6 +32,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
   const emptyConversationSendSnapshots = new Set<Set<string>>()
+  const pendingAborts = new WeakMap<ChatRuntime, Set<string | null>>()
 
   watch(
     runtime,
@@ -334,6 +335,21 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
+  async function abort() {
+    const actionRuntime = runtime.value
+    const conversationId = actionRuntime.activeConversation.value?.id ?? null
+    const pending = pendingAborts.get(actionRuntime) ?? new Set<string | null>()
+    if (!actionRuntime.actions.abort || pending.has(conversationId)) return
+
+    pending.add(conversationId)
+    pendingAborts.set(actionRuntime, pending)
+    try {
+      await runAction('abort', undefined, () => actionRuntime.actions.abort?.())
+    } finally {
+      pending.delete(conversationId)
+    }
+  }
+
   async function clearActiveConversation() {
     input.invalidate()
     await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
@@ -363,7 +379,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     inputValue: input.inputValue,
     setInputValue: input.setInputValue,
     send: (payload: ChatSendPayload) => input.send(payload),
-    abort: () => runAction('abort', undefined, () => runtime.value.actions.abort?.()),
+    abort,
     clearActiveConversation,
     createConversation,
     switchConversation,
