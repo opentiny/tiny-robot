@@ -42,7 +42,11 @@ async function openSidebarFromHeader(openLeftAside: () => void) {
 }
 
 function handleLeftAsideOpenChange({ open, source }: ChatAsideOpenChangePayload) {
-  if (open || source !== 'user') return
+  if (open) return
+  if (source === 'viewport') {
+    const sidebar = sidebarCloseButton.value?.closest('aside')
+    if (!sidebar?.contains(document.activeElement)) return
+  }
   // Let the backdrop's pointer event finish before restoring focus.
   requestAnimationFrame(() => header.value?.focusSidebarTrigger())
 }
@@ -224,6 +228,11 @@ const chatUi = {
 .gemini-case__chat :deep(.tr-chat-ui) {
   height: 100%;
   min-height: 0;
+}
+
+.gemini-case__chat :deep(.tr-layout__aside--left.tr-layout__aside--drawer.tr-layout__aside--expanded) {
+  /* Make the opening drawer focusable immediately, including when reopening during its exit transition. */
+  transition-property: transform;
 }
 
 .gemini-case__chat :deep(.chat-panel-content--header) {
