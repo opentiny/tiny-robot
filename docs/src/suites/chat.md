@@ -948,7 +948,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `conversation` | `ChatConversationView` | 页头标题、会话列表和当前选中 | 空列表、无选中，标题为“新对话”。                       |
 | `bubble`       | `ChatBubbleView`       | 消息主区                     | 消息为空时显示欢迎布局；传入 `is-empty` 时以该值为准。 |
 | `sender`       | `ChatSenderView`       | 输入区可用性与加载反馈       | 三个布尔状态均为 `false`。                             |
-| `model`        | `ChatModelView`        | 输入区模型选择器与能力开关   | 不显示模型选择器。                                     |
+| `model`        | `ChatModelView`        | 输入区模型选择器与字段配置   | 不显示模型选择器。                                     |
 | `mcp`          | `ChatMcpView`          | 输入区 MCP 入口与内置右栏    | 不显示 MCP 入口或面板。                                |
 | `request`      | `ChatRequestView`      | 插槽参数、消息流状态推断     | `undefined`；不单独显示请求状态。                      |
 
@@ -1272,7 +1272,6 @@ const context = useChatRenderContext(props)
 | `ChatWelcomeComposerPlacement` | `type`      | `'footer' \| 'center'`。                            |
 | `ChatRightAsidePanelId`        | `type`      | `string`。                                          |
 | `ChatRightAsidePanelContext`   | `interface` | 当前 `panelId` 与可选的面板配置。                   |
-| `ChatBuiltInModelFeature`      | `type`      | `'thinking' \| 'search'`。                          |
 | `ChatRequestState`             | `type`      | 请求状态类型。                                      |
 | `ChatProcessingState`          | `type`      | `'requesting' \| 'completing' \| string`。          |
 
@@ -1288,8 +1287,8 @@ const context = useChatRenderContext(props)
 | `ChatBubbleView`       | 消息列表容器。                                                            |
 | `ChatSenderView`       | 输入区 loading、disabled 与 submitDisabled 状态。                         |
 | `ChatRequestView`      | 请求 `state` 与可选 `processingState`。                                   |
-| `ChatModelView`        | 模型列表、选中值、功能开关、思考强度和加载状态。                          |
-| `ChatModelOptionView`  | 单个模型的名称、支持的功能、思考强度与附加信息。                          |
+| `ChatModelView`        | 模型列表、选中值、字段值和加载状态。                                     |
+| `ChatModelOptionView`  | 单个模型的名称、字段配置与附加信息。                                     |
 | `ChatMcpView`          | MCP 服务列表与工具映射。                                                  |
 | `ChatMcpServerView`    | 单个 MCP 服务的安装、启用、加载和错误状态。                               |
 | `ChatMcpToolView`      | 单个工具的名称、启用和加载状态。                                          |

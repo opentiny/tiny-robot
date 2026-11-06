@@ -8,13 +8,15 @@ const defaultApiUrl = new URL(`${import.meta.env.BASE_URL}api`, runtimeOrigin).t
 const qwenFields: readonly ModelSelectorField[] = [
   {
     key: 'reasoning',
-    label: '思考模式',
+    label: '思考强度',
     type: 'select',
     defaultValue: 'off',
     summary: true,
     options: [
       { value: 'off', label: '关闭', summary: false },
-      { value: 'on', label: '开启' },
+      { value: 'low', label: '低' },
+      { value: 'high', label: '高' },
+      { value: 'max', label: '最高' },
     ],
   },
   { key: 'search', label: '联网搜索', type: 'switch' },

@@ -29,7 +29,7 @@ pnpm build
 
 ## 模型配置
 
-模型配置中的 `icon` 用于模型选择器触发器；在窄容器中，带图标的模型会只显示图标。Qwen 模型通过 `fields` 配置思考和联网搜索，DeepSeek 模型通过 `fields` 配置思考强度。
+模型配置中的 `icon` 用于模型选择器触发器；在窄容器中，带图标的模型会只显示图标。Qwen 模型通过 `fields` 配置思考强度和联网搜索，DeepSeek 模型通过 `fields` 配置思考强度。
 
 模型字段通过 `defaultValue` 设置默认值，Provider 通过 `mapFeatureValues` 将有效字段转换为请求参数。必须思考的模型省略 `关闭` 选项。
 

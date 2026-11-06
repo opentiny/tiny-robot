@@ -614,8 +614,6 @@ const replacement: UseMessagePlugin = {
 | `deleteConversation`      | `(id: string) => Promise<void>`                                         | 删除会话；删除当前会话时清空输入。                     |
 | `selectModel`             | `(id: string \| null) => Promise<void>`                                 | 选择模型。                                             |
 | `setModelFeatureValue`    | `(change: ChatModelFeatureValueUpdate) => Promise<void>`                | 按模型和字段更新配置并处理等待状态与错误。             |
-| `setModelFeature`         | `(id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void>`      | 开启或关闭模型功能。                                   |
-| `setModelReasoningEffort` | `(effort: string \| null) => Promise<void>`                             | 设置思考强度。                                         |
 | `addMcpServer`            | `(id: string) => Promise<void>`                                         | 安装并启用 MCP 服务。                                  |
 | `removeMcpServer`         | `(id: string) => Promise<void>`                                         | 移除 MCP 服务。                                        |
 | `setMcpServerEnabled`     | `(id: string, enabled: boolean) => Promise<void>`                       | 开启或关闭 MCP 服务。                                  |
@@ -674,7 +672,7 @@ const history = useChatHistoryData({
 | `ChatRuntime`         | `interface` | 包含会话状态、输入区状态和 `ChatRuntimeActions`。    |
 | `ChatRuntimeActions`  | `interface` | Runtime 的发送、取消和会话操作。                     |
 | `ChatComposerRuntime` | `interface` | 输入区禁用状态及模型、MCP 工具的状态与方法。         |
-| `ChatModelRuntime`    | `interface` | 模型列表、选择、功能开关和思考强度的状态与操作。     |
+| `ChatModelRuntime`    | `interface` | 模型列表、选择、字段值和字段更新操作。               |
 | `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作。           |
 
 #### 会话、消息与发送

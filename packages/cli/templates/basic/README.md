@@ -43,7 +43,7 @@ The basic template already includes the Model Context MCP proxy in `vite.config.
 
 ## Model feature fields
 
-Qwen models expose thinking and web search through the model selector fields. DeepSeek models expose thinking levels through the same fields.
+Qwen models expose thinking levels and web search through the model selector fields. DeepSeek models expose thinking levels through the same fields.
 
 Configure `fields` on a model in `src/App.vue` and use `mapFeatureValues` to map selected values to request parameters. A model that requires thinking omits the `关闭` option.
 
