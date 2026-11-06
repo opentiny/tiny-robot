@@ -17,13 +17,7 @@ export type QuickAssistCloseReason =
 
 /** Stage at which a recoverable QuickAssist error occurred. */
 export type QuickAssistErrorStage =
-  | 'context'
-  | 'sanitize'
-  | 'suggestions'
-  | 'prompt'
-  | 'adapter'
-  | 'config'
-  | 'callback'
+  'context' | 'sanitize' | 'suggestions' | 'prompt' | 'adapter' | 'config' | 'callback'
 
 /** The immutable selection data captured at the time a session starts. */
 export interface SelectionSnapshot {
