@@ -23,6 +23,14 @@ function runCli(cwd, ...args) {
   return spawnSync(process.execPath, [cliFile, ...args], { cwd, encoding: 'utf8' })
 }
 
+function assertSetupGuidePath(stdout, expectedPath) {
+  const guide = stdout.match(/^Setup guide: (.+)$/m)?.[1].trim()
+
+  assert.ok(guide, 'add chat output must include the setup guide')
+  assert.ok(path.isAbsolute(guide), 'the setup guide path must be absolute')
+  assert.equal(fs.realpathSync(guide), fs.realpathSync(expectedPath))
+}
+
 function createVueProject(root) {
   fs.mkdirSync(path.join(root, 'src'), { recursive: true })
   fs.writeFileSync(
@@ -66,29 +74,15 @@ test('create basic scaffolds a complete chat-basic project', () => {
   }
 })
 
-test('create chat materializes the standalone chat template', () => {
+test('create rejects unsupported templates', () => {
   const root = createTempDir('tiny-robot-create-chat-')
 
   try {
-    const result = runCli(root, 'create', 'fixture-chat', '--template', 'chat', '--runtime-version', '0.5.2-rc.3')
-    const project = path.join(root, 'fixture-chat')
-    const packageFile = path.join(project, 'package.json')
-    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
-    const component = fs.readFileSync(path.join(project, 'src/TinyRobotChat.vue'), 'utf8')
-    const envExample = fs.readFileSync(path.join(project, '.env.example'), 'utf8')
+    const result = runCli(root, 'create', 'fixture-chat', '--template', 'chat')
 
-    assert.equal(result.status, 0, result.stderr)
-    assert.equal(packageJson.name, 'fixture-chat')
-    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
-    assert.doesNotMatch(fs.readFileSync(packageFile, 'utf8'), /__PROJECT_NAME__|__TINY_ROBOT_VERSION__/)
-    assert.match(component, /@opentiny\/tiny-robot\/dist\/style\.css/)
-    assert.match(component, /@opentiny\/tiny-robot-chat\/dist\/style\.css/)
-    assert.match(component, /import '\.\/index\.css'/)
-    assert.equal(fs.existsSync(path.join(project, 'src/README.md')), false)
-    assert.equal(fs.existsSync(path.join(project, 'chat-add')), false)
-    assert.doesNotMatch(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /src\/README\.md/)
-    assert.match(envExample, /VITE_QWEN_API_URL=/)
-    assert.match(envExample, /VITE_DEEPSEEK_API_URL=/)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /template "chat" does not exist\. Available: basic/)
+    assert.equal(fs.existsSync(path.join(root, 'fixture-chat')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -243,7 +237,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
     assert.match(result.stdout, /server\.proxy/)
-    assert.ok(result.stdout.includes(`Setup guide: ${path.join(root, 'src/tiny-robot-chat/README.md')}`))
+    assertSetupGuidePath(result.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
     const installIndex = result.stdout.indexOf('pnpm install')
     const componentIndex = result.stdout.indexOf('Add <TinyRobotChat />')
     assert.ok(installIndex >= 0, 'add chat output must include pnpm install')
@@ -264,11 +258,28 @@ test('add chat prints an accessible setup guide when run from a project subdirec
     for (let attempt = 0; attempt < 2; attempt++) {
       const result = runCli(cwd, 'add', 'chat', '--yes')
       assert.equal(result.status, 0, result.stderr)
-      const guide = result.stdout.match(/^Setup guide: (.+)$/m)?.[1].trim()
-      assert.ok(guide, 'add chat output must include the setup guide')
-      assert.ok(path.isAbsolute(guide), 'the setup guide path must be absolute')
-      assert.equal(guide, path.join(root, 'src/tiny-robot-chat/README.md'))
-      assert.ok(fs.existsSync(guide))
+      assertSetupGuidePath(result.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
+      if (attempt === 1) assert.match(result.stdout, /No changes were necessary/i)
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat setup guide resolves to the same file through a directory link', () => {
+  const root = createTempDir('tiny-robot-add-linked-directory-')
+
+  try {
+    const project = path.join(root, 'project')
+    const linkedProject = path.join(root, 'linked-project')
+    createVueProject(project)
+    fs.symlinkSync(project, linkedProject, process.platform === 'win32' ? 'junction' : 'dir')
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = runCli(path.join(linkedProject, 'src'), 'add', 'chat', '--yes')
+      assert.equal(result.status, 0, result.stderr)
+      assertSetupGuidePath(result.stdout, path.join(project, 'src/tiny-robot-chat/README.md'))
+      assertSetupGuidePath(result.stdout, path.join(linkedProject, 'src/tiny-robot-chat/README.md'))
       if (attempt === 1) assert.match(result.stdout, /No changes were necessary/i)
     }
   } finally {
@@ -309,7 +320,7 @@ test('add chat is idempotent and reports when no changes are necessary', () => {
     assert.equal(first.status, 0, first.stderr)
     assert.equal(second.status, 0, second.stderr)
     assert.match(second.stdout, /No changes were necessary/i)
-    assert.ok(second.stdout.includes(`Setup guide: ${path.join(root, 'src/tiny-robot-chat/README.md')}`))
+    assertSetupGuidePath(second.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
   } finally {
