@@ -214,18 +214,6 @@ function ensureDependency(pkg, name, targetSpecifier) {
   }
 }
 
-function printDependencyResult(result, name) {
-  if (result.type === 'added') {
-    logSuccess(`Added ${name}@${result.to}`)
-  } else if (result.type === 'updated') {
-    logSuccess(`Updated ${name} from ${result.from} to ${result.to}`)
-  } else if (result.type === 'conflict') {
-    logSkip(`${name} requires manual dependency resolution (${result.reason})`)
-  } else {
-    logSkip(`${name} already satisfies required version (${result.version})`)
-  }
-}
-
 function listFiles(sourceDir, relativeDir = '') {
   const files = []
   for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
@@ -246,6 +234,10 @@ function getChatFeatureFiles(targetDir) {
   featureFiles.push({
     source: getTemplateFile('src', 'index.css'),
     target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'index.css'),
+  })
+  featureFiles.push({
+    source: path.join(getTemplateDir('chat-add'), 'README.md'),
+    target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'README.md'),
   })
 
   return featureFiles
@@ -284,7 +276,7 @@ function formatPlanStatus(type) {
 }
 
 function printManualMcpSetup() {
-  console.log('  ! Manual: add the Model Context MCP proxy to vite.config.* under server.proxy')
+  console.log('  ! Optional: configure the Model Context MCP proxy in vite.config.* under server.proxy if used')
 }
 
 function fileContent(content) {
@@ -379,7 +371,7 @@ function prepareChanges(targetDir, context) {
 
   if (conflicts.length > 0 && !allowConflicts) {
     throw new Error(
-      `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nResolve the conflicts and run add chat again.`,
+      `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nNo files were changed or overwritten. Resolve the conflicts and run add chat again.`,
     )
   }
 
@@ -401,7 +393,8 @@ function prepareChanges(targetDir, context) {
 
   for (const [name, version] of Object.entries(dependencies)) {
     const result = ensureDependency(pkg, name, version)
-    if (result.type === 'conflict' && !allowConflicts) throw new Error(`${name}: ${result.reason}`)
+    if (result.type === 'conflict' && !allowConflicts)
+      throw new Error(`${name}: ${result.reason}. No files were changed. Resolve the conflict and run add chat again.`)
     results.dependencies.push({ name, result })
     results.dependencyChanged ||= result.type !== 'skipped'
   }
@@ -414,16 +407,25 @@ function prepareChanges(targetDir, context) {
 
 function printChangePlan(targetDir, results) {
   console.log('\nChange Plan\n')
-  for (const file of results.featureInspection) {
-    console.log(`  ${formatPlanStatus(file.type)} ${formatRelative(file.target, targetDir)}`)
+  console.log('  + create  ~ update  ! attention  ○ unchanged')
+  console.log('\n  Feature files:')
+  for (const type of ['create', 'skipped', 'conflict']) {
+    const files = results.featureInspection.filter((file) => file.type === type)
+    if (files.length) console.log(`    ${formatPlanStatus(type)} ${CHAT_ADD_FEATURE_DIR}/ (${files.length} ${type})`)
+    for (const file of files.filter((entry) => entry.type === 'conflict')) {
+      console.log(`      ${formatRelative(file.target, targetDir)}${file.reason ? ` (${file.reason})` : ''}`)
+    }
   }
+  console.log('\n  Environment:')
   console.log(
     `  ${formatPlanStatus(results.env?.type ?? 'unavailable')} .env.example (${results.env?.type ?? 'unavailable'})`,
   )
+  console.log('\n  Dependencies (package.json):')
   for (const { name, result } of results.dependencies) {
     const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
-    console.log(`  ${status} package.json (${result.type}: ${name})`)
+    console.log(`  ${status} ${result.type}: ${name}${result.type === 'conflict' ? ` (${result.reason})` : ''}`)
   }
+  console.log('\n  Existing files:')
   console.log('  ○ src/main.ts / src/main.js (unchanged)')
   console.log('  ○ src/App.vue (unchanged)')
   console.log('  ○ vite.config.* (unchanged)')
@@ -431,23 +433,25 @@ function printChangePlan(targetDir, results) {
 }
 
 function printChangeResults(targetDir, results) {
-  for (const file of results.featureInspection) {
-    if (file.type === 'create') logSuccess(`Created ${formatRelative(file.target, targetDir)}`)
-    else if (file.type === 'skipped') logSkip(`${formatRelative(file.target, targetDir)} already exists`)
-  }
+  const created = results.featureInspection.filter((file) => file.type === 'create').length
+  const skipped = results.featureInspection.filter((file) => file.type === 'skipped').length
+  if (created) logSuccess(`Created ${created} files in ${CHAT_ADD_FEATURE_DIR}/`)
+  if (skipped) logSkip(`${skipped} feature files already exist`)
 
   if (results.env?.type === 'create') logSuccess('Created .env.example')
   else if (results.env?.type === 'merged') logSuccess(`Added ${results.env.added} env variables`)
   else if (results.env?.type === 'unavailable') logSkip('.env.example template is unavailable; no environment variables were added')
   else logSkip('.env.example already contains required variables')
 
-  for (const { name, result } of results.dependencies) printDependencyResult(result, name)
+  const changed = results.dependencies.filter(({ result }) => result.type === 'added' || result.type === 'updated')
+  if (changed.length) logSuccess(`Updated ${changed.length} dependencies in package.json`)
   if (!results.dependencyChanged) logSkip('package.json already contains required dependencies')
 }
 
 async function addFeature(targetDir, type, options) {
   invariant(type === 'chat', `unsupported feature: ${type}`)
   const featureFiles = getChatFeatureFiles(targetDir)
+  const setupGuide = path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'README.md')
   const pkgPath = path.join(targetDir, 'package.json')
   invariant(fs.existsSync(pkgPath), 'package.json not found.')
   invariant(fs.statSync(pkgPath).isFile(), 'package.json is not a file.')
@@ -463,11 +467,13 @@ async function addFeature(targetDir, type, options) {
 
   if (options.dryRun) {
     printChangePlan(targetDir, prepared.results)
+    console.log('\nDry run only. No files were changed.')
     return
   }
 
   if (prepared.changes.length === 0) {
     logSkip('No changes were necessary.')
+    console.log(`Setup guide: ${setupGuide}`)
     return
   }
 
@@ -484,33 +490,19 @@ async function addFeature(targetDir, type, options) {
   applyChanges(prepared.changes)
   printChangeResults(targetDir, prepared.results)
   console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
-  printNextSteps({ dependencyChanged: prepared.results.dependencyChanged })
+  printNextSteps({ dependencyChanged: prepared.results.dependencyChanged, setupGuide })
 }
 
-function printNextSteps({ dependencyChanged }) {
+function printNextSteps({ dependencyChanged, setupGuide }) {
   const steps = []
-  steps.push(
-    [
-      'Render <TinyRobotChat /> near your main application component.',
-      '',
-      "Example ('src/App.vue'):",
-      '',
-      '  <script setup lang="ts">',
-      "  import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'",
-      '  </script>',
-      '',
-      '  <template>',
-      '    <YourAppComponent />',
-      '    <TinyRobotChat />',
-      '  </template>',
-    ].join('\n'),
-  )
-  steps.push('Copy .env.example to .env.local and configure your AI provider API keys.')
-  steps.push('Add the Model Context MCP proxy to vite.config.* under server.proxy, then restart Vite.')
   if (dependencyChanged) steps.push('Install or update project dependencies: pnpm install')
+  steps.push('Add <TinyRobotChat /> to your application.')
+  steps.push('If using a model provider, copy .env.example to .env.local and configure its API key.')
+  steps.push('If using Model Context MCP, configure the proxy in vite.config.* under server.proxy and restart Vite.')
   if (steps.length > 0) {
     console.log('\nNext Steps\n')
     for (const [index, step] of steps.entries()) console.log(`${index + 1}. ${step}\n`)
+    console.log(`Setup guide: ${setupGuide}`)
   }
 }
 

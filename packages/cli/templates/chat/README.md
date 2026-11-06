@@ -1,12 +1,6 @@
 # TinyRobot Chat Add
 
-这是一个独立的 Chat 项目模板，也可以通过 `add chat` 注入到现有 Vue 项目。
-
-创建独立 Chat 项目：
-
-```bash
-npx @opentiny/tiny-robot-cli create my-chat --template chat
-```
+这是用于通过 `add chat` 向现有 Vue 项目接入聊天功能的模板。执行 `add chat` 后，接入说明位于 `src/tiny-robot-chat/README.md`。
 
 ## 启动
 
@@ -35,7 +29,7 @@ DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认�
 
 ## MCP 代理
 
-独立模板的 `vite.config.ts` 已配置 `/modelcontextprotocol-mcp` 代理。使用 `add chat` 时，CLI 不会复制或修改业务项目的 `vite.config.*`，需要手动把该代理配置添加到业务项目的 `server.proxy` 下，并重启 Vite。
+使用 `add chat` 时，CLI 不会修改业务项目的 `vite.config.*`。执行 `add chat` 后，代理配置示例见 `src/tiny-robot-chat/README.md`。
 
 ## 目录职责
 
