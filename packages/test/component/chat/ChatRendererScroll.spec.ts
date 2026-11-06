@@ -69,6 +69,70 @@ test('the existing back-to-bottom button clears renderer pause', async ({ mount 
   await atBottom(root)
 })
 
+test('End clears anchor pause so the next renderer expansion can pause following', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const component = await mount(ChatRenderContext)
+  const root = component.locator('.chat-main-scroll-host')
+  await atBottom(root)
+  await component.locator('.tr-anchor__item').first().click()
+  await expect.poll(() => root.evaluate((el) => el.scrollTop)).toBeLessThan(30)
+  await root.evaluate((el) => {
+    el.tabIndex = 0
+  })
+  await root.press('End')
+  await atBottom(root)
+  await component.getByTestId('grow').click()
+  await atBottom(root)
+  const before = await root.evaluate((el) => el.scrollTop)
+  await resize(component.locator('.context-probe').last())
+  await settle(root)
+  await expect(root).toHaveJSProperty('scrollTop', before)
+  await component.getByTestId('grow').click()
+  await settle(root)
+  await expect(root).toHaveJSProperty('scrollTop', before)
+})
+
+for (const action of ['resume', 'up', 'leave-range', 'growth'] as const) {
+  test(`downward scrolling during an animation rechecks recovery after ${action}`, async ({ mount }) => {
+    const component = await mount(ChatRendererScroll)
+    const root = component.getByTestId('first-root')
+    const probe = component.locator('.context-probe')
+    await atBottom(root)
+    await probe.evaluate((el) => {
+      el.animate([{ opacity: 0.99 }, { opacity: 1 }], 10_000)
+    })
+    await resize(probe)
+    await settle(root)
+    await root.evaluate((el) => {
+      el.scrollTop = el.scrollHeight - el.clientHeight - 30
+    })
+    await settle(root)
+    await expect.poll(() => distance(root)).toBe(30)
+    if (action === 'up' || action === 'leave-range') {
+      await root.evaluate(
+        (el, offset) => {
+          el.scrollTop -= offset
+        },
+        action === 'up' ? 10 : 40,
+      )
+    } else if (action === 'growth') {
+      await component.getByTestId('grow').click()
+    }
+    await settle(root)
+    const before = await root.evaluate((el) => el.scrollTop)
+    await probe.evaluate((el) => {
+      el.getAnimations().forEach((animation) => animation.finish())
+    })
+    await settle(root)
+    if (action === 'resume') await atBottom(root)
+    else await expect(root).toHaveJSProperty('scrollTop', before)
+    await component.getByTestId('grow').click()
+    await settle(root)
+    if (action === 'resume') await atBottom(root)
+    else await expect(root).toHaveJSProperty('scrollTop', before)
+  })
+}
+
 test('collapse at the actual bottom restores following', async ({ mount }) => {
   const component = await mount(ChatRenderContext)
   const root = component.locator('.chat-main-scroll-host')

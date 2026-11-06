@@ -27,6 +27,7 @@ export function useChatAutoScroll({
   let pauseRevision = 0
   let resumeReady = false
   let resumeFrames = 0
+  let resumeFromScroll = false
   let previousScrollTop = 0
   let previousScrollRange = 0
 
@@ -54,6 +55,7 @@ export function useChatAutoScroll({
     cancelResume()
     resumeReady = false
     resumeFrames = 0
+    resumeFromScroll = false
     pauseReason = null
   }
 
@@ -73,13 +75,17 @@ export function useChatAutoScroll({
     if (pauseReason !== 'renderer' || !el) return
     const scrollRange = el.scrollHeight - el.clientHeight
     const movedDown = el.scrollTop > previousScrollTop
+    const movedUp = el.scrollTop < previousScrollTop
     const grew = scrollRange > previousScrollRange
+    const distance = scrollRange - el.scrollTop
+    if (grew || movedUp || distance > 50 || !enabled()) resumeFromScroll = false
+    // 动画等待期间保留向下回底的意图，布局稳定后仍须复核当前位置。
+    if (fromScroll && movedDown && !grew && enabled() && distance <= 50) resumeFromScroll = true
     previousScrollTop = el.scrollTop
     previousScrollRange = scrollRange
     if (!resumeReady || !enabled() || grew) return
-    const distance = scrollRange - el.scrollTop
     // 尺寸变化只在实际到底时恢复，避免收起内容后跳过仍未读完的部分。
-    if (distance <= 1 || (fromScroll && movedDown && distance <= 50)) scrollToBottom()
+    if (distance <= 1 || (resumeFromScroll && distance <= 50)) scrollToBottom()
   }
 
   function pauseFromRenderer() {
@@ -101,12 +107,20 @@ export function useChatAutoScroll({
   }
 
   useEventListener(scrollRoot, 'scroll', () => checkRendererResume(true), { passive: true })
+  useEventListener(scrollRoot, 'keydown', (event) => {
+    if (event.key !== 'End' || event.defaultPrevented) return
+    const target = event.target as HTMLElement
+    if (target.isContentEditable || target.closest('input, textarea, select')) return
+    // 通过同一入口清除 Chat 层暂停，避免底层恢复后仍残留锚点状态。
+    scrollToBottom()
+  })
   useResizeObserver([contentRef, scrollRoot], () => checkRendererResume())
 
   watch(
     enabled,
     (value) => {
       if (value) checkRendererResume()
+      else resumeFromScroll = false
     },
     { flush: 'post' },
   )

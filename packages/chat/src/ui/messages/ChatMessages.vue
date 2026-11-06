@@ -203,7 +203,7 @@ const promptProps = computed<ResolvedChatPromptsOptions>(() => {
 })
 const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
-defineExpose({ scrollToBottom, pauseAutoScroll: pauseFromAnchor, anchorItems, contentTarget: contentRef })
+defineExpose({ scrollToBottom, pauseAutoScroll: pauseFromAnchor, anchorItems })
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
   if (item.disabled) {
