@@ -11,10 +11,13 @@ import type {
   TemplateItem,
 } from '@opentiny/tiny-robot'
 
+type TemplateCaretPosition = 'before' | 'start' | 'end' | 'after'
+
 declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
+      moveCursorAtTemplate: (index: number, position: TemplateCaretPosition) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -228,7 +231,7 @@ const extensions = computed(() => {
   return exts
 })
 
-const moveCursorBeforeTemplate = (index: number) => {
+const moveCursorAtTemplate = (index: number, position: TemplateCaretPosition) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
   if (!editor) return false
@@ -236,10 +239,16 @@ const moveCursorBeforeTemplate = (index: number) => {
   let currentIndex = 0
   let templatePosition: number | null = null
 
-  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
+  editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
       if (currentIndex === index) {
-        templatePosition = pos
+        const positions = {
+          before: pos,
+          start: pos + 1,
+          end: pos + node.nodeSize - 1,
+          after: pos + node.nodeSize,
+        }
+        templatePosition = positions[position]
         return false
       }
       currentIndex += 1
@@ -252,13 +261,14 @@ const moveCursorBeforeTemplate = (index: number) => {
   editor.commands.setTextSelection(templatePosition)
   editor.commands.focus(templatePosition)
 
-  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
+  const selection = editor.state.selection
+  return selection.empty && selection.from === templatePosition
 }
 
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
-  if (!editor || !moveCursorBeforeTemplate(index)) return false
+  if (!editor || !moveCursorAtTemplate(index, 'before')) return false
 
   const deleteEvent = new KeyboardEvent('keydown', {
     key: 'Delete',
@@ -271,7 +281,8 @@ const pressDeleteBeforeTemplate = (index: number) => {
 
 onMounted(() => {
   window.__senderTestApi = {
-    moveCursorBeforeTemplate,
+    moveCursorBeforeTemplate: (index) => moveCursorAtTemplate(index, 'before'),
+    moveCursorAtTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }
