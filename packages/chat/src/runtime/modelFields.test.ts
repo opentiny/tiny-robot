@@ -194,6 +194,97 @@ describe('model feature fields', () => {
     scope.stop()
   })
 
+  it('converts obsolete legacy choices into valid retry values', () => {
+    const scenarios: {
+      name: string
+      fields: ModelSelectorField[]
+      features: Record<string, boolean>
+      reasoning?: { enabled: boolean; effort?: string }
+      expected: Record<string, boolean | string>
+    }[] = [
+      {
+        name: 'still valid effort',
+        fields,
+        features: { thinking: true },
+        reasoning: { enabled: true, effort: 'high' },
+        expected: { reasoning: 'high' },
+      },
+      {
+        name: 'off removed from required model',
+        fields: [
+          {
+            ...fields[0],
+            defaultValue: 'high',
+            options: [
+              { value: 'low', label: '低' },
+              { value: 'high', label: '高' },
+            ],
+          } as ModelSelectorField,
+        ],
+        features: { thinking: false },
+        expected: { reasoning: 'high' },
+      },
+      {
+        name: 'disabled effort',
+        fields,
+        features: { thinking: true },
+        reasoning: { enabled: true, effort: 'blocked' },
+        expected: { reasoning: 'off' },
+      },
+      {
+        name: 'unknown effort',
+        fields,
+        features: { thinking: true },
+        reasoning: { enabled: true, effort: 'obsolete' },
+        expected: { reasoning: 'off' },
+      },
+      {
+        name: 'invalid effort uses effective default',
+        fields: [
+          {
+            ...fields[0],
+            defaultValue: 'blocked',
+            options: [
+              { value: 'blocked', label: '禁用', disabled: true },
+              { value: 'low', label: '低' },
+              { value: 'high', label: '高' },
+            ],
+          } as ModelSelectorField,
+        ],
+        features: { thinking: true },
+        reasoning: { enabled: true, effort: 'obsolete' },
+        expected: { reasoning: 'low' },
+      },
+      {
+        name: 'removed fields',
+        fields: [],
+        features: { thinking: true, search: true },
+        reasoning: { enabled: true, effort: 'obsolete' },
+        expected: {},
+      },
+    ]
+
+    for (const scenario of scenarios) {
+      const model = resolveProviderModels([
+        { type: 'qwen', models: [{ id: 'legacy', label: scenario.name, fields: scenario.fields }] },
+      ])[0]
+      const snapshot = { modelId: model.id, features: scenario.features, reasoning: scenario.reasoning }
+      const message = { role: 'user', content: 'retry', metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: snapshot } }
+      const retry = readRunConfigFromMessage(message, () => model)!
+      expect(retry.featureValues, scenario.name).toEqual(scenario.expected)
+
+      const requestBody: Record<string, unknown> = {}
+      createProviderRequestPlugin(() => model).onBeforeRequest!({
+        customContext: { [CHAT_RUN_CONFIG_CONTEXT_KEY]: retry },
+        requestBody,
+      } as unknown as Parameters<NonNullable<ReturnType<typeof createProviderRequestPlugin>['onBeforeRequest']>>[0])
+      expect(requestBody, scenario.name).toEqual({
+        __chat_provider_model_id: 'legacy',
+        ...model.mapFeatureValues?.(scenario.expected),
+      })
+    }
+  })
+
   it('isolates pending fields by model and reports async failures', async () => {
     const scope = effectScope()
     const { model } = scope.run(() => createProviderModelRuntime(createModels()))!

@@ -171,7 +171,7 @@ export function readRunConfigFromMessage(
       (raw.reasoning !== undefined &&
         (!isRecord(raw.reasoning) ||
           typeof raw.reasoning.enabled !== 'boolean' ||
-          (raw.reasoning.effort !== undefined && (typeof raw.reasoning.effort !== 'string' || !raw.reasoning.effort))))
+          (raw.reasoning.effort !== undefined && typeof raw.reasoning.effort !== 'string')))
     ) {
       throw new Error('Invalid legacy model feature snapshot')
     }
@@ -184,26 +184,24 @@ export function readRunConfigFromMessage(
     if (reasoning || features?.thinking !== undefined) {
       const field = fields.find((item) => item.key === 'reasoning')
       const enabled = reasoning?.enabled ?? features?.thinking
-      if (field?.type !== 'select') {
-        if (enabled) throw new Error(`Cannot convert legacy thinking for model: ${model.id}`)
-      } else {
-        const value = enabled
-          ? (reasoning?.effort ??
-            (resolveModelFeatureValues([field]).reasoning !== 'off'
-              ? (resolveModelFeatureValues([field]).reasoning as string)
-              : field.options.find((option) => !option.disabled && option.value !== 'off')?.value))
-          : 'off'
-        if (value === undefined || !isValidFieldValue(field, value)) {
-          throw new Error(`Cannot convert legacy thinking for model: ${model.id}`)
+      if (field?.type === 'select') {
+        const fallback = resolveModelFeatureValues([field]).reasoning as string | undefined
+        let value = fallback
+        if (!enabled) {
+          value = isValidFieldValue(field, 'off') ? 'off' : fallback
+        } else if (reasoning?.effort === undefined) {
+          if (fallback === 'off') {
+            value = field.options.find((option) => !option.disabled && option.value !== 'off')?.value ?? fallback
+          }
+        } else {
+          value = isValidFieldValue(field, reasoning.effort) ? reasoning.effort : fallback
         }
-        values.reasoning = value
+        if (value !== undefined) values.reasoning = value
       }
     }
     if (features?.search !== undefined) {
       const field = fields.find((item) => item.key === 'search')
-      if (field?.type !== 'switch') {
-        if (features.search) throw new Error(`Cannot convert legacy search for model: ${model.id}`)
-      } else {
+      if (field?.type === 'switch') {
         values.search = features.search
       }
     }
