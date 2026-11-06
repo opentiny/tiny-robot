@@ -241,12 +241,15 @@ defineExpose({
       ref="rootEl"
       v-bind="attrs"
       class="tr-layout"
+      :data-tr-layout-mode="mode"
       :class="{
         'tr-layout--floating': isFloating,
         'tr-layout--no-select': isFloatingInteracting,
       }"
       :style="floatingStyle"
     >
+      <div class="tr-layout__overlay-host" data-tr-floating-overlay-host />
+
       <FloatingDragBar
         v-if="shouldShowFloatingDragBar"
         :x="floatingRect.x"
@@ -323,6 +326,14 @@ defineExpose({
   &--right-dock&--right-rail {
     --right-width: var(--right-collapsed-width);
   }
+}
+
+.tr-layout__overlay-host {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .tr-layout--no-select,
