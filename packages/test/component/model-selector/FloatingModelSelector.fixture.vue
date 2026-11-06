@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import Layout from '../../../components/src/layout'
 import type { LayoutFloatingState, LayoutMode, LayoutProps } from '../../../components/src/layout/index.type'
-import ModelSelector from '../../../components/src/model-selector/index.vue'
+import ModelSelector from '../../../components/src/model-selector'
 import type { ModelSelectorOption, ModelSelectorProps } from '../../../components/src/model-selector/index.type'
 
 const props = withDefaults(
