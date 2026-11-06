@@ -164,7 +164,7 @@ try {
 
 返回 `false` 的情况见 [常见问题](#runtime-actions-send-false)。
 
-回答还在生成时，可调用 `abort()` 停止当前请求：
+当前会话处于 `processing` 时，`TrChat` 会显示停止按钮；处于 `paused`（等待工具确认）时，仅在 Runtime 提供 `actions.abort` 时显示。点击停止按钮调用 `runtime.actions.abort?.()`。也可通过业务代码中止当前回合：
 
 ```ts
 await runtime.actions.abort?.()

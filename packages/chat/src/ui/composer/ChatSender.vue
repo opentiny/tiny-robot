@@ -11,6 +11,7 @@ import type {
   ChatLabels,
   ChatMcpView,
   ChatModelView,
+  ChatRequestView,
   ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
@@ -20,6 +21,7 @@ import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../res
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
+  request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
@@ -96,11 +98,11 @@ const toolbarItems = computed(() => {
 
 const senderProps = computed(() => {
   const { toolbar: _toolbar, ...options } = props.senderOptions
+  const processing = props.request ? props.request.state === 'processing' : props.sender.loading
   return {
     ...options,
     placeholder:
-      options.placeholder ??
-      (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
+      options.placeholder ?? (processing ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
     modelValue: props.value,
     loading: props.sender.loading,
     disabled: props.sender.disabled,

@@ -969,9 +969,9 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | 字段                    | 类型                | 默认值  | 说明                                     |
 | ----------------------- | ------------------- | ------- | ---------------------------------------- |
 | `bubble.messages`       | `ChatMessageItem[]` | `[]`    | 消息列表；组件不会追加、删除或保存消息。 |
-| `sender.loading`        | `boolean`           | `false` | 显示发送中反馈并切换为取消操作。         |
+| `sender.loading`        | `boolean`           | `false` | 显示停止按钮，点击触发 `cancel`。         |
 | `sender.disabled`       | `boolean`           | `false` | 禁用整个输入区。                         |
-| `sender.submitDisabled` | `boolean`           | `false` | 仅禁止提交；输入仍可编辑。               |
+| `sender.submitDisabled` | `boolean`           | `false` | 仅禁止提交；输入仍可编辑，`loading` 时仍可取消。 |
 
 单独使用 `TrChatUI` 时，AI 消息的 `state.error` 用于显示错误提示，需要由应用写入。
 

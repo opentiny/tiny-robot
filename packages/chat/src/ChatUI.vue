@@ -450,6 +450,7 @@ function handleRightAsideResize(detail: LayoutAsideResizeValue) {
 
 const composerProps = computed(() => ({
   sender: resolvedData.value.sender,
+  request: resolvedData.value.request,
   value: inputValue.value,
   senderOptions: senderOptions.value,
   labels: resolvedOptions.value.labels,
