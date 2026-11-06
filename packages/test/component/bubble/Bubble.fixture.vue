@@ -23,7 +23,15 @@ const image = {
 }
 const imageOnlyContent: BubbleMessage['content'] = [image, image]
 const mixedImageFirstContent: BubbleMessage['content'] = [image, { type: 'text', text: 'Image caption' }]
-const markdownOverflowContent = `\`\`\`text\n${'1234567890'.repeat(12)}\n\`\`\`\n\n    ${'1234567890'.repeat(12)}`
+const markdownOverflowContent = `## ${'heading-token-'.repeat(8)}
+
+- ${'list-token-'.repeat(8)}
+
+\`\`\`text
+${'1234567890'.repeat(12)}
+\`\`\`
+
+    ${'1234567890'.repeat(12)}`
 const markdownContentRendererMatches = [
   {
     find: (_: BubbleMessage, content: ChatMessageContentItem) => content.type === 'text',

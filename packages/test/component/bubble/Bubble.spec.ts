@@ -55,9 +55,14 @@ test.describe('Bubble', () => {
     page,
   }) => {
     const component = await mount(BubbleFixture)
-    const codeBlocks = component.getByTestId('markdown-overflow-bubble').locator('pre')
+    const markdownBubble = component.getByTestId('markdown-overflow-bubble')
+    const codeBlocks = markdownBubble.locator('pre')
 
     await expect(codeBlocks).toHaveCount(2)
+    await expect(markdownBubble.locator('h2, li')).toHaveCount(2)
+    for (const element of await markdownBubble.locator('h2, li').all()) {
+      await expect(element).toHaveCSS('overflow-wrap', 'anywhere')
+    }
     await component.getByTestId('before-markdown-code').focus()
 
     for (const code of await codeBlocks.all()) {
