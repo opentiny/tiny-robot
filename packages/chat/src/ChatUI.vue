@@ -222,6 +222,7 @@ const layoutProps = computed<LayoutProps>(() => {
       mode: 'floating',
       floatingState: props.floatingState,
       floatingOptions: layout.surface.floatingOptions,
+      rightAsideDrawerOnOverflow: true,
     }
   }
 
