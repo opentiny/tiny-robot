@@ -2,7 +2,12 @@
 import { shallowRef } from 'vue'
 import { TrSender as Sender } from '@opentiny/tiny-robot'
 
-const props = defineProps<{ template?: boolean; defaultValue?: string; maxLength?: number }>()
+const props = defineProps<{
+  template?: boolean
+  defaultValue?: string
+  maxLength?: number
+  mode?: 'single' | 'multiple'
+}>()
 const submitted = shallowRef('')
 const extensions = [
   ...(props.template === false ? [] : [Sender.Template.configure({ items: [] })]),
@@ -20,6 +25,7 @@ function handleSubmit(text: string, data?: unknown) {
       :extensions="extensions"
       :default-value="props.defaultValue"
       :max-length="props.maxLength"
+      :mode="props.mode"
       show-word-limit
       @submit="handleSubmit"
     />

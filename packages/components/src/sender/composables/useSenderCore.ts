@@ -21,11 +21,7 @@ import {
   getMentionStructuredData,
   getTextWithMentions,
 } from '../extensions'
-import {
-  getCombinedStructuredData,
-  getTextForCharacterCount,
-  getTextFromStructuredData,
-} from '../extensions/template/utils'
+import { getCombinedStructuredData, getTextFromStructuredData } from '../extensions/template/utils'
 import { EXTENSION_NAMES } from '../extensions/constants'
 import { isImeKeyEvent } from '../extensions/ime'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
@@ -91,7 +87,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
 
   const characterCount = computed(() => {
     if (!editor.value) return 0
-    return countGraphemes(getTextForCharacterCount(editor.value))
+    return countGraphemes(getTextWithTemplates(editor.value))
   })
 
   const isOverLimit = computed(() => {

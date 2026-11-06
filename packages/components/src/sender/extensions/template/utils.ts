@@ -31,12 +31,6 @@ export function getTextFromStructuredData(items: StructuredDataItem[], mentionCh
     .join('')
 }
 
-export function getTextForCharacterCount(editor: Editor): string {
-  return getCombinedStructuredData(editor)
-    .map((item) => (item.type === USER_API_TYPES.MENTION ? ' ' : item.content))
-    .join('')
-}
-
 /**
  * 获取结构化数据（辅助函数）
  *

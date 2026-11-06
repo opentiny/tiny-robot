@@ -31,7 +31,7 @@ test('does not count the mention label against maxLength when Template is disabl
   await page.getByRole('button', { name: '张三' }).click()
   await editor.pressSequentially('abc')
 
-  await expect(component.locator('.tr-sender-word-counter')).toHaveText('4/4')
+  await expect(component.locator('.tr-sender-word-counter')).toHaveText('3/4')
   await component.locator('.tr-sender-submit-button').click()
 
   await expect(component.getByTestId('submit-output')).toHaveText(
@@ -40,6 +40,52 @@ test('does not count the mention label against maxLength when Template is disabl
       data: [
         { type: 'mention', content: '张三', value: 'user-123' },
         { type: 'text', content: 'abc' },
+      ],
+    }),
+  )
+})
+
+test('allows Mention submission at the single-line text limit', async ({ mount, page }) => {
+  const component = await mount(SenderMentionTemplateFixture, {
+    props: { template: false, maxLength: 3, mode: 'single' },
+  })
+  const editor = component.locator('.tiptap')
+
+  await editor.fill('@')
+  await expect(page.locator('.mention-list')).toBeVisible()
+  await page.getByRole('button', { name: '张三' }).click()
+  await editor.pressSequentially('abc')
+  await component.locator('.tr-sender-submit-button').click()
+
+  await expect(component.getByTestId('submit-output')).toHaveText(
+    JSON.stringify({
+      text: '@张三abc',
+      data: [
+        { type: 'mention', content: '张三', value: 'user-123' },
+        { type: 'text', content: 'abc' },
+      ],
+    }),
+  )
+})
+
+test('allows Mention submission at the multi-line text limit', async ({ mount, page }) => {
+  const component = await mount(SenderMentionTemplateFixture, {
+    props: { template: false, maxLength: 4, mode: 'multiple' },
+  })
+  const editor = component.locator('.tiptap')
+
+  await editor.fill('@')
+  await expect(page.locator('.mention-list')).toBeVisible()
+  await page.getByRole('button', { name: '张三' }).click()
+  await editor.pressSequentially('abc')
+  await component.locator('.tr-sender-submit-button').click()
+
+  await expect(component.getByTestId('submit-output')).toHaveText(
+    JSON.stringify({
+      text: '@张三 abc',
+      data: [
+        { type: 'mention', content: '张三', value: 'user-123' },
+        { type: 'text', content: ' abc' },
       ],
     }),
   )
