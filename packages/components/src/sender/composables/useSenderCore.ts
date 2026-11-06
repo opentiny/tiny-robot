@@ -20,6 +20,7 @@ import {
   getTextWithTemplates,
   getMentionStructuredData,
   getTextWithMentions,
+  getMentions,
 } from '../extensions'
 import { getCombinedStructuredData, getTextFromStructuredData } from '../extensions/template/utils'
 import { EXTENSION_NAMES } from '../extensions/constants'
@@ -76,7 +77,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   const hasEditorContent = computed(() => {
     if (!editor.value) return false
     const text = getTextWithTemplates(editor.value)
-    return text.trim().length > 0
+    return text.trim().length > 0 || getMentions(editor.value).length > 0
   })
 
   const { hasRegisteredContent, registerContent, externalPayloads } = useSenderContentRegistry()

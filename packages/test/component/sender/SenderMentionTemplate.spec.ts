@@ -22,6 +22,50 @@ test('submits mention data when Template is enabled without template content', a
   )
 })
 
+test('submits a mention-only document when Template is enabled', async ({ mount, page }) => {
+  const component = await mount(SenderMentionTemplateFixture, { props: { template: true, maxLength: 1 } })
+  const editor = component.locator('.tiptap')
+
+  await expect(component.locator('.tr-sender-submit-button')).toHaveCount(0)
+
+  await editor.fill('@')
+  await expect(page.locator('.mention-list')).toBeVisible()
+  await page.getByRole('button', { name: '张三' }).click()
+  await expect(component.locator('.tr-sender-word-counter')).toHaveText('1/1')
+  await editor.press('Enter')
+
+  await expect(component.getByTestId('submit-output')).toHaveText(
+    JSON.stringify({
+      text: '@张三 ',
+      data: [
+        { type: 'mention', content: '张三', value: 'user-123' },
+        { type: 'text', content: ' ' },
+      ],
+    }),
+  )
+})
+
+test('submits a mention node without surrounding text when Template is enabled', async ({ mount }) => {
+  const component = await mount(SenderMentionTemplateFixture, {
+    props: {
+      template: true,
+      maxLength: 1,
+      defaultValue: '<p><span data-mention data-id="user-1" data-label="张三" data-value="user-123">@张三</span></p>',
+    },
+  })
+
+  await expect(component.locator('.tr-sender-word-counter')).toHaveText('0/1')
+  await expect(component.locator('.tr-sender-submit-button')).not.toHaveClass(/is-disabled/)
+  await component.locator('.tr-sender-submit-button').click()
+
+  await expect(component.getByTestId('submit-output')).toHaveText(
+    JSON.stringify({
+      text: '@张三',
+      data: [{ type: 'mention', content: '张三', value: 'user-123' }],
+    }),
+  )
+})
+
 test('does not count the mention label against maxLength when Template is disabled', async ({ mount, page }) => {
   const component = await mount(SenderMentionTemplateFixture, { props: { template: false, maxLength: 4 } })
   const editor = component.locator('.tiptap')
