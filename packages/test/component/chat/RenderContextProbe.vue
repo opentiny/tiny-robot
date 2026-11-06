@@ -8,6 +8,7 @@ const context = useChatRenderContext(props)!
 const { contentText } = useMessageContent(props)
 const extraHeight = ref(0)
 const animatedExpanded = ref(false)
+const selectedOption = ref('first')
 const height = computed(() =>
   props.message.role === 'assistant' ? `${Math.max(200, contentText.value.length) + extraHeight.value}px` : undefined,
 )
@@ -38,6 +39,10 @@ function toggleAnimated() {
   >
     {{ contentText }}
     <template v-if="props.message.role === 'assistant'">
+      <div role="listbox" tabindex="0" @keydown.end.prevent="selectedOption = 'last'">
+        <div role="option" :aria-selected="selectedOption === 'first'">Option A</div>
+        <div role="option" :aria-selected="selectedOption === 'last'">Option B</div>
+      </div>
       <div data-testid="inner-scroll" tabindex="0" style="height: 40px; overflow-y: auto">
         <div style="height: 200px" />
       </div>

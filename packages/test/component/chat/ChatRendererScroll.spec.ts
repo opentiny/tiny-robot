@@ -109,6 +109,31 @@ test('End in an independently scrollable message region does not move the chat c
   await expect(root).toHaveJSProperty('scrollTop', before)
 })
 
+test('End consumed by a message control preserves its selection behavior and renderer pause', async ({ mount }) => {
+  const component = await mount(ChatRendererScroll)
+  const root = component.getByTestId('first-root')
+  const probe = component.locator('.context-probe').last()
+  const listbox = probe.getByRole('listbox')
+  await atBottom(root)
+  await listbox.focus()
+  await resize(probe)
+  await settle(root)
+  const before = await root.evaluate((el) => el.scrollTop)
+  await expect(listbox.getByRole('option', { name: 'Option A' })).toHaveAttribute('aria-selected', 'true')
+  await listbox.press('End')
+  await expect(listbox.getByRole('option', { name: 'Option B' })).toHaveAttribute('aria-selected', 'true')
+  await expect(root).toHaveJSProperty('scrollTop', before)
+  await root.evaluate((el) => {
+    el.scrollTop -= 100
+    // 等待滚动停止后的修正，避免只验证事件分发当帧而漏掉延迟回底。
+    return new Promise((resolve) => setTimeout(resolve, 500))
+  })
+  await expect(root).toHaveJSProperty('scrollTop', before - 100)
+  await component.getByTestId('grow').click()
+  await settle(root)
+  await expect(root).toHaveJSProperty('scrollTop', before - 100)
+})
+
 test('End in the sender input does not clear a renderer pause', async ({ mount }) => {
   const component = await mount(ChatRendererScroll)
   const root = component.getByTestId('first-root')
@@ -120,9 +145,14 @@ test('End in the sender input does not clear a renderer pause', async ({ mount }
   await input.press('End')
   await settle(root)
   await expect(root).toHaveJSProperty('scrollTop', before)
+  await root.evaluate((el) => {
+    el.scrollTop -= 100
+    return new Promise((resolve) => setTimeout(resolve, 500))
+  })
+  await expect(root).toHaveJSProperty('scrollTop', before - 100)
   await component.getByTestId('grow').click()
   await settle(root)
-  await expect(root).toHaveJSProperty('scrollTop', before)
+  await expect(root).toHaveJSProperty('scrollTop', before - 100)
 })
 
 for (const action of ['resume', 'up', 'leave-range', 'growth'] as const) {

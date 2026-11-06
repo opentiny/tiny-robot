@@ -261,7 +261,7 @@ export function useAutoScroll(
 
   // 处理用户按下 End 键的滚动行为
   useEventListener('keydown', (e) => {
-    if (e.key !== 'End' || isFollowing.value || isEditableTarget(e.target)) return
+    if (e.key !== 'End' || e.defaultPrevented || isFollowing.value || isEditableTarget(e.target)) return
     const root = toValue(targetElement)
     if (
       !(root instanceof HTMLElement) ||

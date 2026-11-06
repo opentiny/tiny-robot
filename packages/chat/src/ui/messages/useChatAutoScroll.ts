@@ -107,37 +107,29 @@ export function useChatAutoScroll({
   }
 
   useEventListener(scrollRoot, 'scroll', () => checkRendererResume(true), { passive: true })
-  useEventListener(
-    scrollRoot,
-    'keydown',
-    (event) => {
-      if (event.key !== 'End' || event.defaultPrevented) return
-      const target = event.target as HTMLElement
-      if (target.isContentEditable || target.closest('input, textarea, select')) {
-        event.stopPropagation()
-        return
-      }
-      const root = scrollRoot()
-      if (!root || !root.contains(target)) return
-      let element: HTMLElement | null = target
-      while (element && element !== root) {
-        if (element.scrollHeight > element.clientHeight) {
-          const overflowY = getComputedStyle(element).overflowY
-          if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
-            event.preventDefault()
-            element.scrollTop = element.scrollHeight
-            event.stopPropagation()
-            return
-          }
+  useEventListener(scrollRoot, 'keydown', (event) => {
+    if (event.key !== 'End' || event.defaultPrevented) return
+    const target = event.target as HTMLElement
+    if (target.isContentEditable || target.closest('input, textarea, select')) return
+    const root = scrollRoot()
+    if (!root || !root.contains(target)) return
+    let element: HTMLElement | null = target
+    while (element && element !== root) {
+      if (element.scrollHeight > element.clientHeight) {
+        const overflowY = getComputedStyle(element).overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
+          event.preventDefault()
+          element.scrollTop = element.scrollHeight
+          event.stopPropagation()
+          return
         }
-        element = element.parentElement
       }
-      // 通过同一入口清除 Chat 层暂停，避免底层恢复后仍残留锚点状态。
-      scrollToBottom()
-      event.stopPropagation()
-    },
-    { capture: true },
-  )
+      element = element.parentElement
+    }
+    // 通过同一入口清除 Chat 层暂停，避免底层恢复后仍残留锚点状态。
+    scrollToBottom()
+    event.stopPropagation()
+  })
   useResizeObserver([contentRef, scrollRoot], () => checkRendererResume())
 
   watch(
