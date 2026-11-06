@@ -7,18 +7,22 @@ test('spaces built-in and custom renderers within one assistant bubble', async (
   await expect(box.locator('[data-type="markdown"]')).toHaveCount(2)
   await expect(box.getByText('Custom weather summary')).toBeVisible()
 
-  const gaps = await box.evaluate((el) => {
-    const gap = (before: Element, after: Element) =>
-      after.getBoundingClientRect().top - before.getBoundingClientRect().bottom
-    const children = Array.from(el.children)
-    const cards = Array.from(el.querySelectorAll('[data-type="tool-call"]'))
-    return {
-      blocks: children.slice(1).map((child, index) => gap(children[index], child)),
-      cards: cards.slice(1).map((card, index) => gap(cards[index], card)),
-    }
-  })
+  const measureGaps = () =>
+    box.evaluate((el) => {
+      const gap = (before: Element, after: Element) =>
+        after.getBoundingClientRect().top - before.getBoundingClientRect().bottom
+      const children = Array.from(el.children)
+      const cards = Array.from(el.querySelectorAll('[data-type="tool-call"]'))
+      return {
+        blocks: children.slice(1).map((child, index) => gap(children[index], child)),
+        cards: cards.slice(1).map((card, index) => gap(cards[index], card)),
+      }
+    })
 
-  expect(gaps).toEqual({ blocks: [8, 8, 8, 8], cards: [8] })
+  expect(await measureGaps()).toEqual({ blocks: [8, 8, 8, 8], cards: [8] })
+
+  await component.evaluate((el) => el.style.setProperty('--tr-bubble-box-content-gap', '16px'))
+  expect(await measureGaps()).toEqual({ blocks: [16, 16, 16, 16], cards: [8] })
 })
 
 test('honors the tool width override within the available bubble width', async ({ mount, page }) => {

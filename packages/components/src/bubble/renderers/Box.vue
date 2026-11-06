@@ -14,7 +14,7 @@ defineProps<BubbleBoxRendererProps>()
 .tr-bubble__box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--tr-bubble-box-content-gap, 8px);
   background-color: var(--tr-bubble-box-bg);
   padding: var(--tr-bubble-box-padding);
   border-radius: var(--tr-bubble-box-border-radius);

@@ -847,6 +847,7 @@ type BubbleMessageGroup = {
 | -------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | `--tr-bubble-box-bg`                   | Box 背景色                                                    | `var(--tr-container-bg-default)`                    |
 | `--tr-bubble-box-padding`              | Box 内边距                                                    | `8px 16px`                                          |
+| `--tr-bubble-box-content-gap`          | 默认 Box 内相邻内容块的垂直间距                               | `8px`                                               |
 | `--tr-bubble-box-border-radius`        | `shape="none"` 等场景使用的基础圆角                           | `0`                                                 |
 | `--tr-bubble-box-shadow`               | Box 阴影                                                      | `var(--tr-shadow-md)`                               |
 | `--tr-bubble-box-border`               | Box 边框                                                      | `none`                                              |
