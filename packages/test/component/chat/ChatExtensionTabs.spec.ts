@@ -88,6 +88,41 @@ test('accounts for the CSS main minimum and the current docked left sidebar widt
   await expect(page.getByRole('button', { name: '关闭详情' })).toBeVisible()
 })
 
+test('closes the left drawer when the open right dock becomes a drawer', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const props = { defaultRightAsideOpen: true, layout: { leftAside: { mode: 'drawer' as const, defaultOpen: true } } }
+  const component = await mount(ChatExtensionTabsFixture, { props: { ...props, floatingWidth: 1000 } })
+  const left = page.locator('.tr-layout__aside--left')
+  const right = page.locator('.tr-layout__aside--right')
+
+  await expect(left).toBeVisible()
+  await expect(right).toHaveClass(/tr-layout__aside--dock.*tr-layout__aside--expanded/)
+  await component.update({ props: { ...props, floatingWidth: 500 } })
+
+  await expect(right).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(left).toHaveClass(/tr-layout__aside--hidden/)
+  await expect(left).toBeHidden()
+  await page.getByRole('button', { name: '关闭详情' }).click()
+  await expect(right).toBeHidden()
+  await expect(left).toBeHidden()
+})
+
+test('keeps a controlled left drawer out of view while the right fallback drawer is open', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const props = { defaultRightAsideOpen: true, layout: { leftAside: { mode: 'drawer' as const, open: true } } }
+  const component = await mount(ChatExtensionTabsFixture, { props: { ...props, floatingWidth: 1000 } })
+  const left = page.locator('.tr-layout__aside--left')
+  const right = page.locator('.tr-layout__aside--right')
+
+  await expect(left).toBeVisible()
+  await component.update({ props: { ...props, floatingWidth: 500 } })
+
+  await expect(right).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(left).toBeHidden()
+  await page.getByRole('button', { name: '关闭详情' }).click()
+  await expect(left).toBeVisible()
+})
+
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture)
 

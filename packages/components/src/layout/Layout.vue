@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useElementSize } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
 import { provideLayoutContext } from './composables/useLayoutContext'
@@ -89,7 +89,7 @@ const isRightDrawerVisible = computed(() => hasRightAside.value && rightPanel.is
 const isDrawerVisible = computed(() => isLeftDrawerVisible.value || isRightDrawerVisible.value)
 
 function closeDrawers(): void {
-  if (isLeftDrawerVisible.value) {
+  if (isLeftDrawerVisible.value && !isLeftDrawerCovered.value) {
     leftPanel.setOpen(false)
   }
 
@@ -163,6 +163,13 @@ const rightDrawerFallback = computed(() => {
     !rightPanel.isOpen.value && rightRailWidth > 0 ? rightRailWidth : rightPanel.expandedWidth.value
   return leftDockWidth.value + mainMinWidth.value + requiredRightWidth > surfaceWidth.value
 })
+const isLeftDrawerCovered = computed(
+  () => rightDrawerFallback.value && isRightDrawerVisible.value && isLeftDrawerVisible.value,
+)
+
+watch(isLeftDrawerCovered, (covered) => {
+  if (covered) setDrawerOpen(rightPanel, leftPanel, true, hasLeftAside.value)
+})
 
 const surfaceClass = computed(() => ({
   'tr-layout--left-dock': hasLeftAside.value && leftPanel.isDock.value,
@@ -221,6 +228,7 @@ const surfaceStyle = computed<Record<string, string>>(() => {
     <div ref="bodyRef" class="tr-layout__body">
       <AsideContent
         v-if="hasLeftAside"
+        v-show="!isLeftDrawerCovered"
         :panel="leftPanel"
         :opposite-dock-width="rightDockWidth"
         @width-change="setLeftAsideWidth"

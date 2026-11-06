@@ -14,6 +14,7 @@ const props = withDefaults(
     withMcp?: boolean
     withSkills?: boolean
     floatingWidth?: number
+    defaultRightAsideOpen?: boolean
     layout?: ChatLayoutOptions
     mainMinWidth?: string
   }>(),
@@ -62,6 +63,7 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
       Open extension overlay
     </button>
     <ChatUI
+      :default-right-aside-open="props.defaultRightAsideOpen"
       :style="{ '--tr-layout-main-min-width': props.mainMinWidth }"
       :floating-state="
         props.floatingWidth
