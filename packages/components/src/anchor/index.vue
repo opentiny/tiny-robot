@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useEventListener, useResizeObserver } from '@vueuse/core'
-import { computed, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
+import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, toRefs, useAttrs, watch } from 'vue'
 import AnchorList from './components/AnchorList.vue'
 import AnchorOverlay from './components/AnchorOverlay.vue'
 import AnchorSearch from './components/AnchorSearch.vue'
@@ -14,7 +14,8 @@ import {
 } from './composables/index'
 import type { AnchorEmits, AnchorProps, AnchorSearchOptions, AnchorSlots } from './index.type'
 import { resolveAnchorScrollRoot } from './utils/scroll'
-import { queryAnchorTargetById } from './utils/target'
+import { queryAnchorItemById, queryAnchorTargetById } from './utils/target'
+import { revealAnchorItem } from './utils/reveal'
 
 defineOptions({
   name: 'TrAnchor',
@@ -24,6 +25,7 @@ defineOptions({
 const props = withDefaults(defineProps<AnchorProps>(), {
   placement: 'right',
   expandTrigger: 'hover',
+  hoverExpandDelay: 300,
   activeOffset: 120,
   tooltipDelay: 260,
   targetFeedbackDuration: 700,
@@ -92,8 +94,10 @@ const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && 
 const shouldAutoToggleExpanded = computed(() => expandTrigger.value === 'hover')
 const scrollEventTarget = computed(() => resolveAnchorScrollRoot(scrollContainer.value))
 const floating = useFloatingOffset({
+  expanded: controller.expanded,
   container: scrollContainer,
   host: hostRef,
+  searchCap: computed(() => overlayShellRef.value?.searchCapEl ?? null),
 })
 const targetFeedback = useTargetFeedback({
   resolveTarget: resolveTargetFromItems,
@@ -131,7 +135,137 @@ const interactions = useOverlayInteractions({
   setExpanded,
 })
 
+const navRef = computed(() => overlayShellRef.value?.navEl ?? null)
+const retainedHover = shallowRef<{ item: HTMLElement; x: number; y: number }>()
+const retainedHoverId = computed(() => {
+  const id = retainedHover.value?.item.dataset.itemId
+  return id !== undefined && controller.filteredItems.value.some((entry) => entry.item.id === id) ? id : undefined
+})
+
+useEventListener(
+  navRef,
+  ['wheel', 'touchmove'],
+  () => {
+    retainedHover.value = undefined
+    interactions.isBrowsing.value = true
+    floating.finishTransition()
+  },
+  { passive: true },
+)
+
+function revealCurrentItem() {
+  nextTick(() => {
+    const nav = navRef.value
+    const item = nav && active.activeId.value ? queryAnchorItemById(nav, active.activeId.value) : null
+    if (nav && item && !interactions.isBrowsing.value) revealAnchorItem(nav, item)
+  })
+}
+
+// Keep the current row visible when it or the available space changes. Measuring
+// the overlay during collapse must preserve the position the user browsed to.
+watch([active.activeId, navRef, floating.availableHeight, controller.filteredItems], revealCurrentItem, {
+  immediate: true,
+})
+
+let hoverEvent: MouseEvent | undefined
+const { start: startHoverExpansion, stop: stopHoverExpansion } = useTimeoutFn(
+  expandFromHover,
+  () => props.hoverExpandDelay,
+  { immediate: false },
+)
+
+function expandFromHover() {
+  const item = floating.pinItem(hoverEvent)
+  // Retain the hovered row if the available space changes while the panel opens.
+  if (hoverEvent && item?.contains(document.elementFromPoint(hoverEvent.clientX, hoverEvent.clientY))) {
+    retainedHover.value = { item, x: hoverEvent.clientX, y: hoverEvent.clientY }
+  }
+  hoverEvent = undefined
+  setExpanded(true)
+}
+
+function cancelHoverExpansion() {
+  stopHoverExpansion()
+  hoverEvent = undefined
+}
+
+watch([hostRef, expandTrigger], () => {
+  cancelHoverExpansion()
+  retainedHover.value = undefined
+})
+watch(controller.expanded, (isExpanded) => {
+  if (!isExpanded) retainedHover.value = undefined
+})
+
+function handleMouseEnter(event: MouseEvent) {
+  interactions.isBrowsing.value = true
+  if (!shouldAutoToggleExpanded.value || controller.expanded.value) return
+
+  hoverEvent = event
+  if (props.hoverExpandDelay <= 0) expandFromHover()
+  else startHoverExpansion()
+}
+
+function handleMouseMove(event: MouseEvent) {
+  if (hoverEvent) hoverEvent = event
+  const retained = retainedHover.value
+  if (retained && (event.clientX !== retained.x || event.clientY !== retained.y)) {
+    retainedHover.value = undefined
+  }
+}
+
+function handleMouseLeave() {
+  cancelHoverExpansion()
+  retainedHover.value = undefined
+  interactions.handleMouseLeave()
+}
+
+function handleRetainedHoverPress(event: MouseEvent) {
+  const retained = retainedHover.value
+  const id = retainedHoverId.value
+  if (
+    !retained ||
+    id === undefined ||
+    event.button !== 0 ||
+    event.detail === 0 ||
+    event.clientX !== retained.x ||
+    event.clientY !== retained.y ||
+    !navRef.value?.contains(retained.item) ||
+    retained.item.contains(event.target as Node)
+  ) {
+    return
+  }
+
+  // Prevent focus and activation from going to the row that moved under the pointer.
+  event.preventDefault()
+  if (event.type === 'click') {
+    event.stopPropagation()
+    retained.item.focus({ preventScroll: true })
+    handleSelect(id)
+  }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  retainedHover.value = undefined
+  interactions.handleKeydown(event)
+}
+
+function handleFocusIn(event: FocusEvent) {
+  cancelHoverExpansion()
+  interactions.isBrowsing.value = true
+  if (shouldAutoToggleExpanded.value) {
+    if (!controller.expanded.value) floating.pinItem(event)
+    setExpanded(true)
+  }
+}
+
 let scheduledFrame: number | null = null
+let shouldRevealFocus = false
+
+function scheduleResizeMeasure() {
+  shouldRevealFocus = true
+  scheduleMeasure()
+}
 
 function scheduleMeasure() {
   if (scheduledFrame !== null) {
@@ -142,6 +276,14 @@ function scheduleMeasure() {
     scheduledFrame = null
     active.sync()
     floating.sync()
+    if (shouldRevealFocus) {
+      shouldRevealFocus = false
+      nextTick(() => {
+        const nav = navRef.value
+        const focused = nav?.querySelector<HTMLElement>('.tr-anchor__item:focus')
+        if (nav && focused) revealAnchorItem(nav, focused)
+      })
+    }
   })
 }
 
@@ -149,12 +291,13 @@ useEventListener(scrollEventTarget, 'scroll', scheduleMeasure, { passive: true }
 useEventListener(scrollEventTarget, 'wheel', active.handleUserScrollIntent, { passive: true })
 useEventListener(scrollEventTarget, 'touchmove', active.handleUserScrollIntent, { passive: true })
 useEventListener('keydown', active.handleScrollIntentKeydown)
-useEventListener('resize', scheduleMeasure, { passive: true })
+useEventListener('scroll', scheduleMeasure, { passive: true, capture: true })
+useEventListener('resize', scheduleResizeMeasure, { passive: true })
 useResizeObserver(scrollContainer, () => {
-  scheduleMeasure()
+  scheduleResizeMeasure()
 })
 useResizeObserver(floating.resizeTargets, () => {
-  scheduleMeasure()
+  scheduleResizeMeasure()
 })
 
 watch(
@@ -199,11 +342,16 @@ onBeforeUnmount(() => {
     :expanded="controller.expanded.value"
     :placement="placement"
     :floating-offset="floating.offset.value"
-    @mouseenter="shouldAutoToggleExpanded && setExpanded(true)"
-    @mouseleave="interactions.handleMouseLeave"
-    @focusin="shouldAutoToggleExpanded && setExpanded(true)"
+    :max-height="floating.maxHeight.value"
+    :search-below="floating.searchBelow.value"
+    @mouseenter="handleMouseEnter"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
+    @mousedown.capture="handleRetainedHoverPress"
+    @click.capture="handleRetainedHoverPress"
+    @focusin="handleFocusIn"
     @focusout="interactions.handleFocusOut"
-    @keydown="interactions.handleKeydown"
+    @keydown="handleKeydown"
   >
     <template v-if="hasSearchSection" #search>
       <slot
@@ -225,6 +373,7 @@ onBeforeUnmount(() => {
       :active-id="active.activeId.value"
       :expanded="controller.expanded.value"
       :highlighted-index="controller.highlightedIndex.value"
+      :retained-hover-id="retainedHoverId"
       :placement="placement"
       :tooltip-delay="tooltipDelay"
       :empty-text="emptyText"

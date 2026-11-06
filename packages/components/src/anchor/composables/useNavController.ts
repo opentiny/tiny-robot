@@ -99,16 +99,18 @@ export function useNavController(options: AnchorControllerOptions) {
     return filteredItems.value[highlightedIndex.value]?.item
   }
 
-  function handleNavigationKeydown(event: KeyboardEvent) {
+  function handleNavigationKeydown(event: KeyboardEvent, focusedId?: string) {
+    const focusedIndex = filteredItems.value.findIndex((entry) => entry.item.id === focusedId)
+    const fromIndex = focusedIndex >= 0 ? focusedIndex : highlightedIndex.value
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      clampHighlightedIndex(highlightedIndex.value + 1)
+      clampHighlightedIndex(fromIndex + 1)
       return true
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
-      clampHighlightedIndex(highlightedIndex.value - 1)
+      clampHighlightedIndex(fromIndex - 1)
       return true
     }
 
