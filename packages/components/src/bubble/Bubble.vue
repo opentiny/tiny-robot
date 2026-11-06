@@ -164,9 +164,10 @@ if (!isInBubbleList) {
 
 .tr-bubble__body {
   flex: 1;
+  min-width: 0;
 
   display: grid;
-  grid-template-columns: auto 1fr; /* 左侧头像，右侧内容 */
+  grid-template-columns: auto minmax(0, 1fr); /* 左侧头像，右侧内容 */
   grid-template-rows: auto auto;
 }
 
@@ -194,7 +195,7 @@ if (!isInBubbleList) {
 
 [data-placement='end'] {
   .tr-bubble__body {
-    grid-template-columns: 1fr auto; /* 左侧内容，右侧头像 */
+    grid-template-columns: minmax(0, 1fr) auto; /* 左侧内容，右侧头像 */
 
     & > * {
       justify-self: end;

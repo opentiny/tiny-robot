@@ -847,6 +847,7 @@ type BubbleMessageGroup = {
 | -------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | `--tr-bubble-box-bg`                   | Box 背景色                                                    | `var(--tr-container-bg-default)`                    |
 | `--tr-bubble-box-padding`              | Box 内边距                                                    | `8px 16px`                                          |
+| `--tr-bubble-box-content-gap`          | 默认 Box 内相邻内容块的垂直间距                               | `8px`                                               |
 | `--tr-bubble-box-border-radius`        | `shape="none"` 等场景使用的基础圆角                           | `0`                                                 |
 | `--tr-bubble-box-shadow`               | Box 阴影                                                      | `var(--tr-shadow-md)`                               |
 | `--tr-bubble-box-border`               | Box 边框                                                      | `none`                                              |
@@ -892,7 +893,7 @@ type BubbleMessageGroup = {
 | ---------------------------------- | ---------------------- | ---------------------------------- |
 | `--tr-bubble-tool-call-bg`         | 工具调用背景色         | `var(--tr-container-bg-default-2)` |
 | `--tr-bubble-tool-call-space-y`    | 工具调用之间的垂直间距 | `8px`                              |
-| `--tr-bubble-tool-call-min-width`  | 工具调用最小宽度       | `unset`                            |
+| `--tr-bubble-tool-call-min-width`  | 工具调用最小宽度       | `280px`                           |
 | `--tr-bubble-tool-call-max-width`  | 工具调用最大宽度       | `unset`                            |
 | `--tr-bubble-tool-call-max-height` | 工具调用详情最大高度   | `300px`                            |
 | `--tr-bubble-tool-key-color`       | JSON 键名颜色          | 浅色 `#922`；深色 `#ff6b6b`        |
