@@ -333,8 +333,17 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   }
 
   async function clearActiveConversation() {
-    invalidateDraftForNavigation()
-    await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+    const actionRuntime = runtime.value
+    input.invalidate()
+
+    try {
+      await actionRuntime.actions.clearActiveConversation()
+      if (runtime.value === actionRuntime) {
+        invalidateDraftForNavigation()
+      }
+    } catch (error) {
+      options.onActionError({ action: 'clear-active-conversation', payload: undefined, error })
+    }
   }
 
   async function createConversation() {
