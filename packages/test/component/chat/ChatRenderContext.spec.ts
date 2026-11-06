@@ -183,7 +183,11 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(target).toHaveCSS('animation-duration', '1.8s')
     await expect(target).toHaveCSS('animation-timing-function', 'ease-out')
     await expect(target).toHaveCSS('outline-style', 'none')
-    const frames = await target.evaluate((el) => el.getAnimations()[0].effect!.getKeyframes())
+    const frames = await target.evaluate((el) => {
+      const effect = el.getAnimations()[0]?.effect
+      if (!(effect instanceof KeyframeEffect)) throw new Error('Expected a keyframe animation on the anchor target')
+      return effect.getKeyframes()
+    })
     expect(frames.map((frame) => frame.offset)).toEqual([0, 0.25, 0.45, 0.65, 0.85, 1])
     expect(frames[0].backgroundColor).not.toBe(restingColor)
     expect(frames[2].backgroundColor).toBe(restingColor)

@@ -7,6 +7,7 @@ import type {
   ChatLabels,
   ChatMcpView,
   ChatModelView,
+  ChatRequestView,
   ChatSenderSlotProps,
   ChatSenderView,
   ChatSendPayload,
@@ -16,6 +17,7 @@ import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../res
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
+  request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
@@ -85,6 +87,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
       <ChatSender
         ref="senderRef"
         :sender="props.sender"
+        :request="props.request"
         :value="props.value"
         :sender-options="props.senderOptions"
         :labels="props.labels"
