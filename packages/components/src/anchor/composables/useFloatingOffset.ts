@@ -5,6 +5,9 @@ import { revealAnchorItem } from '../utils/reveal'
 export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
   const offset = ref(0)
   const availableHeight = ref<number>()
+  const maxHeight = ref<number>()
+  const searchBelow = ref(false)
+  let openingListHeight: number | undefined
   let transitionFrame: number | null = null
   let pinnedItem: HTMLElement | null = null
   let pinnedCenter = 0
@@ -22,10 +25,10 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
 
   const resizeTargets = computed(() => {
     const { hostEl, floatingEl } = getFloatingNodes()
-    return [hostEl, floatingEl].filter((el): el is HTMLElement => Boolean(el))
+    return [hostEl, floatingEl, options.searchCap.value].filter((el): el is HTMLElement => Boolean(el))
   })
 
-  // Capture before changing density. Use the actual hovered/focused button, not its index:
+  // Capture before opening or closing. Use the actual hovered/focused button, not its index:
   // filtering or changing the item set must not transfer the pin to another item.
   function pinItem(event?: MouseEvent | FocusEvent) {
     const { hostEl, navEl } = getFloatingNodes()
@@ -65,10 +68,40 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
     availableHeight.value = Math.max(0, height - gap * 2)
 
     const floating = floatingEl.getBoundingClientRect()
-    const floatingHeight = Math.min(floating.height, availableHeight.value)
-    offset.value = top - frame.top + (height - floatingHeight) / 2
+    const searchCap = options.searchCap.value
+    const surface = navEl?.parentElement
+    const wasSearchBelow = searchBelow.value
+    if (searchCap && navEl && surface) {
+      const searchHeight = searchCap.getBoundingClientRect().height
+      const listHeight =
+        navEl.scrollHeight + surface.getBoundingClientRect().height - navEl.getBoundingClientRect().height
+      if (openingListHeight === undefined) {
+        openingListHeight = listHeight
+        const roomAbove = (availableHeight.value - listHeight) / 2
+        searchBelow.value = roomAbove < searchHeight && Boolean(pinnedItem) && pinnedCenter < top + height / 2
+      }
 
-    if (transitionUntil > 0 && pinnedItem && navEl?.contains(pinnedItem)) {
+      // Keep the search box at its opening edge while filtering. If it cannot fit
+      // outside the centered list, take the extra space from the far end.
+      const inset = Math.max(0, (availableHeight.value - openingListHeight) / 2)
+      const outerInset = Math.max(0, inset - searchHeight)
+      maxHeight.value = availableHeight.value - inset - outerInset
+      const expandedHeight = Math.min(listHeight + searchHeight, maxHeight.value)
+      const expandedTop = searchBelow.value ? bottom - gap - outerInset - expandedHeight : top + gap + outerInset
+      offset.value = expandedTop - frame.top
+    } else {
+      openingListHeight = undefined
+      searchBelow.value = false
+      maxHeight.value = availableHeight.value
+      offset.value = top - frame.top + (height - Math.min(floating.height, availableHeight.value)) / 2
+    }
+
+    if (
+      transitionUntil > 0 &&
+      pinnedItem &&
+      navEl?.contains(pinnedItem) &&
+      (!searchCap || wasSearchBelow === searchBelow.value)
+    ) {
       const item = pinnedItem.getBoundingClientRect()
       const localCenter = item.top + item.height / 2 - floating.top
       // Keep the hovered item near the pointer using the directory's own scroll range.
@@ -82,6 +115,8 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
     pinnedItem = null
     transitionUntil = 0
   }
+
+  watch(options.searchCap, sync, { flush: 'post' })
 
   watch(
     options.expanded,
@@ -111,5 +146,5 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
 
   onBeforeUnmount(finishTransition)
 
-  return { offset, availableHeight, sync, resizeTargets, pinItem, finishTransition }
+  return { offset, availableHeight, maxHeight, searchBelow, sync, resizeTargets, pinItem, finishTransition }
 }

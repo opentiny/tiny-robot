@@ -178,6 +178,47 @@ test('manual expansion, search and resize retain a bounded keyboard scrollport',
   expect(await component.getByTestId('frame').evaluate((el) => el.scrollTop)).toBe(0)
 })
 
+for (const { count, height, index } of [
+  { count: 4, height: 400, index: 0 },
+  { count: 4, height: 400, index: 3 },
+  { count: 4, height: 180, index: 0 },
+  { count: 22, height: 240, index: 0 },
+  { count: 22, height: 240, index: 21 },
+]) {
+  test(`keeps search from displacing hovered item ${index + 1} in a ${count}-item directory at ${height}px`, async ({
+    mount,
+    page,
+  }) => {
+    const component = await mount(AnchorFixture, { props: { count, height, activeIndex: index, search: true } })
+    const row = component.locator(buttonSelector).nth(index)
+    await row.hover()
+    const before = (await row.boundingBox())!
+    const point = { x: before.x + before.width - 6, y: before.y + before.height / 2 }
+    await page.mouse.move(point.x, point.y)
+    const search = component.getByRole('searchbox')
+    await expect(search).toBeVisible()
+    await expect
+      .poll(() =>
+        row.evaluate(
+          (el, { x, y }) =>
+            el.contains(document.elementFromPoint(x, y)) &&
+            Math.abs(el.getBoundingClientRect().y - (y - el.clientHeight / 2)) < 2,
+          point,
+        ),
+      )
+      .toBe(true)
+    await page.mouse.click(point.x, point.y)
+    await expect(component.getByTestId('selected')).toHaveText(`item-${index}`)
+
+    await search.click()
+    await expect(search).toBeFocused()
+    const searchTop = (await search.boundingBox())!.y
+    await search.fill('Question 2:')
+    await expect(component.locator(buttonSelector)).toHaveCount(1)
+    await expect.poll(async () => (await search.boundingBox())!.y).toBeCloseTo(searchTop, 0)
+  })
+}
+
 test('keeps a lower hovered row under the pointer and collapses on exit after selection', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 22, height: 440, activeIndex: 15 } })
   const anchor = component.locator('.tr-anchor')
@@ -203,11 +244,11 @@ test('keeps a lower hovered row under the pointer and collapses on exit after se
 
 test('shows truncated-label tooltips outside the directory after expansion scrolls it', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 22, height: 240, search: true } })
-  const button = component.locator(buttonSelector).nth(2)
+  const button = component.locator(buttonSelector).nth(4)
   await button.hover()
   await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   const tooltip = component.getByRole('tooltip')
-  await expect(tooltip).toHaveText('Question 3: 发布检查内容、验证记录与回退方案')
+  await expect(tooltip).toHaveText('Question 5: 发布检查内容、验证记录与回退方案')
   const panel = (await component.locator('.tr-anchor__panel').boundingBox())!
   const tip = (await tooltip.boundingBox())!
   expect(tip.x + tip.width).toBeLessThan(panel.x)

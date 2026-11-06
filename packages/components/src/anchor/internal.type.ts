@@ -38,13 +38,15 @@ export interface AnchorOverlayProps {
   expanded: boolean
   placement: AnchorPlacement
   floatingOffset?: number
-  availableHeight?: number
+  maxHeight?: number
+  searchBelow?: boolean
 }
 
 export interface AnchorOverlayExpose {
   hostEl: HTMLElement | null
   overlayEl: HTMLElement | null
   navEl: HTMLElement | null
+  searchCapEl: HTMLElement | null
 }
 
 export interface AnchorListProps {
@@ -101,6 +103,7 @@ export interface AnchorFloatingOffsetOptions {
   expanded: Ref<boolean>
   container: Ref<HTMLElement | null | undefined>
   host: Ref<HTMLElement | null | undefined>
+  searchCap: Ref<HTMLElement | null>
 }
 
 export interface AnchorOverlayInteractionsOptions {

@@ -97,6 +97,7 @@ const floating = useFloatingOffset({
   expanded: controller.expanded,
   container: scrollContainer,
   host: hostRef,
+  searchCap: computed(() => overlayShellRef.value?.searchCapEl ?? null),
 })
 const targetFeedback = useTargetFeedback({
   resolveTarget: resolveTargetFromItems,
@@ -175,7 +176,7 @@ const { start: startHoverExpansion, stop: stopHoverExpansion } = useTimeoutFn(
 
 function expandFromHover() {
   const item = floating.pinItem(hoverEvent)
-  // A centered panel can change which row is under a stationary pointer as the rows grow.
+  // Retain the hovered row if the available space changes while the panel opens.
   if (hoverEvent && item?.contains(document.elementFromPoint(hoverEvent.clientX, hoverEvent.clientY))) {
     retainedHover.value = { item, x: hoverEvent.clientX, y: hoverEvent.clientY }
   }
@@ -341,7 +342,8 @@ onBeforeUnmount(() => {
     :expanded="controller.expanded.value"
     :placement="placement"
     :floating-offset="floating.offset.value"
-    :available-height="floating.availableHeight.value"
+    :max-height="floating.maxHeight.value"
+    :search-below="floating.searchBelow.value"
     @mouseenter="handleMouseEnter"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"

@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<AnchorOverlayProps>(), {
 const hostEl = ref<HTMLElement | null>(null)
 const overlayEl = ref<HTMLElement | null>(null)
 const navEl = ref<HTMLElement | null>(null)
+const searchCapEl = ref<HTMLElement | null>(null)
 
 const rootClass = computed(() => [
   'tr-anchor',
@@ -22,20 +23,21 @@ const rootClass = computed(() => [
 
 const floatingStyle = computed(() => ({
   transform: `translate3d(0, ${props.floatingOffset}px, 0)`,
-  maxHeight: props.availableHeight === undefined ? '100%' : `${props.availableHeight}px`,
+  maxHeight: props.maxHeight === undefined ? '100%' : `${props.maxHeight}px`,
 }))
 
 defineExpose({
   hostEl,
   overlayEl,
   navEl,
+  searchCapEl,
 })
 </script>
 
 <template>
   <div ref="hostEl" :class="rootClass">
     <div ref="overlayEl" class="tr-anchor__overlay" :style="floatingStyle" data-testid="anchor-overlay">
-      <div v-if="$slots.search" class="tr-anchor__search-cap">
+      <div v-if="$slots.search" ref="searchCapEl" class="tr-anchor__search-cap" :class="{ 'is-below': searchBelow }">
         <slot name="search" />
       </div>
 
@@ -118,6 +120,11 @@ defineExpose({
   &__search-cap {
     flex-shrink: 0;
     padding: 10px 10px 4px;
+
+    &.is-below {
+      order: 1;
+      padding: 4px 10px 10px;
+    }
   }
 
   &__panel {
