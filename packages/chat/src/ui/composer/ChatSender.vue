@@ -50,6 +50,7 @@ const emit = defineEmits<{
 
 defineSlots<{
   'sender-header'?: () => unknown
+  'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: (scope: SenderSlotScope) => unknown
@@ -187,6 +188,9 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
   >
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
+    </template>
+    <template v-if="$slots['input-prefix']" #input-prefix>
+      <slot name="input-prefix" />
     </template>
     <template v-if="$slots['sender-content']" #content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />

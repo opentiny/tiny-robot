@@ -359,6 +359,9 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['sender-header']" #sender-header>
       <slot name="sender-header" />
     </template>
+    <template v-if="slots['input-prefix']" #input-prefix>
+      <slot name="input-prefix" />
+    </template>
     <template v-if="slots['sender-content']" #sender-content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />
     </template>

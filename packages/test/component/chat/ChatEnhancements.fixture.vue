@@ -135,6 +135,7 @@ function handleSenderDrop({ event }: SenderDragPayload) {
       <template v-if="present" #sender-header
         ><span v-if="visible" data-testid="tag">{{ label }}</span></template
       >
+      <template v-if="present" #input-prefix><span data-testid="input-prefix">Image</span></template>
       <template v-if="present" #sender-footer="{ insert, disabled }">
         <span data-testid="footer-tag">{{ label }}</span>
         <button data-testid="footer-insert" :disabled="disabled" @mousedown.prevent @click="insert('footer input')">
