@@ -199,7 +199,7 @@ watch([() => props.expanded, isHovered], scheduleTooltipVisibility)
     display: grid;
     align-items: center;
     column-gap: 0;
-    height: var(--tr-anchor-item-height-collapsed);
+    height: var(--tr-anchor-item-height);
     padding: 0 var(--tr-anchor-item-padding-inline);
     border: 0;
     border-radius: var(--tr-anchor-item-radius);
@@ -208,7 +208,6 @@ watch([() => props.expanded, isHovered], scheduleTooltipVisibility)
     cursor: pointer;
     text-align: left;
     transition:
-      height var(--tr-anchor-transition-duration) ease,
       background-color 0.18s ease,
       color 0.18s ease;
 
@@ -240,7 +239,6 @@ watch([() => props.expanded, isHovered], scheduleTooltipVisibility)
   }
 
   &__list-item.is-expanded &__item {
-    height: var(--tr-anchor-item-height-expanded);
     padding-inline: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
     column-gap: 8px;
   }

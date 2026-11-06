@@ -45,7 +45,8 @@ for (const { width, messageCount = 44, contentWidthLimited = false } of [
 
     const buttons = component.locator('.tr-anchor__item')
     await buttons.first().hover()
-    await expect(buttons.first()).toHaveCSS('height', '32px')
+    await expect(anchor).toHaveClass(/is-expanded/)
+    await expect.poll(async () => (await directory.boundingBox())!.width).toBeGreaterThan(compact.width)
     expect(await messages.evaluate((el) => el.clientWidth)).toBe(initialWidth)
     expect(await messages.evaluate((el) => el.scrollHeight)).toBe(initialContentHeight)
     await expect.poll(centerOffset).toBeLessThanOrEqual(1)

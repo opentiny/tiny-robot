@@ -76,6 +76,13 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
     }
   }
 
+  function finishTransition() {
+    if (transitionFrame !== null) cancelAnimationFrame(transitionFrame)
+    transitionFrame = null
+    pinnedItem = null
+    transitionUntil = 0
+  }
+
   watch(
     options.expanded,
     (expanded) => {
@@ -84,6 +91,7 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
       // Slightly longer than the CSS transition, including the final layout frame.
       transitionUntil = performance.now() + 240
       const tick = () => {
+        if (!transitionUntil) return
         sync()
         const { navEl } = getFloatingNodes()
         const focused = navEl?.querySelector<HTMLElement>('.tr-anchor__item:focus')
@@ -91,9 +99,7 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
         if (performance.now() < transitionUntil) {
           transitionFrame = requestAnimationFrame(tick)
         } else {
-          transitionFrame = null
-          pinnedItem = null
-          transitionUntil = 0
+          finishTransition()
         }
       }
       nextTick(() => {
@@ -103,9 +109,7 @@ export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
     { flush: 'sync' },
   )
 
-  onBeforeUnmount(() => {
-    if (transitionFrame !== null) cancelAnimationFrame(transitionFrame)
-  })
+  onBeforeUnmount(finishTransition)
 
-  return { offset, availableHeight, sync, resizeTargets, pinItem }
+  return { offset, availableHeight, sync, resizeTargets, pinItem, finishTransition }
 }

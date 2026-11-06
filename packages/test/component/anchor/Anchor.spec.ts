@@ -9,6 +9,7 @@ for (const index of [0, 3]) {
     page,
   }) => {
     const component = await mount(AnchorFixture, { props: { count: 4, height: 400 } })
+    const anchor = component.locator('.tr-anchor')
     const row = component.locator(buttonSelector).nth(index)
     const panel = component.getByTestId('anchor-overlay')
     const frame = (await component.getByTestId('frame').boundingBox())!
@@ -16,14 +17,16 @@ for (const index of [0, 3]) {
       const box = (await panel.boundingBox())!
       expect(Math.abs(box.y + box.height / 2 - (frame.y + frame.height / 2))).toBeLessThan(2)
     }
-    await expect(row).toHaveCSS('height', '16px')
+    await expect(row).toHaveCSS('height', '32px')
     await expectCentered()
     const box = (await row.boundingBox())!
     const x = box.x + box.width - 6
     const y = box.y + box.height / 2
     await page.mouse.move(x, y)
-    await expect(row).toHaveCSS('height', '32px')
+    await expect(anchor).toHaveClass(/is-expanded/)
     await expectCentered()
+    const expanded = (await row.boundingBox())!
+    expect(Math.abs(expanded.y + expanded.height / 2 - y)).toBeLessThan(2)
     await page.mouse.click(x, y)
     await expect(component.getByTestId('selected')).toHaveText(`item-${index}`)
     await expect(row).toBeFocused()
@@ -32,25 +35,24 @@ for (const index of [0, 3]) {
     await neighbor.click()
     await expect(component.getByTestId('selected')).toHaveText(index === 0 ? 'item-1' : 'item-2')
     await page.mouse.move(750, 10)
-    await expect(row).toHaveCSS('height', '16px')
+    await expect(anchor).not.toHaveClass(/is-expanded/)
     await expectCentered()
   })
 }
 
-test('animates stable buttons from 16px to 32px without scaling labels or markers', async ({ mount, page }) => {
+test('reveals labels without moving or scaling the markers', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 3, height: 400 } })
   const buttons = component.locator(buttonSelector)
-  await expect(buttons.first()).toHaveCSS('height', '16px')
-  const original = await buttons.nth(1).elementHandle()
+  await expect(buttons.first()).toHaveCSS('height', '32px')
   const marker = component.locator('.tr-anchor__marker').nth(1)
   const markerBefore = await marker.boundingBox()
   const rect = (await buttons.nth(1).boundingBox())!
   await page.mouse.move(rect.x + rect.width - 6, rect.y + rect.height / 2)
-  await expect(buttons.first()).toHaveCSS('height', '32px')
-  expect(await original!.evaluate((el) => el === document.querySelectorAll('.tr-anchor__item')[1])).toBe(true)
   await expect(component.locator('.tr-anchor__item-label').nth(1)).toHaveCSS('opacity', '1')
   await expect(component.locator('.tr-anchor__item-label').nth(1)).toHaveCSS('transform', 'none')
-  expect((await marker.boundingBox())!.height).toBe(markerBefore!.height)
+  const markerAfter = (await marker.boundingBox())!
+  expect(markerAfter.height).toBe(markerBefore!.height)
+  expect(markerAfter.x).toBeCloseTo(markerBefore!.x, 0)
   const after = (await buttons.nth(1).boundingBox())!
   expect(Math.abs(after.y + after.height / 2 - (rect.y + rect.height / 2))).toBeLessThan(3)
   await buttons.nth(1).click()
@@ -63,7 +65,7 @@ for (const count of [22, 120]) {
     const panel = component.locator('.tr-anchor__panel')
     const buttons = component.locator(buttonSelector)
     await buttons.first().hover()
-    await expect(buttons.first()).toHaveCSS('height', '32px')
+    await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
     await expect(panel).toHaveCSS('scrollbar-width', 'none')
     const bounds = (await panel.boundingBox())!
     const frame = (await component.getByTestId('frame').boundingBox())!
@@ -114,7 +116,7 @@ test('keeps the current row near its latest position when collapsing after wheel
   const scrollTop = () => panel.evaluate((el) => el.scrollTop)
 
   await toggle.click()
-  await expect(current).toHaveCSS('height', '32px')
+  await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   // Let the floating position finish settling before creating a new focus pin.
   await page.waitForTimeout(250)
   await current.focus()
@@ -125,14 +127,14 @@ test('keeps the current row near its latest position when collapsing after wheel
   const afterWheel = await center()
 
   await toggle.click()
-  await expect(current).toHaveCSS('height', '16px')
+  await expect(component.locator('.tr-anchor')).not.toHaveClass(/is-expanded/)
   await expect.poll(async () => Math.abs((await center()) - afterWheel)).toBeLessThan(3)
 })
 
 test('manual expansion, search and resize retain a bounded keyboard scrollport', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 60, manual: true, search: true, placement: 'left' } })
   await component.getByTestId('toggle').click()
-  await expect(component.locator(buttonSelector).first()).toHaveCSS('height', '32px')
+  await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   await component.update({ props: { count: 60, manual: true, search: true, placement: 'left', height: 160 } })
   await component.locator(buttonSelector).first().focus()
   await page.keyboard.press('End')
@@ -149,36 +151,33 @@ test('manual expansion, search and resize retain a bounded keyboard scrollport',
 })
 
 test('keeps a lower hovered row under the pointer and collapses on exit after selection', async ({ mount, page }) => {
-  const component = await mount(AnchorFixture, { props: { count: 22, height: 440 } })
+  const component = await mount(AnchorFixture, { props: { count: 22, height: 440, activeIndex: 15 } })
+  const anchor = component.locator('.tr-anchor')
+  const panel = component.locator('.tr-anchor__panel')
   const button = component.locator(buttonSelector).nth(15)
-  await expect(button).toHaveCSS('height', '16px')
+  await expect.poll(() => panel.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
   const before = (await button.boundingBox())!
   const x = before.x + before.width - 6
   const y = before.y + before.height / 2
   await page.mouse.move(x, y)
-  await expect(button).toHaveCSS('height', '32px')
+  await expect(anchor).toHaveClass(/is-expanded/)
   const after = (await button.boundingBox())!
   expect(Math.abs(after.y + after.height / 2 - y)).toBeLessThan(3)
   await page.mouse.click(x, y)
   await expect(component.getByTestId('selected')).toHaveText('item-15')
   await page.mouse.move(10, 10)
-  await expect(button).toHaveCSS('height', '16px')
+  await expect(anchor).not.toHaveClass(/is-expanded/)
   await button.hover()
   await page.mouse.move(10, 10)
   await button.hover()
-  await expect(button).toHaveCSS('height', '32px')
+  await expect(anchor).toHaveClass(/is-expanded/)
 })
 
 test('shows truncated-label tooltips outside the directory after expansion scrolls it', async ({ mount, page }) => {
-  const component = await mount(AnchorFixture, { props: { count: 22, height: 240 } })
+  const component = await mount(AnchorFixture, { props: { count: 22, height: 240, search: true } })
   const button = component.locator(buttonSelector).nth(2)
-  // Keep row heights animating after the label finishes, so expansion scrolls after the tooltip can appear.
-  await page.addStyleTag({
-    content:
-      '.tr-anchor__item { transition-duration: 230ms !important } .tr-anchor__item-label { transition-duration: 70ms !important }',
-  })
   await button.hover()
-  await expect(button).toHaveCSS('height', '32px')
+  await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   const tooltip = component.getByRole('tooltip')
   await expect(tooltip).toHaveText('Question 3: 发布检查内容、验证记录与回退方案')
   const panel = (await component.locator('.tr-anchor__panel').boundingBox())!
@@ -199,7 +198,7 @@ test('uses the current focus position when a manually controlled directory expan
   }
 
   await focused.focus()
-  await expect(focused).toHaveCSS('height', '16px')
+  await expect(component.locator('.tr-anchor')).not.toHaveClass(/is-expanded/)
   const initial = await center()
   await frame.evaluate((el) => {
     el.style.marginTop = '90px'
@@ -210,7 +209,7 @@ test('uses the current focus position when a manually controlled directory expan
   // Change the controlled state while keyboard focus is still in the directory.
   await component.getByTestId('toggle').dispatchEvent('click')
   await expect(focused).toBeFocused()
-  await expect(focused).toHaveCSS('height', '32px')
+  await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   await expect.poll(async () => Math.abs((await center()) - before)).toBeLessThan(3)
 })
 
@@ -247,7 +246,7 @@ test('keyboard activation follows the focused item while the message current ite
   await component.update({ props: { count: 22, activeIndex: 10 } })
   await page.keyboard.press('Escape')
   await expect(buttons.nth(2)).toBeFocused()
-  await expect(buttons.nth(2)).toHaveCSS('height', '16px')
+  await expect(component.locator('.tr-anchor')).not.toHaveClass(/is-expanded/)
 })
 
 test('keeps the focused row in place on Escape when the current row precedes it', async ({ mount, page }) => {
@@ -261,7 +260,7 @@ test('keeps the focused row in place on Escape when the current row precedes it'
   }
 
   await buttons.first().focus()
-  await expect(buttons.first()).toHaveCSS('height', '32px')
+  await expect(component.locator('.tr-anchor')).toHaveClass(/is-expanded/)
   for (let index = 0; index < 15; index++) await page.keyboard.press('ArrowDown')
   await expect(focused).toBeFocused()
   await expect(component.locator('[aria-current="location"]')).toHaveAttribute('data-item-id', 'item-0')
@@ -275,7 +274,7 @@ test('keeps the focused row in place on Escape when the current row precedes it'
 
   await page.keyboard.press('Escape')
   await expect(focused).toBeFocused()
-  await expect(focused).toHaveCSS('height', '16px')
+  await expect(component.locator('.tr-anchor')).not.toHaveClass(/is-expanded/)
   await expect.poll(async () => Math.abs((await center()) - before)).toBeLessThan(3)
 })
 

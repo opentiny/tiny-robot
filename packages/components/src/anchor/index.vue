@@ -147,6 +147,7 @@ useEventListener(
   () => {
     retainedHover.value = undefined
     interactions.isBrowsing.value = true
+    floating.finishTransition()
   },
   { passive: true },
 )
