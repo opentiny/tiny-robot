@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type { ChatRequestState } from '../types'
 import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
+import { useChatRuntimeAdapter } from '../composables/useChatRuntimeAdapter'
 
 function createConversation(id: string, canStart = true) {
   return {
@@ -56,6 +57,30 @@ function createHarness(initialId = 'a', canStart = true) {
 }
 
 describe('useChatRuntimeFromConversation', () => {
+  it('starts a new conversation only when a non-empty first message is sent', async () => {
+    const harness = createHarness('existing')
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+
+    adapter.setInputValue('draft in existing conversation')
+    await adapter.clearActiveConversation()
+    expect(adapter.inputValue.value).toBe('')
+    adapter.setInputValue('draft without active conversation')
+    await adapter.clearActiveConversation()
+    expect(adapter.inputValue.value).toBe('')
+    expect(runtime.activeConversation.value).toBeNull()
+    expect(harness.api.createConversation).not.toHaveBeenCalled()
+    expect(runtime.conversations.value).toHaveLength(1)
+    await expect(runtime.actions.send({ text: '  ' })).resolves.toBe(false)
+    expect(harness.api.createConversation).not.toHaveBeenCalled()
+
+    await expect(runtime.actions.send({ text: 'first message' })).resolves.toBe(true)
+    expect(harness.api.createConversation).toHaveBeenCalledOnce()
+    expect(runtime.conversations.value).toHaveLength(2)
+    expect(harness.items.has('existing')).toBe(true)
+    expect(runtime.activeConversation.value?.title).toBe('first message')
+  })
+
   it('uses false as the only custom-send rejection and propagates errors', async () => {
     for (const result of [true, undefined, false] as const) {
       const harness = createHarness()
@@ -146,6 +171,25 @@ describe('useChatRuntimeFromConversation', () => {
     expect(harness.items.get('a')?.engine.send).toHaveBeenCalledWith(
       expect.objectContaining({ externalPayloads: payloads }),
     )
+  })
+
+  it('sends attachment-only payloads through the default Kit runtime', async () => {
+    const harness = createHarness()
+    const payloads = [{ source: 'attachment', payload: { id: 'image-1' } }]
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(runtime.actions.send({ text: '  ', externalPayloads: payloads })).resolves.toBe(true)
+    expect(harness.items.get('a')?.engine.send).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'user', content: '', externalPayloads: payloads }),
+    )
+  })
+
+  it('rejects empty payloads when no attachment or custom sender is provided', async () => {
+    const harness = createHarness()
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(runtime.actions.send({ text: '  ' })).resolves.toBe(false)
+    expect(harness.items.get('a')?.engine.send).not.toHaveBeenCalled()
   })
 
   it('honors beforeSend branches and releases an occupied target on every exit', async () => {

@@ -57,9 +57,10 @@ TinyRobot separates project setup, chat pages, UI components, and the data layer
 #### Create a New Project
 
 Use the CLI to create a Vue project with Chat capabilities:
+The `basic` template is used by default when `--template` is omitted.
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic
+npx @opentiny/tiny-robot-cli create my-app
 cd my-app
 pnpm install
 pnpm dev

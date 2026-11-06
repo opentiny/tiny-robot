@@ -11,6 +11,7 @@ import type {
   ChatLabels,
   ChatMcpView,
   ChatModelView,
+  ChatRequestView,
   ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
@@ -20,6 +21,7 @@ import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../res
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
+  request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
@@ -48,6 +50,7 @@ const emit = defineEmits<{
 
 defineSlots<{
   'sender-header'?: () => unknown
+  'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: (scope: SenderSlotScope) => unknown
@@ -96,11 +99,11 @@ const toolbarItems = computed(() => {
 
 const senderProps = computed(() => {
   const { toolbar: _toolbar, ...options } = props.senderOptions
+  const processing = props.request ? props.request.state === 'processing' : props.sender.loading
   return {
     ...options,
     placeholder:
-      options.placeholder ??
-      (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
+      options.placeholder ?? (processing ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
     modelValue: props.value,
     loading: props.sender.loading,
     disabled: props.sender.disabled,
@@ -185,6 +188,9 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
   >
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
+    </template>
+    <template v-if="$slots['input-prefix']" #input-prefix>
+      <slot name="input-prefix" />
     </template>
     <template v-if="$slots['sender-content']" #content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />

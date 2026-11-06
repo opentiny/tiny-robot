@@ -191,6 +191,8 @@ const open = shallowRef(false)
 | `appendTo`   | `string \| HTMLElement`   | 当前 ShadowRoot 或 `document.body` | Teleport 目标；选择器未命中时回退到默认目标 |
 | `panelClass` | `ModelSelectorPanelClass` | —                                  | 附加到面板根元素的 class                    |
 
+未设置 `appendTo` 时，floating Layout 中的选择器使用所属窗口的 overlay host；其他场景使用当前 ShadowRoot 或 `document.body`。
+
 ### Events
 
 | 事件名                    | 参数                                                   | 说明                                   |

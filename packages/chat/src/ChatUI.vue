@@ -451,6 +451,7 @@ function handleRightAsideResize(detail: LayoutAsideResizeValue) {
 
 const composerProps = computed(() => ({
   sender: resolvedData.value.sender,
+  request: resolvedData.value.request,
   value: inputValue.value,
   senderOptions: senderOptions.value,
   labels: resolvedOptions.value.labels,
@@ -511,6 +512,7 @@ function renderEmptyStateComposer() {
       'composer-after': currentSlots.value['composer-after'],
       'layout-footer': currentSlots.value['layout-footer'],
       'sender-header': currentSlots.value['sender-header'],
+      'input-prefix': currentSlots.value['input-prefix'],
       'sender-content': currentSlots.value['sender-content'],
       'sender-actions-inline': currentSlots.value['sender-actions-inline'],
       'sender-footer': currentSlots.value['sender-footer'],
@@ -700,6 +702,9 @@ function renderEmptyStateComposer() {
                 <template v-if="$slots['sender-header']" #sender-header>
                   <slot name="sender-header" />
                 </template>
+                <template v-if="$slots['input-prefix']" #input-prefix>
+                  <slot name="input-prefix" />
+                </template>
                 <template v-if="$slots['sender-content']" #sender-content="slotProps">
                   <slot name="sender-content" v-bind="slotProps" />
                 </template>
@@ -779,6 +784,9 @@ function renderEmptyStateComposer() {
           </template>
           <template v-if="$slots['sender-header']" #sender-header>
             <slot name="sender-header" />
+          </template>
+          <template v-if="$slots['input-prefix']" #input-prefix>
+            <slot name="input-prefix" />
           </template>
           <template v-if="$slots['sender-content']" #sender-content="slotProps">
             <slot name="sender-content" v-bind="slotProps" />
@@ -915,7 +923,7 @@ function renderEmptyStateComposer() {
 }
 
 .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 0);
+  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 12px);
 }
 
 .chat-panel-content--main {
@@ -974,7 +982,7 @@ function renderEmptyStateComposer() {
 }
 
 .tr-chat-ui--mobile .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
+  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 8px);
 }
 
 .tr-chat-ui--mobile .chat-panel-content--main {

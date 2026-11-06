@@ -172,8 +172,10 @@ app.mount('#app')
 
 ### 创建示例项目
 
+省略 `--template` 时默认使用 `basic`。
+
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic
+npx @opentiny/tiny-robot-cli create my-app
 ```
 
 自动生成：
