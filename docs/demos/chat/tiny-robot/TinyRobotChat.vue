@@ -26,7 +26,6 @@ function handlePromptClick({ item }: { item: PromptProps }): void {
 }
 
 function handleNewSession(): void {
-  void runtime.actions.createConversation()
   showHistory.value = false
 }
 
@@ -67,12 +66,13 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem): vo
         v-model:floating-state="window.floatingState"
         @prompt-click="handlePromptClick"
       >
-        <template #layout-header>
+        <template #layout-header="{ createConversation }">
           <WindowHeader
             :display-mode="window.displayMode"
             :show-history="showHistory"
             :history-data="historyData"
             :active-conversation-id="activeConversationId"
+            :create-conversation="createConversation"
             @new-session="handleNewSession"
             @select-history="handleHistorySelect"
             @rename-history="handleHistoryRename"

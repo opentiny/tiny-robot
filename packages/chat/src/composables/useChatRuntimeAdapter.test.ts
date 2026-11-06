@@ -335,6 +335,62 @@ describe('useChatRuntimeAdapter error channels', () => {
 })
 
 describe('useChatRuntimeAdapter runtime-scoped drafts', () => {
+  it('preserves the current draft when clearing the conversation fails', async () => {
+    const clearError = new Error('clear failed')
+    const observedErrors: ChatRuntimeActionErrorPayload[] = []
+    const { runtime } = createRuntime('existing')
+    runtime.actions.clearActiveConversation = async () => {
+      throw clearError
+    }
+    const adapter = useChatRuntimeAdapter({
+      runtime,
+      onActionError: (payload) => observedErrors.push(payload),
+    })
+    adapter.setInputValue('draft')
+
+    await adapter.clearActiveConversation()
+
+    expect(adapter.inputValue.value).toBe('draft')
+    expect(observedErrors).toEqual([{ action: 'clear-active-conversation', payload: undefined, error: clearError }])
+  })
+
+  it('does not overwrite text entered while clearing the conversation fails', async () => {
+    let rejectClear!: (error: Error) => void
+    const clearing = new Promise<void>((_, reject) => {
+      rejectClear = reject
+    })
+    const { runtime } = createRuntime('existing')
+    runtime.actions.clearActiveConversation = () => clearing
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('old draft')
+
+    const pending = adapter.clearActiveConversation()
+    adapter.setInputValue('new draft')
+    rejectClear(new Error('clear failed'))
+    await pending
+
+    expect(adapter.inputValue.value).toBe('new draft')
+  })
+
+  it('does not restore a rejected draft after clearing an already empty conversation', async () => {
+    let finishSend!: (accepted: boolean) => void
+    const result = new Promise<boolean>((resolve) => {
+      finishSend = resolve
+    })
+    const { runtime } = createRuntime('existing', async () => result)
+    runtime.activeConversation = shallowRef<ChatConversation | null>(null)
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: () => undefined })
+    adapter.setInputValue('old draft')
+    const sending = adapter.send({ text: 'old draft' })
+    await Promise.resolve()
+
+    await adapter.clearActiveConversation()
+    finishSend(false)
+    await expect(sending).resolves.toBe(false)
+    expect(adapter.inputValue.value).toBe('')
+    expect(runtime.conversations.value).toHaveLength(1)
+  })
+
   it('restores a rejected draft when send creates the first conversation', async () => {
     const activeConversation = shallowRef<ChatConversation | null>(null)
     const runtime: ChatRuntime = {

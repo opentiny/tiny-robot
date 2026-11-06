@@ -12,6 +12,9 @@ defineProps<BubbleBoxRendererProps>()
 
 <style scoped lang="less">
 .tr-bubble__box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-bubble-box-content-gap, 8px);
   background-color: var(--tr-bubble-box-bg);
   padding: var(--tr-bubble-box-padding);
   border-radius: var(--tr-bubble-box-border-radius);
@@ -36,6 +39,7 @@ defineProps<BubbleBoxRendererProps>()
   }
 
   &[data-box-type='image'] {
+    gap: var(--tr-bubble-image-space-y);
     padding: var(--tr-bubble-box-image-padding);
     border: var(--tr-bubble-box-image-border);
   }

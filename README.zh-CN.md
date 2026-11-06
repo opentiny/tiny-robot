@@ -57,9 +57,10 @@ TinyRobot 将工程入口、Chat 页面、UI 组件和数据层拆分为多个�
 #### 创建新项目
 
 使用 CLI 创建一个包含 Chat 能力的 Vue 项目：
+省略 `--template` 时默认使用 `basic`。
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic
+npx @opentiny/tiny-robot-cli create my-app
 cd my-app
 pnpm install
 pnpm dev

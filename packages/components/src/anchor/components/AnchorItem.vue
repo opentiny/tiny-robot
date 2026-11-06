@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import type { AnchorItemEmits, AnchorItemProps, AnchorItemSlots } from '../internal.type'
 
 defineOptions({ name: 'AnchorItem' })
 
-const props = defineProps<AnchorItemProps>()
+const props = withDefaults(defineProps<AnchorItemProps>(), { hoverOverride: undefined })
 const emit = defineEmits<AnchorItemEmits>()
 defineSlots<AnchorItemSlots>()
 
 const itemButtonRef = ref<HTMLButtonElement | null>(null)
-const isHovered = ref(false)
+const pointerOver = ref(false)
+const isHovered = computed(() => props.hoverOverride ?? pointerOver.value)
 const tooltipVisible = ref(false)
+const tooltipTop = ref(0)
+const tooltipHost = computed(() => itemButtonRef.value?.closest<HTMLElement>('.tr-anchor__overlay') ?? null)
+const scrollport = computed(() => itemButtonRef.value?.closest<HTMLElement>('.tr-anchor__panel') ?? null)
 const { start: startTooltipTimer, stop: stopTooltipTimer } = useTimeoutFn(
   () => {
     requestAnimationFrame(() => {
@@ -30,7 +34,7 @@ const itemClass = computed(() => [
     'is-active': active.value,
     'is-expanded': props.expanded,
     'is-highlighted': props.highlighted,
-    'is-tooltip-visible': tooltipVisible.value,
+    'is-hovered': isHovered.value,
   },
 ])
 
@@ -44,11 +48,14 @@ function getLabelElement() {
 
 function measureTooltipVisibility() {
   tooltipVisible.value = props.expanded && isHovered.value && isTextTruncated(getLabelElement())
+  if (tooltipVisible.value && itemButtonRef.value && tooltipHost.value) {
+    const item = itemButtonRef.value.getBoundingClientRect()
+    tooltipTop.value = item.top + item.height / 2 - tooltipHost.value.getBoundingClientRect().top
+  }
 }
 
 function scheduleTooltipVisibility() {
-  stopTooltipTimer()
-  tooltipVisible.value = false
+  clearTooltipState()
 
   if (!props.expanded || !isHovered.value) {
     return
@@ -62,14 +69,23 @@ function clearTooltipState() {
   tooltipVisible.value = false
 }
 
+useEventListener(
+  scrollport,
+  'scroll',
+  () => {
+    // Expansion can scroll the panel while the original hover target is still held.
+    if (props.hoverOverride) scheduleTooltipVisibility()
+    else clearTooltipState()
+  },
+  { passive: true },
+)
+
 function handleMouseEnter() {
-  isHovered.value = true
-  scheduleTooltipVisibility()
+  pointerOver.value = true
 }
 
 function handleMouseLeave() {
-  isHovered.value = false
-  clearTooltipState()
+  pointerOver.value = false
 }
 
 function handleLabelTransitionEnd(event: TransitionEvent) {
@@ -77,34 +93,23 @@ function handleLabelTransitionEnd(event: TransitionEvent) {
     return
   }
 
-  if (isHovered.value) {
+  if (tooltipVisible.value) {
     measureTooltipVisibility()
   }
 }
 
-watch(
-  () => props.expanded,
-  (expanded) => {
-    if (!expanded) {
-      clearTooltipState()
-      return
-    }
-
-    if (isHovered.value) {
-      scheduleTooltipVisibility()
-    }
-  },
-)
+watch([() => props.expanded, isHovered], scheduleTooltipVisibility)
 </script>
 
 <template>
-  <li :class="itemClass" :data-tooltip="entry.item.tooltipText || entry.item.label">
+  <li :class="itemClass">
     <button
       ref="itemButtonRef"
       type="button"
       class="tr-anchor__item"
       :data-item-id="entry.item.id"
       :aria-current="active ? 'location' : undefined"
+      :aria-label="entry.item.label"
       :tabindex="highlighted ? 0 : -1"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
@@ -134,6 +139,11 @@ watch(
         </slot>
       </span>
     </button>
+    <Teleport v-if="tooltipVisible && tooltipHost" :to="tooltipHost">
+      <div role="tooltip" :class="['tr-anchor__tooltip', `is-${placement}`]" :style="{ top: `${tooltipTop}px` }">
+        {{ entry.item.tooltipText || entry.item.label }}
+      </div>
+    </Teleport>
   </li>
 </template>
 
@@ -141,48 +151,6 @@ watch(
 .tr-anchor {
   &__list-item {
     position: relative;
-
-    &.is-expanded {
-      padding-inline: var(--tr-anchor-surface-padding-inline);
-    }
-
-    &::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: var(--tr-z-index-tooltip);
-      width: min(280px, 55vw);
-      opacity: 0;
-      pointer-events: none;
-      padding: 6px 12px;
-      border-radius: var(--tr-radius-md);
-      background: var(--tr-anchor-tooltip-bg);
-      color: var(--tr-anchor-tooltip-color);
-      box-shadow: var(--tr-anchor-tooltip-shadow);
-      transition: opacity 0.15s ease;
-      font-size: var(--tr-font-size-sm);
-      line-height: 1.5;
-      text-align: left;
-      white-space: normal;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      text-overflow: ellipsis;
-      word-break: break-word;
-    }
-
-    &.is-right::after {
-      right: calc(100% + var(--tr-anchor-tooltip-gap));
-    }
-
-    &.is-left::after {
-      left: calc(100% + var(--tr-anchor-tooltip-gap));
-    }
-
-    &.is-tooltip-visible::after {
-      opacity: 1;
-    }
 
     &.is-active .tr-anchor__marker {
       background: var(--tr-anchor-marker-color-active);
@@ -194,6 +162,36 @@ watch(
     }
   }
 
+  &__tooltip {
+    position: absolute;
+    transform: translateY(-50%);
+    z-index: var(--tr-z-index-tooltip);
+    width: min(280px, 55vw);
+    pointer-events: none;
+    padding: 6px 12px;
+    border-radius: var(--tr-radius-md);
+    background: var(--tr-anchor-tooltip-bg);
+    color: var(--tr-anchor-tooltip-color);
+    box-shadow: var(--tr-anchor-tooltip-shadow);
+    font-size: var(--tr-font-size-sm);
+    line-height: 1.5;
+    text-align: left;
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    word-break: break-word;
+
+    &.is-right {
+      right: calc(100% + var(--tr-anchor-tooltip-gap));
+    }
+
+    &.is-left {
+      left: calc(100% + var(--tr-anchor-tooltip-gap));
+    }
+  }
+
   &__item {
     width: 100%;
     min-width: 0;
@@ -201,7 +199,8 @@ watch(
     display: grid;
     align-items: center;
     column-gap: 0;
-    padding: 4px var(--tr-anchor-item-padding-inline);
+    height: var(--tr-anchor-item-height);
+    padding: 0 var(--tr-anchor-item-padding-inline);
     border: 0;
     border-radius: var(--tr-anchor-item-radius);
     background: transparent;
@@ -215,7 +214,7 @@ watch(
     &:focus-visible {
       background: var(--tr-anchor-item-bg-hover);
       outline: 2px solid var(--tr-anchor-focus-ring);
-      outline-offset: 0;
+      outline-offset: -2px;
     }
   }
 
@@ -235,11 +234,12 @@ watch(
     text-align: left;
   }
 
-  &__list-item.is-expanded:hover &__item {
+  &__list-item.is-expanded.is-hovered &__item {
     background: var(--tr-anchor-item-bg-hover);
   }
 
   &__list-item.is-expanded &__item {
+    padding-inline: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
     column-gap: 8px;
   }
 
@@ -256,11 +256,11 @@ watch(
   }
 
   &__list-item.is-right &__marker-slot {
-    right: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
+    right: var(--tr-anchor-item-padding-inline);
   }
 
   &__list-item.is-left &__marker-slot {
-    left: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
+    left: var(--tr-anchor-item-padding-inline);
   }
 
   &__marker {
@@ -277,6 +277,7 @@ watch(
     grid-area: content;
     min-width: 0;
     display: flex;
+    max-height: 100%;
     overflow: hidden;
   }
 
@@ -297,8 +298,8 @@ watch(
     white-space: nowrap;
     text-overflow: ellipsis;
     transition:
-      max-width 0.22s ease,
-      opacity 0.18s ease,
+      max-width var(--tr-anchor-transition-duration) ease,
+      opacity var(--tr-anchor-transition-duration) ease,
       color 0.18s ease;
   }
 
@@ -311,6 +312,13 @@ watch(
     color: var(--tr-anchor-highlight-color);
     background: transparent;
     font-weight: var(--tr-font-weight-semibold);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-anchor__item,
+  .tr-anchor__item-label {
+    transition: none;
   }
 }
 </style>

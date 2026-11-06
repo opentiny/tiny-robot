@@ -51,6 +51,7 @@ export interface LayoutAsideToggleContext {
 
 export interface LayoutContext {
   rootEl: Ref<HTMLElement | null>
+  mode: ComputedRef<LayoutMode>
   left: LayoutAsideToggleContext
   right: LayoutAsideToggleContext
 }

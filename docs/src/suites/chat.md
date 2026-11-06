@@ -985,11 +985,9 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `featureValuesDisabled` | `boolean`                    | 禁止字段修改。                                 |
 | `selecting`             | `boolean`                    | 模型切换中的整体等待状态。                     |
 
-`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、`fields` 和 `metadata`。字段配置与默认值、摘要规则见 [ModelSelector](../components/model-selector)。`TrChatUI` 通过 `data.model.featureValues` 显示当前值，监听 `model-feature-value-change` 后更新数据；`TrChat` 自动调用 Runtime 的 `setFeatureValue`。选择器浮层容器由 `ui.model.appendTo` 配置。
+`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、`fields` 和 `metadata`。字段配置与默认值、摘要规则见 [ModelSelector](../components/model-selector)。在 Floating Layout 中，选择器默认挂载到当前窗口的 overlay host；`ui.model.appendTo` 可显式覆盖挂载目标。
 
-模型特性只通过 `fields` 和 `featureValues` 配置；请求转换见 [模型功能](./chat-runtime#模型功能)。
-
-ModelSelector 的 `feature-change` 在 Chat 中转发为 `model-feature-value-change`，载荷保持一致；`TrChat` 同时调用 Runtime 的 `setFeatureValue({ modelId, key, value })`。初始化、外部赋值和切换模型不会触发字段修改事件。
+ModelSelector 的 `feature-change` 在 Chat 中转发为 `model-feature-value-change`，载荷保持一致。`TrChatUI` 通过 `data.model.featureValues` 显示当前值，由应用监听事件并更新数据；`TrChat` 会同步调用 Runtime 的 `setFeatureValue({ modelId, key, value })`。初始化、外部赋值和切换模型不会触发字段修改事件。模型特性统一通过 `fields` 和 `featureValues` 配置，请求参数转换见 [模型功能](./chat-runtime#模型功能)。
 
 #### `mcp` {#chatuidata-mcp}
 
@@ -1108,10 +1106,11 @@ const ui: ChatUIOptions = {
 
 传入 `ui.anchor: {}` 开启用户消息目录，按用户消息的展示文本生成目录项。没有文本的消息不生成目录项；欢迎布局或自定义 `layout-main` 时不显示目录。
 
-| 字段       | 类型      | 默认值 | 说明                                                                |
-| ---------- | --------- | ------ | ------------------------------------------------------------------- |
-| `visible`  | `boolean` | `true` | 是否显示目录，可用于分享等场景下临时隐藏。                          |
-| `minWidth` | `number`  | `768`  | 显示目录所需的最小浏览器视口宽度，单位为 px；不按聊天容器宽度判断。 |
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `visible` | `boolean` | `true` | 是否显示目录，可用于分享等场景下临时隐藏。 |
+| `minWidth` | `number` | `768` | 显示目录所需的最小浏览器视口宽度，单位为 px；不按聊天容器宽度判断。 |
+| `hoverExpandDelay` | `number` | `300` | 鼠标悬停后展开目录的延迟，单位为 ms。设为 `0` 立即展开。 |
 
 点击目录或向上浏览会暂停自动跟随，点击回到底部可恢复已启用的自动跟随。
 
@@ -1126,7 +1125,7 @@ const ui: ChatUIOptions = {
 | `prompts`    | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                                                 | [Prompts](../components/prompts)                    |
 | `bubble`     | `autoScroll`、`bubbleProvider`、`bubbleList`；消息错误提示配置见[消息错误提示配置](#消息错误提示配置)。                             | [Bubble](../components/bubble)                      |
 | `sender`     | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。                    | [Sender](../components/sender)                      |
-| `model`      | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                            | [ModelSelector](../components/model-selector)       |
+| `model`      | `appendTo?: ModelSelectorProps['appendTo']`，默认跟随 floating Layout 的 overlay host。                                             | [ModelSelector](../components/model-selector)       |
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
 | `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
@@ -1174,20 +1173,20 @@ toolbar: (defaults) => [
 
 在 `TrChat`、`TrChatUI` 或父容器上设置以下变量。长度使用 CSS 长度值，如 `20px` 或 `0`。表中宽度指浏览器视口宽度。
 
-| 变量                                  | 默认值（≥960px） | 默认值（<960px） | 用途                                                                    |
-| ------------------------------------- | ---------------- | ---------------- | ----------------------------------------------------------------------- |
-| `--tr-chat-ui-content-max-width`      | `980px`          | `980px`          | 页头、消息区和输入区的内容最大宽度。                                    |
-| `--tr-chat-ui-content-padding-inline` | `24px`           | `16px`           | 各区域共享的水平内边距。                                                |
-| `--tr-chat-ui-panel-padding`          | `12px`           | `12px`           | 消息内容纵向内边距。                                                    |
-| `--tr-chat-ui-panel-gap`              | `12px`           | `12px`           | 内容容器的子项间距。                                                    |
-| `--tr-chat-ui-header-padding`         | `24px 24px 0`    | `16px 16px 0`    | 页头内边距，包含自定义页头。                                            |
-| `--tr-chat-ui-main-padding`           | `12px 24px`      | `12px 16px`      | 消息区内边距。                                                          |
-| `--tr-chat-ui-footer-padding`         | `0 24px 24px`    | `0 16px 16px`    | 底部输入区内边距。                                                      |
-| `--tr-chat-ui-header-gap`             | `8px`            | `8px`            | 内置页头子项间距，自定义页头自行排版。                                  |
-| `--tr-chat-ui-message-list-padding`   | `8px 0`          | `8px 0`          | 气泡列表内边距。                                                        |
-| `--tr-chat-ui-composer-gap`           | `0px`            | `0px`            | 输入框与 `composer-before`、`composer-after` 内容的间距。               |
-| `--tr-chat-ui-welcome-composer-gap`   | `16px`           | `16px`           | 内置居中欢迎区与输入框的间距。                                          |
-| `--tr-chat-scroll-button-align`       | `flex-end`       | `flex-end`       | 回到底部按钮的位置：`flex-start` 左侧、`center` 居中、`flex-end` 右侧。 |
+| 变量 | 默认值（≥960px） | 默认值（<960px） | 用途 |
+| --- | --- | --- | --- |
+| `--tr-chat-ui-content-max-width` | `980px` | `980px` | 页头、消息区和输入区的内容最大宽度。 |
+| `--tr-chat-ui-content-padding-inline` | `24px` | `16px` | 各区域共享的水平内边距。 |
+| `--tr-chat-ui-panel-padding` | `12px` | `12px` | 消息内容纵向内边距。 |
+| `--tr-chat-ui-panel-gap` | `12px` | `12px` | 内容容器的子项间距。 |
+| `--tr-chat-ui-header-padding` | `24px 24px 0` | `16px 16px 0` | 页头内边距，包含自定义页头。 |
+| `--tr-chat-ui-main-padding` | `12px 24px` | `12px 16px` | 消息区内边距。 |
+| `--tr-chat-ui-footer-padding` | `0 24px 24px` | `0 16px 16px` | 底部输入区内边距。 |
+| `--tr-chat-ui-header-gap` | `8px` | `8px` | 内置页头子项间距，自定义页头自行排版。 |
+| `--tr-chat-ui-message-list-padding` | `8px 0` | `8px 0` | 气泡列表内边距。 |
+| `--tr-chat-ui-composer-gap` | `0px` | `0px` | 输入框与 `composer-before`、`composer-after` 内容的间距。 |
+| `--tr-chat-ui-welcome-composer-gap` | `16px` | `16px` | 内置居中欢迎区与输入框的间距。 |
+| `--tr-chat-scroll-button-align` | `center` | `center` | 回到底部按钮的位置：`flex-start` 左侧、`center` 居中、`flex-end` 右侧。 |
 
 - 设置 `ui.layout.contentMaxWidth`、`panelPadding`、`panelGap` 后，对应默认值随之调整；同项 CSS 变量优先。
 - 页头、消息区和输入区的左右内边距跟随共享水平内边距，也可分别覆盖；消息区上下内边距跟随 `--tr-chat-ui-panel-padding`。
@@ -1240,15 +1239,16 @@ const props = defineProps<BubbleContentRendererProps>()
 const context = useChatRenderContext(props)
 ```
 
-返回值为 `ChatRenderContext | undefined`，在 Chat 消息渲染区域之外调用时返回 `undefined`。字段均为响应式引用：
+返回值为 `ChatRenderContext | undefined`，在 Chat 消息渲染区域之外调用时返回 `undefined`。状态字段为响应式引用：
 
-| 字段             | 类型                                                  | 含义                            |
-| ---------------- | ----------------------------------------------------- | ------------------------------- |
-| `scrollRoot`     | `ComputedRef<HTMLElement \| null>`                    | 消息滚动容器，挂载前为 `null`。 |
-| `conversationId` | `ComputedRef<string \| null \| undefined>`            | 当前会话标识。                  |
-| `messageKey`     | `ComputedRef<string>`                                 | 当前消息的稳定标识。            |
-| `contentIndex`   | `ComputedRef<number>`                                 | 当前内容索引。                  |
-| `streamState`    | `ComputedRef<'streaming' \| 'finished' \| 'unknown'>` | 流式生成中、已结束或状态未知。  |
+| 字段 | 类型 | 含义 |
+| --- | --- | --- |
+| `scrollRoot` | `ComputedRef<HTMLElement \| null>` | 消息滚动容器，挂载前为 `null`。 |
+| `conversationId` | `ComputedRef<string \| null \| undefined>` | 当前会话标识。 |
+| `messageKey` | `ComputedRef<string>` | 当前消息的稳定标识。 |
+| `contentIndex` | `ComputedRef<number>` | 当前内容索引。 |
+| `streamState` | `ComputedRef<'streaming' \| 'finished' \| 'unknown'>` | 流式生成中、已结束或状态未知。 |
+| `pauseAutoScroll` | `() => void` | 临时暂停自动跟随，在修改展开或收起状态之前同步调用。 |
 
 消息对象和服务端 ID 都可能变化时，请提供唯一且稳定的 `renderKey`。使用 `messageKey` 和 `contentIndex` 可区分渲染内容，无需解析 `messageKey`。
 

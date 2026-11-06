@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '../../../components/src/styles/components/bubble-tool.less'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import type { BubbleEvent } from '../../../components/src/bubble/index.type'
 import { computed, ref } from 'vue'

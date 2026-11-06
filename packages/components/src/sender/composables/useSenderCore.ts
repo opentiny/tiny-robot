@@ -20,7 +20,9 @@ import {
   getTextWithTemplates,
   getMentionStructuredData,
   getTextWithMentions,
+  getMentions,
 } from '../extensions'
+import { getCombinedStructuredData, getTextFromStructuredData } from '../extensions/template/utils'
 import { EXTENSION_NAMES } from '../extensions/constants'
 import { isImeKeyEvent } from '../extensions/ime'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
@@ -75,7 +77,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   const hasEditorContent = computed(() => {
     if (!editor.value) return false
     const text = getTextWithTemplates(editor.value)
-    return text.trim().length > 0
+    return text.trim().length > 0 || getMentions(editor.value).length > 0
   })
 
   const { hasRegisteredContent, registerContent, externalPayloads } = useSenderContentRegistry()
@@ -112,20 +114,29 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     if (!canSubmit.value || !editor.value) return
 
     // 构建结构化数据（第二个参数，可选）
-    // 注意：Template 和 Mention 是互斥的使用场景
+    const extensions = editor.value.extensionManager.extensions
+    const hasTemplateExtension = extensions.some((ext) => ext.name === EXTENSION_NAMES.TEMPLATE)
+    const hasMentionExtension = extensions.some((ext) => ext.name === EXTENSION_NAMES.MENTION)
     let structuredData: StructuredData | undefined
     let textContent = ''
 
     // Template（模板场景）
-    if (editor.value.extensionManager.extensions.some((ext) => ext.name === EXTENSION_NAMES.TEMPLATE)) {
-      const templateStructuredData = getTemplateStructuredData(editor.value)
+    if (hasTemplateExtension) {
+      const templateStructuredData = hasMentionExtension
+        ? getCombinedStructuredData(editor.value)
+        : getTemplateStructuredData(editor.value)
       if (templateStructuredData.length > 0) {
         structuredData = templateStructuredData as StructuredData
       }
-      textContent = getTextWithTemplates(editor.value)
+      if (hasMentionExtension) {
+        const mentionExtension = extensions.find((ext) => ext.name === EXTENSION_NAMES.MENTION)
+        textContent = getTextFromStructuredData(templateStructuredData, mentionExtension?.options?.char || '@')
+      } else {
+        textContent = getTextWithTemplates(editor.value)
+      }
     }
     // Mention（提及场景）
-    else if (editor.value.extensionManager.extensions.some((ext) => ext.name === EXTENSION_NAMES.MENTION)) {
+    else if (hasMentionExtension) {
       const mentionStructuredData = getMentionStructuredData(editor.value)
       if (mentionStructuredData.length > 0) {
         structuredData = mentionStructuredData as StructuredData
