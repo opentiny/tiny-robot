@@ -21,7 +21,6 @@ export interface UseChatAsideStateOptions {
   rightAsidePanels?: MaybeRefOrGetter<readonly ChatRightAsidePanelOptions[]>
   isMobileViewport: MaybeRefOrGetter<boolean>
   viewportWidth: MaybeRefOrGetter<number>
-  narrowFloatingWidth: MaybeRefOrGetter<number | undefined>
   onLeftOpenChange: (payload: ChatAsideOpenChangePayload) => void
   onRightOpenChange: (payload: ChatAsideOpenChangePayload) => void
   onRightAsideOpenUpdate?: (open: boolean) => void
@@ -99,8 +98,7 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const rightAsideOptions = computed(() => {
     const layout = rightAside.value
     const mode = (layout !== false ? layout?.mode : undefined) ?? 'dock'
-    const floatingDrawerWidth = mode === 'dock' ? toValue(options.narrowFloatingWidth) : undefined
-    const drawerWidth = isMobileViewport.value ? viewportWidth.value : floatingDrawerWidth
+    const drawerWidth = isMobileViewport.value ? viewportWidth.value : undefined
     return {
       mode: drawerWidth !== undefined ? ('drawer' as const) : mode,
       open: resolvedRightAsideOpen.value,

@@ -14,6 +14,7 @@ import { useControllableState } from '../../shared/composables/useControllableSt
 interface UseLayoutAsideStateOptions {
   side: LayoutSide
   config: MaybeRefOrGetter<LayoutAsideOptions | undefined>
+  forceDrawer?: () => boolean
   onOpenChange?: (detail: LayoutAsideOpenDetail) => void
   onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
 }
@@ -21,6 +22,7 @@ interface UseLayoutAsideStateOptions {
 interface UseLayoutAsideStatesOptions {
   leftConfig: MaybeRefOrGetter<LayoutAsideOptions | undefined>
   rightConfig: MaybeRefOrGetter<LayoutAsideOptions | undefined>
+  forceRightDrawer?: () => boolean
   onOpenChange?: (detail: LayoutAsideOpenDetail) => void
   onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
 }
@@ -36,7 +38,7 @@ function resolveNonNegativeFiniteNumber(value: number | undefined, fallback: num
 export function useLayoutAsideState(options: UseLayoutAsideStateOptions): LayoutAsideState {
   const { side } = options
   const configValue = computed(() => toValue(options.config))
-  const mode = computed(() => configValue.value?.mode ?? 'dock')
+  const mode = computed(() => (options.forceDrawer?.() ? 'drawer' : (configValue.value?.mode ?? 'dock')))
   const collapsedWidth = computed(() => resolveNonNegativeFiniteNumber(configValue.value?.collapsedWidth, 0))
   const collapseEffect = computed(() => configValue.value?.collapseEffect ?? 'overlay')
   const resizable = computed(() => configValue.value?.resizable ?? false)
@@ -121,6 +123,7 @@ export function useLayoutAsideStates(options: UseLayoutAsideStatesOptions) {
   const rightAsideState = useLayoutAsideState({
     side: 'right',
     config: options.rightConfig,
+    forceDrawer: options.forceRightDrawer,
     onOpenChange: options.onOpenChange,
     onExpandedWidthChange: options.onExpandedWidthChange,
   })
