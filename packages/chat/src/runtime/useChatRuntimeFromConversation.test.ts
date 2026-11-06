@@ -115,10 +115,9 @@ describe('useChatRuntimeFromConversation', () => {
     const model = {
       options: ref([]),
       selectedId: ref(null),
-      features: ref({}),
       select: vi.fn(),
-      setFeature: vi.fn(),
-      setReasoningEffort: vi.fn(),
+      featureValues: ref({}),
+      setFeatureValue: vi.fn(),
     }
     const send = vi.fn(async () => true)
     const runtime = useChatRuntimeFromConversation({ conversation: harness.api, send, composer: { model } })

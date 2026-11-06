@@ -1,6 +1,5 @@
 import type { ChatConversationInfo } from '../base'
 import type { ChatSendPayload } from '../commands'
-import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatRightAsidePanelId } from './options'
 import type {
   LayoutFloatingDragDetail,
@@ -13,6 +12,7 @@ import type {
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
   ExtensionManagerTabChangeEvent,
+  ModelSelectorFeatureChange,
 } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -45,14 +45,7 @@ export interface ChatModelSelectPayload {
   readonly modelId: string | null
 }
 
-export interface ChatModelFeatureChangePayload {
-  readonly featureId: ChatBuiltInModelFeature
-  readonly enabled: boolean
-}
-
-export interface ChatModelReasoningEffortChangePayload {
-  readonly effort: string | null
-}
+export type ChatModelFeatureValueChangePayload = ModelSelectorFeatureChange
 
 export interface SenderDragPayload {
   readonly event: DragEvent
@@ -117,8 +110,7 @@ export interface ChatUIEmits {
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
   'model-select': [payload: ChatModelSelectPayload]
-  'model-feature-change': [payload: ChatModelFeatureChangePayload]
-  'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
+  'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
   'sender-drag-enter': [payload: SenderDragPayload]
   'sender-drag-over': [payload: SenderDragPayload]
   'sender-drag-leave': [payload: SenderDragPayload]

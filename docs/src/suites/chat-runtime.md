@@ -23,13 +23,13 @@ outline: [1, 3]
 
 `modelProviders` 是传给 `useChatRuntime` 的配置数组，每项配置一个服务，通过 `models` 列出该服务下的模型。
 
-| 字段             | 用途                                                                    | 必填 | 默认值或未配置行为                     |
-| ---------------- | ----------------------------------------------------------------------- | ---- | -------------------------------------- |
-| `type`           | 选择服务的默认地址和请求参数，可选 `'openai'`、`'deepseek'`、`'qwen'`      | 是   | 无默认值                               |
-| `apiUrl`         | 服务的完整 URL，可填写服务根地址或 `/chat/completions` 地址               | 否   | 使用对应服务的预设地址                 |
-| `models`         | 该服务下的模型配置数组                                                  | 是   | 无默认值；内置请求需要至少一个可用模型 |
-| `models[].id`    | 服务支持的模型 ID，所有服务配置中的模型 ID 不可重复                     | 是   | 无默认值                               |
-| `models[].label` | 模型在界面中显示的名称                                                  | 是   | 无默认值                               |
+| 字段             | 用途                                                                  | 必填 | 默认值或未配置行为                     |
+| ---------------- | --------------------------------------------------------------------- | ---- | -------------------------------------- |
+| `type`           | 选择服务的默认地址和请求参数，可选 `'openai'`、`'deepseek'`、`'qwen'` | 是   | 无默认值                               |
+| `apiUrl`         | 服务的完整 URL，可填写服务根地址或 `/chat/completions` 地址           | 否   | 使用对应服务的预设地址                 |
+| `models`         | 该服务下的模型配置数组                                                | 是   | 无默认值；内置请求需要至少一个可用模型 |
+| `models[].id`    | 服务支持的模型 ID，所有服务配置中的模型 ID 不可重复                   | 是   | 无默认值                               |
+| `models[].label` | 模型在界面中显示的名称                                                | 是   | 无默认值                               |
 
 `type` 不是模型 ID。兼容 OpenAI `/chat/completions` 接口的服务可使用 `'openai'`。省略 `apiUrl` 时，使用以下预设地址；通过项目服务端转发请求时，应填写转发服务的地址。
 
@@ -61,23 +61,73 @@ const modelProviders: ChatProviderConfig[] = [
 
 ### 模型功能
 
-在 `models` 中配置模型支持的功能，输入区会显示对应开关。所有字段均为可选：
-
-| 字段                        | 用途                                                               | 默认值或未配置行为                  |
-| --------------------------- | ------------------------------------------------------------------ | ----------------------------------- |
-| `models[].capabilities`      | 设置是否支持 `thinking`（深度思考）、`search`（联网搜索）            | 未声明的功能不显示开关              |
-| `models[].thinkingRequired` | 设为 `true` 时，支持深度思考的模型必须开启该功能，用户不能关闭      | `false`，深度思考默认关闭            |
-
-例如，为上面的模型显示深度思考和联网搜索开关：
+在 `models[].fields` 中配置 `switch` 或 `select` 字段，输入区模型选择器会显示对应控件。字段格式、默认值和摘要规则见 [ModelSelector](../components/model-selector#模型特性字段)。例如：
 
 ```ts
-modelProviders[0].models[0].capabilities = {
-  thinking: true,
-  search: true,
-}
+modelProviders[0].models[0].fields = [
+  {
+    key: 'reasoning',
+    label: '思考强度',
+    type: 'select',
+    defaultValue: 'off',
+    summary: true,
+    options: [
+      { value: 'off', label: '关闭', summary: false },
+      { value: 'low', label: '低' },
+      { value: 'high', label: '高' },
+    ],
+  },
+  { key: 'search', label: '联网搜索', type: 'switch' },
+]
+modelProviders[0].models[0].mapFeatureValues = (values) => ({
+  enable_thinking: values.reasoning !== 'off',
+  ...(values.reasoning !== 'off' ? { reasoning_effort: values.reasoning } : {}),
+  enable_search: values.search === true,
+})
 ```
 
-`capabilities` 表示模型支持哪些功能，不表示默认开启；用户通过开关选择是否使用，联网搜索默认关闭。模型服务必须实际支持这些功能，添加配置不会为模型增加能力。
+字段 key 与选项值由业务定义。必须思考的模型省略“关闭”选项；只支持开关的模型提供“关闭／开启”；不支持的功能省略字段。`disabled` 仅限制修改，已有合法值仍参与请求。
+
+`mapFeatureValues(values)` 返回实际请求参数。它只接收当前模型声明且有效的字段值；UI 值不会直接展开为请求体。新配置未提供转换方法时，OpenAI 预设将 `reasoning` 强度映射到 `reasoning_effort`，DeepSeek 映射 `reasoning`，Qwen 映射 `reasoning` 和 `search`。其他自定义字段需自行转换。
+
+例如，服务支持 JSON 输出时，可为模型配置自定义格式字段：
+
+```ts
+modelProviders[0].models[0].fields = [
+  {
+    key: 'outputFormat',
+    label: '输出格式',
+    type: 'select',
+    defaultValue: 'text',
+    summary: true,
+    options: [
+      { value: 'text', label: '文本', summary: false },
+      { value: 'json', label: 'JSON' },
+    ],
+  },
+]
+modelProviders[0].models[0].mapFeatureValues = (values) => ({
+  response_format: { type: values.outputFormat === 'json' ? 'json_object' : 'text' },
+})
+```
+
+自定义映射负责该模型所有字段的请求转换，未映射的字段不会自动进入请求体。
+
+Runtime 按模型保存配置，首次选择应用默认值，切回恢复上次选择。暂时不支持的值保留在缓存中，界面和请求使用当前有效值；修改其他字段不会覆盖缓存中的原选择。
+
+```ts
+const model = runtime.composer.model!
+await model.setFeatureValue?.({ modelId: 'your-model-id', key: 'search', value: true })
+console.log(model.featureValues?.value)
+```
+
+更新必须包含目标 `modelId` 与 `key`。异步期间仅禁用相关字段，切换模型不会把完成结果写入其他模型；失败通过现有错误事件通知。业务快捷按钮也应调用同一个 `setFeatureValue`。
+
+发送时保存模型 ID 与有效 `featureValues` 的独立快照，后续调整面板不影响已发消息；重试使用原消息快照。
+
+### 历史消息迁移
+
+历史消息中的 `features`／`reasoning` 只在读取时转换为当前模型声明的 `featureValues`：仍有效的强度优先保留；旧记录开启思考但没有强度时，使用有效的开启默认项，默认关闭时取第一个可用开启项；旧记录关闭但模型不再支持关闭，或原强度已禁用、无法识别时，使用当前有效默认值；已移除的字段忽略，不因字段配置变化中断重试。新消息只保存 `modelId` 与有效 `featureValues` 快照。
 
 ### 其他配置
 
@@ -85,12 +135,12 @@ modelProviders[0].models[0].capabilities = {
 
 服务配置，与 `models` 同级：
 
-| 字段      | 用途                                                        | 默认值或未配置行为                                    |
-| --------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| `label`   | 服务的显示名称；`models[].label` 则是单个模型的显示名称      | 根据 `type` 使用 `OpenAI`、`DeepSeek` 或 `DashScope`   |
-| `timeout` | 请求开始到回答接收结束的超时时间，单位为毫秒                  | 不额外设置超时计时器                                  |
-| `apiKey`  | 通过 `Authorization: Bearer ...` 请求头提供服务认证          | 不添加认证头，除非通过 `headers` 提供                  |
-| `headers` | 添加请求头，如业务标识；其中的 `Authorization` 优先于 `apiKey` | 不添加额外请求头                                      |
+| 字段      | 用途                                                           | 默认值或未配置行为                                   |
+| --------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| `label`   | 服务的显示名称；`models[].label` 则是单个模型的显示名称        | 根据 `type` 使用 `OpenAI`、`DeepSeek` 或 `DashScope` |
+| `timeout` | 请求开始到回答接收结束的超时时间，单位为毫秒                   | 不额外设置超时计时器                                 |
+| `apiKey`  | 通过 `Authorization: Bearer ...` 请求头提供服务认证            | 不添加认证头，除非通过 `headers` 提供                |
+| `headers` | 添加请求头，如业务标识；其中的 `Authorization` 优先于 `apiKey` | 不添加额外请求头                                     |
 
 ::: warning 密钥安全
 生产环境应由服务端保管模型密钥并转发请求，不要将长期密钥写入前端代码。
@@ -98,37 +148,13 @@ modelProviders[0].models[0].capabilities = {
 
 以下字段均为可选，放在 `models` 数组中的对应模型上：
 
-| 字段                     | 用途                                          | 默认值或未配置行为                                                   |
-| ------------------------ | --------------------------------------------- | -------------------------------------------------------------------- |
-| `models[].disabled`      | 设为 `true` 时禁止选择该模型                  | `false`，允许选择                                                   |
-| `models[].featureBody`   | 指定功能开启、关闭时发送的请求参数            | `deepseek`、`qwen` 使用内置参数；`openai` 没有内置功能参数           |
-| `models[].efforts`       | 思考强度选项，每项包含 `value` 和 `label`     | `deepseek` 预设 `low`、`high`、`max`；其他类型不提供预设选项         |
-| `models[].defaultEffort` | 初始思考强度，对应一个 `efforts[].value`     | `deepseek` 预设 `'high'`；未设置有效值时选第一项                     |
-| `models[].effortParam`   | 思考强度在请求参数中的字段名                  | `deepseek` 预设 `'reasoning_effort'`；其他类型未设置时不发送强度参数 |
+| 字段                        | 用途                                 | 默认值或未配置行为                     |
+| --------------------------- | ------------------------------------ | -------------------------------------- |
+| `models[].disabled`         | 设为 `true` 时禁止选择该模型         | `false`，允许选择                      |
+| `models[].fields`           | 声明模型支持的开关和选择字段         | 未声明字段不显示，也不会发送对应参数   |
+| `models[].mapFeatureValues` | 将有效字段值转换为 Provider 请求参数 | 使用服务预设映射；自定义字段需自行映射 |
 
-DeepSeek 已内置深度思考参数，Qwen 已内置深度思考和联网搜索参数，通常无需设置 `featureBody`。兼容服务要求不同参数时，可通过 `enabled`、`disabled` 分别指定功能开启、关闭时发送的参数。例如，服务要求使用 `enable_thinking` 控制深度思考时：
-
-```ts
-modelProviders[0].models[0].featureBody = {
-  thinking: {
-    enabled: { enable_thinking: true },
-    disabled: { enable_thinking: false },
-  },
-}
-```
-
-服务支持思考强度时，配置选项、初始值和请求字段：
-
-```ts
-modelProviders[0].models[0].efforts = [
-  { value: 'low', label: '低' },
-  { value: 'high', label: '高' },
-]
-modelProviders[0].models[0].defaultEffort = 'high'
-modelProviders[0].models[0].effortParam = 'reasoning_effort'
-```
-
-以上功能参数、强度选项和请求字段名需与实际服务一致；思考强度参数仅在开启深度思考时发送。
+`mapFeatureValues` 只接收当前模型声明且有效的字段值。字段值不会直接展开到请求体，思考关闭时由转换函数决定是否省略强度参数。
 
 使用项目自己的请求方法时，不要同时配置 `modelProviders`，见 [自定义模型请求](#自定义模型请求)。
 
@@ -223,10 +249,10 @@ const runtime = useChatRuntime({
 
 通过 `useChatRuntime` 的 `composer` 配置输入区是否可用。以下字段均为可选，可随业务状态更新：
 
-| 字段                      | 用途                               | 类型                                                   | 未配置行为             |
-| ------------------------- | ---------------------------------- | ------------------------------------------------------ | ---------------------- |
-| `composer.disabled`       | 禁用整个输入区                     | [`ChatReadable<boolean>`](#runtime-与状态类型)          | 不额外禁用输入区       |
-| `composer.submitDisabled` | 只禁止提交，输入内容仍可编辑       | [`ChatReadable<boolean>`](#runtime-与状态类型)          | 不额外限制提交         |
+| 字段                      | 用途                         | 类型                                           | 未配置行为       |
+| ------------------------- | ---------------------------- | ---------------------------------------------- | ---------------- |
+| `composer.disabled`       | 禁用整个输入区               | [`ChatReadable<boolean>`](#runtime-与状态类型) | 不额外禁用输入区 |
+| `composer.submitDisabled` | 只禁止提交，输入内容仍可编辑 | [`ChatReadable<boolean>`](#runtime-与状态类型) | 不额外限制提交   |
 
 例如，禁用整个输入区：
 
@@ -332,10 +358,10 @@ const runtime = useChatRuntime({
 
 将 `baseUrl` 替换为实际工具服务地址。`installed` 决定服务的初始状态：
 
-| 设置                    | 界面与使用效果                                                       |
-| ----------------------- | -------------------------------------------------------------------- |
-| `false`（默认）         | 显示在可安装列表；点击安装后加载并启用工具                           |
-| `true`                  | 显示为已安装并在初始化时加载工具；仍需在界面启用后才能使用           |
+| 设置            | 界面与使用效果                                             |
+| --------------- | ---------------------------------------------------------- |
+| `false`（默认） | 显示在可安装列表；点击安装后加载并启用工具                 |
+| `true`          | 显示为已安装并在初始化时加载工具；仍需在界面启用后才能使用 |
 
 > 已启用服务的工具仍在加载时，会暂时禁止发送消息。
 
@@ -450,14 +476,14 @@ const adapter = useChatRuntimeAdapter({
 
 ### 公开函数
 
-| 函数                             | 签名                                                                                                         | 说明                                             |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。           |
-| `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                  |
-| `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions)`                                             | 提供 `TrChatUI` 所需的数据、输入内容和操作方法，见[返回字段](#usechatruntimeadapter)。 |
-| `useChatHistoryItems`            | `useChatHistoryItems(options: UseChatHistoryItemsOptions): Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 整理未分组的会话列表。                           |
-| `useChatHistoryData`             | `useChatHistoryData(options: UseChatHistoryDataOptions): Readonly<ShallowRef<ChatHistoryDisplayData>>`       | 整理未分组或已分组的会话列表。                   |
-| `errorStatePlugin`               | `errorStatePlugin(options?: ErrorStatePluginOptions): UseMessagePlugin`                                      | 把请求错误写入所属 assistant 消息。              |
+| 函数                             | 签名                                                                                                         | 说明                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。                                                 |
+| `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                                                        |
+| `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions)`                                               | 提供 `TrChatUI` 所需的数据、输入内容和操作方法，见[返回字段](#usechatruntimeadapter)。 |
+| `useChatHistoryItems`            | `useChatHistoryItems(options: UseChatHistoryItemsOptions): Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 整理未分组的会话列表。                                                                 |
+| `useChatHistoryData`             | `useChatHistoryData(options: UseChatHistoryDataOptions): Readonly<ShallowRef<ChatHistoryDisplayData>>`       | 整理未分组或已分组的会话列表。                                                         |
+| `errorStatePlugin`               | `errorStatePlugin(options?: ErrorStatePluginOptions): UseMessagePlugin`                                      | 把请求错误写入所属 assistant 消息。                                                    |
 
 ### `useChatRuntime` 配置
 
@@ -475,13 +501,13 @@ const adapter = useChatRuntimeAdapter({
 
 ### `useChatRuntimeFromConversation` 配置
 
-| 字段             | 用途                                         | 类型                                                                                                                  | 必填 | 默认值或未配置行为                         |
-| ---------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------ |
-| `conversation`   | 提供已有 Kit 会话实例                        | `UseConversationReturn`                                                                                               | 是   | 无默认值                                   |
-| `titleGenerator` | 生成默认发送自动创建的会话标题               | `(text: string) => string`                                                                                            | 否   | 与 `useChatRuntime` 相同                   |
-| `beforeSend`     | 发送前检查                                   | `ChatBeforeSend`                                                                                                      | 否   | 不执行自定义检查                           |
-| `send`           | 自行处理会话创建、消息保存和请求，允许空文本 | `(payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`；仅严格返回 `false` 表示拒绝 | 否   | 使用已有 Kit 会话执行默认发送              |
-| `composer`       | 提供输入区状态、模型和 MCP 操作              | `ChatComposerRuntime`                                                                                                 | 否   | `{}`；默认发送会根据模型、工具和 Engine 状态限制提交；自定义 `send` 仅受输入区禁用状态及显式 `submitDisabled` 限制 |
+| 字段             | 用途                                         | 类型                                                                                                           | 必填 | 默认值或未配置行为                                                                                                 |
+| ---------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------ |
+| `conversation`   | 提供已有 Kit 会话实例                        | `UseConversationReturn`                                                                                        | 是   | 无默认值                                                                                                           |
+| `titleGenerator` | 生成默认发送自动创建的会话标题               | `(text: string) => string`                                                                                     | 否   | 与 `useChatRuntime` 相同                                                                                           |
+| `beforeSend`     | 发送前检查                                   | `ChatBeforeSend`                                                                                               | 否   | 不执行自定义检查                                                                                                   |
+| `send`           | 自行处理会话创建、消息保存和请求，允许空文本 | `(payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`；仅严格返回 `false` 表示拒绝 | 否   | 使用已有 Kit 会话执行默认发送                                                                                      |
+| `composer`       | 提供输入区状态、模型和 MCP 操作              | `ChatComposerRuntime`                                                                                          | 否   | `{}`；默认发送会根据模型、工具和 Engine 状态限制提交；自定义 `send` 仅受输入区禁用状态及显式 `submitDisabled` 限制 |
 
 ### 错误记录配置
 
@@ -568,13 +594,12 @@ const replacement: UseMessagePlugin = {
 
 #### 模型状态与操作
 
-`ChatModelRuntime` 通过 `options`、`selectedId`、`features` 和可选 `reasoning` 提供当前模型的只读状态。
+`ChatModelRuntime` 通过 `options`、`selectedId` 和 `featureValues` 提供当前模型的只读状态。
 
-| 操作                         | 返回值                  | 说明                                                                                                             |
-| ---------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `select(id)`                 | `void \| Promise<void>` | 选择 ID 或用 `null` 清空选择，同时重置新模型不支持的能力和 思考强度。内建 Runtime 在 ID 未知或模型已禁用时抛错。 |
-| `setFeature(id, enabled)`    | `void \| Promise<void>` | 更新 `thinking` 或 `search`。启用未声明或不支持的能力时抛错；当模型要求 thinking 时，禁用 thinking 也会抛错。    |
-| `setReasoningEffort(effort)` | `void \| Promise<void>` | 传 `null` 时恢复当前模型默认思考强度；值不在当前模型 `efforts` 中时抛错。                                        |
+| 操作                                         | 返回值                  | 说明                                                                            |
+| -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
+| `select(id)`                                 | `void \| Promise<void>` | 选择 ID 或用 `null` 清空选择；切回时恢复该模型配置。ID 未知或模型已禁用时抛错。 |
+| `setFeatureValue?.({ modelId, key, value })` | `void \| Promise<void>` | 更新指定模型的单个字段，拒绝无效或禁用的操作。                                  |
 
 #### MCP 状态与操作
 
@@ -611,8 +636,7 @@ const replacement: UseMessagePlugin = {
 | `renameConversation`      | `(id: string, title: string) => Promise<void \| undefined>`             | 修改会话标题。                                         |
 | `deleteConversation`      | `(id: string) => Promise<void>`                                         | 删除会话；删除当前会话时清空输入。                     |
 | `selectModel`             | `(id: string \| null) => Promise<void>`                                 | 选择模型。                                             |
-| `setModelFeature`         | `(id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void>`      | 开启或关闭模型功能。                                   |
-| `setModelReasoningEffort` | `(effort: string \| null) => Promise<void>`                             | 设置思考强度。                                         |
+| `setModelFeatureValue`    | `(change: ChatModelFeatureValueUpdate) => Promise<void>`                | 按模型和字段更新配置并处理等待状态与错误。             |
 | `addMcpServer`            | `(id: string) => Promise<void>`                                         | 安装并启用 MCP 服务。                                  |
 | `removeMcpServer`         | `(id: string) => Promise<void>`                                         | 移除 MCP 服务。                                        |
 | `setMcpServerEnabled`     | `(id: string, enabled: boolean) => Promise<void>`                       | 开启或关闭 MCP 服务。                                  |
@@ -664,59 +688,57 @@ const history = useChatHistoryData({
 
 #### Runtime 与状态类型
 
-| 类型                  | 类别        | 说明                                              |
-| --------------------- | ----------- | ------------------------------------------------- |
-| `ChatReadable<T>`     | `interface` | 只读 `{ readonly value: T }` 结构。               |
+| 类型                  | 类别        | 说明                                                 |
+| --------------------- | ----------- | ---------------------------------------------------- |
+| `ChatReadable<T>`     | `interface` | 只读 `{ readonly value: T }` 结构。                  |
 | `ChatWritable<T>`     | `interface` | 可写 `{ value: T }` 结构，通过 `.value` 读取或更新。 |
-| `ChatRuntime`         | `interface` | 包含会话状态、输入区状态和 `ChatRuntimeActions`。 |
-| `ChatRuntimeActions`  | `interface` | Runtime 的发送、取消和会话操作。                  |
-| `ChatComposerRuntime` | `interface` | 输入区禁用状态及模型、MCP 工具的状态与方法。      |
-| `ChatModelRuntime`    | `interface` | 模型列表、选择、功能开关和思考强度的状态与操作。 |
-| `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作。        |
+| `ChatRuntime`         | `interface` | 包含会话状态、输入区状态和 `ChatRuntimeActions`。    |
+| `ChatRuntimeActions`  | `interface` | Runtime 的发送、取消和会话操作。                     |
+| `ChatComposerRuntime` | `interface` | 输入区禁用状态及模型、MCP 工具的状态与方法。         |
+| `ChatModelRuntime`    | `interface` | 模型列表、选择、字段值和字段更新操作。               |
+| `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作。           |
 
 #### 会话、消息与发送
 
-| 类型                                         | 定义                                                                                                                                                                                                                                                                         |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；可添加项目所需的额外字段，字段值类型为 `unknown`。 |
-| `ChatConversation`                           | 包含 `ChatConversationInfo` 的全部字段，另有消息列表 `messages: readonly ChatMessageItem[]`、请求状态 `requestState: ChatRequestState` 和处理状态 `processingState?: ChatProcessingState`。 |
-| `ChatMessageItem`                            | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`renderKey?: string`；`streamState?: 'streaming' \| 'finished' \| 'unknown'`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
-| `ChatMessageContent`                         | `string \| ChatMessagePart[]`                                                                                                                                                                                                                                                |
-| `ChatMessagePart` | 消息内容的一部分；`type: string` 标识内容种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
-| `ChatStructuredDataItem` | 提交的结构化数据项；`type: string` 标识数据种类，其他字段按该种类提供，字段值类型为 `unknown`。 |
-| `ChatStructuredData`                         | `ChatStructuredDataItem[]`                                                                                                                                                                                                                                                   |
-| `ChatToolCall`                               | `id: string`；`type: 'function' \| string`；`function: { name: string; arguments: string }`                                                                                                                                                                                  |
-| `ChatSendPayload`                            | `text: string`；`structuredData?: ChatStructuredData`；`externalPayloads?: SenderExternalPayload[]`。默认 Kit Runtime 将外部 payload 保留在用户消息的 `externalPayloads` 字段，供消息持久化和 ResponseProvider 使用。 |
-| `ChatRequestState`                           | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`                                                                                                                                                                                                  |
-| `ChatProcessingState`                        | `'requesting' \| 'completing' \| string`                                                                                                                                                                                                                                     |
+| 类型                     | 定义                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatConversationInfo`   | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；可添加项目所需的额外字段，字段值类型为 `unknown`。                                                                                                                                                                                        |
+| `ChatConversation`       | 包含 `ChatConversationInfo` 的全部字段，另有消息列表 `messages: readonly ChatMessageItem[]`、请求状态 `requestState: ChatRequestState` 和处理状态 `processingState?: ChatProcessingState`。                                                                                                                                                                |
+| `ChatMessageItem`        | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`renderKey?: string`；`streamState?: 'streaming' \| 'finished' \| 'unknown'`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
+| `ChatMessageContent`     | `string \| ChatMessagePart[]`                                                                                                                                                                                                                                                                                                                              |
+| `ChatMessagePart`        | 消息内容的一部分；`type: string` 标识内容种类，其他字段按该种类提供，字段值类型为 `unknown`。                                                                                                                                                                                                                                                              |
+| `ChatStructuredDataItem` | 提交的结构化数据项；`type: string` 标识数据种类，其他字段按该种类提供，字段值类型为 `unknown`。                                                                                                                                                                                                                                                            |
+| `ChatStructuredData`     | `ChatStructuredDataItem[]`                                                                                                                                                                                                                                                                                                                                 |
+| `ChatToolCall`           | `id: string`；`type: 'function' \| string`；`function: { name: string; arguments: string }`                                                                                                                                                                                                                                                                |
+| `ChatSendPayload`        | `text: string`；`structuredData?: ChatStructuredData`；`externalPayloads?: SenderExternalPayload[]`。默认 Kit Runtime 将外部 payload 保留在用户消息的 `externalPayloads` 字段，供消息持久化和 ResponseProvider 使用。                                                                                                                                      |
+| `ChatRequestState`       | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`                                                                                                                                                                                                                                                                                |
+| `ChatProcessingState`    | `'requesting' \| 'completing' \| string`                                                                                                                                                                                                                                                                                                                   |
 
 消息对象和服务端 ID 都可能变化时，请提供稳定的 `renderKey`。显式 `streamState` 优先；自动流状态仅在请求起点可识别且确认新增助手消息属于当前请求时标记为 `streaming`。请求进行中无法确定归属时为 `unknown`，`loading` 不决定流状态。暂停期间保留本轮身份，结束或切换会话后清理；中途挂载且无法重建归属时使用 `unknown`。自定义渲染器的接入见 [Renderer 上下文](./chat#自定义-renderer-上下文)。
 
 #### 模型与 MCP
 
-| 类型                       | 定义                                                                                                                                                                                                                                                                                                                                         |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`efforts?: readonly ModelSelectorReasoningEffortOption[]`；`defaultEffort?: string`；`thinkingRequired?: boolean`；`capabilities?: Partial<Record<'thinking' \| 'search', boolean>>`；`metadata?: Record<string, unknown>` |
-| `ChatMcpServerInfo`        | `id: string`；`name: string`；`description?: string`；`icon?: string`；`category?: string`；`installed: boolean`；`enabled: boolean`；`loading?: boolean`；`error?: unknown`；`metadata?: Record<string, unknown>`                                                                                                                           |
-| `ChatMcpToolInfo`          | `id: string`；`name: string`；`description?: string`；`enabled: boolean`                                                                                                                                                                                                                                                                     |
-| `ChatMcpToolState`         | `Partial<Record<string, readonly ChatMcpToolInfo[]>>`，键为 MCP 服务 ID。                                                                                                                                                                                                                                                                    |
-| `ChatProviderConfig`       | `type: 'openai' \| 'deepseek' \| 'qwen'`；`label?: string`；`apiUrl?: string`；`apiKey?: string`；`headers?: Record<string, string>`；`timeout?: number`；`models: ChatProviderModelConfig[]`                                                                                                                                                |
-| `ChatProviderType`         | `'openai' \| 'deepseek' \| 'qwen'`                                                                                                                                                                                                                                                                                                           |
-| `ChatProviderModelConfig`  | 支持 `ChatModelOption` 中除 `metadata` 外的字段，另有 `featureBody?: Partial<Record<'thinking' \| 'search', ChatProviderFeatureBody>>` 和 `effortParam?: string`。 |
-| `ChatProviderFeatureBody`  | `enabled?: Record<string, unknown>`；`disabled?: Record<string, unknown>`                                                                                                                                                                                                                                                                    |
-| `ChatBuiltInModelFeature`  | `'thinking' \| 'search'`                                                                                                                                                                                                                                                                                                                     |
-| `ChatIcon`                 | `ModelSelectorOption['icon']`                                                                                                                                                                                                                                                                                                                |
-| `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void`                                                                                                             |
-| `ChatMcpServers`           | `readonly ChatMcpServerConfig[]`                                                                                                                                                                                                                                                                                                             |
-| `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。 |
+| 类型                       | 定义                                                                                                                                                                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`fields?: readonly ModelSelectorField[]`；`metadata?: Record<string, unknown>`                                 |
+| `ChatMcpServerInfo`        | `id: string`；`name: string`；`description?: string`；`icon?: string`；`category?: string`；`installed: boolean`；`enabled: boolean`；`loading?: boolean`；`error?: unknown`；`metadata?: Record<string, unknown>`               |
+| `ChatMcpToolInfo`          | `id: string`；`name: string`；`description?: string`；`enabled: boolean`                                                                                                                                                         |
+| `ChatMcpToolState`         | `Partial<Record<string, readonly ChatMcpToolInfo[]>>`，键为 MCP 服务 ID。                                                                                                                                                        |
+| `ChatProviderConfig`       | `type: 'openai' \| 'deepseek' \| 'qwen'`；`label?: string`；`apiUrl?: string`；`apiKey?: string`；`headers?: Record<string, string>`；`timeout?: number`；`models: ChatProviderModelConfig[]`                                    |
+| `ChatProviderType`         | `'openai' \| 'deepseek' \| 'qwen'`                                                                                                                                                                                               |
+| `ChatProviderModelConfig`  | 支持 `ChatModelOption` 中除 `metadata` 外的字段，另有 `mapFeatureValues?: (values: ModelSelectorFeatureValues) => Record<string, unknown>`。                                                                                     |
+| `ChatIcon`                 | `ModelSelectorOption['icon']`                                                                                                                                                                                                    |
+| `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void` |
+| `ChatMcpServers`           | `readonly ChatMcpServerConfig[]`                                                                                                                                                                                                 |
+| `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。                                                                                                     |
 
 `UseChatRuntimeMcpAdapter` 的三个字段均为必填：
 
-| 字段 | 类型或参数 | 用途与返回值 |
-| --- | --- | --- |
-| `runtime` | `ChatMcpRuntime` | 提供 MCP 服务、工具的状态与操作方法。 |
+| 字段        | 类型或参数                                                                             | 用途与返回值                                                                       |
+| ----------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `runtime`   | `ChatMcpRuntime`                                                                       | 提供 MCP 服务、工具的状态与操作方法。                                              |
 | `listTools` | `(serverIds: readonly string[], toolIds: Readonly<Record<string, readonly string[]>>)` | 根据服务 ID 和每个服务选中的工具 ID 获取工具定义，返回工具定义只读数组的 Promise。 |
-| `callTool` | `(serverId: string, toolName: string, args: Record<string, unknown>)` | 使用服务 ID、工具原始名称和调用参数执行工具，返回 `Promise<unknown>`。 |
+| `callTool`  | `(serverId: string, toolName: string, args: Record<string, unknown>)`                  | 使用服务 ID、工具原始名称和调用参数执行工具，返回 `Promise<unknown>`。             |
 
 `listTools` 返回的每项包含 `serverId: string`、`id: string`、`name: string`、`originalName: string`，以及可选的 `description?: string`、`inputSchema?: Record<string, unknown>`。`name` 是提供给模型的工具名称，`originalName` 是服务中的原始名称。
 
@@ -724,32 +746,31 @@ const history = useChatHistoryData({
 
 #### 发送参数
 
-| 类型                            | 定义                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatRunConfig`                 | `modelId?: string`；`features?: Partial<Record<'thinking' \| 'search', boolean>>`；`reasoning?: ChatRunConfigReasoning`；`mcp?: ChatMcpRunConfig`                                                                                                                                                                                                                               |
-| `ChatRunConfigReasoning`        | `enabled: boolean`；`effort?: string`                                                                                                                                                                                                                                                                                                                                           |
-| `ChatMcpRunConfig`              | `serverIds: readonly string[]`；`toolIds: Readonly<Record<string, readonly string[]>>`                                                                                                                                                                                                                                                                                          |
-| `ChatBeforeSendContext`         | `payload: ChatSendPayload`；`runConfig?: ChatRunConfig`；`model?: ChatModelOption`；`mcp?: { servers: readonly ChatMcpServerInfo[]; tools: ChatMcpToolState }`                                                                                                                                                                                                                  |
-| `ChatBeforeSendResult`          | `'continue' \| 'handled' \| 'reject'`                                                                                                                                                                                                                                                                                                                                           |
-| `ChatBeforeSend`                | `(context: ChatBeforeSendContext) => 'continue' \| 'handled' \| 'reject' \| Promise<'continue' \| 'handled' \| 'reject'>`                                                                                                                                                                                                                                                       |
-| `ChatRuntimeActionErrorPayload` | `action: 'send' \| 'abort' \| 'clear-active-conversation' \| 'create-conversation' \| 'switch-conversation' \| 'rename-conversation' \| 'delete-conversation' \| 'select-model' \| 'set-model-feature' \| 'set-model-reasoning-effort' \| 'add-mcp-server' \| 'remove-mcp-server' \| 'set-mcp-server-enabled' \| 'set-mcp-tool-enabled'`；`payload?: unknown`；`error: unknown` |
+| 类型                            | 定义                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatRunConfig`                 | `modelId?: string`；`featureValues?: ModelSelectorFeatureValues`；`mcp?: ChatMcpRunConfig`                                                                                                                                                                                                                                                            |
+| `ChatMcpRunConfig`              | `serverIds: readonly string[]`；`toolIds: Readonly<Record<string, readonly string[]>>`                                                                                                                                                                                                                                                                |
+| `ChatBeforeSendContext`         | `payload: ChatSendPayload`；`runConfig?: ChatRunConfig`；`model?: ChatModelOption`；`mcp?: { servers: readonly ChatMcpServerInfo[]; tools: ChatMcpToolState }`                                                                                                                                                                                        |
+| `ChatBeforeSendResult`          | `'continue' \| 'handled' \| 'reject'`                                                                                                                                                                                                                                                                                                                 |
+| `ChatBeforeSend`                | `(context: ChatBeforeSendContext) => 'continue' \| 'handled' \| 'reject' \| Promise<'continue' \| 'handled' \| 'reject'>`                                                                                                                                                                                                                             |
+| `ChatRuntimeActionErrorPayload` | `action: 'send' \| 'abort' \| 'clear-active-conversation' \| 'create-conversation' \| 'switch-conversation' \| 'rename-conversation' \| 'delete-conversation' \| 'select-model' \| 'set-model-feature-value' \| 'add-mcp-server' \| 'remove-mcp-server' \| 'set-mcp-server-enabled' \| 'set-mcp-tool-enabled'`；`payload?: unknown`；`error: unknown` |
 
 #### 函数配置类型
 
 | 类型                                    | 定义                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `UseChatRuntimeOptions`                 | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
-| `UseChatRuntimeFromConversationOptions` | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`（仅严格返回 `false` 表示拒绝）；`composer?: ChatComposerRuntime` |
-| `KitRuntimeSendPayload` | `ChatSendPayload`，另有 `conversationId: string \| null` 和 `runConfig?: ChatRunConfig`。默认发送等待绑定会话的 `engine.send()` 完成后返回 `true`；直接调用 `runtime.actions.send` 时错误会 reject，Adapter 调用会发出 `runtime-action-error` 并按失败处理草稿。 |
+| `UseChatRuntimeFromConversationOptions` | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`（仅严格返回 `false` 表示拒绝）；`composer?: ChatComposerRuntime`                                                                                                                                             |
+| `KitRuntimeSendPayload`                 | `ChatSendPayload`，另有 `conversationId: string \| null` 和 `runConfig?: ChatRunConfig`。默认发送等待绑定会话的 `engine.send()` 完成后返回 `true`；直接调用 `runtime.actions.send` 时错误会 reject，Adapter 调用会发出 `runtime-action-error` 并按失败处理草稿。                                                                                                                                                         |
 | `UseChatRuntimeAdapterOptions`          | `runtime: MaybeRefOrGetter<ChatRuntime>`；`title?: MaybeRefOrGetter<string \| undefined>`；`historyData?: MaybeRefOrGetter<ChatHistoryData \| undefined>`；`onActionError(payload)`                                                                                                                                                                                                                                      |
 | `UseChatHistoryItemsOptions`            | `conversations: MaybeRefOrGetter<readonly ChatConversationInfo[] \| undefined>`；`defaultTitle: MaybeRefOrGetter<string>`                                                                                                                                                                                                                                                                                                |
-| `UseChatHistoryDataOptions`             | 包含 `UseChatHistoryItemsOptions` 的 `conversations` 和 `defaultTitle`，另有 `history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`，用于提供历史会话列表或分组。 |
-| `ChatHistoryItem`                       | 包含 `ChatConversationInfo` 的全部字段；`raw: ChatConversationInfo` 保存原始会话对象。 |
+| `UseChatHistoryDataOptions`             | 包含 `UseChatHistoryItemsOptions` 的 `conversations` 和 `defaultTitle`，另有 `history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`，用于提供历史会话列表或分组。                                                                                                                                                                                                                                                    |
+| `ChatHistoryItem`                       | 包含 `ChatConversationInfo` 的全部字段；`raw: ChatConversationInfo` 保存原始会话对象。                                                                                                                                                                                                                                                                                                                                   |
 | `ChatHistoryDisplayData`                | `ChatHistoryItem[] \| HistoryGroup<ChatHistoryItem>[]`                                                                                                                                                                                                                                                                                                                                                                   |
 | `ChatHistoryData`                       | `readonly ChatConversationInfo[] \| readonly ChatHistoryGroup[]`                                                                                                                                                                                                                                                                                                                                                         |
 | `ChatUIData`                            | `TrChatUI` 的会话、消息、输入区、请求、模型和 MCP 显示数据；详见 [Chat API](./chat#chatuidata)。                                                                                                                                                                                                                                                                                                                         |
 
-`UseConversationOptions`、`UseConversationReturn`、`UseMessageOptions` 和 `UseMessagePlugin` 来自 `@opentiny/tiny-robot-kit`；`ComputedRef`、`MaybeRefOrGetter` 和 `ShallowRef` 来自 Vue；`ModelSelectorReasoningEffortOption`、`HistoryGroup` 和 `ChatIcon` 的底层图标类型来自 `@opentiny/tiny-robot`。这些外部类型请参阅各自的 API。
+`UseConversationOptions`、`UseConversationReturn`、`UseMessageOptions` 和 `UseMessagePlugin` 来自 `@opentiny/tiny-robot-kit`；`ComputedRef`、`MaybeRefOrGetter` 和 `ShallowRef` 来自 Vue；`ModelSelectorField`、`ModelSelectorFeatureValues`、`HistoryGroup` 和 `ChatIcon` 的底层图标类型来自 `@opentiny/tiny-robot`。这些外部类型请参阅各自的 API。
 
 ## 常见问题
 

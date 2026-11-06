@@ -2,18 +2,24 @@
 import { computed, getCurrentInstance, nextTick, onMounted, onScopeDispose, shallowRef, watch } from 'vue'
 import ModelSelectorPanel from './components/ModelSelectorPanel.vue'
 import ModelSelectorTrigger from './components/ModelSelectorTrigger.vue'
-import { useModelSelectorEffort } from './composables/useModelSelectorEffort'
 import { useModelSelectorFloating } from './composables/useModelSelectorFloating'
 import { useModelSelectorState } from './composables/useModelSelectorState'
 import type {
   ModelSelectorEmits,
+  ModelSelectorFeatureValue,
+  ModelSelectorFeatureValues,
   ModelSelectorOption,
   ModelSelectorProps,
   ModelSelectorSlots,
   ModelSelectorTriggerSlotProps,
 } from './index.type'
-import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
 import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
+import {
+  canSetModelFieldValue,
+  getModelFeatureSummary,
+  normalizeModelFields,
+  resolveModelFeatureValues,
+} from './featureFields'
 import { useStableId, useTeleportTarget } from '../shared/composables'
 import { getFloatingOverlayHost, observeLayoutMode } from '../shared/overlayHost'
 
@@ -22,8 +28,6 @@ defineOptions({ name: 'TrModelSelector' })
 const props = withDefaults(defineProps<ModelSelectorProps>(), {
   models: () => [],
   defaultValue: null,
-  reasoningEffort: undefined,
-  defaultReasoningEffort: null,
   open: undefined,
   defaultOpen: false,
   closeOnSelect: true,
@@ -36,7 +40,6 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   size: 'normal',
   placement: 'bottom-start',
   offset: 8,
-  reasoningEffortLabel: 'Thinking',
 })
 
 const emit = defineEmits<ModelSelectorEmits>()
@@ -107,17 +110,11 @@ const duplicateValues = computed(() => getDuplicateModelValues(props.models))
 const currentOption = computed(() => {
   return normalizedOptions.value.find((option) => option.value === state.value.value) ?? null
 })
-const currentEfforts = computed(() => normalizeModelEfforts(currentOption.value?.raw.reasoningEfforts))
-const duplicateEffortValues = computed(() => getDuplicateModelEffortValues(currentOption.value?.raw.reasoningEfforts))
-// Raw vnode props preserve an explicitly bound `undefined`, which still denotes controlled usage.
-const effortState = useModelSelectorEffort({
-  value: () => props.reasoningEffort,
-  defaultValue: props.defaultReasoningEffort,
-  efforts: () => currentEfforts.value,
-  controlled: hasInitialVNodeProp('reasoningEffort', 'reasoning-effort'),
-  onUpdateValue: (value) => emit('update:reasoningEffort', value),
-})
-const activeEffort = computed<string | null>(() => effortState.activeOption.value?.value ?? null)
+const currentFields = computed(() => normalizeModelFields(currentOption.value?.raw.fields))
+const currentValues = computed<ModelSelectorFeatureValues>(() =>
+  resolveModelFeatureValues(currentFields.value, props.featureValues),
+)
+const featureSummary = computed(() => getModelFeatureSummary(currentFields.value, currentValues.value))
 const isOpen = computed(() => state.open.value && !props.disabled)
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
 
@@ -125,7 +122,8 @@ const triggerSlotProps = computed<ModelSelectorTriggerSlotProps>(() => ({
   option: currentOption.value?.raw ?? null,
   label: triggerLabel.value,
   open: isOpen.value,
-  reasoningEffortOption: effortState.activeOption.value,
+  values: currentValues.value,
+  summary: featureSummary.value,
 }))
 
 const panelSlotContext = computed(() => ({
@@ -221,17 +219,22 @@ function handleSelectOption(option: ModelSelectorOption) {
   }
 }
 
-function handleSelectEffort(value: string | null) {
-  if (props.disabled || currentOption.value?.disabled) {
+function setFeatureValue(key: string, value: ModelSelectorFeatureValue) {
+  const option = currentOption.value
+  const field = currentFields.value.find((item) => item.key === key)
+  if (
+    !option ||
+    props.disabled ||
+    option.disabled ||
+    !field ||
+    !canSetModelFieldValue(field, value) ||
+    currentValues.value[key] === value
+  )
     return
-  }
-
-  const option = value === null ? null : (currentEfforts.value.find((item) => item.value === value) ?? null)
-  const changed = effortState.setValue(value)
-
-  if (changed) {
-    emit('reasoning-effort-change', option)
-  }
+  const values = { ...currentValues.value, [key]: value }
+  const change = { modelId: option.value, key, previousValue: currentValues.value[key], value, values: { ...values } }
+  emit('update:featureValues', values)
+  emit('feature-change', change)
 }
 
 function closeFromSlot() {
@@ -255,18 +258,6 @@ if (import.meta.env.DEV) {
       if (values.length > 0) {
         console.warn(
           `[TrModelSelector] model values must be unique. Duplicate values are ignored: ${values.join(', ')}`,
-        )
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(
-    duplicateEffortValues,
-    (values) => {
-      if (values.length > 0) {
-        console.warn(
-          `[TrModelSelector] reasoning effort values must be unique for model "${currentOption.value?.value ?? ''}". Duplicate values are ignored: ${values.join(', ')}`,
         )
       }
     },
@@ -326,7 +317,7 @@ onScopeDispose(() => {
         :open="isOpen"
         :disabled="disabled"
         :label="triggerLabel"
-        :effort-label="effortState.activeOption.value?.label"
+        :summary="featureSummary"
         :icon="currentOption?.icon"
         :controls-id="listboxId"
         :variant="variant"
@@ -358,15 +349,14 @@ onScopeDispose(() => {
             :placeholder="placeholder"
             :search-placeholder="searchPlaceholder"
             :empty-text="emptyText"
-            :effort-options="currentEfforts"
-            :effort-value="activeEffort"
-            :effort-label="reasoningEffortLabel"
-            :effort-disabled="Boolean(currentOption?.disabled)"
+            :fields-disabled="Boolean(currentOption?.disabled)"
+            :fields="currentFields"
+            :values="currentValues"
             :size="size"
             :panel-class="panelClass"
             :slot-context="panelSlotContext"
             @select="handleSelectOption"
-            @select-effort="handleSelectEffort"
+            @set-feature-value="setFeatureValue"
             @close="requestClose"
           >
             <template v-if="$slots.header" #header="slotProps">

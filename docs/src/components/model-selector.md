@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # ModelSelector 模型选择器
 
-ModelSelector 用于从一组 AI 模型中选择当前模型。组件内置搜索、分组、禁用状态、思考强度、浮层定位和键盘操作，也支持通过插槽定制触发器与选项面板。
+ModelSelector 用于选择 AI 模型，并根据 `fields` 展示开关和选项。组件支持搜索、分组、禁用状态、浮层定位、键盘操作和自定义插槽。
 
 适合聊天输入区、模型配置表单或工作流工具栏等场景。模型目录、Provider 路由、价格、上下文长度和请求参数属于应用层业务逻辑。
 
@@ -22,15 +22,15 @@ ModelSelector 只展示传入的 `models` 并通知选择结果。它不会请�
 
 模型选项仅承载界面所需字段。价格、密钥和 Provider 参数等数据属于请求层业务逻辑。
 
-| 字段               | 必需 | 说明                         |
-| ------------------ | ---- | ---------------------------- |
-| `value`            | 是   | 模型的稳定且唯一的标识       |
-| `label`            | 是   | 模型名称                     |
-| `description`      | 否   | 模型能力、适用场景等辅助说明 |
-| `icon`             | 否   | Vue 组件或图片 URL           |
-| `disabled`         | 否   | 是否保留展示但禁止选择       |
-| `group`            | 否   | 分组标识和分组标题           |
-| `reasoningEfforts` | 否   | 当前模型支持的思考强度       |
+| 字段          | 必需 | 说明                                       |
+| ------------- | ---- | ------------------------------------------ |
+| `value`       | 是   | 模型的稳定且唯一的标识                     |
+| `label`       | 是   | 模型名称                                   |
+| `description` | 否   | 模型能力、适用场景等辅助说明               |
+| `icon`        | 否   | Vue 组件或图片 URL                         |
+| `disabled`    | 否   | 是否保留展示但禁止选择                     |
+| `group`       | 否   | 分组标识和分组标题                         |
+| `fields`      | 否   | 当前模型的开关和选择字段；空数组不展示字段 |
 
 面板会根据选项内容收缩或展开，至少与触发器同宽，并受视口可用宽度限制。名称和描述所在文字列的默认最大宽度为 320px；面板打开期间可随更宽内容增长，不会因搜索过滤而收缩。
 
@@ -52,23 +52,62 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 }
 ```
 
-## 思考强度
+## 模型特性字段
 
-`reasoningEfforts` 描述模型支持的思考强度，组件会在面板底部显示对应选项。`v-model:reasoning-effort` 绑定当前值。
+通过模型的 `fields` 配置字段，使用 `v-model:feature-values` 绑定当前模型的值。字段 key 由业务定义；思考、联网和其他功能使用同一套 API。
 
-<demo vue="../../demos/model-selector/reasoning-effort.vue" title="思考强度" description="内置选项、自定义选项与不支持思考强度的模型。" />
+<demo vue="../../demos/model-selector/reasoning-effort.vue" title="模型特性字段" description="关闭与强度、必需思考、开关和自定义选项。" />
 
-示例设置了 `:close-on-select="false"`，切换模型后面板保持打开，可继续选择思考强度。该属性只控制模型选择后的关闭行为，不会根据模型是否支持思考强度做隐式判断。
+```vue
+<TrModelSelector
+  v-model="modelId"
+  v-model:feature-values="featureValues"
+  :models="models"
+  @feature-change="handleFeatureChange"
+/>
+```
 
-- `true` 对应内置的 `Low`、`Medium`、`High`。
-- 选项数组支持自定义 `value`、`label` 和 `disabled`。
-- `false`、`undefined` 或空数组表示不显示思考强度。
+```ts
+const models = [
+  {
+    value: 'model-a',
+    label: 'Model A',
+    fields: [
+      {
+        key: 'reasoning',
+        label: '思考强度',
+        type: 'select',
+        defaultValue: 'off',
+        summary: true,
+        options: [
+          { value: 'off', label: '关闭', summary: false },
+          { value: 'low', label: '低' },
+          { value: 'medium', label: '中' },
+          { value: 'high', label: '高' },
+        ],
+      },
+      { key: 'search', label: '联网搜索', type: 'switch', defaultValue: false },
+    ],
+  },
+]
+```
 
-思考强度是独立状态。切换到不支持当前值的模型时，组件会保留该值，但不会在触发器或面板中显示为有效选项；切回支持它的模型后会恢复显示。组件不会自行清空业务状态。
+同一模型的字段 key、同一字段的选项 value 必须唯一。开关未设置默认值时为 `false`；选择字段使用有效的 `defaultValue`，否则取第一个未禁用选项。没有可用选项时显示空状态，不生成默认值。已有的合法值即使被禁用仍可展示，`disabled` 只禁止操作。
 
-::: tip 切换模型时不会重置
-不同模型具有不同默认思考强度的场景，可由消费层监听模型变化并更新 `reasoningEffort`。
-:::
+`featureValues` 受控：用户操作只提出更新请求，最终显示以回传值为准。未声明或已失效的值不会展示；初始化和外部更新不会触发修改事件。组件不按模型缓存状态，应用应自行保存各模型的值并在切换时传回；Chat 内建 Runtime 已提供此行为。
+
+选择字段设置 `summary: true` 后，选中项追加到触发器；选项的 `summary: false` 可隐藏“关闭”等摘要。可见摘要、悬浮文本和无障碍名称采用同一份结果。
+
+一次有效操作依次触发 `update:featureValues` 和 `feature-change`。相同值、禁用项、无效选项、初始化、外部赋值、模型切换和模型配置更新均不触发字段修改事件。
+
+```ts
+function handleFeatureChange(change: ModelSelectorFeatureChange) {
+  // values 是本次操作后当前模型有效值的独立快照。
+  console.log(change.modelId, change.key, change.previousValue, change.value, change.values)
+}
+```
+
+必需思考时只提供强度选项；只支持开关时提供“关闭／开启”两个选项；不支持时省略该字段。请求参数转换由业务或 Provider 完成。
 
 ## 尺寸与外观
 
@@ -82,7 +121,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 ### 自定义触发器
 
-`trigger` 插槽用于调整按钮内容，并提供当前选项、展示文本、展开状态和当前模型支持的思考强度。
+`trigger` 插槽提供当前选项、模型名称、展开状态、有效 `values` 和 `summary`；定制内容时应展示相同摘要。
 
 <demo vue="../../demos/model-selector/icon-trigger.vue" title="自定义触发器" description="模型标识、展开箭头与窄屏表现的定制效果。" />
 
@@ -96,7 +135,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 `item` 位于 `role="option"` 内，适合非交互内容。`header` 和 `footer` 支持按钮、链接或表单控件；作用域中的 `close()` 用于关闭面板。
 
-`footer` 插槽会完整替换默认的思考强度区域。自定义 Footer 可通过 `reasoningEfforts`、`reasoningEffortOption` 和 `setReasoningEffort()` 保留思考强度选择能力。
+`footer` 完整替换默认字段区，提供 `option`、`values`、`setFeatureValue(key, value)`、`disabled` 和 `close()`。字段区位于模型列表之外。
 
 ## 控制选中值与面板开关
 
@@ -104,15 +143,10 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 ### 初始状态
 
-`defaultValue`、`defaultReasoningEffort` 和 `defaultOpen` 只在初始化时使用。后续交互由组件维护内部状态。
+`defaultValue` 和 `defaultOpen` 只在初始化时使用。后续交互由组件维护内部状态。
 
 ```vue
-<TrModelSelector
-  :models="models"
-  default-value="general-model"
-  default-reasoning-effort="medium"
-  :default-open="false"
-/>
+<TrModelSelector :models="models" default-value="general-model" :default-open="false" />
 ```
 
 ### 完全控制状态
@@ -145,7 +179,7 @@ const open = shallowRef(false)
 | 非搜索模式列表 | `Home` / `End`          | 跳到首个或末个可用项                                                |
 | 搜索框或列表   | `Enter`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定；输入法组合期间不会误选 |
 | 非搜索模式列表 | `Space`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定                         |
-| 思考强度按钮   | `Enter` / `Space`       | 选择思考强度，不关闭面板                                            |
+| 字段控件       | `Enter` / `Space`       | 修改字段值                                                          |
 
 组件使用真实按钮以及 `combobox`、`listbox`、`option` 等 ARIA 语义。它不会拦截 `Tab` 或重排焦点；面板 Teleport 后，Tab 顺序由实际 DOM 位置决定。
 
@@ -157,28 +191,26 @@ const open = shallowRef(false)
 
 #### 选中值与开关状态
 
-| 属性名                   | 类型                             | 默认值      | 说明                                             |
-| ------------------------ | -------------------------------- | ----------- | ------------------------------------------------ |
-| `models`                 | `readonly ModelSelectorOption[]` | `[]`        | 模型列表                                         |
-| `modelValue`             | `string \| null`                 | `undefined` | 受控选中值；通过 `update:modelValue` 同步        |
-| `defaultValue`           | `string \| null`                 | `null`      | 非受控初始选中值                                 |
-| `reasoningEffort`        | `string \| null`                 | `undefined` | 受控思考强度；通过 `update:reasoningEffort` 同步 |
-| `defaultReasoningEffort` | `string \| null`                 | `null`      | 非受控初始思考强度                               |
-| `open`                   | `boolean`                        | `undefined` | 受控面板开关；通过 `update:open` 同步            |
-| `defaultOpen`            | `boolean`                        | `false`     | 非受控初始面板开关                               |
-| `closeOnSelect`          | `boolean`                        | `true`      | 选择模型后是否自动关闭面板                       |
-| `disabled`               | `boolean`                        | `false`     | 禁用组件并保持面板关闭                           |
+| 属性名          | 类型                             | 默认值      | 说明                                           |
+| --------------- | -------------------------------- | ----------- | ---------------------------------------------- |
+| `models`        | `readonly ModelSelectorOption[]` | `[]`        | 模型列表                                       |
+| `featureValues` | `ModelSelectorFeatureValues`     | `{}`        | 当前模型的受控字段值，缺失值按字段默认配置展示 |
+| `modelValue`    | `string \| null`                 | `undefined` | 受控选中值；通过 `update:modelValue` 同步      |
+| `defaultValue`  | `string \| null`                 | `null`      | 非受控初始选中值                               |
+| `open`          | `boolean`                        | `undefined` | 受控面板开关；通过 `update:open` 同步          |
+| `defaultOpen`   | `boolean`                        | `false`     | 非受控初始面板开关                             |
+| `closeOnSelect` | `boolean`                        | `true`      | 选择模型后是否自动关闭面板                     |
+| `disabled`      | `boolean`                        | `false`     | 禁用组件并保持面板关闭                         |
 
 #### 搜索与文案
 
-| 属性名                 | 类型                        | 默认值           | 说明                         |
-| ---------------------- | --------------------------- | ---------------- | ---------------------------- |
-| `searchable`           | `boolean`                   | `false`          | 是否显示搜索框               |
-| `placeholder`          | `string`                    | `'选择模型'`     | 没有匹配选中项时的触发器文本 |
-| `searchPlaceholder`    | `string`                    | `'搜索模型'`     | 搜索框占位文本               |
-| `emptyText`            | `string`                    | `'暂无可用模型'` | 默认空状态文本               |
-| `filterMethod`         | `ModelSelectorFilterMethod` | 内置包含匹配     | 自定义搜索过滤函数           |
-| `reasoningEffortLabel` | `string`                    | `'Thinking'`     | 默认思考强度区域的可见标题   |
+| 属性名              | 类型                        | 默认值           | 说明                         |
+| ------------------- | --------------------------- | ---------------- | ---------------------------- |
+| `searchable`        | `boolean`                   | `false`          | 是否显示搜索框               |
+| `placeholder`       | `string`                    | `'选择模型'`     | 没有匹配选中项时的触发器文本 |
+| `searchPlaceholder` | `string`                    | `'搜索模型'`     | 搜索框占位文本               |
+| `emptyText`         | `string`                    | `'暂无可用模型'` | 默认空状态文本               |
+| `filterMethod`      | `ModelSelectorFilterMethod` | 内置包含匹配     | 自定义搜索过滤函数           |
 
 #### 外观与浮层
 
@@ -195,27 +227,27 @@ const open = shallowRef(false)
 
 ### Events
 
-| 事件名                    | 参数                                                   | 说明                                   |
-| ------------------------- | ------------------------------------------------------ | -------------------------------------- |
-| `update:modelValue`       | `(value: string \| null)`                              | 用户选择不同模型时请求更新选中值       |
-| `change`                  | `(option: ModelSelectorOption)`                        | 用户选择不同模型后触发，返回完整选项   |
-| `update:reasoningEffort`  | `(value: string \| null)`                              | 用户选择或清空思考强度时请求更新当前值 |
-| `reasoning-effort-change` | `(option: ModelSelectorReasoningEffortOption \| null)` | 思考强度请求变化后触发                 |
-| `update:open`             | `(open: boolean)`                                      | 请求更新面板开关                       |
+| 事件名                 | 参数                                   | 说明                                              |
+| ---------------------- | -------------------------------------- | ------------------------------------------------- |
+| `update:modelValue`    | `(value: string \| null)`              | 用户选择不同模型时请求更新选中值                  |
+| `change`               | `(option: ModelSelectorOption)`        | 用户选择不同模型后触发，返回完整选项              |
+| `update:featureValues` | `(values: ModelSelectorFeatureValues)` | 请求更新当前模型的完整有效配置                    |
+| `feature-change`       | `(change: ModelSelectorFeatureChange)` | 用户修改具体字段，包含模型、key、旧值、新值和快照 |
+| `update:open`          | `(open: boolean)`                      | 请求更新面板开关                                  |
 
-事件只响应用户交互，初始化、外部赋值和更新 `models` 不会触发 `change`。选择不同模型时依次触发 `update:modelValue` 和 `change`；`closeOnSelect` 为 `true` 时随后触发 `update:open(false)` 并关闭面板，为 `false` 时面板保持打开。选择思考强度时依次触发 `update:reasoningEffort` 和 `reasoning-effort-change`，并保持面板打开。
+事件只响应用户交互，初始化、外部赋值和更新 `models` 不会触发字段修改事件。选择不同模型时依次触发 `update:modelValue` 和 `change`；`closeOnSelect` 为 `true` 时随后触发 `update:open(false)` 并关闭面板，为 `false` 时面板保持打开。字段操作时依次触发 `update:featureValues` 和 `feature-change`。
 
 ### Slots
 
-| 插槽名    | 作用域参数                                                                              | 说明                     |
-| --------- | --------------------------------------------------------------------------------------- | ------------------------ |
-| `trigger` | `{ option, label, open, reasoningEffortOption }`                                        | 替换触发器按钮内容       |
-| `item`    | `{ option, selected, highlighted }`                                                     | 自定义模型项内容         |
-| `empty`   | `{ query }`                                                                             | 自定义空状态             |
-| `header`  | `{ option, query, close }`                                                              | 自定义面板头部           |
-| `footer`  | `{ option, query, close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }` | 完整替换默认思考强度区域 |
+| 插槽名    | 作用域参数                                                    | 说明               |
+| --------- | ------------------------------------------------------------- | ------------------ |
+| `trigger` | `{ option, label, open, values, summary }`                    | 替换触发器按钮内容 |
+| `item`    | `{ option, selected, highlighted }`                           | 自定义模型项内容   |
+| `empty`   | `{ query }`                                                   | 自定义空状态       |
+| `header`  | `{ option, query, close }`                                    | 自定义面板头部     |
+| `footer`  | `{ option, query, close, values, disabled, setFeatureValue }` | 完整替换默认字段区 |
 
-`close()` 关闭面板并恢复触发器焦点。使用受控 `open` 时，消费层需要同步更新值。`reasoningEffortOption` 只返回当前模型真正支持的选项；已保存但不受支持的值会解析为 `null`。
+`close()` 关闭面板并恢复触发器焦点。使用受控 `open` 时，消费层需要同步更新值。
 
 ### Types
 
@@ -229,13 +261,35 @@ export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
-export interface ModelSelectorReasoningEffortOption {
-  readonly value: string
-  readonly label: string
-  readonly disabled?: boolean
+export type ModelSelectorFeatureValue = boolean | string
+export type ModelSelectorFeatureValues = Readonly<Record<string, ModelSelectorFeatureValue>>
+export interface ModelSelectorFieldBase {
+  key: string
+  label: string
+  disabled?: boolean
 }
-
-export type ModelSelectorReasoningEfforts = boolean | readonly ModelSelectorReasoningEffortOption[]
+export type ModelSelectorField = ModelSelectorFieldBase &
+  (
+    | { type: 'switch'; defaultValue?: boolean }
+    | {
+        type: 'select'
+        defaultValue?: string
+        summary?: boolean
+        options: readonly {
+          value: string
+          label: string
+          disabled?: boolean
+          summary?: boolean
+        }[]
+      }
+  )
+export interface ModelSelectorFeatureChange {
+  modelId: string
+  key: string
+  previousValue: ModelSelectorFeatureValue | undefined
+  value: ModelSelectorFeatureValue
+  values: ModelSelectorFeatureValues
+}
 
 export interface ModelSelectorOption {
   value: string
@@ -244,17 +298,16 @@ export interface ModelSelectorOption {
   icon?: Component | string
   disabled?: boolean
   group?: string
-  reasoningEfforts?: ModelSelectorReasoningEfforts
+  fields?: readonly ModelSelectorField[]
 }
 
 export type ModelSelectorFilterMethod = (query: string, option: ModelSelectorOption) => boolean
 
 export interface ModelSelectorProps {
   models?: readonly ModelSelectorOption[]
+  featureValues?: ModelSelectorFeatureValues
   modelValue?: string | null
   defaultValue?: string | null
-  reasoningEffort?: string | null
-  defaultReasoningEffort?: string | null
   open?: boolean
   defaultOpen?: boolean
   closeOnSelect?: boolean
@@ -270,14 +323,14 @@ export interface ModelSelectorProps {
   offset?: number
   appendTo?: string | HTMLElement
   panelClass?: ModelSelectorPanelClass
-  reasoningEffortLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
+  values: ModelSelectorFeatureValues
+  summary: string
 }
 
 export interface ModelSelectorItemSlotProps {
@@ -297,9 +350,9 @@ export interface ModelSelectorSlotProps {
 }
 
 export interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
-  reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
-  setReasoningEffort: (value: string | null) => void
+  values: ModelSelectorFeatureValues
+  disabled: boolean
+  setFeatureValue: (key: string, value: ModelSelectorFeatureValue) => void
 }
 
 export interface ModelSelectorSlots {
@@ -311,10 +364,10 @@ export interface ModelSelectorSlots {
 }
 
 export interface ModelSelectorEmits {
+  (event: 'update:featureValues', values: ModelSelectorFeatureValues): void
+  (event: 'feature-change', change: ModelSelectorFeatureChange): void
   (event: 'update:modelValue', value: string | null): void
   (event: 'change', option: ModelSelectorOption): void
-  (event: 'update:reasoningEffort', value: string | null): void
-  (event: 'reasoning-effort-change', option: ModelSelectorReasoningEffortOption | null): void
   (event: 'update:open', open: boolean): void
 }
 ```

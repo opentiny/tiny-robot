@@ -9,14 +9,14 @@ const props = defineProps<{
   open: boolean
   disabled: boolean
   label: string
-  effortLabel?: string
+  summary?: string
   icon?: Component | string
   controlsId: string
   variant: ModelSelectorVariant
   size: ModelSelectorSize
 }>()
 
-const title = computed(() => (props.effortLabel ? `${props.label} · ${props.effortLabel}` : props.label))
+const title = computed(() => [props.label, props.summary].filter(Boolean).join(' '))
 
 const emit = defineEmits<{
   click: [event: MouseEvent]
@@ -66,7 +66,7 @@ defineSlots<{
           focusable="false"
         />
         <span class="tr-model-selector__trigger-label">{{ label }}</span>
-        <span v-if="effortLabel" class="tr-model-selector__trigger-effort">{{ effortLabel }}</span>
+        <span v-if="summary" class="tr-model-selector__trigger-summary">&nbsp;{{ summary }}</span>
       </span>
       <IconArrowDown class="tr-model-selector__trigger-chevron" aria-hidden="true" focusable="false" />
     </slot>

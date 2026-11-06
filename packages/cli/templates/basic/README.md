@@ -1,6 +1,6 @@
-# __PROJECT_NAME__
+# **PROJECT_NAME**
 
-This project is generated from the TinyRobot Chat Basic template. It covers conversations, streaming responses, cancellation, Markdown rendering, responsive history, themes, model capabilities, and MCP Server/Tool management.
+This project is generated from the TinyRobot Chat Basic template. It covers conversations, streaming responses, cancellation, Markdown rendering, responsive history, themes, model feature fields, and MCP Server/Tool management.
 
 ## MCP support
 
@@ -41,11 +41,11 @@ MCP follows the same three modes: the official endpoint with an optional API Key
 
 The basic template already includes the Model Context MCP proxy in `vite.config.ts`. If you use `add chat` in an existing project, the CLI does not modify that project's Vite configuration; add the same `/modelcontextprotocol-mcp` proxy under `server.proxy` manually and restart Vite.
 
-## Model capabilities
+## Model feature fields
 
-Qwen models support deep thinking and web search. DeepSeek models support deep thinking. Unsupported capabilities remain visible as disabled buttons so the available model capabilities are clear.
+Qwen models expose thinking levels and web search through the model selector fields. DeepSeek models expose thinking levels through the same fields.
 
-DeepSeek models inherit the provider's thinking effort options: `low`, `high`, and `max`, with `high` as the default. The effort selector appears only after `深度思考` is enabled. To customize a model, set `efforts` and `defaultEffort` on that model in `src/App.vue`; use `thinkingRequired: true` only for models that cannot disable thinking.
+Configure `fields` on a model in `src/App.vue` and use `mapFeatureValues` to map selected values to request parameters. A model that requires thinking omits the `关闭` option.
 
 ## Environment variables
 
