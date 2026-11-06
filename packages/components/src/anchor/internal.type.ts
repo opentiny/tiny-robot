@@ -18,6 +18,7 @@ export interface AnchorItemSlotProps {
   active: boolean
   expanded: boolean
   highlighted: boolean
+  hoverOverride?: boolean
 }
 
 export interface AnchorMarkerSlotProps {
@@ -71,6 +72,7 @@ export interface AnchorItemProps {
   activeId?: string
   expanded: boolean
   highlighted: boolean
+  hoverOverride?: boolean
   placement: AnchorPlacement
   tooltipDelay: number
 }
