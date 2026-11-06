@@ -253,7 +253,7 @@ type ResponseProvider<T = ChatCompletion> = (
 
 #### AskUser 协议
 
-`ask_user` 用于描述要向用户提出的问题、候选答案和回答约束。一次调用使用统一的 `questions` 结构：没有 `options` 的问题收集文本；有 `options` 的问题通过 `multiSelect` 区分单选和多选，`allowCustom` 决定是否允许用户输入候选项之外的答案。选项的 `label` 同时是用户看到的文字和返回给模型的值，`description` 只用于补充说明。
+`ask_user` 用于描述要向用户提出的问题、候选答案和回答约束。一次调用使用统一的 `questions` 结构：每题使用唯一的 `id` 和完整的 `question`；可选的 `summary` 用作多题表单的步骤条短标题，不参与结果返回。没有 `options` 的问题收集文本；有 `options` 的问题通过 `multiSelect` 区分单选和多选，`allowCustom` 决定是否允许用户输入候选项之外的答案。选项的 `label` 同时是用户看到的文字和返回给模型的值，`description` 只用于补充说明。
 
 ```json
 {
@@ -263,6 +263,7 @@ type ResponseProvider<T = ChatCompletion> = (
     "questions": [
       {
         "id": "environment",
+        "summary": "发布环境",
         "question": "本次变更发布到哪个环境？",
         "options": [
           { "label": "预发布环境", "description": "先完成验证" },
@@ -273,12 +274,13 @@ type ResponseProvider<T = ChatCompletion> = (
       },
       {
         "id": "services",
+        "summary": "涉及服务",
         "question": "本次发布涉及哪些服务？",
         "options": [{ "label": "订单服务" }, { "label": "库存服务" }],
         "multiSelect": true,
         "allowCustom": true
       },
-      { "id": "summary", "question": "请简要说明本次变更内容。" }
+      { "id": "summary", "summary": "变更说明", "question": "请简要说明本次变更内容。" }
     ]
   }
 }
