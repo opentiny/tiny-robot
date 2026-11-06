@@ -119,6 +119,7 @@ export interface ChatUISlots {
   'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
   'sender-header'?: () => unknown
+  'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: (scope: SenderSlotScope) => unknown

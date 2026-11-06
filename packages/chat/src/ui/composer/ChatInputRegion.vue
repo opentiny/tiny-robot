@@ -50,6 +50,7 @@ defineSlots<{
   'composer-after'?: (props: ChatSenderSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'sender-header'?: () => unknown
+  'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: (scope: SenderSlotScope) => unknown
@@ -112,6 +113,9 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
       >
         <template v-if="$slots['sender-header']" #sender-header>
           <slot name="sender-header" />
+        </template>
+        <template v-if="$slots['input-prefix']" #input-prefix>
+          <slot name="input-prefix" />
         </template>
         <template v-if="$slots['sender-content']" #sender-content="slotProps">
           <slot name="sender-content" v-bind="slotProps" />
