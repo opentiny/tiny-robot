@@ -131,6 +131,34 @@ test('keeps the current row near its latest position when collapsing after wheel
   await expect.poll(async () => Math.abs((await center()) - afterWheel)).toBeLessThan(3)
 })
 
+for (const search of [false, true]) {
+  test(`preserves the browsed rows on mouse-leave collapse ${search ? 'with' : 'without'} search`, async ({
+    mount,
+    page,
+  }) => {
+    const component = await mount(AnchorFixture, { props: { count: 80, height: 240, activeIndex: 0, search } })
+    const anchor = component.locator('.tr-anchor')
+    const panel = component.locator('.tr-anchor__panel')
+    const row = component.locator(buttonSelector).nth(21)
+    const center = async () => {
+      const box = (await row.boundingBox())!
+      return box.y + box.height / 2
+    }
+
+    await component.locator(buttonSelector).first().hover()
+    await expect(anchor).toHaveClass(/is-expanded/)
+    await panel.hover()
+    await page.mouse.wheel(0, 625)
+    await expect(row).toBeInViewport()
+    const before = await center()
+
+    await page.mouse.move(750, 10)
+    await expect(anchor).not.toHaveClass(/is-expanded/)
+    await expect.poll(() => component.getByTestId('anchor-overlay').evaluate((el) => el.getAnimations().length)).toBe(0)
+    await expect.poll(async () => Math.abs((await center()) - before)).toBeLessThan(3)
+  })
+}
+
 test('manual expansion, search and resize retain a bounded keyboard scrollport', async ({ mount, page }) => {
   const component = await mount(AnchorFixture, { props: { count: 60, manual: true, search: true, placement: 'left' } })
   await component.getByTestId('toggle').click()

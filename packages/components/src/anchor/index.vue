@@ -160,7 +160,11 @@ function revealCurrentItem() {
   })
 }
 
-watch([active.activeId, navRef], revealCurrentItem, { immediate: true })
+// Keep the current row visible when it or the available space changes. Measuring
+// the overlay during collapse must preserve the position the user browsed to.
+watch([active.activeId, navRef, floating.availableHeight, controller.filteredItems], revealCurrentItem, {
+  immediate: true,
+})
 
 let hoverEvent: MouseEvent | undefined
 const { start: startHoverExpansion, stop: stopHoverExpansion } = useTimeoutFn(
@@ -271,7 +275,6 @@ function scheduleMeasure() {
     scheduledFrame = null
     active.sync()
     floating.sync()
-    revealCurrentItem()
     if (shouldRevealFocus) {
       shouldRevealFocus = false
       nextTick(() => {
