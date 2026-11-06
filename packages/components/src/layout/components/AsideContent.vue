@@ -157,7 +157,7 @@ const asideClass = computed(() => [
 }
 
 .tr-layout__aside--drawer .tr-layout__aside-body {
-  width: var(--tr-layout-drawer-width, var(--tr-layout-aside-expanded-width));
+  width: 100%;
 }
 
 .tr-layout__aside--dock .tr-layout__aside-body {
