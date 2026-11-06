@@ -1,18 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import sidebarToggleIcon from './icons/sidebar-toggle-menu.svg'
 
-defineProps<{
+const props = defineProps<{
   isEmpty: boolean
-  showSidebarTrigger: boolean
+  isMobileViewport: boolean
+  isSidebarOpen: boolean
 }>()
 
 const emit = defineEmits<{
   openSidebar: []
+  focusDesktopSidebarTrigger: []
 }>()
 
+const showSidebarTrigger = computed(() => props.isMobileViewport && !props.isSidebarOpen)
 const sidebarTrigger = ref<HTMLButtonElement | null>(null)
+
+watch(
+  () => props.isMobileViewport,
+  (isMobile) => {
+    if (!isMobile && sidebarTrigger.value === document.activeElement) {
+      emit('focusDesktopSidebarTrigger')
+    }
+  },
+)
 
 defineExpose({
   focusSidebarTrigger: () => sidebarTrigger.value?.focus({ preventScroll: true }),

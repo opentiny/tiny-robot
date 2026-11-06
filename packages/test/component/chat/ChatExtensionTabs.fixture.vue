@@ -8,7 +8,7 @@ import type {
   ExtensionManagerTabChangeEvent,
 } from '../../../components/src'
 
-const props = withDefaults(defineProps<{ withMcp?: boolean; withSkills?: boolean; floating?: boolean }>(), {
+const props = withDefaults(defineProps<{ withMcp?: boolean; withSkills?: boolean; floatingWidth?: number }>(), {
   withMcp: true,
   withSkills: true,
 })
@@ -56,7 +56,9 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
     </button>
     <ChatUI
       :floating-state="
-        props.floating ? { placement: 'top-left', offsetX: 16, offsetY: 16, width: 420, height: 340 } : undefined
+        props.floatingWidth
+          ? { placement: 'top-left', offsetX: 16, offsetY: 16, width: props.floatingWidth, height: 340 }
+          : undefined
       "
       :data="{
         mcp: props.withMcp
@@ -71,7 +73,7 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
         history: false,
         welcome: false,
         extensions: props.withSkills ? { tabs, overlayOpen } : undefined,
-        layout: props.floating ? { surface: { mode: 'floating' } } : undefined,
+        layout: props.floatingWidth ? { surface: { mode: 'floating' } } : undefined,
       }"
       @extension-action="recordAction"
       @extension-name-click="recordNameClick"

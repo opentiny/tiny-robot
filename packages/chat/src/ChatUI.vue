@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWindowSize } from '@vueuse/core'
+import { useElementSize, useWindowSize } from '@vueuse/core'
 import { computed, h, nextTick, onBeforeUpdate, shallowRef } from 'vue'
 import { TrAnchor, TrLayout } from '@opentiny/tiny-robot'
 import type {
@@ -80,6 +80,16 @@ const isMobileViewport = computed(() => {
   const width = viewportWidth.value
   return width > 0 && width < resolvedOptions.value.layout.mobileBreakpoint
 })
+const floatingSurface = computed(() =>
+  resolvedOptions.value.layout.surface.mode === 'floating'
+    ? scrollTarget.value?.closest<HTMLElement>('.tr-layout')
+    : undefined,
+)
+const { width: floatingWidth } = useElementSize(floatingSurface)
+const narrowFloatingWidth = computed(() => {
+  const width = floatingWidth.value
+  return width > 0 && width < resolvedOptions.value.layout.mobileBreakpoint ? width : undefined
+})
 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
@@ -143,6 +153,7 @@ const asideState = useChatAsideState({
   rightAsidePanels: availableRightAsidePanels,
   isMobileViewport,
   viewportWidth,
+  narrowFloatingWidth,
   onLeftOpenChange: (payload) => emit('left-aside-open-change', payload),
   onRightOpenChange: (payload) => emit('right-aside-open-change', payload),
   onRightAsideOpenUpdate: (open) => emit('update:right-aside-open', open),

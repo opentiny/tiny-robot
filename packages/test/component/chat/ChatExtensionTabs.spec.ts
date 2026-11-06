@@ -14,25 +14,44 @@ test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
   await expect(component.getByRole('button', { name: 'Search MCP', exact: true })).toBeVisible()
 })
 
-test('can close the extension drawer inside a narrow floating chat', async ({ mount, page }) => {
-  await page.setViewportSize({ width: 640, height: 400 })
-  await mount(ChatExtensionTabsFixture, { props: { withSkills: false, floating: true } })
+for (const [width, height] of [
+  [640, 400],
+  [1280, 720],
+]) {
+  test(`can close extensions inside a narrow floating chat at a ${width}px viewport`, async ({ mount, page }) => {
+    await page.setViewportSize({ width, height })
+    await mount(ChatExtensionTabsFixture, { props: { withSkills: false, floatingWidth: 420 } })
 
-  const entry = page.getByRole('button', { name: 'MCP', exact: true })
-  await entry.click()
+    const entry = page.getByRole('button', { name: 'MCP', exact: true })
+    await entry.click()
 
-  const close = page.getByRole('button', { name: '关闭详情' })
-  await expect
-    .poll(() =>
-      close.evaluate((button) => {
-        const { x, y, width, height } = button.getBoundingClientRect()
-        return button.contains(document.elementFromPoint(x + width / 2, y + height / 2))
-      }),
-    )
-    .toBe(true)
-  await close.click()
-  await expect(close).toBeHidden()
-  await expect(entry).toBeVisible()
+    const close = page.getByRole('button', { name: '关闭详情' })
+    await close.click()
+    await expect(close).toBeHidden()
+    await expect(entry).toBeVisible()
+  })
+}
+
+test('keeps the active extension open when the desktop floating chat switches between dock and drawer', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const component = await mount(ChatExtensionTabsFixture, { props: { floatingWidth: 1040 } })
+  await page.getByRole('button', { name: '扩展', exact: true }).click()
+  await page.getByRole('tab', { name: 'Skills', exact: true }).click()
+
+  const panel = page.locator('.tr-layout__aside--right')
+  const skill = page.getByRole('button', { name: 'Concise Answer', exact: true })
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+
+  await component.update({ props: { floatingWidth: 420 } })
+  await expect(panel).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(skill).toBeVisible()
+
+  await component.update({ props: { floatingWidth: 1040 } })
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+  await expect(skill).toBeVisible()
 })
 
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {

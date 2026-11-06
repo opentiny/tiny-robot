@@ -1035,7 +1035,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `extensions` | `false \| ChatExtensionsOptions` | 注册应用扩展页签，可设置默认页签及二级面板状态。 | 不注册应用扩展页签。 |
 | `anchor` | `false \| ChatAnchorOptions` | 默认关闭；传入对象开启，见 [anchor 配置](#anchor)。 | 隐藏用户消息目录。 |
 
-`ui.layout.mobileBreakpoint` 控制移动布局断点，默认 `960`（像素）；视口宽度小于该值时启用移动布局。非正数或非有限数值回退到 `960`。`layout-header` 插槽参数 `ChatHeaderSlotProps.isMobileViewport` 可用于同步自定义页头布局状态。
+`ui.layout.mobileBreakpoint` 控制移动布局断点，默认 `960`（像素）；视口宽度小于该值时启用移动布局。非正数或非有限数值回退到 `960`。`layout-header` 插槽参数 `ChatHeaderSlotProps.isMobileViewport` 可用于同步自定义页头布局状态。桌面视口中，浮窗自身宽度小于该断点时，右侧栏会从 dock 切换为 Drawer。
 
 #### `ui.extensions` {#ui-extensions}
 

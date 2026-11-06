@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { IconNewSession, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import geminiMask from './icons/gemini-mask.svg'
 
@@ -16,11 +17,17 @@ withDefaults(
     isNewConversationActive: false,
   },
 )
+
+const sidebarTrigger = ref<HTMLButtonElement | null>(null)
+defineExpose({
+  focusSidebarTrigger: () => sidebarTrigger.value?.focus({ preventScroll: true }),
+})
 </script>
 
 <template>
   <aside class="gemini-rail" aria-label="Gemini 导航">
     <button
+      ref="sidebarTrigger"
       class="gemini-rail__logo"
       type="button"
       aria-label="展开边栏"

@@ -33,12 +33,18 @@ const historyData = computed<ChatHistoryData>(() => {
 })
 
 const header = ref<InstanceType<typeof GeminiHeader> | null>(null)
+const rail = ref<InstanceType<typeof GeminiRail> | null>(null)
 const sidebarCloseButton = ref<HTMLButtonElement | null>(null)
 
 async function openSidebarFromHeader(openLeftAside: () => void) {
   openLeftAside()
   await nextTick()
   sidebarCloseButton.value?.focus({ preventScroll: true })
+}
+
+async function focusDesktopSidebarTrigger() {
+  await nextTick()
+  rail.value?.focusSidebarTrigger()
 }
 
 function handleLeftAsideOpenChange({ open, source }: ChatAsideOpenChangePayload) {
@@ -100,8 +106,10 @@ const chatUi = {
           <GeminiHeader
             ref="header"
             :is-empty="isEmpty"
-            :show-sidebar-trigger="isMobileViewport && !isLeftAsideOpen"
+            :is-mobile-viewport="isMobileViewport"
+            :is-sidebar-open="isLeftAsideOpen"
             @open-sidebar="openSidebarFromHeader(openLeftAside)"
+            @focus-desktop-sidebar-trigger="focusDesktopSidebarTrigger"
           />
         </template>
 
@@ -111,6 +119,7 @@ const chatUi = {
 
         <template #layout-left-aside-rail="{ isOpen, conversation, openLeftAside, createConversation }">
           <GeminiRail
+            ref="rail"
             :is-open="isOpen"
             :is-new-conversation-active="!conversation.activeId"
             @open="openLeftAside"
