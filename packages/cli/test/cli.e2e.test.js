@@ -42,6 +42,7 @@ test('create basic scaffolds a complete chat-basic project', () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'))
 
     assert.equal(result.status, 0, result.stderr)
+    assert.doesNotMatch(result.stdout, /Template:/)
     assert.equal(packageJson.name, 'fixture-basic')
     const cliVersion = JSON.parse(fs.readFileSync(cliPackageFile, 'utf8')).version
     const expectedRuntimeSpecifier = cliVersion.includes('-') ? cliVersion : `^${cliVersion}`

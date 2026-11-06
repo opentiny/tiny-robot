@@ -135,7 +135,7 @@ export function registerCreateCommand(program) {
   program
     .command('create [project-name]')
     .description('Create a TinyRobot project from template')
-    .option('-t, --template <name>', 'template name')
+    .option('-t, --template <name>', 'template name', DEFAULT_TEMPLATE)
     .option('--runtime-version <version>', 'override the TinyRobot runtime version')
     .action((projectName, options) => {
       const skipPrompt = !process.stdout.isTTY

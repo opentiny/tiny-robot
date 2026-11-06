@@ -30,15 +30,16 @@ npx @opentiny/tiny-robot-cli
 ## create
 
 创建一个完整的 TinyRobot 工程。
+省略 `--template` 时默认使用 `basic`。
 
 ```bash
-npx @opentiny/tiny-robot-cli create <project-name> --template basic
+npx @opentiny/tiny-robot-cli create <project-name>
 ```
 
 示例：
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic
+npx @opentiny/tiny-robot-cli create my-app
 ```
 
 ### 运行时版本
@@ -46,7 +47,7 @@ npx @opentiny/tiny-robot-cli create my-app --template basic
 `create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。通常无需指定版本；如需让生成项目使用特定 TinyRobot 版本，可通过 `--runtime-version <version>` 覆盖默认版本。
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2
+npx @opentiny/tiny-robot-cli create my-app --runtime-version 0.5.2-rc.2
 npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
 ```
 
