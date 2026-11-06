@@ -20,12 +20,13 @@ const props = withDefaults(
   },
 )
 
+const railElement = ref<HTMLElement | null>(null)
 const sidebarTrigger = ref<HTMLButtonElement | null>(null)
 
 watch(
   () => props.isDock,
   (isDock) => {
-    if (!isDock && sidebarTrigger.value === document.activeElement) {
+    if (!isDock && railElement.value?.contains(document.activeElement)) {
       emit('focusMobileSidebarTrigger')
     }
   },
@@ -37,7 +38,7 @@ defineExpose({
 </script>
 
 <template>
-  <aside class="gemini-rail" aria-label="Gemini 导航">
+  <aside ref="railElement" class="gemini-rail" aria-label="Gemini 导航">
     <button
       ref="sidebarTrigger"
       class="gemini-rail__logo"
