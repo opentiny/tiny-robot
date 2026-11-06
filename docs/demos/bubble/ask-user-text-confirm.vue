@@ -14,7 +14,12 @@ import { TrBubble, type AskUserContent, type AskUserState, type BubbleMessage } 
 import { TinyButton } from '@opentiny/vue'
 import { computed, reactive } from 'vue'
 
-const message = reactive<BubbleMessage<AskUserContent[], { askUser?: AskUserState }>>({
+const message = reactive<
+  BubbleMessage<
+    AskUserContent[],
+    { askUser?: AskUserState; toolCall?: Record<string, { status: 'awaiting-approval' }> }
+  >
+>({
   role: 'assistant',
   tool_calls: [
     {
@@ -43,7 +48,7 @@ const message = reactive<BubbleMessage<AskUserContent[], { askUser?: AskUserStat
       },
     },
   ],
-  state: {},
+  state: { toolCall: { 'call-release-follow-up': { status: 'awaiting-approval' } } },
 })
 
 const handleStateChange = (payload: { key: string; value: unknown }) => {
@@ -58,7 +63,7 @@ const relaunchInteraction = () => {
   if (!toolCall) return
 
   toolCall.id = `call-release-follow-up-${++interactionSequence}`
-  message.state = {}
+  message.state = { toolCall: { [toolCall.id]: { status: 'awaiting-approval' } } }
 }
 </script>
 
