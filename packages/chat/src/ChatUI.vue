@@ -900,7 +900,7 @@ function renderEmptyStateComposer() {
 }
 
 .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 0);
+  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 12px);
 }
 
 .chat-panel-content--main {
@@ -954,7 +954,7 @@ function renderEmptyStateComposer() {
 }
 
 .tr-chat-ui--mobile .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
+  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 8px);
 }
 
 .tr-chat-ui--mobile .chat-panel-content--main {
