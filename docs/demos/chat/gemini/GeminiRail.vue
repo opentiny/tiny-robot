@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { IconNewSession, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import geminiMask from './icons/gemini-mask.svg'
 
 const emit = defineEmits<{
   open: []
   create: []
+  focusMobileSidebarTrigger: []
 }>()
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    isDock: boolean
     isOpen: boolean
     isNewConversationActive?: boolean
   }>(),
@@ -19,6 +21,16 @@ withDefaults(
 )
 
 const sidebarTrigger = ref<HTMLButtonElement | null>(null)
+
+watch(
+  () => props.isDock,
+  (isDock) => {
+    if (!isDock && sidebarTrigger.value === document.activeElement) {
+      emit('focusMobileSidebarTrigger')
+    }
+  },
+)
+
 defineExpose({
   focusSidebarTrigger: () => sidebarTrigger.value?.focus({ preventScroll: true }),
 })

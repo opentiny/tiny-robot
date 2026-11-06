@@ -42,9 +42,10 @@ async function openSidebarFromHeader(openLeftAside: () => void) {
   sidebarCloseButton.value?.focus({ preventScroll: true })
 }
 
-async function focusDesktopSidebarTrigger() {
+async function focusSidebarTrigger(target: 'mobile' | 'desktop') {
   await nextTick()
-  rail.value?.focusSidebarTrigger()
+  const triggerHost = target === 'mobile' ? header.value : rail.value
+  triggerHost?.focusSidebarTrigger()
 }
 
 function handleLeftAsideOpenChange({ open, source }: ChatAsideOpenChangePayload) {
@@ -109,7 +110,7 @@ const chatUi = {
             :is-mobile-viewport="isMobileViewport"
             :is-sidebar-open="isLeftAsideOpen"
             @open-sidebar="openSidebarFromHeader(openLeftAside)"
-            @focus-desktop-sidebar-trigger="focusDesktopSidebarTrigger"
+            @focus-desktop-sidebar-trigger="focusSidebarTrigger('desktop')"
           />
         </template>
 
@@ -117,13 +118,15 @@ const chatUi = {
           <GeminiComposer v-bind="slotProps" :model="runtime.composer.model!" :select-model="selectModel" />
         </template>
 
-        <template #layout-left-aside-rail="{ isOpen, conversation, openLeftAside, createConversation }">
+        <template #layout-left-aside-rail="{ isDock, isOpen, conversation, openLeftAside, createConversation }">
           <GeminiRail
             ref="rail"
+            :is-dock="isDock"
             :is-open="isOpen"
             :is-new-conversation-active="!conversation.activeId"
             @open="openLeftAside"
             @create="createConversation"
+            @focus-mobile-sidebar-trigger="focusSidebarTrigger('mobile')"
           />
         </template>
 
