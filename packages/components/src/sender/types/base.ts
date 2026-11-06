@@ -153,6 +153,9 @@ export type { MentionItem }
 // Submit 事件相关类型
 // ============================================
 
+/** 用于 Template 与 Mention 同时启用时保留混合节点数据。 */
+export type StructuredDataItem = TemplateItem | MentionStructuredItem
+
 /**
  * 结构化数据（联合类型）
  *
@@ -213,7 +216,7 @@ export type { MentionItem }
  * }
  * ```
  */
-export type StructuredData = TemplateItem[] | MentionStructuredItem[]
+export type StructuredData = StructuredDataItem[]
 
 // ============================================
 // 按钮配置相关类型
