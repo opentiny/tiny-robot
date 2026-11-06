@@ -239,15 +239,42 @@ export function useAutoScroll(
     stopWatches.clear()
   })
 
+  const isEditableTarget = (target: EventTarget | null) => {
+    const element = target instanceof HTMLElement ? target : null
+    return Boolean(element?.isContentEditable || element?.closest('input, textarea, select'))
+  }
+
+  const isScrollableElement = (element: HTMLElement) => {
+    if (element.scrollHeight <= element.clientHeight) return false
+    const overflowY = getComputedStyle(element).overflowY
+    return overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay'
+  }
+
+  const hasNestedScrollableTarget = (target: EventTarget | null, root: HTMLElement) => {
+    let element = target instanceof HTMLElement ? target : null
+    while (element && element !== root) {
+      if (isScrollableElement(element)) return true
+      element = element.parentElement
+    }
+    return false
+  }
+
   // 处理用户按下 End 键的滚动行为
   useEventListener('keydown', (e) => {
-    if (e.key === 'End' && !isFollowing.value) {
-      const stopWatch = useOnceFallingEdge(isScrolling, () => {
-        scrollToBottom('auto')
-        stopWatches.delete(stopWatch)
-      })
-      stopWatches.add(stopWatch)
-    }
+    if (e.key !== 'End' || isFollowing.value || isEditableTarget(e.target)) return
+    const root = toValue(targetElement)
+    if (
+      !(root instanceof HTMLElement) ||
+      !(e.target instanceof Node) ||
+      !root.contains(e.target) ||
+      hasNestedScrollableTarget(e.target, root)
+    )
+      return
+    const stopWatch = useOnceFallingEdge(isScrolling, () => {
+      scrollToBottom('auto')
+      stopWatches.delete(stopWatch)
+    })
+    stopWatches.add(stopWatch)
   })
 
   return {

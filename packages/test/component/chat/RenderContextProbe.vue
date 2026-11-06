@@ -38,6 +38,9 @@ function toggleAnimated() {
   >
     {{ contentText }}
     <template v-if="props.message.role === 'assistant'">
+      <div data-testid="inner-scroll" tabindex="0" style="height: 40px; overflow-y: auto">
+        <div style="height: 200px" />
+      </div>
       <button data-testid="expand" @click="resize(1200)">Expand</button>
       <button data-testid="expand-short" @click="resize(20)">Expand short</button>
       <button data-testid="collapse" @click="resize(0)">Collapse</button>

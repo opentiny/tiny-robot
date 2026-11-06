@@ -92,6 +92,39 @@ test('End clears anchor pause so the next renderer expansion can pause following
   await expect(root).toHaveJSProperty('scrollTop', before)
 })
 
+test('End in an independently scrollable message region does not move the chat container', async ({ mount }) => {
+  const component = await mount(ChatRendererScroll)
+  const root = component.getByTestId('first-root')
+  const inner = component.locator('[data-testid="inner-scroll"]').last()
+  await atBottom(root)
+  await inner.focus()
+  await root.evaluate((el) => {
+    el.style.scrollBehavior = 'auto'
+    el.scrollTop -= 200
+  })
+  await settle(root)
+  const before = await root.evaluate((el) => el.scrollTop)
+  await inner.press('End')
+  await expect(inner).toHaveJSProperty('scrollTop', 160)
+  await expect(root).toHaveJSProperty('scrollTop', before)
+})
+
+test('End in the sender input does not clear a renderer pause', async ({ mount }) => {
+  const component = await mount(ChatRendererScroll)
+  const root = component.getByTestId('first-root')
+  await atBottom(root)
+  await component.locator('.context-probe').last().getByTestId('expand').click()
+  await settle(root)
+  const before = await root.evaluate((el) => el.scrollTop)
+  const input = component.getByTestId('sender-input')
+  await input.press('End')
+  await settle(root)
+  await expect(root).toHaveJSProperty('scrollTop', before)
+  await component.getByTestId('grow').click()
+  await settle(root)
+  await expect(root).toHaveJSProperty('scrollTop', before)
+})
+
 for (const action of ['resume', 'up', 'leave-range', 'growth'] as const) {
   test(`downward scrolling during an animation rechecks recovery after ${action}`, async ({ mount }) => {
     const component = await mount(ChatRendererScroll)

@@ -22,6 +22,7 @@ const options = computed(() => ({
 
 <template>
   <section>
+    <input data-testid="sender-input" />
     <button data-testid="grow" @click="content += 'x'.repeat(500)">Grow</button>
     <button data-testid="switch-root" @click="alternate = !alternate">Switch root</button>
     <button data-testid="toggle-enabled" @click="enabled = !enabled">Toggle auto scroll</button>
