@@ -987,7 +987,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `reasoningSelecting` | `boolean`                                          | 思考强度切换中的等待状态。                     |
 | `pendingFeatureIds`  | `('thinking' \| 'search')[]`                       | 正在切换的能力，用于逐项等待反馈。             |
 
-`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、思考强度选项（`efforts`）、默认强度（`defaultEffort`）、支持的功能和 `metadata`。选择器弹出面板所在的容器由 `ui.model.appendTo` 配置，其他行为见 [ModelSelector](../components/model-selector)。
+`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、思考强度选项（`efforts`）、默认强度（`defaultEffort`）、支持的功能和 `metadata`。选择器在 floating Layout 中默认挂载到该窗口的 overlay host；`ui.model.appendTo` 可显式覆盖挂载目标。其他行为见 [ModelSelector](../components/model-selector)。
 
 #### `mcp` {#chatuidata-mcp}
 
@@ -1124,7 +1124,7 @@ const ui: ChatUIOptions = {
 | `prompts`    | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                                                 | [Prompts](../components/prompts)                    |
 | `bubble`     | `autoScroll`、`bubbleProvider`、`bubbleList`；消息错误提示配置见[消息错误提示配置](#消息错误提示配置)。                             | [Bubble](../components/bubble)                      |
 | `sender`     | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。                    | [Sender](../components/sender)                      |
-| `model`      | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                            | [ModelSelector](../components/model-selector)       |
+| `model`      | `appendTo?: ModelSelectorProps['appendTo']`，默认跟随 floating Layout 的 overlay host。                                             | [ModelSelector](../components/model-selector)       |
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
 | `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
