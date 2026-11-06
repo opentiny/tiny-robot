@@ -1110,6 +1110,7 @@ const ui: ChatUIOptions = {
 | --- | --- | --- | --- |
 | `visible` | `boolean` | `true` | 是否显示目录，可用于分享等场景下临时隐藏。 |
 | `minWidth` | `number` | `768` | 显示目录所需的最小浏览器视口宽度，单位为 px；不按聊天容器宽度判断。 |
+| `hoverExpandDelay` | `number` | `300` | 鼠标悬停后展开目录的延迟，单位为 ms。设为 `0` 立即展开。 |
 
 点击目录或向上浏览会暂停自动跟随，点击回到底部可恢复已启用的自动跟随。
 
@@ -1185,7 +1186,7 @@ toolbar: (defaults) => [
 | `--tr-chat-ui-message-list-padding` | `8px 0` | `8px 0` | 气泡列表内边距。 |
 | `--tr-chat-ui-composer-gap` | `0px` | `0px` | 输入框与 `composer-before`、`composer-after` 内容的间距。 |
 | `--tr-chat-ui-welcome-composer-gap` | `16px` | `16px` | 内置居中欢迎区与输入框的间距。 |
-| `--tr-chat-scroll-button-align` | `flex-end` | `flex-end` | 回到底部按钮的位置：`flex-start` 左侧、`center` 居中、`flex-end` 右侧。 |
+| `--tr-chat-scroll-button-align` | `center` | `center` | 回到底部按钮的位置：`flex-start` 左侧、`center` 居中、`flex-end` 右侧。 |
 
 - 设置 `ui.layout.contentMaxWidth`、`panelPadding`、`panelGap` 后，对应默认值随之调整；同项 CSS 变量优先。
 - 页头、消息区和输入区的左右内边距跟随共享水平内边距，也可分别覆盖；消息区上下内边距跟随 `--tr-chat-ui-panel-padding`。
