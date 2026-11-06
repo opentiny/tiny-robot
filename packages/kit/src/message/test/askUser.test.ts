@@ -59,6 +59,7 @@ describe('ask_user protocol', () => {
     expect(ASK_USER_SYSTEM_PROMPT).toContain('may run in parallel with `ask_user`')
     expect(ASK_USER_SYSTEM_PROMPT).toContain('If an answer is skipped')
     expect(ASK_USER_SYSTEM_PROMPT).toContain('do not add an "Other" or "Custom" option')
+    expect(ASK_USER_SYSTEM_PROMPT).toContain('concise `summary`')
 
     const system = [{ role: 'system' as const, content: 'Base instructions' }]
     const injected = appendAskUserSystemPrompt(system)
@@ -71,10 +72,11 @@ describe('ask_user protocol', () => {
     const parsed = parseAskUserArguments({
       heading: '  配置  ',
       questions: [
-        { id: 'name', question: '  姓名  ' },
+        { id: 'name', summary: '  姓名  ', question: '  请填写姓名。  ' },
         {
           id: 'framework',
-          question: '框架',
+          summary: '技术选型',
+          question: '请选择前端框架。',
           options: [{ label: '  Vue  ', description: '  渐进式框架  ' }],
           multiSelect: false,
           allowCustom: true,
@@ -85,10 +87,11 @@ describe('ask_user protocol', () => {
     expect(parsed).toEqual({
       heading: '配置',
       questions: [
-        { id: 'name', question: '姓名' },
+        { id: 'name', summary: '姓名', question: '请填写姓名。' },
         {
           id: 'framework',
-          question: '框架',
+          summary: '技术选型',
+          question: '请选择前端框架。',
           options: [{ label: 'Vue', description: '渐进式框架' }],
           multiSelect: false,
           allowCustom: true,
@@ -127,6 +130,9 @@ describe('ask_user protocol', () => {
     )
     expect(() => parseAskUserArguments({ questions: [{ id: '__proto__', question: '问题' }] })).toThrow('must match')
     expect(() => parseAskUserArguments({ heading: '', questions: [{ id: 'q', question: '问题' }] })).toThrow(
+      'non-empty when provided',
+    )
+    expect(() => parseAskUserArguments({ questions: [{ id: 'q', summary: '', question: '问题' }] })).toThrow(
       'non-empty when provided',
     )
     expect(() =>
@@ -201,6 +207,12 @@ describe('ask_user protocol', () => {
     expect(parameters.properties).toHaveProperty('heading')
     expect(parameters.properties).toHaveProperty('questions')
     expect(parameters.properties.questions?.description).toContain('remain meaningful')
+    const questionSchema = (
+      parameters.properties.questions as {
+        items?: { anyOf?: Array<{ properties?: Record<string, unknown> }> }
+      }
+    ).items?.anyOf?.[0]
+    expect(questionSchema?.properties).toHaveProperty('summary')
     expect(parameters.properties).not.toHaveProperty('steps')
   })
 })
