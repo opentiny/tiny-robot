@@ -50,12 +50,31 @@ test.describe('Bubble', () => {
     await expect(bubble.locator('.detail-content')).toHaveText('第一段思考\n第二段思考')
   })
 
-  test('keeps long Markdown code lines scrollable within a narrow bubble', async ({ mount }) => {
+  test('keeps fenced and indented Markdown code blocks keyboard-scrollable within a narrow bubble', async ({
+    mount,
+    page,
+  }) => {
     const component = await mount(BubbleFixture)
-    const code = component.getByTestId('markdown-overflow-bubble').locator('pre')
+    const codeBlocks = component.getByTestId('markdown-overflow-bubble').locator('pre')
 
-    await expect(code).toHaveCSS('overflow-x', 'auto')
-    expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+    await expect(codeBlocks).toHaveCount(2)
+    await component.getByTestId('before-markdown-code').focus()
+
+    for (const code of await codeBlocks.all()) {
+      await expect(code).toHaveCSS('overflow-x', 'auto')
+      await expect(code).toHaveAttribute('tabindex', '0')
+      await expect(code).toHaveAttribute('role', 'region')
+      await expect(code).toHaveAttribute('aria-label', 'Code block')
+      expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+
+      await page.keyboard.press('Tab')
+      await expect(code).toBeFocused()
+      await page.keyboard.press('ArrowRight')
+      await expect.poll(() => code.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+    }
+
+    await page.keyboard.press('Tab')
+    await expect(component.getByTestId('append-reasoning')).toBeFocused()
   })
 
   test('renders loading and tool calls when answer content is empty', async ({ mount }) => {

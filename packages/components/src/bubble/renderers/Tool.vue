@@ -247,23 +247,23 @@ const handleClick = () => {
     gap: var(--tr-spacing-sm);
 
     :deep(.tiny-button.tiny-button--default) {
-      --tv-Button-bg-color-default: var(--tr-container-bg-default);
+      --tv-Button-bg-color-default: var(--tr-bubble-tool-approval-default-bg);
       --tv-Button-border-color-default: var(--tr-border-color-default);
-      --tv-Button-text-color-default: var(--tr-text-primary);
-      --tv-Button-icon-color-default: var(--tr-icon-color-default);
-      --tv-Button-bg-color-active-default: var(--tr-container-bg-hover);
-      --tv-Button-border-color-active-default: var(--tr-container-bg-hover);
-      --tv-Button-text-color-active-default: var(--tr-text-primary);
+      --tv-Button-text-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-icon-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-bg-color-active-default: var(--tr-bubble-tool-approval-default-hover-bg);
+      --tv-Button-border-color-active-default: var(--tr-border-color-default);
+      --tv-Button-text-color-active-default: var(--tr-bubble-tool-approval-default-color);
     }
 
     :deep(.tiny-button.tiny-button--primary) {
-      --tv-Button-bg-color-primary: var(--tr-text-primary);
-      --tv-Button-border-color-primary: var(--tr-text-primary);
-      --tv-Button-text-color-primary: var(--tr-container-bg-default);
-      --tv-Button-icon-color-primary: var(--tr-container-bg-default);
-      --tv-Button-bg-color-active-primary: var(--tr-text-secondary);
-      --tv-Button-border-color-active-primary: var(--tr-text-secondary);
-      --tv-Button-text-color-active-primary: var(--tr-container-bg-default);
+      --tv-Button-bg-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-border-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-text-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-icon-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-bg-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-border-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-text-color-active-primary: var(--tr-bubble-tool-approval-primary-color);
     }
 
     :deep(button:focus-visible) {

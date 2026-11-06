@@ -23,7 +23,7 @@ const image = {
 }
 const imageOnlyContent: BubbleMessage['content'] = [image, image]
 const mixedImageFirstContent: BubbleMessage['content'] = [image, { type: 'text', text: 'Image caption' }]
-const markdownOverflowContent = `\`\`\`text\n${'1234567890'.repeat(12)}\n\`\`\``
+const markdownOverflowContent = `\`\`\`text\n${'1234567890'.repeat(12)}\n\`\`\`\n\n    ${'1234567890'.repeat(12)}`
 const markdownContentRendererMatches = [
   {
     find: (_: BubbleMessage, content: ChatMessageContentItem) => content.type === 'text',
@@ -102,6 +102,7 @@ const messageOnlyMatches: BubbleContentRendererMatch[] = [
     <Bubble data-testid="empty-split-array-bubble" role="assistant" :content="[]" content-render-mode="split" />
     <Bubble data-testid="hidden-bubble" role="assistant" content="Hidden text" hidden />
     <Bubble data-testid="reasoning-bubble" v-bind="reasoningMessage" />
+    <button data-testid="before-markdown-code" type="button">Before code blocks</button>
     <div style="width: 320px">
       <BubbleProvider :content-renderer-matches="markdownContentRendererMatches">
         <Bubble data-testid="markdown-overflow-bubble" role="assistant" :content="markdownOverflowContent" />
