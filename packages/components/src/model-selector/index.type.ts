@@ -5,13 +5,36 @@ export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
-export interface ModelSelectorReasoningEffortOption {
-  readonly value: string
-  readonly label: string
-  readonly disabled?: boolean
+export type ModelSelectorFeatureValue = boolean | string
+export type ModelSelectorFeatureValues = Readonly<Record<string, ModelSelectorFeatureValue>>
+
+export interface ModelSelectorFieldBase {
+  key: string
+  label: string
+  disabled?: boolean
 }
 
-export type ModelSelectorReasoningEfforts = boolean | readonly ModelSelectorReasoningEffortOption[]
+export type ModelSelectorField =
+  | (ModelSelectorFieldBase & { type: 'switch'; defaultValue?: boolean })
+  | (ModelSelectorFieldBase & {
+      type: 'select'
+      defaultValue?: string
+      summary?: boolean
+      options: readonly {
+        value: string
+        label: string
+        disabled?: boolean
+        summary?: boolean
+      }[]
+    })
+
+export interface ModelSelectorFeatureChange {
+  modelId: string
+  key: string
+  previousValue: ModelSelectorFeatureValue | undefined
+  value: ModelSelectorFeatureValue
+  values: ModelSelectorFeatureValues
+}
 
 export interface ModelSelectorOption {
   value: string
@@ -20,7 +43,7 @@ export interface ModelSelectorOption {
   icon?: Component | string
   disabled?: boolean
   group?: string
-  reasoningEfforts?: ModelSelectorReasoningEfforts
+  fields?: readonly ModelSelectorField[]
 }
 
 export type ModelSelectorFilterMethod = (query: string, option: ModelSelectorOption) => boolean
@@ -29,8 +52,7 @@ export interface ModelSelectorProps {
   models?: readonly ModelSelectorOption[]
   modelValue?: string | null
   defaultValue?: string | null
-  reasoningEffort?: string | null
-  defaultReasoningEffort?: string | null
+  featureValues?: ModelSelectorFeatureValues
   open?: boolean
   defaultOpen?: boolean
   closeOnSelect?: boolean
@@ -46,15 +68,14 @@ export interface ModelSelectorProps {
   offset?: number
   appendTo?: string | HTMLElement
   panelClass?: ModelSelectorPanelClass
-  reasoningEffortLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
+  values: ModelSelectorFeatureValues
+  summary: string
 }
 
 export interface ModelSelectorItemSlotProps {
@@ -74,10 +95,9 @@ export interface ModelSelectorSlotProps {
 }
 
 export interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
-  reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
-  /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
-  setReasoningEffort: (value: string | null) => void
+  values: ModelSelectorFeatureValues
+  setFeatureValue: (key: string, value: ModelSelectorFeatureValue) => void
+  disabled: boolean
 }
 
 export interface ModelSelectorSlots {
@@ -91,7 +111,7 @@ export interface ModelSelectorSlots {
 export interface ModelSelectorEmits {
   (event: 'update:modelValue', value: string | null): void
   (event: 'change', option: ModelSelectorOption): void
-  (event: 'update:reasoningEffort', value: string | null): void
-  (event: 'reasoning-effort-change', option: ModelSelectorReasoningEffortOption | null): void
+  (event: 'update:featureValues', values: ModelSelectorFeatureValues): void
+  (event: 'feature-change', change: ModelSelectorFeatureChange): void
   (event: 'update:open', open: boolean): void
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
+import { TrModelSelector, type ModelSelectorFeatureValues, type ModelSelectorOption } from '@opentiny/tiny-robot'
 
 const model = shallowRef<string | null>('general-pro')
+const featureValues = shallowRef<ModelSelectorFeatureValues>({})
 
 const models = [
   {
@@ -10,6 +11,7 @@ const models = [
     label: '通用模型 Pro',
     description: '适合问答、写作和代码生成',
     group: '推荐',
+    fields: [{ key: 'search', label: '联网搜索', type: 'switch' }],
   },
   {
     value: 'reasoning-pro',
@@ -30,6 +32,7 @@ const models = [
   <div class="model-selector-slots-demo">
     <TrModelSelector
       v-model="model"
+      v-model:feature-values="featureValues"
       :models="models"
       searchable
       search-placeholder="搜索模型"

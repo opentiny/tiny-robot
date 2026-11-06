@@ -3,60 +3,41 @@ import type { ChatProviderConfig, ChatProviderModelConfig, ChatProviderType, Cha
 interface ChatProviderPreset {
   label: string
   apiUrl: string
-  featureBody?: ChatProviderModelConfig['featureBody']
-  efforts?: ChatProviderModelConfig['efforts']
-  defaultEffort?: ChatProviderModelConfig['defaultEffort']
-  effortParam?: ChatProviderModelConfig['effortParam']
+  mapFeatureValues: NonNullable<ChatProviderModelConfig['mapFeatureValues']>
 }
 
 const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
   openai: {
     label: 'OpenAI',
     apiUrl: 'https://api.openai.com/v1',
+    mapFeatureValues: (values) =>
+      typeof values.reasoning === 'string' && !['off', 'on'].includes(values.reasoning)
+        ? { reasoning_effort: values.reasoning }
+        : {},
   },
   deepseek: {
     label: 'DeepSeek',
     apiUrl: 'https://api.deepseek.com/chat/completions',
-    featureBody: {
-      thinking: {
-        enabled: {
-          thinking: {
-            type: 'enabled',
-          },
-        },
-        disabled: {
-          thinking: {
-            type: 'disabled',
-          },
-        },
-      },
-    },
-    efforts: [
-      { value: 'low', label: '低' },
-      { value: 'high', label: '高' },
-      { value: 'max', label: '最高' },
-    ],
-    defaultEffort: 'high',
-    effortParam: 'reasoning_effort',
+    mapFeatureValues: (values) =>
+      typeof values.reasoning === 'string'
+        ? {
+            thinking: { type: values.reasoning === 'off' ? 'disabled' : 'enabled' },
+            ...(values.reasoning !== 'off' && values.reasoning !== 'on' ? { reasoning_effort: values.reasoning } : {}),
+          }
+        : {},
   },
   qwen: {
     label: 'DashScope',
     apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-    featureBody: {
-      thinking: {
-        enabled: {
-          enable_thinking: true,
-        },
-        disabled: {
-          enable_thinking: false,
-        },
-      },
-      search: {
-        enabled: {
-          enable_search: true,
-        },
-      },
-    },
+    mapFeatureValues: (values) => ({
+      ...(typeof values.reasoning === 'string'
+        ? {
+            enable_thinking: values.reasoning !== 'off',
+            ...(!['off', 'on'].includes(values.reasoning) ? { reasoning_effort: values.reasoning } : {}),
+          }
+        : {}),
+      ...(typeof values.search === 'boolean' ? { enable_search: values.search } : {}),
+    }),
   },
 }
 
@@ -93,13 +74,7 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
         apiKey: provider.apiKey,
         headers: provider.headers,
         timeout: provider.timeout,
-        featureBody: {
-          ...preset.featureBody,
-          ...model.featureBody,
-        },
-        efforts: model.efforts ?? preset.efforts,
-        defaultEffort: model.defaultEffort ?? preset.defaultEffort,
-        effortParam: model.effortParam ?? preset.effortParam,
+        mapFeatureValues: model.mapFeatureValues ?? preset.mapFeatureValues,
       }
     })
   })

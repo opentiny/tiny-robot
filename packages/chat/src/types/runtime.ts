@@ -7,7 +7,7 @@ import type {
   ChatRequestState,
 } from './base'
 import type { ChatSendPayload } from './commands'
-import type { ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
+import type { ModelSelectorField, ModelSelectorFeatureValue, ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -15,18 +15,9 @@ export interface ChatConversation extends ChatConversationInfo {
   processingState?: ChatProcessingState
 }
 
-export const CHAT_BUILT_IN_MODEL_FEATURES = ['thinking', 'search'] as const
-export type ChatBuiltInModelFeature = (typeof CHAT_BUILT_IN_MODEL_FEATURES)[number]
-
-export interface ChatRunConfigReasoning {
-  enabled: boolean
-  effort?: string
-}
-
 export interface ChatRunConfig {
   modelId?: string
-  features?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
-  reasoning?: ChatRunConfigReasoning
+  featureValues?: ModelSelectorFeatureValues
   mcp?: ChatMcpRunConfig
 }
 
@@ -56,21 +47,22 @@ export interface ChatModelOption {
   icon?: ChatIcon
   disabled?: boolean
   group?: string
-  efforts?: readonly ModelSelectorReasoningEffortOption[]
-  defaultEffort?: string
-  thinkingRequired?: boolean
-  capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
+  fields?: readonly ModelSelectorField[]
   metadata?: Readonly<Record<string, unknown>>
 }
 
 export interface ChatModelRuntime {
   options: ChatReadable<readonly ChatModelOption[]>
   selectedId: ChatReadable<string | null>
-  features: ChatReadable<Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>>
-  reasoning?: ChatReadable<ChatRunConfigReasoning>
+  featureValues?: ChatReadable<ModelSelectorFeatureValues>
+  setFeatureValue?: (change: ChatModelFeatureValueUpdate) => Promise<void> | void
   select: (id: string | null) => Promise<void> | void
-  setFeature: (id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void> | void
-  setReasoningEffort: (effort: string | null) => Promise<void> | void
+}
+
+export interface ChatModelFeatureValueUpdate {
+  modelId: string
+  key: string
+  value: ModelSelectorFeatureValue
 }
 
 export interface ChatMcpServerInfo {

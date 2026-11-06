@@ -1,7 +1,7 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import type { ChatRunConfig } from '../../types'
-import { CHAT_BUILT_IN_MODEL_FEATURES } from '../../types/runtime'
 import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../runConfig'
+import { pickModelFeatureValues } from '@opentiny/tiny-robot'
 import type { ChatResolvedProviderModel } from './types'
 
 export const CHAT_PROVIDER_MODEL_ID_REQUEST_KEY = '__chat_provider_model_id'
@@ -28,36 +28,8 @@ export function createProviderRequestPlugin(
       }
 
       requestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY] = model.id
-      const currentRunConfig = runConfig
-
-      CHAT_BUILT_IN_MODEL_FEATURES.forEach((id) => {
-        const body = model.featureBody?.[id]
-        if (!body) return
-
-        const enabled =
-          id === 'thinking'
-            ? (currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.thinking)
-            : currentRunConfig.features?.[id]
-        const featureBody = enabled ? body.enabled : body.disabled
-
-        if (featureBody) {
-          Object.assign(requestBody, featureBody)
-        }
-      })
-
-      const reasoningEnabled = currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.thinking
-      const reasoningEffort = currentRunConfig.reasoning?.effort
-
-      if (
-        reasoningEnabled &&
-        reasoningEffort &&
-        model.effortParam &&
-        model.efforts?.some((option) => option.value === reasoningEffort)
-      ) {
-        Object.assign(requestBody, {
-          [model.effortParam]: reasoningEffort,
-        })
-      }
+      const values = pickModelFeatureValues(model.fields ?? [], runConfig.featureValues)
+      Object.assign(requestBody, model.mapFeatureValues?.({ ...values }))
     },
   }
 }
