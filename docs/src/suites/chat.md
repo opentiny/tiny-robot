@@ -989,6 +989,8 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 
 模型特性只通过 `fields` 和 `featureValues` 配置；请求转换见 [模型功能](./chat-runtime#模型功能)。
 
+ModelSelector 的 `feature-change` 在 Chat 中转发为 `model-feature-value-change`，载荷保持一致；`TrChat` 同时调用 Runtime 的 `setFeatureValue({ modelId, key, value })`。初始化、外部赋值和切换模型不会触发字段修改事件。
+
 #### `mcp` {#chatuidata-mcp}
 
 | 字段      | 类型                  | 说明                                                                 |
@@ -1287,8 +1289,8 @@ const context = useChatRenderContext(props)
 | `ChatBubbleView`       | 消息列表容器。                                                            |
 | `ChatSenderView`       | 输入区 loading、disabled 与 submitDisabled 状态。                         |
 | `ChatRequestView`      | 请求 `state` 与可选 `processingState`。                                   |
-| `ChatModelView`        | 模型列表、选中值、字段值和加载状态。                                     |
-| `ChatModelOptionView`  | 单个模型的名称、字段配置与附加信息。                                     |
+| `ChatModelView`        | 模型列表、选中值、字段值和加载状态。                                      |
+| `ChatModelOptionView`  | 单个模型的名称、字段配置与附加信息。                                      |
 | `ChatMcpView`          | MCP 服务列表与工具映射。                                                  |
 | `ChatMcpServerView`    | 单个 MCP 服务的安装、启用、加载和错误状态。                               |
 | `ChatMcpToolView`      | 单个工具的名称、启用和加载状态。                                          |
@@ -1348,9 +1350,7 @@ const context = useChatRenderContext(props)
 | `ChatPromptClickPayload`                                 | `event: MouseEvent`；`item: PromptProps`                                                                                                            |
 | `SenderDragPayload`                                      | `event: DragEvent`；`target: HTMLElement`                                                                                                           |
 | `ChatModelSelectPayload`                                 | `modelId: string \| null`                                                                                                                           |
-| `ChatModelFeatureChangePayload`                          | `featureId: 'thinking' \| 'search'`；`enabled: boolean`                                                                                             |
 | `ChatModelFeatureValueChangePayload`                     | `modelId: string`；`key: string`；`previousValue: boolean \| string \| undefined`；`value: boolean \| string`；`values: ModelSelectorFeatureValues` |
-| `ChatModelReasoningEffortChangePayload`                  | `effort: string \| null`                                                                                                                            |
 | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload` | `serverId: string`                                                                                                                                  |
 | `ChatMcpCreateServerPayload`                             | `config: McpExtensionFormValue`；`source: McpExtensionFormMode`                                                                                     |
 | `ChatMcpServerEnabledChangePayload`                      | `serverId: string`；`enabled: boolean`                                                                                                              |
@@ -1359,7 +1359,7 @@ const context = useChatRenderContext(props)
 | `ChatBubbleStateChangePayload`                           | `key`；`value`；`messageIndex`；`contentIndex`                                                                                                      |
 | `ChatBubbleEventPayload`                                 | `name`；`payload?`；`messageIndex`；`contentIndex`                                                                                                  |
 
-`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorReasoningEffortOption`、`McpExtensionFormValue` 和 `McpExtensionFormMode` 来自 `@opentiny/tiny-robot`。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
+`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorField`、`ModelSelectorFeatureValues`、`ModelSelectorFeatureChange`、`McpExtensionFormValue` 和 `McpExtensionFormMode` 来自 `@opentiny/tiny-robot`。`ChatModelFeatureValueChangePayload` 与 `ModelSelectorFeatureChange` 为同一载荷类型。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
 
 ## 常见问题
 

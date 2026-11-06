@@ -12,7 +12,15 @@ import { resolveProviderModels } from '../../../chat/src/runtime/provider/preset
 import type { ChatRuntime } from '../../../chat/src/types'
 
 const props = withDefaults(
-  defineProps<{ external?: boolean; modelId?: string; accept?: boolean; footer?: boolean; chat?: boolean }>(),
+  defineProps<{
+    external?: boolean
+    invalid?: boolean
+    modelId?: string
+    accept?: boolean
+    footer?: boolean
+    chat?: boolean
+    pending?: boolean
+  }>(),
   { accept: true },
 )
 const values = shallowRef<ModelSelectorFeatureValues>({})
@@ -42,7 +50,9 @@ const models: ModelSelectorOption[] = [
   },
   { value: 'b', label: 'Model B', fields: [] },
 ]
-const currentValues = computed(() => (props.external ? { mode: 'high', lookup: true } : values.value))
+const currentValues = computed(() =>
+  props.invalid ? { mode: 'stale', lookup: 'stale' } : props.external ? { mode: 'high', lookup: true } : values.value,
+)
 function update(next: ModelSelectorFeatureValues) {
   events.value = [...events.value, ['update', next]]
   if (props.accept !== false) values.value = next
@@ -55,6 +65,19 @@ const { model } = createProviderModelRuntime(
     { type: 'openai', models: models.map((item) => ({ id: item.value, label: item.label, fields: item.fields })) },
   ]),
 )
+let resolvePendingUpdate: (() => void) | undefined
+if (props.pending) {
+  const setFeatureValue = model.setFeatureValue
+  model.setFeatureValue = async (change) => {
+    await new Promise<void>((resolve) => {
+      resolvePendingUpdate = resolve
+    })
+    await setFeatureValue?.(change)
+  }
+}
+function completePendingUpdate() {
+  resolvePendingUpdate?.()
+}
 const runtime: ChatRuntime = {
   conversations: shallowRef([]),
   activeConversation: shallowRef(null),
@@ -77,6 +100,7 @@ const runtime: ChatRuntime = {
     :ui="{ history: false, welcome: false, layout: { leftAside: false } }"
     @model-feature-value-change="change"
   />
+  <button v-if="pending" data-testid="complete-pending-update" @click="completePendingUpdate">完成更新</button>
   <TrModelSelector
     v-else
     :models="models"

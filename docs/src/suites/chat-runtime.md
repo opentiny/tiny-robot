@@ -90,6 +90,29 @@ modelProviders[0].models[0].mapFeatureValues = (values) => ({
 
 `mapFeatureValues(values)` 返回实际请求参数。它只接收当前模型声明且有效的字段值；UI 值不会直接展开为请求体。新配置未提供转换方法时，OpenAI 预设将 `reasoning` 强度映射到 `reasoning_effort`，DeepSeek 映射 `reasoning`，Qwen 映射 `reasoning` 和 `search`。其他自定义字段需自行转换。
 
+例如，服务支持 JSON 输出时，可为模型配置自定义格式字段：
+
+```ts
+modelProviders[0].models[0].fields = [
+  {
+    key: 'outputFormat',
+    label: '输出格式',
+    type: 'select',
+    defaultValue: 'text',
+    summary: true,
+    options: [
+      { value: 'text', label: '文本', summary: false },
+      { value: 'json', label: 'JSON' },
+    ],
+  },
+]
+modelProviders[0].models[0].mapFeatureValues = (values) => ({
+  response_format: { type: values.outputFormat === 'json' ? 'json_object' : 'text' },
+})
+```
+
+自定义映射负责该模型所有字段的请求转换，未映射的字段不会自动进入请求体。
+
 Runtime 按模型保存配置，首次选择应用默认值，切回恢复上次选择。暂时不支持的值保留在缓存中，界面和请求使用当前有效值；修改其他字段不会覆盖缓存中的原选择。
 
 ```ts
@@ -104,7 +127,7 @@ console.log(model.featureValues?.value)
 
 ### 历史消息迁移
 
-历史消息中的 `features`／`reasoning` 只在读取边界转换为当前模型声明的 `featureValues`。旧记录缺少思考强度时，按目标模型的第一个有效选项转换；无法转换时抛出错误。新消息只保存 `modelId` 与有效 `featureValues` 快照。
+历史消息中的 `features`／`reasoning` 只在读取时转换为当前模型声明的 `featureValues`：仍有效的强度优先保留；旧记录开启思考但没有强度时，使用有效的开启默认项，默认关闭时取第一个可用开启项；旧记录关闭但模型不再支持关闭，或原强度已禁用、无法识别时，使用当前有效默认值；已移除的字段忽略，不因字段配置变化中断重试。新消息只保存 `modelId` 与有效 `featureValues` 快照。
 
 ### 其他配置
 
@@ -125,11 +148,11 @@ console.log(model.featureValues?.value)
 
 以下字段均为可选，放在 `models` 数组中的对应模型上：
 
-| 字段                        | 用途                                 | 默认值或未配置行为                   |
-| --------------------------- | ------------------------------------ | ------------------------------------ |
-| `models[].disabled`         | 设为 `true` 时禁止选择该模型         | `false`，允许选择                    |
-| `models[].fields`           | 声明模型支持的开关和选择字段         | 未声明字段不显示，也不会发送对应参数 |
-| `models[].mapFeatureValues` | 将有效字段值转换为 Provider 请求参数 | 未配置时不追加字段参数               |
+| 字段                        | 用途                                 | 默认值或未配置行为                     |
+| --------------------------- | ------------------------------------ | -------------------------------------- |
+| `models[].disabled`         | 设为 `true` 时禁止选择该模型         | `false`，允许选择                      |
+| `models[].fields`           | 声明模型支持的开关和选择字段         | 未声明字段不显示，也不会发送对应参数   |
+| `models[].mapFeatureValues` | 将有效字段值转换为 Provider 请求参数 | 使用服务预设映射；自定义字段需自行映射 |
 
 `mapFeatureValues` 只接收当前模型声明且有效的字段值。字段值不会直接展开到请求体，思考关闭时由转换函数决定是否省略强度参数。
 
@@ -747,7 +770,7 @@ const history = useChatHistoryData({
 | `ChatHistoryData`                       | `readonly ChatConversationInfo[] \| readonly ChatHistoryGroup[]`                                                                                                                                                                                                                                                                                                                                                         |
 | `ChatUIData`                            | `TrChatUI` 的会话、消息、输入区、请求、模型和 MCP 显示数据；详见 [Chat API](./chat#chatuidata)。                                                                                                                                                                                                                                                                                                                         |
 
-`UseConversationOptions`、`UseConversationReturn`、`UseMessageOptions` 和 `UseMessagePlugin` 来自 `@opentiny/tiny-robot-kit`；`ComputedRef`、`MaybeRefOrGetter` 和 `ShallowRef` 来自 Vue；`ModelSelectorReasoningEffortOption`、`HistoryGroup` 和 `ChatIcon` 的底层图标类型来自 `@opentiny/tiny-robot`。这些外部类型请参阅各自的 API。
+`UseConversationOptions`、`UseConversationReturn`、`UseMessageOptions` 和 `UseMessagePlugin` 来自 `@opentiny/tiny-robot-kit`；`ComputedRef`、`MaybeRefOrGetter` 和 `ShallowRef` 来自 Vue；`ModelSelectorField`、`ModelSelectorFeatureValues`、`HistoryGroup` 和 `ChatIcon` 的底层图标类型来自 `@opentiny/tiny-robot`。这些外部类型请参阅各自的 API。
 
 ## 常见问题
 
