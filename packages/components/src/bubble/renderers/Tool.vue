@@ -266,6 +266,39 @@ const handleClick = () => {
     display: flex;
     gap: var(--tr-spacing-sm);
 
+    :deep(.tiny-button.tiny-button--default) {
+      --tv-Button-bg-color-default: var(--tr-bubble-tool-approval-default-bg);
+      --tv-Button-border-color-default: var(--tr-border-color-default);
+      --tv-Button-text-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-icon-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-bg-color-active-default: var(--tr-bubble-tool-approval-default-hover-bg);
+      --tv-Button-border-color-active-default: var(--tr-border-color-default);
+      --tv-Button-text-color-active-default: var(--tr-bubble-tool-approval-default-color);
+    }
+
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-bg-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-border-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-text-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-icon-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-bg-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-border-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-text-color-active-primary: var(--tr-bubble-tool-approval-primary-color);
+    }
+
+    :deep(button:focus-visible) {
+      outline: 2px solid var(--tr-text-primary);
+      outline-offset: 2px;
+    }
+
+    :deep(.tiny-button.tiny-button--default),
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-text-color-disabled: var(--tr-text-disabled);
+      --tv-Button-bg-color-disabled: var(--tr-container-bg-disabled);
+      --tv-Button-border-color-disabled: var(--tr-border-color-disabled);
+      --tv-Button-icon-color-disabled: var(--tr-icon-color-disabled);
+    }
+
     .tiny-button + .tiny-button {
       margin-left: 0;
     }
