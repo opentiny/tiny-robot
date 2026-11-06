@@ -8,6 +8,25 @@ interface ImportMapOptions {
 
 export function generateImportMap(options: ImportMapOptions) {
   const { tinyRobotVersion, builtinImportMap, extraImports } = options
+  const vanillaBaseUrl = `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/vanilla`
+  // 浏览器不能直接将 CSS 作为 JS 模块导入，通过模块加载样式表。
+  const vanillaStyleModule = `const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = ${JSON.stringify(`${vanillaBaseUrl}/style.css`)};
+document.head.appendChild(link);`
+
+  // Keep Monaco's shared registries in a single module graph. Independently
+  // bundling the editor and language registration creates separate registries.
+  const monacoBaseUrl = 'https://esm.sh/monaco-editor@0.57.0'
+  const monacoEditorModule = `const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = ${JSON.stringify(`${monacoBaseUrl}/es2022/editor/editor.api.css`)};
+await new Promise((resolve, reject) => {
+  link.onload = resolve;
+  link.onerror = () => reject(new Error('Failed to load Monaco editor styles'));
+  document.head.appendChild(link);
+});
+export * from ${JSON.stringify(`${monacoBaseUrl}/editor/editor.api?target=es2022`)};`
 
   const extraImportsMap = Object.entries(extraImports || {})
     .map(([pkg, version]) => {
@@ -24,6 +43,8 @@ export function generateImportMap(options: ImportMapOptions) {
       ...builtinImportMap?.imports,
       // TinyRobot 相关包 - 使用统一版本号
       '@opentiny/tiny-robot': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/index.min.js`,
+      '@opentiny/tiny-robot/vanilla': `${vanillaBaseUrl}/index.js`,
+      '@opentiny/tiny-robot/vanilla/style.css': `data:text/javascript,${encodeURIComponent(vanillaStyleModule)}`,
       '@opentiny/tiny-robot-svgs': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${tinyRobotVersion}/dist/tiny-robot-svgs.min.js`,
       '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/dist/index.mjs`,
 
@@ -40,6 +61,11 @@ export function generateImportMap(options: ImportMapOptions) {
       echarts: 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js',
       idb: 'https://cdn.jsdelivr.net/npm/idb@8/+esm',
       yaml: 'https://cdn.jsdelivr.net/npm/yaml@2/browser/index.min.js',
+      'monaco-editor/editor/editor.api': `data:text/javascript,${encodeURIComponent(monacoEditorModule)}`,
+      'monaco-editor/languages/definitions/typescript/register': `${monacoBaseUrl}/languages/definitions/typescript/register?bundle=false&target=es2022`,
+      // Route the language module's relative editor import to the same bundled
+      // API, avoiding duplicate registries and raw CSS imports in the browser.
+      [`${monacoBaseUrl}/es2022/esm/vs/editor/editor.api.nobundle.mjs`]: `data:text/javascript,${encodeURIComponent(monacoEditorModule)}`,
 
       // Tiptap 编辑器相关包 (用于 Sender 组件)
       // 使用 esm.sh CDN，自动处理子路径导入和依赖解析

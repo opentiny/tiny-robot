@@ -2,7 +2,7 @@
   <div class="qa-feature-demo">
     <div id="qa-recommendations-text" class="qa-feature-demo__text">
       <p>包年包月适合长期稳定的工作负载，按需计费适合短期或波动较大的任务。</p>
-      <p>选中一种计费方式，打开智能帮助，观察推荐问题从静态内容扩展为异步内容。</p>
+      <p>选中一种计费方式，打开智能帮助，观察推荐问题按默认最多两条合并异步内容。</p>
     </div>
     <p class="qa-feature-demo__hint">点击推荐问题后会直接提交，无需再次按发送。</p>
     <pre v-if="submitted">{{ submitted }}</pre>
@@ -21,10 +21,7 @@ let quickAssist: QuickAssistInstance | undefined
 onMounted(() => {
   quickAssist = createQuickAssist({
     include: ['#qa-recommendations-text'],
-    suggestions: [
-      { id: 'explain', label: '解释这个概念', prompt: '请解释选中的计费方式' },
-      { id: 'compare', label: '比较计费方式', prompt: '请比较选中的计费方式与其他方式' },
-    ],
+    suggestions: [{ id: 'explain', label: '解释这个概念', prompt: '请解释选中的计费方式' }],
     getSuggestions: async (context, signal) => {
       await new Promise((resolve) => setTimeout(resolve, 700))
       if (signal.aborted) return []

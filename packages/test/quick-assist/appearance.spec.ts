@@ -34,7 +34,7 @@ for (const entry of ['index', 'umd']) {
                   return { width: rect.width, inside: rect.left >= 0 && rect.right <= innerWidth }
                 }),
               )
-              .toEqual({ width: Math.min(custom ? 400 : 272, viewportWidth - 16), inside: true })
+              .toEqual({ width: Math.min(custom ? 400 : 344, viewportWidth - 16), inside: true })
           })
         }
       }

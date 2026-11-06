@@ -80,7 +80,7 @@ function configure() {
         { id: 'risk', label: '远程：查看中断风险', prompt: `请说明“${context.text}”的中断风险与应对措施` },
       ]
     },
-    maxSuggestions: 3,
+    maxSuggestions: 2,
     onEvent(event) {
       if (event.type === 'error' && event.stage === 'suggestions') {
         status.value = '远程请求失败，已有静态问题会保留，仍可手动输入提交。'

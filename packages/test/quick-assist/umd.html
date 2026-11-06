@@ -26,6 +26,7 @@
       script.onload = () => {
         window.qa = window.TinyRobotVanilla.createQuickAssist({
           include: ['#scope'],
+          input: { autoFill: true },
           adapter: {
             submit(request) {
               window.qaRequests.push(request)

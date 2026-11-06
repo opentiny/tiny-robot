@@ -135,11 +135,11 @@
         const root = document.documentElement
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         let parentRoot
-        let previewUmdUrl
+        let previewGlobalUrl
         try {
           if (window.parent !== window) {
             parentRoot = window.parent.document.documentElement
-            previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
+            previewGlobalUrl = window.parent.__tinyRobotVanillaDemoGlobalUrl
           }
         } catch {
           // 跨源嵌入时不能读取父页面，使用当前系统主题。
@@ -165,9 +165,9 @@
         const status = document.querySelector('#event-status')
 
         // 文档预览在 iframe 中运行，资源地址由文档页面提供；单独打开此文件时从仓库构建产物加载。
-        const localUmdUrl = new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI)
+        const localGlobalUrl = new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI)
         const script = document.createElement('script')
-        script.src = previewUmdUrl ?? localUmdUrl.href
+        script.src = previewGlobalUrl ?? localGlobalUrl.href
         await new Promise((resolve, reject) => {
           script.onload = resolve
           script.onerror = () => reject(new Error('无框架组件脚本加载失败'))

@@ -2,7 +2,7 @@ import cssText from '../style.css?inline'
 
 const styles = new WeakMap<Document, { element: HTMLStyleElement; count: number }>()
 
-/** Shared by every UMD component; CSS remains opt-in for the ESM entry. */
+/** Shared by every browser bundle component; CSS remains opt-in for the ESM entry. */
 export function installVanillaStyle(root: Document): () => void {
   let record = styles.get(root)
   if (!record) {

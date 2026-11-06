@@ -51,6 +51,7 @@ export function expandShortcut(input: QuickAssistAnchorShortcut, root: Document)
     text: input.text,
     meta: input.meta,
     open: input.open,
+    autoFill: input.autoFill,
     suggestions: input.suggestions,
     getSuggestions: input.getSuggestions,
     anchorElement: element,

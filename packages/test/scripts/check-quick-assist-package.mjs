@@ -43,6 +43,7 @@ if (!process.argv[2]) {
     '@opentiny/tiny-robot/vanilla/style.css',
     '@opentiny/tiny-robot/dist/container/index.js',
     '@opentiny/tiny-robot/dist/vanilla/vanilla.umd.js',
+    '@opentiny/tiny-robot/dist/vanilla/vanilla.global.js',
     '@opentiny/tiny-robot/package.json',
   ])
     assert.ok(require.resolve(path), `Public path did not resolve: ${path}`)
@@ -66,6 +67,7 @@ for (const path of [
   '@opentiny/tiny-robot/vanilla/style.css',
   '@opentiny/tiny-robot/dist/container/index.js',
   '@opentiny/tiny-robot/dist/vanilla/vanilla.umd.js',
+  '@opentiny/tiny-robot/dist/vanilla/vanilla.global.js',
   '@opentiny/tiny-robot/package.json',
 ])
   assert.ok(consumerRequire.resolve(path), `Published package path did not resolve: ${path}`)
@@ -91,8 +93,13 @@ await symlink(fileURLToPath(packageURL), join(typeConsumerRoot, 'node_modules', 
 await writeFile(join(typeConsumerRoot, 'package.json'), JSON.stringify({ type: 'module' }))
 await writeFile(
   join(typeConsumerRoot, 'index.ts'),
-  `import { createQuickAssist, type QuickAssistOptions, type AIRequest } from '@opentiny/tiny-robot/vanilla';
-const options: QuickAssistOptions = { adapter: { submit(request: AIRequest) { console.log(request.context.text); } } };
+  `import { createQuickAssist, type QuickAssistOptions, type QuickAssistInputOptions, type QuickAssistMessages, type AIRequest } from '@opentiny/tiny-robot/vanilla';
+const input: QuickAssistInputOptions = { placeholder: 'Ask AI', ariaLabel: 'Question', submitLabel: 'Send', maxLengthExceededMessage: 'Limit exceeded', maxLength: 50 };
+const messages: QuickAssistMessages = { loading: 'Loading', empty: 'No suggestions', error: 'Suggestions unavailable' };
+type RemovedMessageKeys = 'placeholder' | 'inputTooLong' | 'inputLabel' | 'submitLabel' | 'defaultExplain' | 'defaultUseCase';
+type AssertNever<T extends never> = T;
+type RemovedFieldsMustStayRemoved = AssertNever<Extract<keyof QuickAssistMessages, RemovedMessageKeys>>;
+const options: QuickAssistOptions = { input, messages, adapter: { submit(request: AIRequest) { console.log(request.context.text); } } };
 createQuickAssist(options).destroy();
 `,
 )
@@ -130,9 +137,45 @@ assert.equal(typeof sandbox.TinyRobotVanilla?.createQuickAssist, 'function')
 assert.equal(typeof sandbox.TinyRobotVanilla?.configureVanillaTheme, 'function')
 assert.deepEqual(Object.keys(sandbox), ['TinyRobotVanilla'])
 
+const iife = await readFile(new URL('dist/vanilla/vanilla.global.js', packageURL), 'utf8')
+for (const amd of [false, true]) {
+  let amdCalls = 0
+  const define = () => {
+    amdCalls += 1
+  }
+  define.amd = {}
+  const require = () => {}
+  const browser = vm.createContext(amd ? { define, require } : {})
+  vm.runInContext(iife, browser)
+  assert.equal(typeof browser.TinyRobotVanilla?.createQuickAssist, 'function')
+  assert.equal(typeof browser.TinyRobotVanilla?.configureVanillaTheme, 'function')
+  assert.deepEqual(Object.keys(browser.TinyRobotVanilla), Object.keys(sandbox.TinyRobotVanilla))
+  assert.equal(amdCalls, 0, 'IIFE must not register an AMD module')
+  if (amd) {
+    assert.equal(browser.define, define)
+    assert.equal(browser.define.amd, define.amd)
+    assert.equal(browser.require, require)
+  }
+}
+
+let amdExports
+const define = (dependencies, factory) => {
+  assert.deepEqual(Array.from(dependencies), ['exports'])
+  amdExports = {}
+  factory(amdExports)
+}
+define.amd = {}
+const amd = vm.createContext({ define })
+vm.runInContext(umd, amd)
+assert.equal(amd.TinyRobotVanilla, undefined, 'UMD must retain its AMD export semantics')
+assert.equal(typeof amdExports?.createQuickAssist, 'function')
+assert.equal(typeof amdExports?.configureVanillaTheme, 'function')
+
 const css = await readFile(new URL('dist/vanilla/style.css', packageURL), 'utf8')
 assert.ok(css.includes('.tr-quick-assist'), 'Missing scoped QuickAssist CSS')
 assert.ok(css.includes("data-tr-vanilla-color-mode='dark'"), 'Missing standalone dark theme')
 assert.ok(!/(?:^|\})\s*:root\b/m.test(css), 'QuickAssist CSS must not install global tokens')
 await readFile(new URL('dist/vanilla/index.d.ts', packageURL))
-console.log('QuickAssist public paths, ESM/UMD import safety, CSS and NodeNext/Node16 consumer types passed.')
+console.log(
+  'QuickAssist public paths, ESM/UMD/IIFE import safety, AMD exports, CSS and NodeNext/Node16 consumer types passed.',
+)
