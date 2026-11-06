@@ -51,6 +51,8 @@ export interface ChatAnchorOptions {
   visible?: boolean
   /** Viewport width in pixels; intentionally independent of the Chat panel width. */
   minWidth?: number
+  /** Pointer hover time before the directory expands, in milliseconds. Defaults to 300. */
+  hoverExpandDelay?: number
 }
 
 export interface ChatLayoutOptions {

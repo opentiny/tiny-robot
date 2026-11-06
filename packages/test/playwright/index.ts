@@ -1,1 +1,2 @@
-import '@opentiny/tiny-robot/dist/style.css'
+import '../../components/src/styles/root.css'
+import '../../components/src/styles/components/index.css'

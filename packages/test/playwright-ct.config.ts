@@ -23,6 +23,10 @@ export default defineConfig({
       resolve: {
         alias: [
           {
+            find: /^@opentiny\/tiny-robot$/,
+            replacement: fileURLToPath(new URL('../components/src/index.ts', import.meta.url)),
+          },
+          {
             find: /^@opentiny\/tiny-robot-kit$/,
             replacement: fileURLToPath(new URL('../kit/src/index.ts', import.meta.url)),
           },

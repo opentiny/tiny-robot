@@ -47,6 +47,7 @@ outline: [1, 3]
 | `activeOffset` | `number` | `120` | 激活项判定时距离滚动容器顶部的偏移量 |
 | `searchQuery` | `string` | 非受控 | 搜索词。传入后进入受控模式 |
 | `searchOptions` | [`AnchorSearchOptions`](#anchor-search-options) | - | 搜索区配置。不传时不显示搜索区 |
+| `hoverExpandDelay` | `number` | `300` | 鼠标悬停后展开目录的延迟，单位为 ms。设为 `0` 立即展开，键盘聚焦时立即展开。 |
 | `tooltipDelay` | `number` | `260` | tooltip 显示延迟，避免展开动画过程中短文本被误判为截断 |
 | `activeId` | `string` | 非受控 | 当前激活项。传入后进入受控模式 |
 | `expanded` | `boolean` | `false` | 展开状态。仅在 `expandTrigger="manual"` 时生效 |
