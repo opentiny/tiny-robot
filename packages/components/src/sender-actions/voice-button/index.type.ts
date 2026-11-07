@@ -57,7 +57,7 @@ export interface VoiceButtonProps {
   /**
    * 按钮点击拦截器(用于自定义 UI)
    */
-  onButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void>
+  onButtonClick?: (isActive: boolean, preventDefault: () => void) => void | Promise<void>
 }
 /**
  * VoiceButton 组件 Emits
