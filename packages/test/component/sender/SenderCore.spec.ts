@@ -184,7 +184,7 @@ test.describe('Sender core public contract', () => {
     await expect(counter.locator('.is-over-limit')).toHaveText('3')
     await expect(editor).toHaveText('abc')
     await expect(sender.locator('.tr-sender-submit-button')).toHaveClass(/is-disabled/)
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await editor.press('Backspace')
     await editor.pressSequentially('a')
     await expect(counter).toHaveText('1/2')

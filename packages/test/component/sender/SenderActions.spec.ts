@@ -97,7 +97,7 @@ test.describe('Sender action UI', () => {
     await expect(sender.locator('.tr-sender-word-counter')).toHaveText('3/2')
     await expect(sender.locator('.tr-sender-word-counter .is-over-limit')).toHaveText('3')
     await expect(sender.locator('.tr-sender-submit-button')).toHaveClass(/is-disabled/)
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await editor.press('Backspace')
     await editor.pressSequentially('a')
     await expect(sender.locator('.tr-sender-word-counter')).toHaveText('1/2')

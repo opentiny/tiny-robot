@@ -13,6 +13,7 @@ test('smoke mixed template editing, selection, deletion, and submit', async ({ p
   await template.focusTemplateEnd(0)
   await template.pressBackspace()
   await page.keyboard.type('改')
+  await expect(template.getTemplateContent(0)).toHaveText('原改')
   await template.openTemplateSelect()
   await page.locator(template.selectors.templateSelectOption).first().click()
   await helper.clickSubmit()

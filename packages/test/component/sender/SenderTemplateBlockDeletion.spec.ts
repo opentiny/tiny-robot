@@ -259,7 +259,7 @@ test.describe('Sender TemplateBlock deletion matrix', () => {
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
 
     await editor.click()
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await expectSelection(component, /^range\|/)
     await editor.press('Backspace')
     await expect(component.locator('.template-block')).toHaveCount(0)
@@ -271,7 +271,7 @@ test.describe('Sender TemplateBlock deletion matrix', () => {
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
 
     await editor.click()
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await expectSelection(component, /^range\|/)
     await editor.press('Delete')
     await expect(component.locator('.template-block')).toHaveCount(0)

@@ -78,7 +78,7 @@ test.describe('Sender action children', () => {
     await component.getByTestId('emit-voice-final').click()
     await expect(editor).toHaveText('语音结果 ')
     await component.getByTestId('toggle-auto-insert').click()
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await editor.press('Backspace')
     await button.click()
     await component.getByTestId('emit-voice-final').click()

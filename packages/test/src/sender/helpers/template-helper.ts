@@ -169,9 +169,14 @@ export function createTemplateTestHelper(page: Page) {
      * 聚焦到模板块内容末尾
      */
     async focusTemplateEnd(index: number) {
-      await this.getTemplate(index).click()
-      // 移动光标到末尾
-      await page.keyboard.press('End')
+      const positioned = await page.evaluate((templateIndex) => {
+        return window.__senderTestApi?.moveCursorToTemplateEnd(templateIndex) ?? false
+      }, index)
+
+      expect(positioned).toBe(true)
+      // ProseMirror owns the DOM focus; the caret position inside the node is
+      // represented by the editor selection rather than by focusing the span.
+      await expect(this.getEditor()).toBeFocused()
     },
 
     /**
@@ -233,7 +238,7 @@ export function createTemplateTestHelper(page: Page) {
     async selectText(range?: { from?: number; to?: number }) {
       if (!range) {
         // 全选
-        await page.keyboard.press('Control+A')
+        await page.keyboard.press('ControlOrMeta+A')
       } else {
         throw new Error('selectText(range) is not implemented yet')
       }

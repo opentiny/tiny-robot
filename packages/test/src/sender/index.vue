@@ -15,6 +15,7 @@ declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
+      moveCursorToTemplateEnd: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -269,6 +270,37 @@ const moveCursorBeforeTemplate = (index: number) => {
   return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
 }
 
+const moveCursorToTemplateEnd = (index: number) => {
+  const exposedEditor = senderRef.value?.editor
+  const editor = exposedEditor?.value ?? exposedEditor
+  if (!editor) return false
+
+  let currentIndex = 0
+  let templatePosition: number | null = null
+  let templateContentSize = 0
+
+  editor.state.doc.descendants((node: { type: { name: string }; content: { size: number } }, pos: number) => {
+    if (node.type.name === 'templateBlock') {
+      if (currentIndex === index) {
+        templatePosition = pos
+        templateContentSize = node.content.size
+        return false
+      }
+      currentIndex += 1
+    }
+    return true
+  })
+
+  if (templatePosition === null) return false
+
+  const targetPosition = templatePosition + 1 + templateContentSize
+  editor.commands.setTextSelection(targetPosition)
+  editor.commands.focus(targetPosition)
+
+  const selection = editor.state.selection
+  return selection.empty && selection.from === targetPosition
+}
+
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
@@ -286,6 +318,7 @@ const pressDeleteBeforeTemplate = (index: number) => {
 onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
+    moveCursorToTemplateEnd,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }

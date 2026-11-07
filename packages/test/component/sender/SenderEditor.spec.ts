@@ -75,7 +75,7 @@ test.describe('Sender editor behavior', () => {
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
 
     await editor.pressSequentially('before')
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await editor.pressSequentially('after')
     await expect(editor).toHaveText('after')
   })
@@ -94,9 +94,9 @@ test.describe('Sender editor behavior', () => {
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
 
     await editor.pressSequentially('redo me')
-    await editor.press('Control+Z')
+    await editor.press('ControlOrMeta+Z')
     await expect(editor).toHaveText('')
-    await editor.press('Control+Y')
+    await editor.press('ControlOrMeta+Shift+Z')
     await expect(editor).toHaveText('redo me')
   })
 
@@ -105,7 +105,7 @@ test.describe('Sender editor behavior', () => {
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
 
     await editor.pressSequentially('快速输入测试')
-    await editor.press('Control+A')
+    await editor.press('ControlOrMeta+A')
     await editor.press('Backspace')
     await editor.pressSequentially('再次输入')
     await expect(editor).toHaveText('再次输入')
