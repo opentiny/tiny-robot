@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
+import type { SenderSlotScope } from '../../types/slots'
+import type { Editor } from '@tiptap/vue-3'
 import EditorContent from '../editor-content/index.vue'
+import SenderHeader from './SenderHeader.vue'
 import { DefaultActionButtons, WordCounter } from '../../../sender-actions/index'
 
 const { editor, hasContent, loading, showWordLimit, maxLength } = useSenderContext()
 const slotScope = useSlotScope()
+
+defineSlots<{
+  header?: () => unknown
+  prefix?: () => unknown
+  content?: (props: { editor: Editor | undefined }) => unknown
+  'actions-inline'?: (scope: SenderSlotScope) => unknown
+}>()
 </script>
 
 <template>
   <div class="tr-sender-single-layout">
     <!-- Header 插槽 -->
-    <div v-if="$slots.header" class="tr-sender-header">
+    <SenderHeader>
       <slot name="header" />
-    </div>
+    </SenderHeader>
 
     <!-- 输入区域容器 -->
     <div class="tr-sender-container">
@@ -65,6 +75,7 @@ const slotScope = useSlotScope()
   .tr-sender-container {
     display: flex;
     align-items: center;
+    min-width: 0;
   }
 
   .tr-sender-main {

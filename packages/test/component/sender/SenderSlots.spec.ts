@@ -26,13 +26,15 @@ test.describe('Sender public slots', () => {
     await expect(component.getByTestId('scope-state')).toHaveText('false|false|false')
   })
 
-  test('SLOT-04 renders header, prefix, and content slots in multiple mode', async ({ mount }) => {
+  test('SLOT-04 renders header, prefix, content, and migrated actions-inline slots in multiple mode', async ({
+    mount,
+  }) => {
     const component = await mount(SenderSlotsFixture, { props: { mode: 'multiple' } })
 
     await expect(component.getByTestId('header-slot')).toBeVisible()
     await expect(component.getByTestId('prefix-slot')).toBeVisible()
     await expect(component.getByTestId('content-slot').locator('.ProseMirror')).toBeVisible()
-    await expect(component.getByTestId('actions-inline-slot')).toHaveCount(0)
+    await expect(component.getByTestId('actions-inline-slot')).toBeVisible()
   })
 
   test('SLOT-05 renders the scoped footer slot in multiple mode', async ({ mount }) => {

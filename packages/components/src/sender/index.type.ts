@@ -12,9 +12,11 @@ export type { SenderExternalPayload, SenderSubmitExtra } from './types/submit-ex
 
 // 导入插槽作用域类型
 import type { SenderSlotScope } from './types/slots'
+import type { Editor } from '@tiptap/vue-3'
 
 // 导出扩展类型（供用户使用）
-export type { MentionItem } from './extensions/mention'
+export type { MentionAttrs, MentionItem } from './extensions/mention'
+export type { TemplateAttrs, TemplateSelectAttrs } from './extensions/template'
 export type {
   SenderSuggestionItem,
   SuggestionOptions,
@@ -352,19 +354,25 @@ export interface SenderSlots {
   prefix?: () => unknown
 
   /**
+   * 多行模式首行前置插槽
+   */
+  'input-prefix'?: () => unknown
+
+  /**
    * 内容插槽
    *
    * @param props - 插槽属性
    * @param props.editor - 编辑器实例
    */
-  content?: (props: { editor: unknown }) => unknown
+  content?: (props: { editor: Editor | undefined }) => unknown
 
   /**
-   * 单行模式内联操作按钮插槽
+   * 操作按钮插槽：单行模式位于默认操作按钮前，多行模式位于底部右侧。
+   * 两种模式均提供 SenderSlotScope；示例中的 mode 可为 'single' 或 'multiple'。
    *
    * @example
    * ```vue
-   * <sender>
+   * <sender :mode="mode">
    *   <template #actions-inline="{ insert, focus, disabled }">
    *     <voice-input @result="insert" :disabled="disabled" />
    *     <file-upload @select="handleFiles" />

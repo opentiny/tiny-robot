@@ -2,7 +2,13 @@
 import { defineComponent, h, reactive } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import BubbleProvider from '../../../components/src/bubble/BubbleProvider.vue'
-import type { BubbleContentRendererMatch, BubbleMessage, ToolCall } from '../../../components/src/bubble/index.type'
+import { BubbleRenderers } from '../../../components/src/bubble/renderers/allRenderers'
+import type {
+  BubbleContentRendererMatch,
+  BubbleMessage,
+  ChatMessageContentItem,
+  ToolCall,
+} from '../../../components/src/bubble/index.type'
 import FallbackContentRenderer from './FallbackContentRenderer.vue'
 
 const avatar = h('span', { 'data-testid': 'bubble-avatar', 'aria-hidden': 'true' }, 'U')
@@ -11,6 +17,27 @@ const splitContent: BubbleMessage['content'] = [
   { type: 'text', text: 'Second segment' },
 ]
 const unresolvedContent: BubbleMessage['content'] = [{ type: 'unknown', label: 'Unknown segment' }]
+const image = {
+  type: 'image_url',
+  image_url: { url: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' },
+}
+const imageOnlyContent: BubbleMessage['content'] = [image, image]
+const mixedImageFirstContent: BubbleMessage['content'] = [image, { type: 'text', text: 'Image caption' }]
+const markdownOverflowContent = `## ${'heading-token-'.repeat(8)}
+
+- ${'list-token-'.repeat(8)}
+
+\`\`\`text
+${'1234567890'.repeat(12)}
+\`\`\`
+
+    ${'1234567890'.repeat(12)}`
+const markdownContentRendererMatches = [
+  {
+    find: (_: BubbleMessage, content: ChatMessageContentItem) => content.type === 'text',
+    renderer: BubbleRenderers.Markdown,
+  },
+]
 
 const reasoningMessage = reactive<BubbleMessage>({
   role: 'assistant',
@@ -83,6 +110,12 @@ const messageOnlyMatches: BubbleContentRendererMatch[] = [
     <Bubble data-testid="empty-split-array-bubble" role="assistant" :content="[]" content-render-mode="split" />
     <Bubble data-testid="hidden-bubble" role="assistant" content="Hidden text" hidden />
     <Bubble data-testid="reasoning-bubble" v-bind="reasoningMessage" />
+    <button data-testid="before-markdown-code" type="button">Before code blocks</button>
+    <div style="width: 320px">
+      <BubbleProvider :content-renderer-matches="markdownContentRendererMatches">
+        <Bubble data-testid="markdown-overflow-bubble" role="assistant" :content="markdownOverflowContent" />
+      </BubbleProvider>
+    </div>
     <button data-testid="append-reasoning" @click="appendReasoning">Append reasoning</button>
     <button data-testid="finish-reasoning" @click="finishReasoning">Finish reasoning</button>
     <Bubble data-testid="loading-only-bubble" role="assistant" content="" loading />
@@ -104,36 +137,74 @@ const messageOnlyMatches: BubbleContentRendererMatch[] = [
       />
     </BubbleProvider>
     <Bubble
-      data-testid="content-error-bubble"
-      id="content-error"
+      data-testid="unconfigured-error-bubble"
       role="assistant"
-      content="Partial answer"
-      :state="{ error: { message: 'Provider failed' } }"
+      content="Historical content"
+      :state="{ error: { message: 'Must stay opt-in' } }"
     />
-    <Bubble
-      data-testid="error-only-bubble"
-      id="error-only"
-      role="assistant"
-      content=""
-      :state="{ error: { message: 'Only failure' } }"
-    />
-    <Bubble data-testid="false-error-bubble" role="assistant" content="" :state="{ error: false }" />
-    <Bubble data-testid="zero-error-bubble" role="assistant" content="" :state="{ error: 0 }" />
-    <Bubble data-testid="empty-error-bubble" role="assistant" content="" :state="{ error: '' }" />
-    <Bubble data-testid="null-error-bubble" role="assistant" content="" :state="{ error: null }" />
-    <Bubble data-testid="undefined-error-bubble" role="assistant" content="" :state="{ error: undefined }" />
+    <BubbleProvider>
+      <Bubble
+        data-testid="unconfigured-provider-error-bubble"
+        role="assistant"
+        content="Historical provider content"
+        :state="{ error: { message: 'Must stay opt-in' } }"
+      />
+    </BubbleProvider>
 
+    <Bubble data-testid="image-only-bubble" role="assistant" :content="imageOnlyContent" />
+    <Bubble data-testid="mixed-image-first-bubble" role="assistant" :content="mixedImageFirstContent" />
     <Bubble
-      data-testid="split-bubble"
+      data-testid="resolved-mixed-image-first-bubble"
       role="assistant"
-      :content="splitContent"
-      :state="{ error: { message: 'Split failed' } }"
+      content="Original content"
+      :content-resolver="() => mixedImageFirstContent"
+    />
+    <Bubble
+      data-testid="resolved-image-only-bubble"
+      role="assistant"
+      content="Original content"
+      :content-resolver="() => imageOnlyContent"
+    />
+    <Bubble
+      data-testid="split-image-and-text-bubble"
+      role="assistant"
+      :content="mixedImageFirstContent"
       content-render-mode="split"
-    >
-      <template #content-footer="{ contentIndex }">
-        <span data-testid="split-footer">footer-{{ contentIndex }}</span>
-      </template>
-    </Bubble>
+    />
+
+    <BubbleProvider :error-renderer="BubbleRenderers.Error">
+      <Bubble
+        data-testid="content-error-bubble"
+        id="content-error"
+        role="assistant"
+        content="Partial answer"
+        :state="{ error: { message: 'Provider failed' } }"
+      />
+      <Bubble
+        data-testid="error-only-bubble"
+        id="error-only"
+        role="assistant"
+        content=""
+        :state="{ error: { message: 'Only failure' } }"
+      />
+      <Bubble data-testid="false-error-bubble" role="assistant" content="" :state="{ error: false }" />
+      <Bubble data-testid="zero-error-bubble" role="assistant" content="" :state="{ error: 0 }" />
+      <Bubble data-testid="empty-error-bubble" role="assistant" content="" :state="{ error: '' }" />
+      <Bubble data-testid="null-error-bubble" role="assistant" content="" :state="{ error: null }" />
+      <Bubble data-testid="undefined-error-bubble" role="assistant" content="" :state="{ error: undefined }" />
+
+      <Bubble
+        data-testid="split-bubble"
+        role="assistant"
+        :content="splitContent"
+        :state="{ error: { message: 'Split failed' } }"
+        content-render-mode="split"
+      >
+        <template #content-footer="{ contentIndex }">
+          <span data-testid="split-footer">footer-{{ contentIndex }}</span>
+        </template>
+      </Bubble>
+    </BubbleProvider>
 
     <Bubble
       data-testid="resolved-bubble"

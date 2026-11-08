@@ -40,11 +40,17 @@ jobs:
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
 
+      - name: Test release scripts
+        run: pnpm test:release-scripts
+
       - name: Test kit
         run: pnpm -F @opentiny/tiny-robot-kit test
 
       - name: Build components
         run: pnpm build
+
+      - name: Test npm and pnpm package installation
+        run: pnpm test:package-install
 
       - name: Build docs
         run: pnpm -F docs build
@@ -59,6 +65,7 @@ jobs:
           name: build-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             packages/components/dist
+            packages/chat/dist
             packages/kit/dist
             packages/svgs/dist
             docs/dist

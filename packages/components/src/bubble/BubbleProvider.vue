@@ -7,7 +7,6 @@ import {
   setupBubbleStore,
 } from './composables'
 import type { BubbleProviderProps } from './index.type'
-import { BubbleRenderers } from './renderers/allRenderers'
 import {
   defaultBoxRendererMatches,
   defaultContentRendererMatches,
@@ -39,7 +38,7 @@ const fallbackContentRenderer = computed(() => {
   return props.fallbackContentRenderer || defaultFallbackContentRenderer
 })
 
-const errorRenderer = computed(() => props.errorRenderer || BubbleRenderers.Error)
+const errorRenderer = computed(() => props.errorRenderer)
 
 setupBubbleBoxRenderer({
   boxRendererMatches,

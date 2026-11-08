@@ -96,7 +96,6 @@ test.describe('Sender TemplateBlock', () => {
 
     await component.getByTestId('select-last-block-end').click()
     await expectMultipleBlockState(component, ['姓名', '年龄', '城市'], 2, /^empty\|templateBlock\|text\|none$/)
-
     await editor.press('Backspace')
     await expectMultipleBlockState(component, ['姓名', '年龄', '城'], 2, /^empty\|templateBlock\|text\|none$/)
 

@@ -56,8 +56,9 @@ export function createTemplateTestHelper(page: Page) {
      */
     async setSimpleTemplate() {
       await page.click(selectors.setTemplateSimpleBtn)
-      // 等待至少一个模板块出现
       await expect(this.getTemplates().first()).toBeVisible()
+      // 插入模板后会异步聚焦块内，等光标就位后再执行后续操作。
+      await this.expectCaretInTemplate(0)
     },
 
     /**
@@ -169,23 +170,23 @@ export function createTemplateTestHelper(page: Page) {
      * 聚焦到模板块内容末尾
      */
     async focusTemplateEnd(index: number) {
-      const positioned = await page.evaluate((templateIndex) => {
-        return window.__senderTestApi?.moveCursorToTemplateEnd(templateIndex) ?? false
-      }, index)
-
-      expect(positioned).toBe(true)
-      // ProseMirror owns the DOM focus; the caret position inside the node is
-      // represented by the editor selection rather than by focusing the span.
-      await expect(this.getEditor()).toBeFocused()
+      await this.moveCursorAtTemplate(index, 'end')
     },
 
     /**
      * 聚焦到模板块内容开头
      */
     async focusTemplateStart(index: number) {
-      await this.getTemplate(index).click()
-      // 移动光标到开头
-      await page.keyboard.press('Home')
+      await this.moveCursorAtTemplate(index, 'start')
+    },
+
+    async moveCursorAtTemplate(index: number, position: 'before' | 'start' | 'end' | 'after') {
+      const cursorPlaced = await page.evaluate(
+        ({ index, position }) => window.__senderTestApi?.moveCursorAtTemplate(index, position),
+        { index, position },
+      )
+      expect(cursorPlaced).toBe(true)
+      await expect(this.getEditor()).toBeFocused()
     },
 
     /**
@@ -257,6 +258,17 @@ export function createTemplateTestHelper(page: Page) {
     async expectTemplateText(index: number, text: string) {
       const block = this.getTemplate(index)
       await expect(block).toContainText(text)
+    },
+
+    async expectCaretInTemplate(index: number) {
+      await expect
+        .poll(() =>
+          this.getTemplateContent(index).evaluate((content) => {
+            const selection = window.getSelection()
+            return selection?.isCollapsed && content.contains(selection.anchorNode)
+          }),
+        )
+        .toBe(true)
     },
 
     /**

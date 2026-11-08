@@ -70,14 +70,14 @@ const handleInput = (event: Event) => {
 
   &__area {
     flex: 1;
-    border-radius: 12px;
-    overflow: hidden;
   }
 
   &__textarea {
+    display: block;
     width: 100%;
     height: 360px;
     border: none;
+    border-radius: 8px;
     outline: none;
     resize: none;
     padding: 12px;
@@ -91,8 +91,9 @@ const handleInput = (event: Event) => {
       color: var(--tr-text-tertiary);
     }
 
-    &:focus {
-      box-shadow: none;
+    &:focus-visible {
+      outline: 2px solid var(--tr-color-primary);
+      outline-offset: 2px;
     }
   }
 

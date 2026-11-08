@@ -6,9 +6,13 @@ import type {
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
-  PluginCreationData,
+  McpExtensionFormMode,
+  McpExtensionFormValue,
   HistoryMenuItem,
   PromptProps,
+  ExtensionManagerActionEvent,
+  ExtensionManagerNameClickEvent,
+  ExtensionManagerTabChangeEvent,
 } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -50,13 +54,18 @@ export interface ChatModelReasoningEffortChangePayload {
   readonly effort: string | null
 }
 
+export interface SenderDragPayload {
+  readonly event: DragEvent
+  readonly target: HTMLElement
+}
+
 export interface ChatMcpAddServerPayload {
   readonly serverId: string
 }
 
 export interface ChatMcpCreateServerPayload {
-  readonly type: 'form' | 'code'
-  readonly data: PluginCreationData
+  readonly source: McpExtensionFormMode
+  readonly config: McpExtensionFormValue
 }
 
 export interface ChatMcpRemoveServerPayload {
@@ -110,11 +119,19 @@ export interface ChatUIEmits {
   'model-select': [payload: ChatModelSelectPayload]
   'model-feature-change': [payload: ChatModelFeatureChangePayload]
   'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'mcp-add-server': [payload: ChatMcpAddServerPayload]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'mcp-remove-server': [payload: ChatMcpRemoveServerPayload]
   'mcp-server-enabled-change': [payload: ChatMcpServerEnabledChangePayload]
   'mcp-tool-enabled-change': [payload: ChatMcpToolEnabledChangePayload]
+  'extension-action': [payload: ExtensionManagerActionEvent]
+  'extension-name-click': [payload: ExtensionManagerNameClickEvent]
+  'extension-tab-change': [payload: ExtensionManagerTabChangeEvent]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'update:right-aside-open': [value: boolean]

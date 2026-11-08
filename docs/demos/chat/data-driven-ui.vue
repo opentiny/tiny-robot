@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import { TrChatUI, type ChatUIData } from '@opentiny/tiny-robot-chat'
+import { TrChatUI, type ChatMcpCreateServerPayload, type ChatUIData } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
 type DataSnapshot = 'new' | 'active' | 'tools'
 
 const snapshot = shallowRef<DataSnapshot>('new')
 const inputValue = shallowRef('')
+const createServerRequest = shallowRef<ChatMcpCreateServerPayload | null>(null)
 
 const snapshots = {
   new: {
@@ -141,9 +142,19 @@ const snapshotOptions: Array<{ id: DataSnapshot; label: string }> = [
       </button>
     </div>
 
-    <p class="chat-data-demo__hint">当前示例只演示数据映射，因此输入可编辑，但不会发起请求。</p>
+    <p class="chat-data-demo__hint">
+      当前示例只演示数据映射，输入不会发起请求；MCP 创建请求会显示在下方，不会保存或连接服务器。
+    </p>
 
-    <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" />
+    <TrChatUI
+      :data="data"
+      :input-value="inputValue"
+      @update:input-value="inputValue = $event"
+      @mcp-create-server="createServerRequest = $event"
+    />
+    <output v-if="createServerRequest" class="chat-data-demo__create-result">
+      已收到创建请求：{{ createServerRequest.config.name }}（{{ createServerRequest.source }}），未保存。
+    </output>
   </section>
 </template>
 
@@ -168,6 +179,12 @@ const snapshotOptions: Array<{ id: DataSnapshot; label: string }> = [
 
 .chat-data-demo__toolbar span,
 .chat-data-demo__hint {
+  color: var(--tr-text-secondary, #575d6c);
+  font-size: 13px;
+}
+
+.chat-data-demo__create-result {
+  padding: 8px 12px;
   color: var(--tr-text-secondary, #575d6c);
   font-size: 13px;
 }

@@ -11,6 +11,7 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { VueRenderer } from '@tiptap/vue-3'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import type { Editor } from '@tiptap/core'
+import { mountSenderPopup, observeLayoutMode } from '../../../shared/overlayHost'
 import SuggestionList from './suggestion-list.vue'
 import { syncAutoComplete } from './utils/filter'
 import type { SuggestionOptions, SuggestionState, SenderSuggestionItem } from './types'
@@ -48,6 +49,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   let component: VueRenderer | null = null
   let popup: HTMLElement | null = null
   let cleanup: (() => void) | null = null
+  let stopObservingLayoutMode: (() => void) | null = null
   let justClosed = false
 
   /**
@@ -144,6 +146,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
     // 查找编辑器包装容器（tr-sender-editor-wrapper）
     const editorWrapper = view.dom.closest('.tr-sender')
     const referenceElement = (editorWrapper as HTMLElement) || view.dom
+
+    mountSenderPopup(popup, referenceElement)
 
     // 计算弹窗宽度（基于输入框宽度）
     const calculatePopupWidth = (): string => {
@@ -404,7 +408,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // 快捷键选中建议项
-        if (activeSuggestionKeys.includes(event.key)) {
+        if (!isKey(event, 'TAB') && activeSuggestionKeys.includes(event.key)) {
           event.preventDefault()
           selectAndClose(view, state)
           return true
@@ -462,7 +466,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               })
 
               popup = component.element as HTMLElement
-              document.body.appendChild(popup)
+              mountSenderPopup(popup, view.dom)
+              stopObservingLayoutMode = observeLayoutMode(view.dom, () => {
+                if (popup) positionPopup(view, popup)
+              })
             } else {
               // 更新 props
               component.updateProps({
@@ -484,6 +491,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           } else {
             // 销毁弹窗
             if (component) {
+              stopObservingLayoutMode?.()
+              stopObservingLayoutMode = null
               cleanup?.()
               cleanup = null
               component.destroy()
@@ -497,6 +506,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         },
 
         destroy() {
+          stopObservingLayoutMode?.()
           cleanup?.()
           component?.destroy()
           popup?.remove()

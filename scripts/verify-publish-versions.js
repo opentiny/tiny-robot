@@ -1,61 +1,106 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-const PUBLISH_PACKAGES = [
-  ['@opentiny/tiny-robot-cli', 'packages/cli/package.json'],
-  ['@opentiny/tiny-robot', 'packages/components/package.json'],
-  ['@opentiny/tiny-robot-chat', 'packages/chat/package.json'],
-  ['@opentiny/tiny-robot-kit', 'packages/kit/package.json'],
-  ['@opentiny/tiny-robot-svgs', 'packages/svgs/package.json'],
-]
+import semver from 'semver'
 
-function readPackage(rootDir, expectedName, relativePath) {
-  const packageFile = path.join(rootDir, relativePath)
-  const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
-
-  if (packageJson.name !== expectedName) {
-    throw new Error(`${relativePath} must describe ${expectedName}; found ${String(packageJson.name)}`)
-  }
-
-  return packageJson
-}
-
-function publishChannel(version) {
-  const match =
-    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-((?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-      version,
-    )
-  if (!match) throw new Error(`Package version must be a valid semantic version: ${version}`)
-  const channel = match[1]?.split('.')[0] ?? 'latest'
-  if (/^(?:v)?\d+$|^[xX]$/.test(channel)) {
-    throw new Error(`Package version derives an unusable npm dist-tag: ${channel}`)
-  }
-  return channel
-}
+import {
+  assertPublishVersion,
+  PUBLISHED_DEPENDENCY_SECTIONS,
+  readPublishPackages,
+  resolvePublishedDependencyRange,
+} from './publish-version-utils.js'
 
 export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion, distTag } = {}) {
-  const packages = PUBLISH_PACKAGES.map(([name, relativePath]) => ({
+  const packages = readPublishPackages(rootDir).map(({ name, packageJson }) => ({
     name,
-    version: readPackage(rootDir, name, relativePath).version,
+    version: packageJson.version,
+    packageJson,
   }))
   const version = packages[0].version
+  const { distTag: requiredDistTag } = assertPublishVersion(version)
+  const packageVersions = new Map(packages.map((pkg) => [pkg.name, pkg.version]))
+
+  for (const pkg of packages) {
+    for (const [dependency, spec] of Object.entries(pkg.packageJson.peerDependencies ?? {})) {
+      if (typeof spec === 'string' && spec.startsWith('workspace:')) {
+        throw new Error(`${pkg.name} peerDependencies.${dependency} must not use ${spec} when publishing`)
+      }
+    }
+
+    for (const [dependency, spec] of Object.entries(pkg.packageJson.optionalDependencies ?? {})) {
+      if (
+        packageVersions.has(dependency) &&
+        typeof spec === 'string' &&
+        spec.startsWith('workspace:') &&
+        Object.hasOwn(pkg.packageJson.devDependencies ?? {}, dependency)
+      ) {
+        throw new Error(
+          `${pkg.name} optionalDependencies.${dependency} is shadowed by devDependencies and cannot be converted by Lerna`,
+        )
+      }
+    }
+
+    const internalDependencies = new Map()
+    for (const section of PUBLISHED_DEPENDENCY_SECTIONS) {
+      for (const [dependency, spec] of Object.entries(pkg.packageJson[section] ?? {})) {
+        const dependencyVersion = packageVersions.get(dependency)
+        if (!dependencyVersion) continue
+
+        const declarations = internalDependencies.get(dependency) ?? []
+        declarations.push({ section, spec })
+        internalDependencies.set(dependency, declarations)
+      }
+    }
+
+    for (const [dependency, declarations] of internalDependencies) {
+      if (declarations.length > 1) {
+        throw new Error(
+          `${pkg.name} declares ${dependency} in multiple published dependency sections: ${declarations
+            .map(({ section }) => section)
+            .join(', ')}`,
+        )
+      }
+
+      const [{ section, spec }] = declarations
+      const dependencyVersion = packageVersions.get(dependency)
+      if (typeof spec !== 'string') {
+        throw new Error(`${pkg.name} ${section}.${dependency} must use a string version range`)
+      }
+
+      const publishedRange = resolvePublishedDependencyRange(spec, dependencyVersion)
+      if (!semver.validRange(publishedRange) || !semver.satisfies(dependencyVersion, publishedRange)) {
+        throw new Error(
+          `${pkg.name} ${section}.${dependency} uses ${spec}, which does not include published version ${dependencyVersion}`,
+        )
+      }
+    }
+  }
+
+  const component = packages.find((pkg) => pkg.name === '@opentiny/tiny-robot')
+  const runtimePeer = component.packageJson.peerDependencies?.['@opentiny/tiny-robot-kit']
+  const expectedRuntimePeer = `^${component.version}`
+  if (runtimePeer !== expectedRuntimePeer) {
+    throw new Error(
+      `${component.name} peer @opentiny/tiny-robot-kit uses ${String(runtimePeer)}; expected ${expectedRuntimePeer}`,
+    )
+  }
 
   for (const pkg of packages.slice(1)) {
     if (pkg.version !== version) {
-      throw new Error(`${pkg.name} has version ${pkg.version}; expected ${version} to match @opentiny/tiny-robot-cli`)
+      throw new Error(
+        pkg.name + ' has version ' + pkg.version + '; expected ' + version + ' to match @opentiny/tiny-robot-cli',
+      )
     }
   }
 
   if (expectedVersion && version !== expectedVersion) {
-    throw new Error(`Expected version ${expectedVersion} from Git tag, but packages use ${version}`)
+    throw new Error('Expected version ' + expectedVersion + ' from Git tag, but packages use ' + version)
   }
 
-  const requiredDistTag = publishChannel(version)
   if (distTag && distTag !== requiredDistTag) {
     throw new Error(
-      `Publish dist-tag ${distTag} does not match version ${version}; version requires ${requiredDistTag}`,
+      'Publish dist-tag ' + distTag + ' does not match version ' + version + '; version requires ' + requiredDistTag,
     )
   }
 
@@ -69,13 +114,13 @@ function parseArgs(argv) {
     const argument = argv[index]
     if (argument === '--expected-version' || argument === '--dist-tag') {
       const value = argv[index + 1]
-      if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value`)
+      if (!value || value.startsWith('--')) throw new Error(argument + ' requires a value')
       if (argument === '--expected-version') options.expectedVersion = value
       else options.distTag = value
       index += 1
       continue
     }
-    throw new Error(`Unknown argument: ${argument}`)
+    throw new Error('Unknown argument: ' + argument)
   }
 
   return options
@@ -85,9 +130,9 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   try {
     const result = verifyPublishVersions(parseArgs(process.argv.slice(2)))
-    console.log(`Verified synchronized publish version ${result.version} for dist-tag ${result.distTag}`)
+    console.log('Verified synchronized publish version ' + result.version + ' for dist-tag ' + result.distTag)
   } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
+    console.error('Error: ' + (error instanceof Error ? error.message : String(error)))
     process.exitCode = 1
   }
 }

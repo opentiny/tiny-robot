@@ -1,0 +1,17 @@
+<demo
+  vue="../../demos/chat/tiny-robot/Demo.vue"
+  :vueFiles="[
+    '../../demos/chat/tiny-robot/Demo.vue',
+    '../../demos/chat/ChatDemoShell.vue',
+    '../../demos/chat/tiny-robot/TinyRobotChat.vue',
+    '../../demos/chat/tiny-robot/index.css',
+    '../../demos/chat/tiny-robot/ComposerTools.vue',
+    '../../demos/chat/tiny-robot/WindowHeader.vue',
+    '../../demos/chat/tiny-robot/useWindow.ts',
+    '../../demos/chat/tiny-robot/chat-runtime.ts',
+    '../../demos/chat/tiny-robot/chat-ui.ts',
+    '../../demos/chat/shared/modelProviders.ts',
+    '../../demos/chat/shared/base.css'
+  ]"
+  playground="false"
+/>

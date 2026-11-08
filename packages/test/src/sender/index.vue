@@ -11,11 +11,13 @@ import type {
   TemplateItem,
 } from '@opentiny/tiny-robot'
 
+type TemplateCaretPosition = 'before' | 'start' | 'end' | 'after'
+
 declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
-      moveCursorToTemplateEnd: (index: number) => boolean
+      moveCursorAtTemplate: (index: number, position: TemplateCaretPosition) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -28,6 +30,7 @@ const result = ref('')
 const submitDetail = ref('')
 
 const isMultipleMode = ref(false)
+const constrainedWidth = ref(false)
 const clearable = ref(false)
 const loading = ref(false)
 const disabled = ref(false)
@@ -89,6 +92,10 @@ const handleClear = () => {
 
 const handleCustomAction = () => {
   result.value = '自定义按钮被点击'
+}
+
+const handleInputPrefixAction = () => {
+  result.value = 'input-prefix 被点击'
 }
 
 const handleClearSenderAttachmentItems = () => {
@@ -243,7 +250,7 @@ const extensions = computed(() => {
   return exts
 })
 
-const moveCursorBeforeTemplate = (index: number) => {
+const moveCursorAtTemplate = (index: number, position: TemplateCaretPosition) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
   if (!editor) return false
@@ -251,10 +258,16 @@ const moveCursorBeforeTemplate = (index: number) => {
   let currentIndex = 0
   let templatePosition: number | null = null
 
-  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
+  editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
       if (currentIndex === index) {
-        templatePosition = pos
+        const positions = {
+          before: pos,
+          start: pos + 1,
+          end: pos + node.nodeSize - 1,
+          after: pos + node.nodeSize,
+        }
+        templatePosition = positions[position]
         return false
       }
       currentIndex += 1
@@ -267,44 +280,14 @@ const moveCursorBeforeTemplate = (index: number) => {
   editor.commands.setTextSelection(templatePosition)
   editor.commands.focus(templatePosition)
 
-  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
-}
-
-const moveCursorToTemplateEnd = (index: number) => {
-  const exposedEditor = senderRef.value?.editor
-  const editor = exposedEditor?.value ?? exposedEditor
-  if (!editor) return false
-
-  let currentIndex = 0
-  let templatePosition: number | null = null
-  let templateContentSize = 0
-
-  editor.state.doc.descendants((node: { type: { name: string }; content: { size: number } }, pos: number) => {
-    if (node.type.name === 'templateBlock') {
-      if (currentIndex === index) {
-        templatePosition = pos
-        templateContentSize = node.content.size
-        return false
-      }
-      currentIndex += 1
-    }
-    return true
-  })
-
-  if (templatePosition === null) return false
-
-  const targetPosition = templatePosition + 1 + templateContentSize
-  editor.commands.setTextSelection(targetPosition)
-  editor.commands.focus(targetPosition)
-
   const selection = editor.state.selection
-  return selection.empty && selection.from === targetPosition
+  return selection.empty && selection.from === templatePosition
 }
 
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
-  if (!editor || !moveCursorBeforeTemplate(index)) return false
+  if (!editor || !moveCursorAtTemplate(index, 'before')) return false
 
   const deleteEvent = new KeyboardEvent('keydown', {
     key: 'Delete',
@@ -317,8 +300,8 @@ const pressDeleteBeforeTemplate = (index: number) => {
 
 onMounted(() => {
   window.__senderTestApi = {
-    moveCursorBeforeTemplate,
-    moveCursorToTemplateEnd,
+    moveCursorBeforeTemplate: (index) => moveCursorAtTemplate(index, 'before'),
+    moveCursorAtTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }
@@ -370,6 +353,10 @@ onBeforeUnmount(() => {
           <div class="control-item">
             <label>hasExternalContent:</label>
             <tiny-switch data-testid="toggle-external-content-btn" v-model="hasExternalContent"></tiny-switch>
+          </div>
+          <div class="control-item">
+            <label>constrainedWidth:</label>
+            <tiny-switch data-testid="toggle-constrained-width-btn" v-model="constrainedWidth"></tiny-switch>
           </div>
           <div class="control-item">
             <label>attachmentsSource:</label>
@@ -454,34 +441,57 @@ onBeforeUnmount(() => {
       </p>
     </div>
 
-    <Sender
-      :key="componentKey"
-      ref="senderRef"
-      v-model="content"
-      data-testid="test-sender"
-      :mode="mode"
-      :size="size"
-      :clearable="clearable"
-      :loading="loading"
-      :disabled="disabled"
-      :extensions="extensions"
-      :max-length="maxLength"
-      :show-word-limit="showWordLimit"
-      :placeholder="placeholder"
-      :submit-type="submitType"
-      :has-external-content="hasExternalContent"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-      @clear="handleClear"
-    >
-      <template v-if="attachmentsSourceMounted" #header>
-        <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
-      </template>
+    <div :class="{ 'sender-width-constraint': constrainedWidth }">
+      <Sender
+        :key="componentKey"
+        ref="senderRef"
+        v-model="content"
+        data-testid="test-sender"
+        :mode="mode"
+        :size="size"
+        :clearable="clearable"
+        :loading="loading"
+        :disabled="disabled"
+        :extensions="extensions"
+        :max-length="maxLength"
+        :show-word-limit="showWordLimit"
+        :placeholder="placeholder"
+        :submit-type="submitType"
+        :has-external-content="hasExternalContent"
+        @submit="handleSubmit"
+        @cancel="handleCancel"
+        @clear="handleClear"
+      >
+        <template v-if="attachmentsSourceMounted" #header>
+          <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
+        </template>
 
-      <template #footer>
-        <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
-      </template>
-    </Sender>
+        <template #input-prefix>
+          <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
+        </template>
+
+        <template #footer>
+          <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
+        </template>
+
+        <template #actions-inline="{ insert, disabled, loading, hasContent }">
+          <button
+            data-testid="actions-inline-btn"
+            type="button"
+            :disabled="disabled || loading"
+            :data-has-content="hasContent"
+            @mousedown.prevent
+            @click="insert('插入')"
+          >
+            单行操作
+          </button>
+        </template>
+
+        <template #footer-right>
+          <button data-testid="footer-right-btn" type="button">多行操作</button>
+        </template>
+      </Sender>
+    </div>
 
     <div id="template-select-teleport-target" data-testid="template-select-teleport-target"></div>
   </div>
@@ -534,5 +544,10 @@ onBeforeUnmount(() => {
 
 #template-select-teleport-target {
   position: relative;
+}
+
+.sender-width-constraint {
+  width: 320px;
+  max-width: 100%;
 }
 </style>

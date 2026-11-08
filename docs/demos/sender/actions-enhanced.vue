@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
 import { TrSender, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
+import { MockSpeechHandler } from './mockSpeechHandler'
 
 const content = ref('')
 const message = ref('')
+const speechConfig = { customHandler: new MockSpeechHandler() }
 let messageTimer: ReturnType<typeof setTimeout> | undefined
 
 const showMessage = (value: string) => {
@@ -58,7 +60,13 @@ onBeforeUnmount(() => {
         />
 
         <!-- 语音按钮 -->
-        <VoiceButton tooltip="语音输入" tooltip-placement="top" @speech-final="handleVoiceFinal" />
+        <VoiceButton
+          :speech-config="speechConfig"
+          :auto-insert="false"
+          tooltip="模拟语音输入"
+          tooltip-placement="top"
+          @speech-final="handleVoiceFinal"
+        />
       </template>
     </tr-sender>
 

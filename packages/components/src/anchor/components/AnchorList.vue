@@ -22,6 +22,7 @@ defineSlots<AnchorListSlots>()
       :active-id="activeId"
       :expanded="expanded"
       :highlighted="index === highlightedIndex"
+      :hover-override="retainedHoverId === undefined ? undefined : entry.item.id === retainedHoverId"
       :placement="placement"
       :tooltip-delay="tooltipDelay"
       @select="emit('select', $event)"
@@ -45,8 +46,9 @@ defineSlots<AnchorListSlots>()
     list-style: none;
     display: flex;
     flex-direction: column;
-    margin: 0 calc(-1 * var(--tr-anchor-surface-padding-inline));
+    margin: 0;
     padding: 0;
+    width: 100%;
   }
 
   &__empty {

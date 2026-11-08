@@ -307,7 +307,7 @@ const prepareSelection = (
   }
 
   editor.commands.setTextSelection({ from, to })
-  editor.commands.focus()
+  editor.view.focus()
   revision.value += 1
 }
 

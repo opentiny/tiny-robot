@@ -121,7 +121,11 @@ if (!isInBubbleList) {
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
-          <component v-if="hasMessageError(messages.at(0)!)" :is="errorRenderer" :message="messages.at(0)!"></component>
+          <component
+            v-if="errorRenderer && hasMessageError(messages.at(0)!)"
+            :is="errorRenderer"
+            :message="messages.at(0)!"
+          ></component>
         </template>
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
@@ -134,7 +138,11 @@ if (!isInBubbleList) {
                 @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
                 @bubble-event="emit('bubble-event', { ...$event, messageIndex: msgIndex })"
               ></BubbleContentWrapper>
-              <component v-if="hasMessageError(message)" :is="errorRenderer" :message="message"></component>
+              <component
+                v-if="errorRenderer && hasMessageError(message)"
+                :is="errorRenderer"
+                :message="message"
+              ></component>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>
@@ -156,9 +164,10 @@ if (!isInBubbleList) {
 
 .tr-bubble__body {
   flex: 1;
+  min-width: 0;
 
   display: grid;
-  grid-template-columns: auto 1fr; /* 左侧头像，右侧内容 */
+  grid-template-columns: auto minmax(0, 1fr); /* 左侧头像，右侧内容 */
   grid-template-rows: auto auto;
 }
 
@@ -186,7 +195,7 @@ if (!isInBubbleList) {
 
 [data-placement='end'] {
   .tr-bubble__body {
-    grid-template-columns: 1fr auto; /* 左侧内容，右侧头像 */
+    grid-template-columns: minmax(0, 1fr) auto; /* 左侧内容，右侧头像 */
 
     & > * {
       justify-self: end;

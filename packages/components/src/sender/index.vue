@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SenderProps, SenderEmits } from './index.type'
+import { SenderProps, SenderEmits, SenderSlots } from './index.type'
 import { useSenderCore } from './composables/useSenderCore'
 import SingleLineLayout from './components/layouts/SingleLineLayout.vue'
 import MultiLineLayout from './components/layouts/MultiLineLayout.vue'
@@ -18,6 +18,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
 export type SenderPropsWithDefaults = typeof props
 
 const emit = defineEmits<SenderEmits>()
+defineSlots<SenderSlots>()
 
 const { context, expose } = useSenderCore(props, emit)
 
@@ -61,11 +62,17 @@ defineExpose(expose)
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />
       </template>
+      <template v-if="$slots['input-prefix']" #input-prefix>
+        <slot name="input-prefix" />
+      </template>
       <template v-if="$slots.content" #content="slotProps">
         <slot name="content" v-bind="slotProps" />
       </template>
       <template v-if="$slots.footer" #footer="slotProps">
         <slot name="footer" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots['actions-inline']" #actions-inline="slotProps">
+        <slot name="actions-inline" v-bind="slotProps" />
       </template>
       <template v-if="$slots['footer-right']" #footer-right="slotProps">
         <slot name="footer-right" v-bind="slotProps" />
@@ -78,6 +85,8 @@ defineExpose(expose)
 .tr-sender {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   background-color: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   box-shadow: var(--tr-sender-box-shadow);

@@ -2,6 +2,7 @@
 import { markRaw, ref } from 'vue'
 import BubbleList from '../../../components/src/bubble/BubbleList.vue'
 import BubbleProvider from '../../../components/src/bubble/BubbleProvider.vue'
+import { BubbleRenderers } from '../../../components/src/bubble/renderers/allRenderers'
 import type {
   BubbleContentRendererMatch,
   BubbleEvent,
@@ -132,7 +133,9 @@ const growRenderedContent = () => {
     </section>
 
     <section data-testid="error-list">
-      <BubbleList :messages="errorMessages" group-strategy="consecutive" />
+      <BubbleProvider :error-renderer="BubbleRenderers.Error">
+        <BubbleList :messages="errorMessages" group-strategy="consecutive" />
+      </BubbleProvider>
     </section>
 
     <section data-testid="custom-list">

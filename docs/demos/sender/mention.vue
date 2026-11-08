@@ -5,6 +5,7 @@ import type { MentionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const submittedContent = ref('')
+const submittedData = ref<StructuredData>()
 
 const items: MentionItem[] = [
   {
@@ -33,9 +34,7 @@ const extensions = [TrSender.mention(items)]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   submittedContent.value = text
-
-  console.log('📝 提交内容（纯文本）：', text)
-  console.log('📋 结构化数据：', data)
+  submittedData.value = data
 }
 </script>
 
@@ -59,6 +58,8 @@ const handleSubmit = (text: string, data?: StructuredData) => {
     <div v-if="submittedContent" class="result">
       <div class="result-title">提交的内容（纯文本）：</div>
       <div class="result-content">{{ submittedContent }}</div>
+      <div class="result-title">结构化数据：</div>
+      <pre class="result-content">{{ JSON.stringify(submittedData, null, 2) }}</pre>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, useSlots } from 'vue'
+import { computed, ref } from 'vue'
 import type { AnchorOverlayProps } from '../internal.type'
 
 defineOptions({ name: 'AnchorOverlay' })
@@ -11,32 +11,33 @@ const props = withDefaults(defineProps<AnchorOverlayProps>(), {
 const hostEl = ref<HTMLElement | null>(null)
 const overlayEl = ref<HTMLElement | null>(null)
 const navEl = ref<HTMLElement | null>(null)
-const slots = useSlots()
+const searchCapEl = ref<HTMLElement | null>(null)
 
 const rootClass = computed(() => [
   'tr-anchor',
   `is-${props.placement}`,
   {
     'is-expanded': props.expanded,
-    'has-search-cap': Boolean(slots.search),
   },
 ])
 
 const floatingStyle = computed(() => ({
   transform: `translate3d(0, ${props.floatingOffset}px, 0)`,
+  maxHeight: props.maxHeight === undefined ? '100%' : `${props.maxHeight}px`,
 }))
 
 defineExpose({
   hostEl,
   overlayEl,
   navEl,
+  searchCapEl,
 })
 </script>
 
 <template>
-  <div ref="hostEl" :class="rootClass" :style="floatingStyle">
-    <div ref="overlayEl" class="tr-anchor__overlay" data-testid="anchor-overlay">
-      <div v-if="$slots.search" class="tr-anchor__search-cap">
+  <div ref="hostEl" :class="rootClass">
+    <div ref="overlayEl" class="tr-anchor__overlay" :style="floatingStyle" data-testid="anchor-overlay">
+      <div v-if="$slots.search" ref="searchCapEl" class="tr-anchor__search-cap" :class="{ 'is-below': searchBelow }">
         <slot name="search" />
       </div>
 
@@ -65,7 +66,7 @@ defineExpose({
   bottom: 0;
 
   &.is-right {
-    right: 0;
+    right: var(--tr-chat-anchor-inset-inline-end, 0px);
   }
 
   &.is-left {
@@ -78,12 +79,16 @@ defineExpose({
     inline-size: var(--tr-anchor-width-collapsed);
     width: var(--tr-anchor-width-collapsed);
     overflow: visible;
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
+    border-radius: var(--tr-anchor-surface-radius);
     pointer-events: auto;
     transition:
-      width 0.22s ease,
-      inline-size 0.22s ease,
-      transform 0.22s ease;
+      width var(--tr-anchor-transition-duration) ease,
+      inline-size var(--tr-anchor-transition-duration) ease,
+      background-color var(--tr-anchor-transition-duration) ease,
+      box-shadow var(--tr-anchor-transition-duration) ease;
   }
 
   &.is-right &__overlay {
@@ -97,43 +102,49 @@ defineExpose({
   &.is-expanded &__overlay {
     inline-size: var(--tr-anchor-width-expanded);
     width: var(--tr-anchor-width-expanded);
+    background: var(--tr-anchor-bg);
+    box-shadow:
+      inset 0 0 0 1px var(--tr-anchor-border),
+      var(--tr-anchor-shadow);
   }
 
   &__surface {
     width: 100%;
-    overflow: visible;
-    border-radius: var(--tr-anchor-surface-radius);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
-    padding: 16px var(--tr-anchor-surface-padding-inline);
-    transition:
-      background-color 0.22s ease,
-      border-color 0.22s ease,
-      box-shadow 0.22s ease;
-  }
-
-  &.is-expanded &__surface {
-    background: var(--tr-anchor-bg);
-    box-shadow: var(--tr-anchor-shadow);
-  }
-
-  &.is-expanded.has-search-cap &__surface {
-    border-radius: 0 0 var(--tr-anchor-surface-radius) var(--tr-anchor-surface-radius);
+    padding: 8px 0;
   }
 
   &__search-cap {
-    position: absolute;
-    inset-inline: 0;
-    bottom: calc(100% - 1px);
-    padding: 10px 10px 8px;
-    background: var(--tr-anchor-bg);
-    border: 1px solid var(--tr-anchor-border);
-    border-bottom: 0;
-    border-radius: var(--tr-anchor-surface-radius) var(--tr-anchor-surface-radius) 0 0;
-    box-sizing: border-box;
+    flex-shrink: 0;
+    padding: 10px 10px 4px;
+
+    &.is-below {
+      order: 1;
+      padding: 4px 10px 10px;
+    }
   }
 
   &__panel {
     position: relative;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-anchor__overlay {
+    transition: none;
   }
 }
 </style>

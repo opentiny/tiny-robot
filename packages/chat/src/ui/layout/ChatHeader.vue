@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TrLayout } from '@opentiny/tiny-robot'
+import { TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import { IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { ChatConversationView, ChatLabels } from '../../types'
 
@@ -7,6 +7,7 @@ defineProps<{
   title: string
   isEmpty: boolean
   conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
+  isMobileViewport: boolean
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean
@@ -43,10 +44,6 @@ function openRightAside() {
 </script>
 
 <template>
-  <div v-if="$slots.notice" class="chat-notice">
-    <slot name="notice"></slot>
-  </div>
-
   <slot
     :title="title"
     :is-empty="isEmpty"
@@ -58,7 +55,7 @@ function openRightAside() {
     :toggle-left-aside="toggleLeftAside"
     :open-right-aside="openRightAside"
   >
-    <header class="chat-header">
+    <header class="chat-header" :class="{ 'chat-header--mobile': isMobileViewport }">
       <div class="chat-header__aside-cell">
         <TrLayout.AsideToggle v-if="isLeftAsideVisible && isLeftAsideDrawer" side="left">
           <template #default="{ isOpen }">
@@ -73,37 +70,28 @@ function openRightAside() {
       </div>
       <h3 class="chat-header__title">{{ title }}</h3>
       <div class="chat-header__actions">
-        <button
+        <TrIconButton
           v-if="!isEmpty || !isLeftAsideVisible"
           class="chat-header__new"
           :class="{ 'chat-header__new--visible': !isLeftAsideVisible }"
+          :icon="IconNewSession"
+          size="32"
+          svg-size="20"
           type="button"
           :aria-label="labels.createConversation"
           @click="createConversation"
-        >
-          <IconNewSession :size="20" />
-        </button>
+        />
       </div>
     </header>
   </slot>
 </template>
 
 <style scoped>
-.chat-notice {
-  margin-bottom: 16px;
-}
-
-.chat-notice :deep(> *) {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-}
-
 .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--tr-chat-ui-header-gap, 8px);
 }
 
 .chat-header__aside-cell,
@@ -126,62 +114,51 @@ function openRightAside() {
   white-space: nowrap;
 }
 
-.chat-header__new {
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-left: auto;
-  padding: 0;
-  border: none;
-  border-radius: var(--tr-radius-full);
-  background: transparent;
-  color: var(--tr-icon-color-default);
-  cursor: pointer;
-}
-
-.chat-header__new {
+.chat-header__new.tr-icon-button {
   display: none;
+  margin-left: auto;
+  color: var(--tr-icon-color-default);
 }
 
-.chat-header__new--visible {
+.chat-header__new.tr-icon-button.chat-header__new--visible {
   display: inline-flex;
 }
 
 .chat-header__new:hover,
 .chat-header__aside-toggle:hover {
   color: var(--tr-icon-color-hover);
+}
+
+.chat-header__aside-toggle:hover {
   background: var(--tr-container-bg-hover);
 }
 
-@media (max-width: 959px) {
-  .chat-header {
-    position: relative;
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
-    justify-content: stretch;
-    min-height: 32px;
-  }
+.chat-header--mobile {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  justify-content: stretch;
+  min-height: 32px;
+}
 
-  .chat-header__aside-cell,
-  .chat-header__actions {
-    width: 32px;
-    justify-content: center;
-  }
+.chat-header--mobile .chat-header__aside-cell,
+.chat-header--mobile .chat-header__actions {
+  width: 32px;
+  justify-content: center;
+}
 
-  .chat-header__title {
-    text-align: center;
-  }
+.chat-header--mobile .chat-header__title {
+  text-align: center;
+}
 
-  .chat-header__aside-toggle {
-    display: inline-flex;
-    background: var(--tr-container-bg-default);
-    color: var(--tr-text-secondary);
-  }
+.chat-header--mobile .chat-header__aside-toggle {
+  display: inline-flex;
+  background: var(--tr-container-bg-default);
+  color: var(--tr-text-secondary);
+}
 
-  .chat-header__new {
-    display: inline-flex;
-    color: var(--tr-text-secondary);
-  }
+.chat-header--mobile .chat-header__new.tr-icon-button {
+  display: inline-flex;
+  color: var(--tr-text-secondary);
 }
 </style>

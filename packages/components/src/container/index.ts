@@ -10,7 +10,8 @@ const install = function <T>(app: App<T>) {
 ContainerComponent.install = install
 
 /**
- * @deprecated Container is kept for compatibility. Use `Layout` (`TrLayout`) for new layouts.
+ * @deprecated Since v1.0. Container is kept for compatibility and will be removed in a future release.
+ * Use `Layout` (`TrLayout`) for new layouts.
  */
 const Container = ContainerComponent as typeof ContainerComponent & { install: typeof install }
 

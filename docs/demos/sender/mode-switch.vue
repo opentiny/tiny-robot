@@ -4,9 +4,10 @@ import { TrSender } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const mode = ref<'single' | 'multiple'>('single')
+const submittedContent = ref('')
 
 const handleSubmit = (value: string) => {
-  console.log('提交内容:', value)
+  submittedContent.value = value
   content.value = ''
 }
 </script>
@@ -26,6 +27,7 @@ const handleSubmit = (value: string) => {
       :max-length="200"
       @submit="handleSubmit"
     />
+    <p v-if="submittedContent" class="result" aria-live="polite">已提交：{{ submittedContent }}</p>
   </div>
 </template>
 
@@ -58,5 +60,10 @@ const handleSubmit = (value: string) => {
   background: #1476ff;
   border-color: #1476ff;
   color: white;
+}
+
+.result {
+  margin: 12px 0 0;
+  color: #606266;
 }
 </style>

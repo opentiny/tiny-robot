@@ -6,10 +6,10 @@
 </template>
 
 <script setup lang="ts">
-import { BubbleContentRendererProps, TrBubble } from '@opentiny/tiny-robot'
+import { TrBubble, useMessageContent } from '@opentiny/tiny-robot'
+import type { BubbleContentRendererProps } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { defineComponent, h } from 'vue'
-import { useMessageContent } from '@opentiny/tiny-robot'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 

@@ -26,6 +26,8 @@ import McpAddForm from './mcp-add-form'
 import ExtensionManager, { ExtensionCard, ExtensionCardGrid } from './extension-manager'
 import McpExtensionForm from './mcp-extension-form'
 import McpExtensionDetail from './mcp-extension-detail'
+import SkillImportForm from './skill-import-form'
+import SkillExtensionDetail from './skill-extension-detail'
 import {
   ActionButton,
   SubmitButton,
@@ -62,6 +64,8 @@ export * from './mcp-add-form/index.type'
 export * from './mcp-extension-form/index.type'
 export * from './mcp-extension-detail/index.type'
 export * from './mcp-extension-storage/index.type'
+export * from './skill-import-form/index.type'
+export * from './skill-extension-detail/index.type'
 export * from './extension-manager/public.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
@@ -69,6 +73,7 @@ export type { SenderContentRegister } from './shared/composables/useSenderConten
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,
+  getBubbleMessageGroups,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
   useBubbleErrorRenderer,
@@ -114,6 +119,8 @@ const components = [
   McpAddForm,
   McpExtensionForm,
   McpExtensionDetail,
+  SkillImportForm,
+  SkillExtensionDetail,
   ExtensionManager,
   ExtensionCard,
   ExtensionCardGrid,
@@ -194,6 +201,10 @@ export {
   McpExtensionForm as TrMcpExtensionForm,
   McpExtensionDetail,
   McpExtensionDetail as TrMcpExtensionDetail,
+  SkillImportForm,
+  SkillImportForm as TrSkillImportForm,
+  SkillExtensionDetail,
+  SkillExtensionDetail as TrSkillExtensionDetail,
   ExtensionManager,
   ExtensionManager as TrExtensionManager,
   ExtensionCard,

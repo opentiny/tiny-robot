@@ -1,25 +1,36 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { TrSender, UploadButton } from '@opentiny/tiny-robot'
 import { IconSearch, IconThink, IconAi } from '@opentiny/tiny-robot-svgs'
 
 const content = ref('')
 const message = ref('')
+let messageTimer: ReturnType<typeof setTimeout> | undefined
+
+const showMessage = (value: string) => {
+  if (messageTimer) clearTimeout(messageTimer)
+  message.value = value
+  messageTimer = setTimeout(() => {
+    message.value = ''
+    messageTimer = undefined
+  }, 3000)
+}
 
 const handleSubmit = (value: string) => {
-  message.value = `已提交: ${value}`
-  setTimeout(() => (message.value = ''), 3000)
+  showMessage(`已提交: ${value}`)
 }
 
 const handleDeepThink = () => {
-  message.value = '启动深度思考模式...'
-  setTimeout(() => (message.value = ''), 3000)
+  showMessage('启动深度思考模式...')
 }
 
-const handleEmoji = () => {
-  message.value = '打开网络搜索...'
-  setTimeout(() => (message.value = ''), 3000)
+const handleSearch = () => {
+  showMessage('打开网络搜索...')
 }
+
+onBeforeUnmount(() => {
+  if (messageTimer) clearTimeout(messageTimer)
+})
 </script>
 
 <template>
@@ -41,7 +52,7 @@ const handleEmoji = () => {
           <IconThink />
           深度思考
         </button>
-        <button class="search-btn" @click="handleEmoji">
+        <button class="search-btn" @click="handleSearch">
           <IconSearch />
           网络搜索
         </button>
@@ -49,6 +60,9 @@ const handleEmoji = () => {
 
       <template #prefix>
         <IconAi :style="{ fontSize: '26px' }" />
+      </template>
+      <template #input-prefix>
+        <span class="input-prefix-label">需求</span>
       </template>
       <template #footer-right>
         <UploadButton tooltip="文件上传" tooltip-placement="top" />
@@ -78,10 +92,15 @@ const handleEmoji = () => {
 }
 
 .deep-think-btn:hover,
-.emoji-btn:hover {
+.search-btn:hover {
   background: #f5f5f5;
   border-color: #1476ff;
   color: #1476ff;
+}
+
+.input-prefix-label {
+  color: #1476ff;
+  font-weight: 600;
 }
 
 .message {

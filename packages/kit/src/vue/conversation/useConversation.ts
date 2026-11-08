@@ -159,9 +159,9 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   if (storage?.loadConversations) {
     Promise.resolve(storage.loadConversations())
       .then((list) => {
-        // 如果加载的列表为空，直接返回
+        // 存储为空时仍返回加载期间创建的内存会话
         if (!list?.length) {
-          return []
+          return conversations.value
         }
 
         // 如果当前内存中的会话列表为空，直接使用加载的列表

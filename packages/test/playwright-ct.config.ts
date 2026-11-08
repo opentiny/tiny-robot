@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/experimental-ct-vue'
 import vue from '@vitejs/plugin-vue'
 import vuejsx from '@vitejs/plugin-vue-jsx'
@@ -19,6 +20,18 @@ export default defineConfig({
     ctViteConfig: {
       mode: 'development',
       plugins: [vue(), vuejsx()],
+      resolve: {
+        alias: [
+          {
+            find: /^@opentiny\/tiny-robot$/,
+            replacement: fileURLToPath(new URL('../components/src/index.ts', import.meta.url)),
+          },
+          {
+            find: /^@opentiny\/tiny-robot-kit$/,
+            replacement: fileURLToPath(new URL('../kit/src/index.ts', import.meta.url)),
+          },
+        ],
+      },
     },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
