@@ -16,11 +16,7 @@ ModelSelector 用于选择 AI 模型，并根据 `features` 展示开关和选�
 
 `models` 提供候选模型，`v-model` 绑定当前模型。每个模型最少包含唯一的 `id` 和用于展示的 `label`。
 
-如果从早期预览版迁移，将模型选项的 `value` 改为 `id`，将思考强度声明移到 `features`。如需读取变更前后的选择，监听 [`change` 事件](#events)。
-
-本页可直接运行示例。Playground 使用 npm 的正式版本，将在正式版本包含 ModelSelector 后开放。
-
-<demo playground="false" vue="../../demos/model-selector/basic.vue" title="基础用法" description="models 与 v-model 的基础选择。" />
+<demo vue="../../demos/model-selector/basic.vue" title="基础用法" description="models 与 v-model 的基础选择。" />
 
 ### 模型选项
 
@@ -42,7 +38,7 @@ ModelSelector 用于选择 AI 模型，并根据 `features` 展示开关和选�
 
 模型数量较多时，`searchable` 可显示搜索框，`group` 可组织模型分组。禁用项仍会显示，但无法被选择。
 
-<demo playground="false" vue="../../demos/model-selector/search-and-group.vue" title="搜索与分组" description="名称、描述、分组搜索与禁用状态。" />
+<demo vue="../../demos/model-selector/search-and-group.vue" title="搜索与分组" description="名称、描述、分组搜索与禁用状态。" />
 
 默认搜索不区分大小写，会匹配 `label`、`id`、`description` 和 `group`。未设置 `group` 的选项进入无标题分组。
 
@@ -60,7 +56,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 通过 `models[].features` 声明模型支持的设置，例如思考强度或联网搜索。切换模型时，相同 `key` 的设置会沿用新模型支持的值。
 
-<demo playground="false" vue="../../demos/model-selector/reasoning-effort.vue" title="模型特性字段" description="切换模型或修改设置，查看当前模型的设置值（featureValues）。" />
+<demo vue="../../demos/model-selector/reasoning-effort.vue" title="模型特性字段" description="切换模型或修改设置，查看当前模型的设置值（featureValues）。" />
 
 由应用将设置值转换为请求参数。[查看 DeepSeek 和百炼 Qwen3.7 的映射示例](../suites/chat-runtime#模型功能)
 
@@ -68,7 +64,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 `size` 支持 `small`、`normal` 和 `large`；`variant` 控制触发器外观，支持 `outline`、`ghost` 和 `muted`。尺寸会改变触发器、字号与间距，不会将面板宽度固定为对应档位。
 
-<demo playground="false" vue="../../demos/model-selector/variants.vue" title="尺寸与外观" description="三种尺寸与三种外观的展示效果。" />
+<demo vue="../../demos/model-selector/variants.vue" title="尺寸与外观" description="三种尺寸与三种外观的展示效果。" />
 
 ## 自定义内容
 
@@ -78,13 +74,13 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 用 `renderTriggerText({ model, featureValues })` 自定义按钮文字。返回的文字也用作悬浮提示和无障碍名称。
 
-<demo playground="false" vue="../../demos/model-selector/trigger-text.vue" title="自定义触发器文本" description="打开「联网搜索」，按钮文字会变为「通用模型 · 联网」。" />
+<demo vue="../../demos/model-selector/trigger-text.vue" title="自定义触发器文本" description="打开「联网搜索」，按钮文字会变为「通用模型 · 联网」。" />
 
 ### 自定义触发器
 
 `trigger` 插槽提供当前模型、模型名称、展开状态、有效设置值和 `text`。自定义按钮内容时，可以用 `text` 显示文字，让它与按钮的悬浮提示和无障碍名称一致。
 
-<demo playground="false" vue="../../demos/model-selector/icon-trigger.vue" title="自定义触发器" description="模型标识、展开箭头与窄屏表现的定制效果。" />
+<demo vue="../../demos/model-selector/icon-trigger.vue" title="自定义触发器" description="模型标识、展开箭头与窄屏表现的定制效果。" />
 
 插槽会完整替换默认内容，因此图标、文本和展开状态均由插槽渲染。外层已经是真实的 `button`；内部嵌套按钮、链接或输入框会形成无效的交互元素结构。
 
@@ -92,7 +88,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 `header`、`item`、`empty` 和 `footer` 分别对应面板头部、模型项、空状态和底部区域。
 
-<demo playground="false" vue="../../demos/model-selector/slots.vue" title="自定义选项面板" description="面板标题、模型项、空状态和底部操作区的定制效果。" />
+<demo vue="../../demos/model-selector/slots.vue" title="自定义选项面板" description="面板标题、模型项、空状态和底部操作区的定制效果。" />
 
 `item` 位于 `role="option"` 内，适合非交互内容。`header` 和 `footer` 支持按钮、链接或表单控件；作用域中的 `close()` 用于关闭面板。
 
