@@ -12,7 +12,8 @@ import type {
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
   ExtensionManagerTabChangeEvent,
-  ModelSelectorFeatureChange,
+  ModelSelectorFeatureValue,
+  ModelSelectorFeatureValues,
 } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -45,7 +46,13 @@ export interface ChatModelSelectPayload {
   readonly modelId: string | null
 }
 
-export type ChatModelFeatureValueChangePayload = ModelSelectorFeatureChange
+export interface ChatModelFeatureValueChangePayload {
+  modelId: string
+  featureKey: string
+  previous: ModelSelectorFeatureValue | undefined
+  next: ModelSelectorFeatureValue
+  featureValues: ModelSelectorFeatureValues
+}
 
 export interface SenderDragPayload {
   readonly event: DragEvent

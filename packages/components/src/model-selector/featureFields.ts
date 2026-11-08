@@ -65,16 +65,3 @@ export function pickModelFeatureValues(
     ),
   )
 }
-
-export function getModelFeatureSummary(
-  fields: readonly ModelSelectorField[],
-  values: ModelSelectorFeatureValues,
-): string {
-  return normalizeModelFields(fields)
-    .flatMap((field) => {
-      if (field.type !== 'select' || !field.summary) return []
-      const option = field.options.find((option) => option.value === values[field.key])
-      return option && option.summary !== false ? [option.label] : []
-    })
-    .join(' ')
-}

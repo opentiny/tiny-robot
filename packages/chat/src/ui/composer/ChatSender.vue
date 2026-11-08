@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSlotScope, SenderSubmitExtra, ModelSelectorFeatureChange } from '@opentiny/tiny-robot'
+import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelSelector from './ModelSelector.vue'
 import ChatToolbarButton from './ChatToolbarButton.vue'
 import type {
+  ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
@@ -37,7 +38,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
-  modelFeatureValueChange: [payload: ModelSelectorFeatureChange]
+  modelFeatureValueChange: [payload: ChatModelFeatureValueChangePayload]
   senderDragEnter: [payload: SenderDragPayload]
   senderDragOver: [payload: SenderDragPayload]
   senderDragLeave: [payload: SenderDragPayload]

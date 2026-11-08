@@ -136,7 +136,7 @@ function handleModelSelect(payload: ChatModelSelectPayload) {
 
 function handleModelFeatureValueChange(payload: ChatModelFeatureValueChangePayload) {
   emit('model-feature-value-change', payload)
-  return adapter.setModelFeatureValue(payload)
+  return adapter.setModelFeatureValue({ modelId: payload.modelId, key: payload.featureKey, value: payload.next })
 }
 
 function handleMcpAddServer(payload: ChatMcpAddServerPayload) {

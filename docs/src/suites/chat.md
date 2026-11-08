@@ -835,6 +835,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | 事件                                                                           | 参数                                                                               | 触发时机                                                                                           |
 | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `runtime-action-error`                                                         | `ChatRuntimeActionErrorPayload`                                                    | Runtime 操作失败；send 错误详情仍从所属消息读取。                                                  |
+| `model-feature-value-change`                                                   | `ChatModelFeatureValueChangePayload`                                               | 用户修改当前模型的设置时触发。随后 TrChat 会请求 Runtime 更新该设置。                              |
 | `history-action`                                                               | `ChatHistoryActionPayload`                                                         | 历史菜单操作；删除操作可调用 `preventDefault()` 阻止默认 Runtime 删除。                            |
 | `prompt-click`                                                                 | `ChatPromptClickPayload`                                                           | 点击提示项。                                                                                       |
 | `mcp-create-server`                                                            | `ChatMcpCreateServerPayload`                                                       | 请求创建 MCP 服务；Runtime 不处理创建表单。                                                        |
@@ -906,7 +907,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `prompt-click`                                                                 | `ChatPromptClickPayload`                                                           | 决定填充输入、直接提交或执行其他操作。                                                                 |
 | `bubble-state-change` / `bubble-event`                                         | 对应 payload                                                                       | 更新消息状态或处理自定义气泡事件。                                                                     |
 | `model-select`                                                                 | `ChatModelSelectPayload`                                                           | 更新 `data.model.selectedId`。                                                                         |
-| `model-feature-value-change`                                                   | `ChatModelFeatureValueChangePayload`                                               | 用户修改新字段，包含 `modelId`、`key`、`previousValue`、`value`、`values`。`TrChat` 同时更新 Runtime。 |
+| `model-feature-value-change`                                                   | `ChatModelFeatureValueChangePayload`                                               | 用户修改设置时触发。由应用根据 `featureValues` 更新 `data.model.featureValues`。                           |
 | `sender-drag-enter` / `sender-drag-over` / `sender-drag-leave` / `sender-drop` | `SenderDragPayload`                                                                | Sender 上对应的原生文件拖拽事件；放置文件需在 `sender-drag-over` 中调用 `event.preventDefault()`。     |
 | `sender-paste`                                                                 | `ClipboardEvent`                                                                   | Sender 收到粘贴事件。                                                                                  |
 | `mcp-add-server` / `mcp-remove-server`                                         | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload`                           | 更新 MCP 服务列表。                                                                                    |
@@ -980,14 +981,17 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | ----------------------- | ---------------------------- | ---------------------------------------------- |
 | `options`               | `ChatModelOptionView[]`      | 可选模型列表；为空时显示没有可选模型的提示。   |
 | `selectedId`            | `string \| null`             | 当前模型；选择后应用通过 `model-select` 写回。 |
-| `featureValues`         | `ModelSelectorFeatureValues` | 当前模型字段值；与模型的 `fields` 配合使用。   |
+| `featureValues`         | `ModelSelectorFeatureValues` | 当前模型字段值；与模型的 `features` 配合使用。   |
+| `renderTriggerText`     | `ModelSelectorProps['renderTriggerText']` | 自定义模型选择器触发器文本。 |
 | `pendingFeatureKeys`    | `readonly string[]`          | 当前模型正在异步更新的字段 key。               |
 | `featureValuesDisabled` | `boolean`                    | 禁止字段修改。                                 |
 | `selecting`             | `boolean`                    | 模型切换中的整体等待状态。                     |
 
-`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、`fields` 和 `metadata`。字段配置与默认值、摘要规则见 [ModelSelector](../components/model-selector)。在 Floating Layout 中，选择器默认挂载到当前窗口的 overlay host；`ui.model.appendTo` 可显式覆盖挂载目标。
+`ChatModelOptionView` 至少包含 `id` 和 `label`，还可提供 `description`、`icon`、`disabled`、`group`、`features` 和 `metadata`。功能定义、默认值和触发器文本见 [ModelSelector](../components/model-selector)。在 Floating Layout 中，选择器默认挂载到当前窗口的 overlay host；`ui.model.appendTo` 可显式覆盖挂载目标。
 
-ModelSelector 的 `feature-change` 在 Chat 中转发为 `model-feature-value-change`，载荷保持一致。`TrChatUI` 通过 `data.model.featureValues` 显示当前值，由应用监听事件并更新数据；`TrChat` 会同步调用 Runtime 的 `setFeatureValue({ modelId, key, value })`。初始化、外部赋值和切换模型不会触发字段修改事件。模型特性统一通过 `fields` 和 `featureValues` 配置，请求参数转换见 [模型功能](./chat-runtime#模型功能)。
+使用 `TrChatUI` 时，用户切换模型会触发 `model-select`，修改当前模型的设置会触发 `model-feature-value-change`。应用监听事件并更新 `data.model.selectedId` 或 `data.model.featureValues`。
+
+使用 `TrChat` 时，组件直接调用 Runtime 切换模型。用户修改设置时，`TrChat` 会发出 `model-feature-value-change`，再调用 Runtime 的 `setFeatureValue({ modelId, key, value })`。初始化、应用直接赋值或切换模型都不会触发设置修改事件。请求参数的转换方式见 [模型功能](./chat-runtime#模型功能)。
 
 #### `mcp` {#chatuidata-mcp}
 
@@ -1163,7 +1167,7 @@ toolbar: (defaults) => [
 
 `visible: false` 隐藏单项，全部隐藏时移除工具栏容器。ID 必须唯一；重复 ID 仅保留第一项，使用内置 ID 的自定义项不显示。
 
-模型特性统一通过模型的 `fields` 配置，并在选择器面板中操作。业务快捷操作应配置为自定义工具栏项，调用 `runtime.composer.model.setFeatureValue({ modelId, key, value })` 更新同一份字段状态。`ui.model: false` 或没有模型数据时，模型选择器隐藏；自定义项不依赖模型或 MCP 数据。
+模型特性统一通过模型的 `features` 配置，并在选择器面板中操作。业务快捷操作应配置为自定义工具栏项，调用 `runtime.composer.model.setFeatureValue({ modelId, key, value })` 更新同一份字段状态。`ui.model: false` 或没有模型数据时，模型选择器隐藏；自定义项不依赖模型或 MCP 数据。
 
 `data.sender.disabled`、单项 `disabled` 和内置限制共同决定禁用状态，点击时同样检查；`loading` 不自动禁用整个工具栏。隐藏和禁用不改变功能开关，也不写入请求配置。自定义项由业务回调更新状态；动态配置可使用 `computed`。
 
@@ -1350,7 +1354,7 @@ const context = useChatRenderContext(props)
 | `ChatPromptClickPayload`                                 | `event: MouseEvent`；`item: PromptProps`                                                                                                            |
 | `SenderDragPayload`                                      | `event: DragEvent`；`target: HTMLElement`                                                                                                           |
 | `ChatModelSelectPayload`                                 | `modelId: string \| null`                                                                                                                           |
-| `ChatModelFeatureValueChangePayload`                     | `modelId: string`；`key: string`；`previousValue: boolean \| string \| undefined`；`value: boolean \| string`；`values: ModelSelectorFeatureValues` |
+| `ChatModelFeatureValueChangePayload`                     | `modelId: string`；`featureKey: string`；`previous: boolean \| string \| undefined`；`next: boolean \| string`；`featureValues: ModelSelectorFeatureValues` |
 | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload` | `serverId: string`                                                                                                                                  |
 | `ChatMcpCreateServerPayload`                             | `config: McpExtensionFormValue`；`source: McpExtensionFormMode`                                                                                     |
 | `ChatMcpServerEnabledChangePayload`                      | `serverId: string`；`enabled: boolean`                                                                                                              |
@@ -1359,7 +1363,7 @@ const context = useChatRenderContext(props)
 | `ChatBubbleStateChangePayload`                           | `key`；`value`；`messageIndex`；`contentIndex`                                                                                                      |
 | `ChatBubbleEventPayload`                                 | `name`；`payload?`；`messageIndex`；`contentIndex`                                                                                                  |
 
-`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorField`、`ModelSelectorFeatureValues`、`ModelSelectorFeatureChange`、`McpExtensionFormValue` 和 `McpExtensionFormMode` 来自 `@opentiny/tiny-robot`。`ChatModelFeatureValueChangePayload` 与 `ModelSelectorFeatureChange` 为同一载荷类型。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
+`LayoutFloatingState`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`、`HistoryMenuItem`、`PromptProps`、`BubbleMessage`、`ModelSelectorField`、`ModelSelectorFeatureValues`、`McpExtensionFormValue` 和 `McpExtensionFormMode` 来自 `@opentiny/tiny-robot`。气泡状态、事件和渲染器见 [Bubble](../components/bubble)。
 
 ## 常见问题
 

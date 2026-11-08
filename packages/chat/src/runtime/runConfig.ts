@@ -8,6 +8,8 @@ import type {
 } from '../types'
 import { getChatModelFeatureValues } from '../modelFeatures'
 import { resolveModelFeatureValues } from '@opentiny/tiny-robot'
+import { usesQwenThinkingBudget } from './provider/presets'
+import type { ChatResolvedProviderModel } from './provider/types'
 
 export const CHAT_RUN_CONFIG_METADATA_KEY = 'run_config_metadata'
 export const CHAT_RUN_CONFIG_CONTEXT_KEY = 'run_config_context'
@@ -86,7 +88,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isValidFieldValue(
-  field: NonNullable<ChatModelOption['fields']>[number],
+  field: NonNullable<ChatModelOption['features']>[number],
   value: unknown,
 ): value is boolean | string {
   return field.type === 'switch'
@@ -137,7 +139,7 @@ function readMcpRunConfig(value: unknown): ChatMcpRunConfig | undefined {
 
 export function readRunConfigFromMessage(
   message?: ChatMessageItem,
-  resolveModel?: (modelId: string) => ChatModelOption | undefined,
+  resolveModel?: (modelId: string) => ChatResolvedProviderModel | undefined,
 ): ChatRunConfig | undefined {
   const raw = message?.metadata?.[CHAT_RUN_CONFIG_METADATA_KEY]
 
@@ -176,8 +178,10 @@ export function readRunConfigFromMessage(
       throw new Error('Invalid legacy model feature snapshot')
     }
     const model = typeof raw.modelId === 'string' ? resolveModel?.(raw.modelId) : undefined
-    if (!model) throw new Error(`Cannot resolve legacy model feature snapshot: ${String(raw.modelId)}`)
-    const fields = model.fields ?? []
+    if (!model) {
+      return cloneRunConfig({ modelId: raw.modelId, mcp })
+    }
+    const fields = model.features ?? []
     const features = raw.features as Record<string, boolean> | undefined
     const reasoning = raw.reasoning as { enabled: boolean; effort?: string } | undefined
     const values: Record<string, boolean | string> = {}
@@ -190,7 +194,15 @@ export function readRunConfigFromMessage(
         if (!enabled) {
           value = isValidFieldValue(field, 'off') ? 'off' : fallback
         } else if (reasoning?.effort === undefined) {
-          if (fallback === 'off') {
+          if (isValidFieldValue(field, 'on')) {
+            value = 'on'
+          } else if (
+            model.providerType === 'qwen' &&
+            usesQwenThinkingBudget(model.id) &&
+            isValidFieldValue(field, 'max')
+          ) {
+            value = 'max'
+          } else if (fallback === 'off') {
             value = field.options.find((option) => !option.disabled && option.value !== 'off')?.value ?? fallback
           }
         } else {

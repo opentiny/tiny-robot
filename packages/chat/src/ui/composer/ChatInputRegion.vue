@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import type { SenderSlotScope, ModelSelectorFeatureChange } from '@opentiny/tiny-robot'
+import type { SenderSlotScope } from '@opentiny/tiny-robot'
 import ChatSender from './ChatSender.vue'
 import type {
+  ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
@@ -34,7 +35,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
-  modelFeatureValueChange: [payload: ModelSelectorFeatureChange]
+  modelFeatureValueChange: [payload: ChatModelFeatureValueChangePayload]
   senderDragEnter: [payload: SenderDragPayload]
   senderDragOver: [payload: SenderDragPayload]
   senderDragLeave: [payload: SenderDragPayload]

@@ -5,28 +5,28 @@ import { IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
 const models: readonly ModelSelectorOption[] = [
   {
-    value: 'alpha',
+    id: 'alpha',
     label: 'Alpha model',
     description: 'Fast multimodal model',
     group: 'Team Alpha',
     icon: IconDeepseek,
   },
   {
-    value: 'beta',
+    id: 'beta',
     label: 'Beta model',
     description: 'Only custom filter finds this',
     group: 'Team Beta',
     icon: 'https://example.com/model.svg',
   },
-  { value: 'locked', label: 'Locked model', description: 'Unavailable model', group: 'Team Beta', disabled: true },
+  { id: 'locked', label: 'Locked model', description: 'Unavailable model', group: 'Team Beta', disabled: true },
 ]
 const shortModels: readonly ModelSelectorOption[] = [
-  { value: 'short-a', label: 'A' },
-  { value: 'short-b', label: 'B' },
+  { id: 'short-a', label: 'A' },
+  { id: 'short-b', label: 'B' },
 ]
 const wideModels: readonly ModelSelectorOption[] = [
-  { value: 'wide-a', label: 'A model name intentionally wider than the initial panel' },
-  { value: 'wide-b', label: 'Another wide model name' },
+  { id: 'wide-a', label: 'A model name intentionally wider than the initial panel' },
+  { id: 'wide-b', label: 'Another wide model name' },
 ]
 const dynamicModels = shallowRef<readonly ModelSelectorOption[]>(shortModels)
 const asyncModels = shallowRef<readonly ModelSelectorOption[]>([])
@@ -60,7 +60,7 @@ function recordDefaultOpenUpdate(value: boolean) {
 }
 
 function customFilter(query: string, option: ModelSelectorOption) {
-  return option.value.includes(query.trim().toLowerCase())
+  return option.id.includes(query.trim().toLowerCase())
 }
 
 function setRapidOpen() {
@@ -145,7 +145,7 @@ function setRapidOpen() {
       data-testid="secondary-selector"
       :models="models"
       default-value="beta"
-      @change="selectionEvents.push($event.value)"
+      @change="selectionEvents.push($event.modelId ?? '')"
     />
     <output data-testid="selection-events">{{ JSON.stringify(selectionEvents) }}</output>
     <TrModelSelector data-testid="invalid-append-selector" :models="models" append-to="[" />

@@ -1,9 +1,27 @@
-import type { ChatProviderConfig, ChatProviderModelConfig, ChatProviderType, ChatResolvedProviderModel } from './types'
+import type { ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
+import type { ChatProviderConfig, ChatProviderType, ChatResolvedProviderModel } from './types'
 
 interface ChatProviderPreset {
   label: string
   apiUrl: string
-  mapFeatureValues: NonNullable<ChatProviderModelConfig['mapFeatureValues']>
+  mapFeatureValues: (values: ModelSelectorFeatureValues, modelId: string) => Record<string, unknown>
+}
+
+export function usesQwenThinkingBudget(modelId: string) {
+  return /^qwen3\.[567]-(flash|plus|max)(-|$)/.test(modelId)
+}
+
+function mapQwenReasoningEffort(reasoning: string, modelId: string) {
+  if (reasoning === 'off' || reasoning === 'on') return {}
+
+  if (usesQwenThinkingBudget(modelId)) {
+    // Omitting the budget uses the model's maximum thinking length.
+    if (reasoning === 'low') return { thinking_budget: 1024 }
+    if (reasoning === 'high') return { thinking_budget: 8192 }
+    return {}
+  }
+
+  return /^qwen3\.8-(max|flash|2\.4t-a95b|27b)(-|$)/.test(modelId) ? { reasoning_effort: reasoning } : {}
 }
 
 const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
@@ -29,11 +47,11 @@ const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
   qwen: {
     label: 'DashScope',
     apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-    mapFeatureValues: (values) => ({
+    mapFeatureValues: (values, modelId) => ({
       ...(typeof values.reasoning === 'string'
         ? {
             enable_thinking: values.reasoning !== 'off',
-            ...(!['off', 'on'].includes(values.reasoning) ? { reasoning_effort: values.reasoning } : {}),
+            ...mapQwenReasoningEffort(values.reasoning, modelId),
           }
         : {}),
       ...(typeof values.search === 'boolean' ? { enable_search: values.search } : {}),
@@ -74,7 +92,7 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
         apiKey: provider.apiKey,
         headers: provider.headers,
         timeout: provider.timeout,
-        mapFeatureValues: model.mapFeatureValues ?? preset.mapFeatureValues,
+        mapFeatureValues: model.mapFeatureValues ?? ((values) => preset.mapFeatureValues(values, model.id)),
       }
     })
   })

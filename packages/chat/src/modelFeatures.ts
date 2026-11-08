@@ -3,7 +3,7 @@ import type { ModelSelectorField, ModelSelectorFeatureValues } from '@opentiny/t
 import type { ChatModelOption, ChatModelRuntime } from './types'
 
 export function getChatModelFields(model?: ChatModelOption): readonly ModelSelectorField[] {
-  return model?.fields ?? []
+  return model?.features ?? []
 }
 
 export function getChatModelFeatureValues(model: ChatModelRuntime): ModelSelectorFeatureValues {

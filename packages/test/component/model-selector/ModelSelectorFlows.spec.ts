@@ -59,3 +59,31 @@ test('disabled models cannot be selected with pointer or keyboard', async ({ mou
   await page.getByRole('listbox').press('Enter')
   await expect(component.getByTestId('events')).toHaveText('["model:beta"]')
 })
+
+test('the last field and model options can both be selected in a short viewport', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 375, height: 360 })
+  const component = await mount(ModelSelectorFlows, { props: { extraSwitches: 12 } })
+  await component.getByRole('button', { name: 'Alpha model', exact: true }).click()
+
+  await page.getByRole('switch', { name: '搜索' }).hover()
+  await page.mouse.wheel(0, 1000)
+
+  const lastField = page.getByRole('switch', { name: 'Extra setting 12' })
+  await expect(lastField).toBeInViewport({ ratio: 1 })
+  await lastField.click()
+  await expect(lastField).toHaveAttribute('aria-checked', 'true')
+
+  await page.getByRole('option', { name: /Beta model/ }).click()
+  await expect(component.getByRole('button', { name: 'Beta model', exact: true })).toBeVisible()
+})
+
+test('a footer action remains reachable when the panel has very little space', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 375, height: 255 })
+  await page.addStyleTag({ content: 'body { padding-top: 100px; }' })
+  const component = await mount(ModelSelectorFlows, { props: { customFooter: true } })
+  const trigger = component.getByRole('button', { name: 'Alpha model', exact: true })
+  await trigger.click()
+
+  await page.getByRole('button', { name: 'Done' }).click({ timeout: 3000 })
+  await expect(component.getByTestId('events')).toHaveText('["done"]')
+})

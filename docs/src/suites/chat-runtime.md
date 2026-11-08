@@ -57,63 +57,72 @@ const modelProviders: ChatProviderConfig[] = [
 示例地址不能直接使用，`models[].id` 中的 `'your-model-id'` 也是占位值，请替换为实际服务地址和模型 ID。接入组件的方式见 [快速上手](./quick-start)。
 :::
 
-配置多个模型时，默认选择第一个未禁用的模型。下面的片段在上述配置中补充可选字段，均应在调用 `useChatRuntime({ modelProviders })` 前设置。
+配置多个模型时，默认选择第一个未禁用的模型。
 
 ### 模型功能
 
-在 `models[].fields` 中配置 `switch` 或 `select` 字段，输入区模型选择器会显示对应控件。字段格式、默认值和摘要规则见 [ModelSelector](../components/model-selector#模型特性字段)。例如：
+在 `models[].features` 中配置 `switch` 或 `select` 字段，输入区模型选择器会显示对应控件。下面的示例让 DeepSeek 和阿里云百炼 Qwen3.7 共用同一个 `reasoning` 字段，只为 Qwen3.7 增加联网开关。
 
 ```ts
-modelProviders[0].models[0].fields = [
+import type { ModelSelectorField } from '@opentiny/tiny-robot'
+import type { ChatProviderConfig } from '@opentiny/tiny-robot-chat'
+
+const reasoning: ModelSelectorField = {
+  key: 'reasoning',
+  label: '思考强度',
+  type: 'select',
+  defaultValue: 'off',
+  options: [
+    { value: 'off', label: '关闭' },
+    { value: 'low', label: '低' },
+    { value: 'high', label: '高' },
+    { value: 'max', label: '最高' },
+  ],
+}
+
+const modelProviders: ChatProviderConfig[] = [
   {
-    key: 'reasoning',
-    label: '思考强度',
-    type: 'select',
-    defaultValue: 'off',
-    summary: true,
-    options: [
-      { value: 'off', label: '关闭', summary: false },
-      { value: 'low', label: '低' },
-      { value: 'high', label: '高' },
-    ],
+    type: 'deepseek',
+    models: [{ id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', features: [reasoning] }],
   },
-  { key: 'search', label: '联网搜索', type: 'switch' },
-]
-modelProviders[0].models[0].mapFeatureValues = (values) => ({
-  enable_thinking: values.reasoning !== 'off',
-  ...(values.reasoning !== 'off' ? { reasoning_effort: values.reasoning } : {}),
-  enable_search: values.search === true,
-})
-```
-
-字段 key 与选项值由业务定义。必须思考的模型省略“关闭”选项；只支持开关的模型提供“关闭／开启”；不支持的功能省略字段。`disabled` 仅限制修改，已有合法值仍参与请求。
-
-`mapFeatureValues(values)` 返回实际请求参数。它只接收当前模型声明且有效的字段值；UI 值不会直接展开为请求体。新配置未提供转换方法时，OpenAI 预设将 `reasoning` 强度映射到 `reasoning_effort`，DeepSeek 映射 `reasoning`，Qwen 映射 `reasoning` 和 `search`。其他自定义字段需自行转换。
-
-例如，服务支持 JSON 输出时，可为模型配置自定义格式字段：
-
-```ts
-modelProviders[0].models[0].fields = [
   {
-    key: 'outputFormat',
-    label: '输出格式',
-    type: 'select',
-    defaultValue: 'text',
-    summary: true,
-    options: [
-      { value: 'text', label: '文本', summary: false },
-      { value: 'json', label: 'JSON' },
+    type: 'qwen',
+    models: [
+      {
+        id: 'qwen3.7-flash',
+        label: 'Qwen3.7 Flash',
+        features: [reasoning, { key: 'search', label: '联网搜索', type: 'switch' }],
+      },
     ],
   },
 ]
-modelProviders[0].models[0].mapFeatureValues = (values) => ({
-  response_format: { type: values.outputFormat === 'json' ? 'json_object' : 'text' },
+```
+
+将配置传给 `useChatRuntime({ modelProviders })`。如果请求经项目后端转发，请分别为两个服务填写 `apiUrl`。先将 DeepSeek 的思考强度设为「高」，再切换到 Qwen3.7。Qwen3.7 会沿用「高」，还可以开启联网搜索。发送消息时，两种模型使用的参数如下。
+
+| 模型 | 功能请求参数 |
+| --- | --- |
+| DeepSeek V4 Pro | `{ thinking: { type: 'enabled' }, reasoning_effort: 'high' }` |
+| Qwen3.7 Flash | `{ enable_thinking: true, thinking_budget: 8192, enable_search: true }` |
+
+预设已完成上述转换。Qwen3.5 至 Qwen3.7 的 Flash、Plus 和 Max 型号使用思考预算，`low` 为 1024 Token，`high` 为 8192 Token，`max` 使用模型默认的最大预算。对于支持 `reasoning_effort` 的 Qwen3.8 型号，预设发送对应的强度参数。其他 Qwen 型号由项目按需提供强度映射。OpenAI 预设将思考强度映射到 `reasoning_effort`。字段声明与交互行为见 [ModelSelector](../components/model-selector#模型特性字段)。[DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)，[百炼 Chat Completions API](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions/)
+
+如果项目需要调整某个模型的请求参数，可以在调用 `useChatRuntime` 前为该模型配置 `mapFeatureValues(featureValues)`。例如，将 Qwen3.7 Flash 的「高」改成 4096 Token。
+
+```ts
+const qwenFlash = modelProviders[1].models[0]
+const thinkingBudgets = { low: 1024, high: 4096 }
+
+qwenFlash.mapFeatureValues = ({ reasoning, search }) => ({
+  ...(reasoning !== undefined ? { enable_thinking: reasoning !== 'off' } : {}),
+  ...(reasoning === 'low' || reasoning === 'high' ? { thinking_budget: thinkingBudgets[reasoning] } : {}),
+  ...(search !== undefined ? { enable_search: search } : {}),
 })
 ```
 
-自定义映射负责该模型所有字段的请求转换，未映射的字段不会自动进入请求体。
+自定义函数只接收当前模型声明且有效的功能值。它会替换整个预设映射，因此需要返回这个模型所需的全部功能参数。
 
-Runtime 按模型保存配置，首次选择应用默认值，切回恢复上次选择。暂时不支持的值保留在缓存中，界面和请求使用当前有效值；修改其他字段不会覆盖缓存中的原选择。
+切换模型时，Runtime 会沿用相同 `key` 的设置值，前提是新模型支持该值。如果该值不可用，Runtime 会按新模型的规则选出并保存替代值。读取 `featureValues` 时，只会看到当前模型能使用的设置。
 
 ```ts
 const model = runtime.composer.model!
@@ -121,13 +130,15 @@ await model.setFeatureValue?.({ modelId: 'your-model-id', key: 'search', value: 
 console.log(model.featureValues?.value)
 ```
 
-更新必须包含目标 `modelId` 与 `key`。异步期间仅禁用相关字段，切换模型不会把完成结果写入其他模型；失败通过现有错误事件通知。业务快捷按钮也应调用同一个 `setFeatureValue`。
+调用时传入目标模型 ID（`modelId`）和设置项名称（`key`）。如果更新是异步的，使用同一 `key` 的控件会暂时禁用。更新失败时，`TrChat` 会触发 `runtime-action-error`。应用自定义的快捷按钮也可以调用 `setFeatureValue`。
 
-发送时保存模型 ID 与有效 `featureValues` 的独立快照，后续调整面板不影响已发消息；重试使用原消息快照。
+发送消息时，Runtime 会记录这次使用的模型 ID 和设置值，并随用户消息保存。如果应用重新提交带有原始元数据的消息，Runtime 会根据原记录生成请求。通过输入框发送新消息时，使用选择器里的当前设置。
 
 ### 历史消息迁移
 
-历史消息中的 `features`／`reasoning` 只在读取时转换为当前模型声明的 `featureValues`：仍有效的强度优先保留；旧记录开启思考但没有强度时，使用有效的开启默认项，默认关闭时取第一个可用开启项；旧记录关闭但模型不再支持关闭，或原强度已禁用、无法识别时，使用当前有效默认值；已移除的字段忽略，不因字段配置变化中断重试。新消息只保存 `modelId` 与有效 `featureValues` 快照。
+读取历史消息时，Runtime 会按原模型的设置定义，将旧格式的 `features` 和 `reasoning` 转为 `featureValues`。原来的思考强度仍可用时会沿用。旧记录只开启思考、未指定强度时，优先使用可用的 `on` 选项，采用思考预算的 Qwen 型号也可以使用 `max` 保留服务默认预算。否则，优先使用模型的默认开启档位，再尝试第一个可用的开启档位。
+
+原强度失效或关闭选项被移除时，使用当前有效的默认值。找不到原模型的定义时，仍会保留记录里的模型 ID 和 MCP 设置。通过内置服务重新发出请求时，原模型必须可用。
 
 ### 其他配置
 
@@ -151,7 +162,7 @@ console.log(model.featureValues?.value)
 | 字段                        | 用途                                 | 默认值或未配置行为                     |
 | --------------------------- | ------------------------------------ | -------------------------------------- |
 | `models[].disabled`         | 设为 `true` 时禁止选择该模型         | `false`，允许选择                      |
-| `models[].fields`           | 声明模型支持的开关和选择字段         | 未声明字段不显示，也不会发送对应参数   |
+| `models[].features`           | 声明模型支持的开关和选择字段         | 未声明字段不显示，也不会发送对应参数   |
 | `models[].mapFeatureValues` | 将有效字段值转换为 Provider 请求参数 | 使用服务预设映射；自定义字段需自行映射 |
 
 `mapFeatureValues` 只接收当前模型声明且有效的字段值。字段值不会直接展开到请求体，思考关闭时由转换函数决定是否省略强度参数。
@@ -594,12 +605,12 @@ const replacement: UseMessagePlugin = {
 
 #### 模型状态与操作
 
-`ChatModelRuntime` 通过 `options`、`selectedId` 和 `featureValues` 提供当前模型的只读状态。
+`ChatModelRuntime` 通过 `options`、`selectedId` 和 `featureValues` 提供当前模型的只读状态。自定义 Runtime 可提供 `renderTriggerText({ model, featureValues })` 设置触发器文本。
 
 | 操作                                         | 返回值                  | 说明                                                                            |
 | -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `select(id)`                                 | `void \| Promise<void>` | 选择 ID 或用 `null` 清空选择；切回时恢复该模型配置。ID 未知或模型已禁用时抛错。 |
-| `setFeatureValue?.({ modelId, key, value })` | `void \| Promise<void>` | 更新指定模型的单个字段，拒绝无效或禁用的操作。                                  |
+| `select(id)`                                 | `void \| Promise<void>` | 选择 ID 或用 `null` 清空选择；切换时按该模型的功能定义解析共享偏好。ID 未知或模型已禁用时抛错。 |
+| `setFeatureValue?.({ modelId, key, value })` | `void \| Promise<void>` | 按指定模型校验并更新设置。若当前模型会把新值回退为其他值，内置 Runtime 会抛错。 |
 
 #### MCP 状态与操作
 
@@ -720,7 +731,7 @@ const history = useChatHistoryData({
 
 | 类型                       | 定义                                                                                                                                                                                                                             |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`fields?: readonly ModelSelectorField[]`；`metadata?: Record<string, unknown>`                                 |
+| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`features?: readonly ModelSelectorField[]`；`metadata?: Record<string, unknown>`                                 |
 | `ChatMcpServerInfo`        | `id: string`；`name: string`；`description?: string`；`icon?: string`；`category?: string`；`installed: boolean`；`enabled: boolean`；`loading?: boolean`；`error?: unknown`；`metadata?: Record<string, unknown>`               |
 | `ChatMcpToolInfo`          | `id: string`；`name: string`；`description?: string`；`enabled: boolean`                                                                                                                                                         |
 | `ChatMcpToolState`         | `Partial<Record<string, readonly ChatMcpToolInfo[]>>`，键为 MCP 服务 ID。                                                                                                                                                        |

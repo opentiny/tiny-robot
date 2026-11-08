@@ -1,22 +1,19 @@
 <script setup lang="ts">
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import { computed, type Component, type VNode } from 'vue'
+import { type Component, type VNode } from 'vue'
 import type { ModelSelectorSize, ModelSelectorVariant } from '../index.type'
 
 defineOptions({ name: 'TrModelSelectorTrigger' })
 
-const props = defineProps<{
+defineProps<{
   open: boolean
   disabled: boolean
-  label: string
-  summary?: string
+  text: string
   icon?: Component | string
   controlsId: string
   variant: ModelSelectorVariant
   size: ModelSelectorSize
 }>()
-
-const title = computed(() => [props.label, props.summary].filter(Boolean).join(' '))
 
 const emit = defineEmits<{
   click: [event: MouseEvent]
@@ -40,9 +37,9 @@ defineSlots<{
     type="button"
     class="tr-model-selector__trigger"
     :class="[`tr-model-selector__trigger--${variant}`, `tr-model-selector__trigger--${size}`, { 'is-open': open }]"
-    :title="title"
+    :title="text"
     :disabled="disabled"
-    :aria-label="title"
+    :aria-label="text"
     :aria-expanded="open"
     :aria-controls="controlsId"
     aria-haspopup="listbox"
@@ -65,8 +62,7 @@ defineSlots<{
           aria-hidden="true"
           focusable="false"
         />
-        <span class="tr-model-selector__trigger-label">{{ label }}</span>
-        <span v-if="summary" class="tr-model-selector__trigger-summary">&nbsp;{{ summary }}</span>
+        <span class="tr-model-selector__trigger-label">{{ text }}</span>
       </span>
       <IconArrowDown class="tr-model-selector__trigger-chevron" aria-hidden="true" focusable="false" />
     </slot>

@@ -100,7 +100,7 @@ const snapshots = {
           id: 'assistant',
           label: '通用助手',
           description: '支持工具调用',
-          fields: [{ key: 'search', label: '联网搜索', type: 'switch' }],
+          features: [{ key: 'search', label: '联网搜索', type: 'switch' }],
         },
       ],
       selectedId: 'assistant',

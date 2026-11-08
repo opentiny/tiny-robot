@@ -28,7 +28,7 @@ export function createProviderRequestPlugin(
       }
 
       requestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY] = model.id
-      const values = pickModelFeatureValues(model.fields ?? [], runConfig.featureValues)
+      const values = pickModelFeatureValues(model.features ?? [], runConfig.featureValues)
       Object.assign(requestBody, model.mapFeatureValues?.({ ...values }))
     },
   }

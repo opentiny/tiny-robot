@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { effectScope, reactive, ref } from 'vue'
+import { effectScope, reactive, ref, shallowRef } from 'vue'
 import {
   canSetModelFieldValue,
   normalizeModelFields,
@@ -25,10 +25,9 @@ const fields: ModelSelectorField[] = [
     key: 'reasoning',
     label: '思考强度',
     type: 'select',
-    summary: true,
     defaultValue: 'off',
     options: [
-      { value: 'off', label: '关闭', summary: false },
+      { value: 'off', label: '关闭' },
       { value: 'low', label: '低' },
       { value: 'high', label: '高' },
       { value: 'blocked', label: '禁用', disabled: true },
@@ -43,8 +42,8 @@ function createModels() {
     {
       type: 'qwen',
       models: [
-        { id: 'a', label: 'A', fields },
-        { id: 'b', label: 'B', fields: [{ ...fields[0], defaultValue: 'low' } as ModelSelectorField] },
+        { id: 'a', label: 'A', features: fields },
+        { id: 'b', label: 'B', features: [{ ...fields[0], defaultValue: 'low' } as ModelSelectorField] },
       ],
     },
   ])
@@ -68,26 +67,49 @@ describe('model feature fields', () => {
     expect(normalizeModelFields([...fields, fields[0]])).toHaveLength(3)
   })
 
-  it('restores each model and preserves unavailable choices when another key changes', () => {
+  it('stores automatic fallbacks and carries values across models', () => {
     const models = reactive(createModels())
     const scope = effectScope()
     const runtime = scope.run(() => createProviderModelRuntime(models))!
     const model = runtime.model
     model.setFeatureValue!({ modelId: 'a', key: 'reasoning', value: 'high' })
     model.select('b')
-    expect(model.featureValues?.value.reasoning).toBe('low')
+    expect(model.featureValues?.value).toEqual({ reasoning: 'high' })
     model.setFeatureValue!({ modelId: 'a', key: 'search', value: true })
+    expect(model.featureValues?.value).toEqual({ reasoning: 'high' })
+    const target = models[1].features![0]
+    if (target.type !== 'select') throw new Error('select expected')
+    target.options = target.options.filter((option) => option.value !== 'high')
     expect(model.featureValues?.value).toEqual({ reasoning: 'low' })
     model.select('a')
+    expect(model.featureValues?.value).toMatchObject({ reasoning: 'low', search: true })
+    model.setFeatureValue!({ modelId: 'a', key: 'reasoning', value: 'high' })
     expect(model.featureValues?.value.reasoning).toBe('high')
-    const first = models[0].fields![0]
+    const first = models[0].features![0]
     if (first.type !== 'select') throw new Error('select expected')
     const options = first.options
     first.options = options.filter((option) => option.value !== 'high')
     expect(model.featureValues?.value.reasoning).toBe('off')
     model.setFeatureValue!({ modelId: 'a', key: 'search', value: false })
     first.options = options
-    expect(model.featureValues?.value.reasoning).toBe('high')
+    expect(model.featureValues?.value.reasoning).toBe('off')
+    scope.stop()
+  })
+
+  it('rejects a setting for another model when the active model would overwrite it', () => {
+    const models = createModels()
+    const target = models[1].features![0]
+    if (target.type !== 'select') throw new Error('select expected')
+    target.options = [...target.options, { value: 'max', label: '最高' }]
+    const scope = effectScope()
+    const { model } = scope.run(() => createProviderModelRuntime(models))!
+
+    expect(() => model.setFeatureValue!({ modelId: 'b', key: 'reasoning', value: 'max' })).toThrow(
+      /incompatible with active model: a/,
+    )
+    model.select('b')
+    model.setFeatureValue!({ modelId: 'b', key: 'reasoning', value: 'max' })
+    expect(model.featureValues?.value.reasoning).toBe('max')
     scope.stop()
   })
 
@@ -109,16 +131,111 @@ describe('model feature fields', () => {
     })
     expect(request({ modelId: 'a', featureValues: { reasoning: 'high' } })).toMatchObject({
       enable_thinking: true,
-      reasoning_effort: 'high',
     })
     models[0].mapFeatureValues = (values) => ({ response_format: values.format })
     expect(request({ modelId: 'a', featureValues: { format: 'json', injected: true } })).toEqual({
       __chat_provider_model_id: 'a',
       response_format: 'json',
     })
-    models[0].fields = []
+    models[0].features = []
     models[0].mapFeatureValues = undefined
     expect(request({ modelId: 'a', featureValues: { reasoning: 'high' } })).toEqual({ __chat_provider_model_id: 'a' })
+  })
+
+  it('uses the same reasoning values across DeepSeek and budget-based Qwen models', () => {
+    const deepseekId = 'deepseek-v4-pro'
+    const qwenIds = ['qwen3.7-flash', 'qwen3.7-plus', 'qwen3.7-max', 'qwen3.6-plus', 'qwen3.5-plus']
+    const models = resolveProviderModels([
+      { type: 'deepseek', models: [{ id: deepseekId, label: 'DeepSeek', features: fields.slice(0, 1) }] },
+      { type: 'qwen', models: qwenIds.map((id) => ({ id, label: id, features: fields })) },
+    ])
+    const scope = effectScope()
+    const { model, resolveModel } = scope.run(() => createProviderModelRuntime(models))!
+    const plugin = createProviderRequestPlugin(resolveModel)
+    function request(config: ChatRunConfig) {
+      const requestBody: Record<string, unknown> = {}
+      plugin.onBeforeRequest!({
+        customContext: { [CHAT_RUN_CONFIG_CONTEXT_KEY]: config },
+        requestBody,
+      } as unknown as Parameters<NonNullable<typeof plugin.onBeforeRequest>>[0])
+      return requestBody
+    }
+
+    model.setFeatureValue!({ modelId: deepseekId, key: 'reasoning', value: 'high' })
+    const original = resolveComposerRunConfig({ model })!
+    for (const modelId of qwenIds) {
+      model.select(modelId)
+      expect(model.featureValues?.value.reasoning).toBe('high')
+      expect(request({ modelId, featureValues: { reasoning: 'high', search: true } })).toEqual({
+        __chat_provider_model_id: modelId,
+        enable_thinking: true,
+        thinking_budget: 8192,
+        enable_search: true,
+      })
+    }
+    const modelId = qwenIds.at(-1)!
+    model.setFeatureValue!({ modelId, key: 'reasoning', value: 'off' })
+    expect(request(resolveComposerRunConfig({ model })!)).toEqual({
+      __chat_provider_model_id: modelId,
+      enable_thinking: false,
+      enable_search: false,
+    })
+
+    const message = { role: 'user', content: 'test', metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: original } }
+    expect(request(readRunConfigFromMessage(message)!)).toEqual({
+      __chat_provider_model_id: deepseekId,
+      thinking: { type: 'enabled' },
+      reasoning_effort: 'high',
+    })
+    scope.stop()
+  })
+
+  it('only sends reasoning_effort for Qwen models that support it', () => {
+    const models = resolveProviderModels([
+      { type: 'qwen', models: ['qwen3.8-flash', 'qwen-custom'].map((id) => ({ id, label: id, features: fields })) },
+    ])
+    expect(models.map((model) => model.mapFeatureValues?.({ reasoning: 'high' }))).toEqual([
+      { enable_thinking: true, reasoning_effort: 'high' },
+      { enable_thinking: true },
+    ])
+  })
+
+  it('replays legacy Qwen thinking without imposing a new token budget', () => {
+    const reasoning = fields[0]
+    if (reasoning.type !== 'select') throw new Error('select expected')
+    const features = [{ ...reasoning, options: [...reasoning.options, { value: 'max', label: '最高' }] }]
+    const [model] = resolveProviderModels([
+      { type: 'qwen', models: [{ id: 'qwen3.7-flash', label: 'Qwen', features }] },
+    ])
+    const message = {
+      role: 'user',
+      content: 'retry',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: {
+          modelId: model.id,
+          features: { thinking: true },
+          reasoning: { enabled: true },
+        },
+      },
+    }
+    const retry = readRunConfigFromMessage(message, () => model)!
+    const requestBody: Record<string, unknown> = {}
+    const plugin = createProviderRequestPlugin(() => model)
+    plugin.onBeforeRequest!({
+      customContext: { [CHAT_RUN_CONFIG_CONTEXT_KEY]: retry },
+      requestBody,
+    } as unknown as Parameters<NonNullable<typeof plugin.onBeforeRequest>>[0])
+    expect(requestBody).toEqual({ __chat_provider_model_id: model.id, enable_thinking: true })
+  })
+
+  it('preserves the original model and MCP settings when a legacy snapshot has no model schema', () => {
+    const mcp = { serverIds: ['server'], toolIds: { server: ['tool'] } }
+    const message = {
+      role: 'user',
+      content: 'test',
+      metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'a', reasoning: { enabled: true }, mcp } },
+    }
+    expect(readRunConfigFromMessage(message)).toMatchObject({ modelId: 'a', mcp })
   })
 
   it('required reasoning has no off value and disabled values cannot be selected', () => {
@@ -129,7 +246,7 @@ describe('model feature fields', () => {
           {
             id: 'required',
             label: 'Required',
-            fields: [
+            features: [
               {
                 key: 'reasoning',
                 label: '思考强度',
@@ -266,7 +383,7 @@ describe('model feature fields', () => {
 
     for (const scenario of scenarios) {
       const model = resolveProviderModels([
-        { type: 'qwen', models: [{ id: 'legacy', label: scenario.name, fields: scenario.fields }] },
+        { type: 'qwen', models: [{ id: 'legacy', label: scenario.name, features: scenario.fields }] },
       ])[0]
       const snapshot = { modelId: model.id, features: scenario.features, reasoning: scenario.reasoning }
       const message = { role: 'user', content: 'retry', metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: snapshot } }
@@ -285,7 +402,7 @@ describe('model feature fields', () => {
     }
   })
 
-  it('isolates pending fields by model and reports async failures', async () => {
+  it('keeps shared fields pending across model switches and reports async failures', async () => {
     const scope = effectScope()
     const { model } = scope.run(() => createProviderModelRuntime(createModels()))!
     const original = model.setFeatureValue!
@@ -310,16 +427,22 @@ describe('model feature fields', () => {
         deleteConversation() {},
       },
     }
-    const adapter = scope.run(() => useChatRuntimeAdapter({ runtime, onActionError }))!
+    const activeRuntime = shallowRef(runtime)
+    const adapter = scope.run(() => useChatRuntimeAdapter({ runtime: activeRuntime, onActionError }))!
     const pending = adapter.setModelFeatureValue({ modelId: 'a', key: 'reasoning', value: 'high' })
     expect(adapter.data.value.model?.pendingFeatureKeys).toEqual(['reasoning'])
     await adapter.setModelFeatureValue({ modelId: 'a', key: 'reasoning', value: 'low' })
     expect(model.setFeatureValue).toHaveBeenCalledTimes(1)
     model.select('b')
-    expect(adapter.data.value.model?.pendingFeatureKeys).toEqual([])
+    expect(adapter.data.value.model?.pendingFeatureKeys).toEqual(['reasoning'])
+    activeRuntime.value = { ...runtime, composer: {} }
+    activeRuntime.value = runtime
+    expect(adapter.data.value.model?.pendingFeatureKeys).toEqual(['reasoning'])
+    await adapter.setModelFeatureValue({ modelId: 'b', key: 'reasoning', value: 'off' })
+    expect(model.setFeatureValue).toHaveBeenCalledTimes(1)
     finish()
     await pending
-    expect(model.featureValues?.value.reasoning).toBe('low')
+    expect(model.featureValues?.value.reasoning).toBe('high')
     model.select('a')
     expect(model.featureValues?.value.reasoning).toBe('high')
     model.setFeatureValue = async () => {

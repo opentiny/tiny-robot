@@ -10,16 +10,12 @@ import type {
   ModelSelectorFeatureValues,
   ModelSelectorOption,
   ModelSelectorProps,
+  ModelSelectorSnapshot,
   ModelSelectorSlots,
   ModelSelectorTriggerSlotProps,
 } from './index.type'
-import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
-import {
-  canSetModelFieldValue,
-  getModelFeatureSummary,
-  normalizeModelFields,
-  resolveModelFeatureValues,
-} from './featureFields'
+import { getDuplicateModelIds, normalizeModelOptions } from './normalizeModelOptions'
+import { canSetModelFieldValue, normalizeModelFields, resolveModelFeatureValues } from './featureFields'
 import { useStableId, useTeleportTarget } from '../shared/composables'
 import { getFloatingOverlayHost, observeLayoutMode } from '../shared/overlayHost'
 
@@ -50,6 +46,10 @@ const initialVNodeProps = instance?.vnode.props ?? {}
 const hasInitialVNodeProp = (...names: string[]) => {
   return names.some((name) => Object.prototype.hasOwnProperty.call(initialVNodeProps, name))
 }
+const featureValuesControlled = hasInitialVNodeProp('featureValues', 'feature-values')
+const storedFeatureValues = shallowRef<ModelSelectorFeatureValues>({ ...props.defaultFeatureValues })
+const inputFeatureValues = computed(() => (featureValuesControlled ? props.featureValues : storedFeatureValues.value))
+
 const idPrefix = `tr-model-selector-${useStableId()}`
 const listboxId = `${idPrefix}-listbox`
 const referenceEl = shallowRef<HTMLElement | null>(null)
@@ -106,24 +106,40 @@ const state = useModelSelectorState({
 })
 
 const normalizedOptions = computed(() => normalizeModelOptions(props.models))
-const duplicateValues = computed(() => getDuplicateModelValues(props.models))
+const duplicateIds = computed(() => getDuplicateModelIds(props.models))
 const currentOption = computed(() => {
-  return normalizedOptions.value.find((option) => option.value === state.value.value) ?? null
+  return normalizedOptions.value.find((option) => option.id === state.value.value) ?? null
 })
-const currentFields = computed(() => normalizeModelFields(currentOption.value?.raw.fields))
+const currentFields = computed(() => normalizeModelFields(currentOption.value?.raw.features))
 const currentValues = computed<ModelSelectorFeatureValues>(() =>
-  resolveModelFeatureValues(currentFields.value, props.featureValues),
+  resolveModelFeatureValues(currentFields.value, inputFeatureValues.value),
 )
-const featureSummary = computed(() => getModelFeatureSummary(currentFields.value, currentValues.value))
+
+if (!featureValuesControlled) {
+  watch(
+    currentValues,
+    (values) => {
+      if (Object.entries(values).some(([key, value]) => storedFeatureValues.value[key] !== value)) {
+        storedFeatureValues.value = { ...storedFeatureValues.value, ...values }
+      }
+    },
+    { immediate: true, flush: 'sync' },
+  )
+}
+
 const isOpen = computed(() => state.open.value && !props.disabled)
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
+const triggerText = computed(() => {
+  const model = currentOption.value?.raw
+  return (model && props.renderTriggerText?.({ model, featureValues: currentValues.value })) || triggerLabel.value
+})
 
 const triggerSlotProps = computed<ModelSelectorTriggerSlotProps>(() => ({
   option: currentOption.value?.raw ?? null,
   label: triggerLabel.value,
   open: isOpen.value,
-  values: currentValues.value,
-  summary: featureSummary.value,
+  featureValues: currentValues.value,
+  text: triggerText.value,
 }))
 
 const panelSlotContext = computed(() => ({
@@ -201,17 +217,24 @@ function handleTriggerEnter() {
   requestOpen()
 }
 
+function getCurrentSnapshot(): ModelSelectorSnapshot {
+  return { modelId: state.value.value, featureValues: { ...currentValues.value } }
+}
+
 function handleSelectOption(option: ModelSelectorOption) {
-  const normalizedOption = normalizedOptions.value.find((item) => item.value === option.value)
+  const normalizedOption = normalizedOptions.value.find((item) => item.id === option.id)
 
   if (!normalizedOption || normalizedOption.disabled) {
     return
   }
 
-  const changed = state.setValue(normalizedOption.value)
-
-  if (changed) {
-    emit('change', normalizedOption.raw)
+  const previous = getCurrentSnapshot()
+  const current = {
+    modelId: normalizedOption.id,
+    featureValues: resolveModelFeatureValues(normalizedOption.raw.features, inputFeatureValues.value),
+  }
+  if (state.setValue(normalizedOption.id)) {
+    emit('change', current, previous)
   }
 
   if (props.closeOnSelect) {
@@ -231,10 +254,11 @@ function setFeatureValue(key: string, value: ModelSelectorFeatureValue) {
     currentValues.value[key] === value
   )
     return
-  const values = { ...currentValues.value, [key]: value }
-  const change = { modelId: option.value, key, previousValue: currentValues.value[key], value, values: { ...values } }
-  emit('update:featureValues', values)
-  emit('feature-change', change)
+  const previous = getCurrentSnapshot()
+  if (!featureValuesControlled) {
+    storedFeatureValues.value = { ...storedFeatureValues.value, [key]: value }
+  }
+  emit('change', { modelId: option.id, featureValues: { ...previous.featureValues, [key]: value } }, previous)
 }
 
 function closeFromSlot() {
@@ -253,12 +277,10 @@ const { isPositioned } = useModelSelectorFloating({
 
 if (import.meta.env.DEV) {
   watch(
-    duplicateValues,
-    (values) => {
-      if (values.length > 0) {
-        console.warn(
-          `[TrModelSelector] model values must be unique. Duplicate values are ignored: ${values.join(', ')}`,
-        )
+    duplicateIds,
+    (ids) => {
+      if (ids.length > 0) {
+        console.warn(`[TrModelSelector] model IDs must be unique. Duplicate IDs are ignored: ${ids.join(', ')}`)
       }
     },
     { immediate: true },
@@ -316,8 +338,7 @@ onScopeDispose(() => {
       <ModelSelectorTrigger
         :open="isOpen"
         :disabled="disabled"
-        :label="triggerLabel"
-        :summary="featureSummary"
+        :text="triggerText"
         :icon="currentOption?.icon"
         :controls-id="listboxId"
         :variant="variant"

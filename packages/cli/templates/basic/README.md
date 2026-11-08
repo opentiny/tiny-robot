@@ -1,4 +1,4 @@
-# **PROJECT_NAME**
+# __PROJECT_NAME__
 
 This project is generated from the TinyRobot Chat Basic template. It covers conversations, streaming responses, cancellation, Markdown rendering, responsive history, themes, model feature fields, and MCP Server/Tool management.
 
@@ -45,7 +45,7 @@ The basic template already includes the Model Context MCP proxy in `vite.config.
 
 Qwen models expose thinking levels and web search through the model selector fields. DeepSeek models expose thinking levels through the same fields.
 
-Configure `fields` on a model in `src/App.vue` and use `mapFeatureValues` to map selected values to request parameters. A model that requires thinking omits the `关闭` option.
+Configure `features` on a model in `src/App.vue` and use `mapFeatureValues` to map selected values to request parameters. A model that requires thinking omits the `关闭` option.
 
 ## Environment variables
 

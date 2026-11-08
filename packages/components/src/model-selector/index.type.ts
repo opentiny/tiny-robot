@@ -6,7 +6,7 @@ export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
 export type ModelSelectorFeatureValue = boolean | string
-export type ModelSelectorFeatureValues = Readonly<Record<string, ModelSelectorFeatureValue>>
+export type ModelSelectorFeatureValues = Readonly<Partial<Record<string, ModelSelectorFeatureValue>>>
 
 export interface ModelSelectorFieldBase {
   key: string
@@ -19,40 +19,42 @@ export type ModelSelectorField =
   | (ModelSelectorFieldBase & {
       type: 'select'
       defaultValue?: string
-      summary?: boolean
       options: readonly {
         value: string
         label: string
         disabled?: boolean
-        summary?: boolean
       }[]
     })
 
-export interface ModelSelectorFeatureChange {
-  modelId: string
-  key: string
-  previousValue: ModelSelectorFeatureValue | undefined
-  value: ModelSelectorFeatureValue
-  values: ModelSelectorFeatureValues
+export interface ModelSelectorSnapshot {
+  modelId: string | null
+  featureValues: ModelSelectorFeatureValues
 }
 
 export interface ModelSelectorOption {
-  value: string
+  id: string
   label: string
   description?: string
   icon?: Component | string
   disabled?: boolean
   group?: string
-  fields?: readonly ModelSelectorField[]
+  features?: readonly ModelSelectorField[]
 }
 
 export type ModelSelectorFilterMethod = (query: string, option: ModelSelectorOption) => boolean
+
+export interface ModelSelectorTriggerTextContext {
+  model: ModelSelectorOption
+  featureValues: ModelSelectorFeatureValues
+}
 
 export interface ModelSelectorProps {
   models?: readonly ModelSelectorOption[]
   modelValue?: string | null
   defaultValue?: string | null
   featureValues?: ModelSelectorFeatureValues
+  defaultFeatureValues?: ModelSelectorFeatureValues
+  renderTriggerText?: (context: ModelSelectorTriggerTextContext) => string
   open?: boolean
   defaultOpen?: boolean
   closeOnSelect?: boolean
@@ -74,8 +76,8 @@ export interface ModelSelectorTriggerSlotProps {
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  values: ModelSelectorFeatureValues
-  summary: string
+  featureValues: ModelSelectorFeatureValues
+  text: string
 }
 
 export interface ModelSelectorItemSlotProps {
@@ -110,8 +112,6 @@ export interface ModelSelectorSlots {
 
 export interface ModelSelectorEmits {
   (event: 'update:modelValue', value: string | null): void
-  (event: 'change', option: ModelSelectorOption): void
-  (event: 'update:featureValues', values: ModelSelectorFeatureValues): void
-  (event: 'feature-change', change: ModelSelectorFeatureChange): void
+  (event: 'change', current: ModelSelectorSnapshot, previous: ModelSelectorSnapshot): void
   (event: 'update:open', open: boolean): void
 }

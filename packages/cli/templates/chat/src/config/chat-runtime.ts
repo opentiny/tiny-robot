@@ -1,36 +1,23 @@
 import type { ChatMcpServers, ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
-const qwenFields: ChatProviderConfig['models'][number]['fields'] = [
+const reasoningFields: ChatProviderConfig['models'][number]['features'] = [
   {
     key: 'reasoning',
     label: '思考强度',
     type: 'select',
     defaultValue: 'off',
-    summary: true,
     options: [
-      { value: 'off', label: '关闭', summary: false },
+      { value: 'off', label: '关闭' },
       { value: 'low', label: '低' },
       { value: 'high', label: '高' },
       { value: 'max', label: '最高' },
     ],
   },
-  { key: 'search', label: '联网搜索', type: 'switch' },
 ]
-const deepseekFields: ChatProviderConfig['models'][number]['fields'] = [
-  {
-    key: 'reasoning',
-    label: '思考强度',
-    type: 'select',
-    defaultValue: 'off',
-    summary: true,
-    options: [
-      { value: 'off', label: '关闭', summary: false },
-      { value: 'low', label: '低' },
-      { value: 'high', label: '高' },
-      { value: 'max', label: '最高' },
-    ],
-  },
+const qwenFields: ChatProviderConfig['models'][number]['features'] = [
+  ...reasoningFields,
+  { key: 'search', label: '联网搜索', type: 'switch' },
 ]
 
 export interface McpExample {
@@ -76,19 +63,19 @@ export const modelProviders: ChatProviderConfig[] = [
         id: 'qwen3.7-flash',
         label: 'Qwen3.7 Flash',
         icon: IconBailian,
-        fields: qwenFields,
+        features: qwenFields,
       },
       {
         id: 'qwen3.7-plus',
         label: 'Qwen3.7 Plus',
         icon: IconBailian,
-        fields: qwenFields,
+        features: qwenFields,
       },
       {
         id: 'qwen3.7-max',
         label: 'Qwen3.7 Max',
         icon: IconBailian,
-        fields: qwenFields,
+        features: qwenFields,
       },
     ],
   },
@@ -101,13 +88,13 @@ export const modelProviders: ChatProviderConfig[] = [
         id: 'deepseek-v4-flash',
         label: 'DeepSeek V4 Flash',
         icon: IconDeepseek,
-        fields: deepseekFields,
+        features: reasoningFields,
       },
       {
         id: 'deepseek-v4-pro',
         label: 'DeepSeek V4 Pro',
         icon: IconDeepseek,
-        fields: deepseekFields,
+        features: reasoningFields,
       },
     ],
   },

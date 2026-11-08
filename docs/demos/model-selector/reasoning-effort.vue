@@ -1,107 +1,149 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { shallowRef } from 'vue'
 import {
   TrModelSelector,
-  resolveModelFeatureValues,
-  type ModelSelectorFeatureChange,
+  type ModelSelectorSnapshot,
   type ModelSelectorFeatureValues,
   type ModelSelectorOption,
 } from '@opentiny/tiny-robot'
 
-const model = shallowRef<string | null>('reasoning-standard')
-const valuesByModel = shallowRef<Record<string, ModelSelectorFeatureValues>>({})
-const featureValues = computed(() =>
-  resolveModelFeatureValues(
-    models.find((item) => item.value === model.value)?.fields,
-    valuesByModel.value[model.value ?? ''],
-  ),
-)
-function handleFeatureChange(change: ModelSelectorFeatureChange) {
-  valuesByModel.value = {
-    ...valuesByModel.value,
-    [change.modelId]: { ...valuesByModel.value[change.modelId], [change.key]: change.value },
-  }
-}
-
-const models = [
+const low = { value: 'low', label: '低' }
+const high = { value: 'high', label: '高' }
+const models: ModelSelectorOption[] = [
   {
-    value: 'reasoning-standard',
-    label: '标准推理模型',
-    description: '使用一个选择字段控制关闭和强度',
-    fields: [
+    id: 'a',
+    label: '模型 A',
+    features: [
       {
         key: 'reasoning',
         label: '思考强度',
         type: 'select',
         defaultValue: 'off',
-        summary: true,
-        options: [
-          { value: 'off', label: '关闭', summary: false },
-          { value: 'low', label: '低' },
-          { value: 'medium', label: '中' },
-          { value: 'high', label: '高' },
-        ],
+        options: [{ value: 'off', label: '关闭' }, low, high, { value: 'extra-high', label: '超高' }],
       },
       { key: 'search', label: '联网搜索', type: 'switch' },
     ],
   },
   {
-    value: 'reasoning-custom',
-    label: '自定义推理模型',
-    description: '使用业务自定义的选项和值',
-    fields: [
-      {
-        key: 'quality',
-        label: '回答质量',
-        type: 'select',
-        defaultValue: 'balanced',
-        summary: true,
-        options: [
-          { value: 'fast', label: '快速' },
-          { value: 'balanced', label: '均衡' },
-          { value: 'deep', label: '深度' },
-          { value: 'max', label: '极致', disabled: true },
-        ],
-      },
-    ],
+    id: 'b',
+    label: '模型 B',
+    features: [{ key: 'reasoning', label: '思考强度', type: 'select', defaultValue: 'low', options: [low, high] }],
   },
   {
-    value: 'general-model',
-    label: '通用模型',
-    description: '未声明思考强度',
-    fields: [],
+    id: 'c',
+    label: '模型 C',
+    features: [
+      {
+        key: 'reasoning',
+        label: '思考强度',
+        type: 'select',
+        options: [{ value: 'blocked', label: '暂不可用', disabled: true }, low, high],
+      },
+      { key: 'format', label: '输出格式', type: 'select', options: [] },
+    ],
   },
-] satisfies readonly ModelSelectorOption[]
+]
+
+const initialFeatureValues = { reasoning: 'extra-high', search: true }
+const featureValues = shallowRef<ModelSelectorFeatureValues>(initialFeatureValues)
+const demoVersion = shallowRef(0)
+const panelHost = shallowRef<HTMLElement>()
+
+function handleChange(current: ModelSelectorSnapshot) {
+  featureValues.value = current.featureValues
+}
+
+function reset() {
+  demoVersion.value += 1
+  featureValues.value = initialFeatureValues
+}
 </script>
 
 <template>
-  <div class="model-selector-effort-demo">
-    <TrModelSelector
-      v-model="model"
-      :feature-values="featureValues"
-      :models="models"
-      :close-on-select="false"
-      @feature-change="handleFeatureChange"
-    />
-    <span aria-live="polite">当前值：{{ featureValues }}</span>
+  <div class="model-selector-feature-demo-container">
+    <div class="model-selector-feature-demo">
+      <div class="model-selector-feature-demo__result">
+        <div>当前模型的有效值 · featureValues</div>
+        <pre aria-live="polite">{{ JSON.stringify(featureValues, null, 2) }}</pre>
+      </div>
+      <div class="model-selector-feature-demo__actions">
+        <TrModelSelector
+          :key="demoVersion"
+          default-value="a"
+          :models="models"
+          :default-feature-values="initialFeatureValues"
+          :close-on-select="false"
+          :append-to="panelHost"
+          @change="handleChange"
+        />
+        <button type="button" @click="reset">重置示例</button>
+        <div ref="panelHost" class="model-selector-feature-demo__panel" />
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.model-selector-effort-demo {
-  display: flex;
-  min-height: 120px;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  background: var(--vp-c-bg);
+.model-selector-feature-demo-container {
+  container-type: inline-size;
 }
 
-.model-selector-effort-demo span {
+.model-selector-feature-demo {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.model-selector-feature-demo__actions {
+  display: flex;
+  flex: 1 1 256px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.model-selector-feature-demo__result {
+  flex: 1 1 200px;
+  min-width: 0;
   color: var(--vp-c-text-2);
   font-size: 13px;
+}
+
+.model-selector-feature-demo__result pre {
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-family: var(--vp-font-family-mono);
+  white-space: pre-wrap;
+}
+
+.model-selector-feature-demo__panel:empty {
+  display: none;
+}
+
+.model-selector-feature-demo__panel {
+  position: absolute;
+}
+
+@container (width < 472px) {
+  .model-selector-feature-demo__panel {
+    position: static;
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .model-selector-feature-demo__panel :deep(.tr-model-selector__dropdown-wrapper) {
+    position: static;
+    max-width: 100% !important;
+  }
+
+  .model-selector-feature-demo__panel :deep(.tr-model-selector__panel) {
+    --tr-model-selector-available-height: min(480px, 75vh);
+    --tr-model-selector-available-width: 100%;
+  }
 }
 </style>

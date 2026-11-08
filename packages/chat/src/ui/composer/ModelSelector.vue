@@ -2,14 +2,13 @@
 import { computed } from 'vue'
 import {
   TrModelSelector,
-  resolveModelFeatureValues,
   type ModelSelectorOption,
   type ModelSelectorProps,
-  type ModelSelectorFeatureChange,
+  type ModelSelectorSnapshot,
 } from '@opentiny/tiny-robot'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { getChatModelFields } from '../../modelFeatures'
-import type { ChatLabels, ChatModelView } from '../../types'
+import type { ChatLabels, ChatModelFeatureValueChangePayload, ChatModelView } from '../../types'
 
 const props = defineProps<{
   model: ChatModelView
@@ -20,18 +19,18 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   selectModel: [payload: { id: string | null }]
-  featureValueChange: [payload: ModelSelectorFeatureChange]
+  featureValueChange: [payload: ChatModelFeatureValueChangePayload]
 }>()
 
 const modelOptions = computed<ModelSelectorOption[]>(() =>
   (props.model.options ?? []).map((model) => ({
-    value: model.id,
+    id: model.id,
     label: model.label,
     description: model.description,
     icon: model.icon,
     disabled: model.disabled,
     group: model.group,
-    fields: getChatModelFields(model).map((field) => ({
+    features: getChatModelFields(model).map((field) => ({
       ...field,
       disabled:
         field.disabled || props.model.featureValuesDisabled || props.model.pendingFeatureKeys?.includes(field.key),
@@ -39,11 +38,7 @@ const modelOptions = computed<ModelSelectorOption[]>(() =>
   })),
 )
 
-const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
 const disabled = computed(() => props.disabled === true || props.model.selecting)
-const values = computed(() =>
-  resolveModelFeatureValues(getChatModelFields(selectedModel.value), props.model.featureValues),
-)
 
 function handleModelSelect(id: string | null) {
   if (disabled.value || id === props.model.selectedId) {
@@ -53,9 +48,16 @@ function handleModelSelect(id: string | null) {
   emit('selectModel', { id })
 }
 
-function handleFeatureValueChange(change: ModelSelectorFeatureChange) {
-  if (disabled.value) return
-  emit('featureValueChange', change)
+function handleChange(current: ModelSelectorSnapshot, previous: ModelSelectorSnapshot) {
+  const { modelId, featureValues } = current
+  if (disabled.value || modelId === null || modelId !== previous.modelId) return
+
+  for (const [featureKey, next] of Object.entries(featureValues)) {
+    const previousValue = previous.featureValues[featureKey]
+    if (next !== undefined && next !== previousValue) {
+      emit('featureValueChange', { modelId, featureKey, previous: previousValue, next, featureValues })
+    }
+  }
 }
 </script>
 
@@ -66,15 +68,16 @@ function handleFeatureValueChange(change: ModelSelectorFeatureChange) {
     :models="modelOptions"
     :model-value="model.selectedId ?? null"
     :disabled="disabled"
-    :feature-values="values"
+    :feature-values="model.featureValues"
+    :render-trigger-text="model.renderTriggerText"
     :append-to="props.appendTo"
     :placeholder="labels.selectModel"
     :search-placeholder="labels.searchModel"
     :empty-text="labels.modelEmptyText"
     @update:model-value="handleModelSelect"
-    @feature-change="handleFeatureValueChange"
+    @change="handleChange"
   >
-    <template #trigger="{ option, label, open, summary }">
+    <template #trigger="{ option, text, open }">
       <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">
         <span class="tr-chat-model-selector__trigger-main">
           <component
@@ -90,8 +93,7 @@ function handleFeatureValueChange(change: ModelSelectorFeatureChange) {
             class="tr-chat-model-selector__icon"
             alt=""
           />
-          <span class="tr-chat-model-selector__label">{{ label }}</span>
-          <span v-if="summary" class="tr-chat-model-selector__summary">&nbsp;{{ summary }}</span>
+          <span class="tr-chat-model-selector__label">{{ text }}</span>
         </span>
         <IconArrowDown
           class="tr-chat-model-selector__chevron"
@@ -169,11 +171,6 @@ function handleFeatureValueChange(change: ModelSelectorFeatureChange) {
   transition: transform 0.18s ease;
 }
 
-.tr-chat-model-selector__summary {
-  color: var(--tr-text-secondary);
-  white-space: nowrap;
-}
-
 .tr-chat-model-selector__chevron.is-open {
   transform: rotate(180deg);
 }
@@ -181,12 +178,13 @@ function handleFeatureValueChange(change: ModelSelectorFeatureChange) {
 @container chat-composer (max-width: 640px) {
   .tr-chat-model-selector {
     width: auto;
-    max-width: none;
-    flex: 0 0 auto;
+    max-width: min(180px, 100%);
+    flex: 0 1 auto;
   }
 
   .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
     width: auto;
+    max-width: 100%;
   }
 
   .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {

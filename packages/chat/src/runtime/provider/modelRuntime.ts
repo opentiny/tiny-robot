@@ -1,4 +1,4 @@
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 import { canSetModelFieldValue, resolveModelFeatureValues } from '@opentiny/tiny-robot'
 import type { ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
@@ -15,7 +15,7 @@ export interface ChatProviderModelRuntime {
 export function createProviderModelRuntime(models: readonly ChatResolvedProviderModel[]): ChatProviderModelRuntime {
   const initialModel = models.find((model) => !model.disabled)
   const selectedModelId = shallowRef<string | null>(initialModel?.id ?? null)
-  const valuesByModel = reactive(new Map<string, ModelSelectorFeatureValues>())
+  const storedFeatureValues = shallowRef<ModelSelectorFeatureValues>({})
 
   const selectedModel = computed(() => models.find((item) => item.id === selectedModelId.value))
 
@@ -23,33 +23,30 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
     return models.find((item) => item.id === modelId)
   }
 
+  const featureValues = computed(() =>
+    resolveModelFeatureValues(getChatModelFields(selectedModel.value), storedFeatureValues.value),
+  )
+
   watch(
-    selectedModel,
-    (current) => {
-      if (current && !valuesByModel.has(current.id)) {
-        valuesByModel.set(current.id, resolveModelFeatureValues(getChatModelFields(current)))
+    featureValues,
+    (values) => {
+      if (Object.entries(values).some(([key, value]) => storedFeatureValues.value[key] !== value)) {
+        storedFeatureValues.value = { ...storedFeatureValues.value, ...values }
       }
     },
     { immediate: true, flush: 'sync' },
   )
 
-  const featureValues = computed(() =>
-    resolveModelFeatureValues(
-      getChatModelFields(selectedModel.value),
-      selectedModel.value ? valuesByModel.get(selectedModel.value.id) : undefined,
-    ),
-  )
-
   const model: ChatModelRuntime = {
     options: computed<readonly ChatModelOption[]>(() =>
-      models.map(({ id, label, description, icon, disabled, group, fields }) => ({
+      models.map(({ id, label, description, icon, disabled, group, features }) => ({
         id,
         label,
         description,
         icon,
         disabled,
         group,
-        fields,
+        features,
       })),
     ),
 
@@ -62,8 +59,17 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
       if (!target || target.disabled || !field || !canSetModelFieldValue(field, value)) {
         throw new Error(`Invalid model field value: ${modelId}.${key}`)
       }
-      const cached = valuesByModel.get(modelId) ?? resolveModelFeatureValues(getChatModelFields(target))
-      valuesByModel.set(modelId, { ...cached, [key]: value })
+
+      const nextValues = { ...storedFeatureValues.value, [key]: value }
+      const activeModel = selectedModel.value
+      if (activeModel && activeModel !== target) {
+        const activeField = getChatModelFields(activeModel).find((item) => item.key === key)
+        const effectiveValue = activeField && resolveModelFeatureValues([activeField], nextValues)[key]
+        if (effectiveValue !== undefined && effectiveValue !== value) {
+          throw new Error(`Model field ${modelId}.${key} is incompatible with active model: ${activeModel.id}`)
+        }
+      }
+      storedFeatureValues.value = nextValues
     },
 
     select(id) {

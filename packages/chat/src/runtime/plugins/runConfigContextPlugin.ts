@@ -1,5 +1,6 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatMessageItem, ChatModelOption } from '../../types'
+import type { ChatMessageItem } from '../../types'
+import type { ChatResolvedProviderModel } from '../provider/types'
 import { CHAT_RUN_CONFIG_CONTEXT_KEY, readRunConfigFromMessage } from '../runConfig'
 
 function getLastUserMessage(currentTurn: ChatMessageItem[]) {
@@ -7,7 +8,7 @@ function getLastUserMessage(currentTurn: ChatMessageItem[]) {
 }
 
 export function createRunConfigContextPlugin(
-  resolveModel?: (modelId: string) => ChatModelOption | undefined,
+  resolveModel?: (modelId: string) => ChatResolvedProviderModel | undefined,
 ): UseMessagePlugin {
   return {
     name: 'chat-run-config-context',

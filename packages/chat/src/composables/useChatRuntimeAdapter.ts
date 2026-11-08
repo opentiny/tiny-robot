@@ -1,4 +1,4 @@
-import { computed, nextTick, shallowRef, toValue, watch } from 'vue'
+import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
 import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
@@ -29,7 +29,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const activeConversationId = computed(() => activeConversation.value?.id ?? null)
   const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
-  const pendingModelFields = shallowRef<ReadonlySet<string>>(new Set())
+  const pendingModelFields = shallowReactive(new Map<ChatRuntime, ReadonlySet<string>>())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
   const emptyConversationSendSnapshots = new Set<Set<string>>()
@@ -39,7 +39,6 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     runtime,
     () => {
       pendingModelSelecting.value = false
-      pendingModelFields.value = new Set()
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
       emptyConversationSendSnapshots.clear()
@@ -138,12 +137,13 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       ? {
           options: model.options.value,
           selectedId: model.selectedId.value,
-          featureValues: getChatModelFeatureValues(model),
+          featureValues: model.featureValues?.value,
+          renderTriggerText: model.renderTriggerText,
           featureValuesDisabled: !model.setFeatureValue,
           pendingFeatureKeys: getChatModelFields(
             model.options.value.find((option) => option.id === model.selectedId.value),
           )
-            .filter((field) => pendingModelFields.value.has(JSON.stringify([model.selectedId.value, field.key])))
+            .filter((field) => pendingModelFields.get(runtime.value)?.has(field.key))
             .map((field) => field.key),
           selecting: pendingModelSelecting.value,
         }
@@ -278,17 +278,25 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   }
 
   async function setModelFeatureValue(change: ChatModelFeatureValueUpdate) {
-    const model = runtime.value.composer.model
+    const actionRuntime = runtime.value
+    const model = actionRuntime.composer.model
     const option = model?.options.value.find((item) => item.id === change.modelId)
     const field = getChatModelFields(option).find((item) => item.key === change.key)
     if (!model?.setFeatureValue || !option || option.disabled || !field || !canSetModelFieldValue(field, change.value))
       return
     if (model.selectedId.value === change.modelId && getChatModelFeatureValues(model)[change.key] === change.value)
       return
-    const pendingKey = JSON.stringify([change.modelId, change.key])
-    await withPending(pendingModelFields, pendingKey, () =>
-      runAction('set-model-feature-value', change, () => model.setFeatureValue!({ ...change })),
-    )
+    const pending = pendingModelFields.get(actionRuntime)
+    if (pending?.has(change.key)) return
+    pendingModelFields.set(actionRuntime, new Set(pending).add(change.key))
+    try {
+      await runAction('set-model-feature-value', change, () => model.setFeatureValue!({ ...change }))
+    } finally {
+      const remaining = new Set(pendingModelFields.get(actionRuntime))
+      remaining.delete(change.key)
+      if (remaining.size) pendingModelFields.set(actionRuntime, remaining)
+      else pendingModelFields.delete(actionRuntime)
+    }
   }
 
   async function addMcpServer(id: string) {

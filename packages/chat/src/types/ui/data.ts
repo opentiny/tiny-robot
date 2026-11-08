@@ -1,5 +1,5 @@
 import type { ChatConversationInfo, ChatIcon, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
-import type { ModelSelectorField, ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
+import type { ModelSelectorField, ModelSelectorFeatureValues, ModelSelectorProps } from '@opentiny/tiny-robot'
 
 export interface ChatUIData {
   readonly conversation?: ChatConversationView
@@ -42,6 +42,7 @@ export interface ChatRequestView {
 
 export interface ChatModelView {
   readonly featureValues?: ModelSelectorFeatureValues
+  readonly renderTriggerText?: ModelSelectorProps['renderTriggerText']
   readonly pendingFeatureKeys?: readonly string[]
   readonly featureValuesDisabled?: boolean
   readonly options?: readonly ChatModelOptionView[]
@@ -56,7 +57,7 @@ export interface ChatModelOptionView {
   readonly icon?: ChatIcon
   readonly disabled?: boolean
   readonly group?: string
-  readonly fields?: readonly ModelSelectorField[]
+  readonly features?: readonly ModelSelectorField[]
   readonly metadata?: Readonly<Record<string, unknown>>
 }
 
