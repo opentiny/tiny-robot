@@ -14,6 +14,115 @@ test('keeps the MCP-only sender entry compatible', async ({ mount }) => {
   await expect(component.getByRole('button', { name: 'Search MCP', exact: true })).toBeVisible()
 })
 
+for (const [width, height] of [
+  [640, 400],
+  [1280, 720],
+]) {
+  test(`can close extensions inside a narrow floating chat at a ${width}px viewport`, async ({ mount, page }) => {
+    await page.setViewportSize({ width, height })
+    await mount(ChatExtensionTabsFixture, { props: { withSkills: false, floatingWidth: 420 } })
+
+    const entry = page.getByRole('button', { name: 'MCP', exact: true })
+    await entry.click()
+
+    const close = page.getByRole('button', { name: '关闭详情' })
+    await close.click()
+    await expect(close).toBeHidden()
+    await expect(entry).toBeVisible()
+  })
+}
+
+test('fits custom sidebar widths and keeps the active extension open while resizing the floating chat', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 720 })
+  const layout = { leftAside: { width: 300, defaultOpen: true }, rightAside: { width: 760, maxWidth: 640 } }
+  const component = await mount(ChatExtensionTabsFixture, { props: { floatingWidth: 1260, layout } })
+  await page.getByRole('button', { name: '扩展', exact: true }).click()
+  await page.getByRole('tab', { name: 'Skills', exact: true }).click()
+
+  const panel = page.locator('.tr-layout__aside--right')
+  const skill = page.getByRole('button', { name: 'Concise Answer', exact: true })
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+
+  await component.update({ props: { floatingWidth: 1000, layout } })
+  await expect(panel).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(skill).toBeVisible()
+
+  await component.update({ props: { floatingWidth: 1260, layout } })
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+  await expect(skill).toBeVisible()
+
+  await component.update({ props: { floatingWidth: 1000, layout } })
+  const close = page.getByRole('button', { name: '关闭详情' })
+  await close.click()
+  await expect(close).toBeHidden()
+})
+
+test('accounts for the CSS main minimum and the current docked left sidebar width', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1440, height: 720 })
+  const props = { floatingWidth: 1000, mainMinWidth: 'calc(300px + 100px)' }
+  const component = await mount(ChatExtensionTabsFixture, {
+    props: { ...props, layout: { leftAside: { open: true }, rightAside: { width: 320 } } },
+  })
+  await page.getByRole('button', { name: '扩展', exact: true }).click()
+
+  const panel = page.locator('.tr-layout__aside--right')
+  await expect(panel).toHaveClass(/tr-layout__aside--drawer/)
+
+  await component.update({
+    props: { ...props, layout: { leftAside: { open: false }, rightAside: { width: 320 } } },
+  })
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+
+  await component.update({
+    props: {
+      ...props,
+      floatingWidth: 800,
+      layout: { leftAside: { open: false }, rightAside: { width: 320 } },
+    },
+  })
+  await expect(page.locator('.tr-layout--floating')).toHaveCSS('width', '800px')
+  await expect(panel).toHaveClass(/tr-layout__aside--dock/)
+  await expect(page.getByRole('button', { name: '关闭详情' })).toBeVisible()
+})
+
+test('closes the left drawer when the open right dock becomes a drawer', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const props = { defaultRightAsideOpen: true, layout: { leftAside: { mode: 'drawer' as const, defaultOpen: true } } }
+  const component = await mount(ChatExtensionTabsFixture, { props: { ...props, floatingWidth: 1000 } })
+  const left = page.locator('.tr-layout__aside--left')
+  const right = page.locator('.tr-layout__aside--right')
+
+  await expect(left).toBeVisible()
+  await expect(right).toHaveClass(/tr-layout__aside--dock.*tr-layout__aside--expanded/)
+  await component.update({ props: { ...props, floatingWidth: 500 } })
+
+  await expect(right).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(left).toHaveClass(/tr-layout__aside--hidden/)
+  await expect(left).toBeHidden()
+  await page.getByRole('button', { name: '关闭详情' }).click()
+  await expect(right).toBeHidden()
+  await expect(left).toBeHidden()
+})
+
+test('keeps a controlled left drawer out of view while the right fallback drawer is open', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const props = { defaultRightAsideOpen: true, layout: { leftAside: { mode: 'drawer' as const, open: true } } }
+  const component = await mount(ChatExtensionTabsFixture, { props: { ...props, floatingWidth: 1000 } })
+  const left = page.locator('.tr-layout__aside--left')
+  const right = page.locator('.tr-layout__aside--right')
+
+  await expect(left).toBeVisible()
+  await component.update({ props: { ...props, floatingWidth: 500 } })
+
+  await expect(right).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(left).toBeHidden()
+  await page.getByRole('button', { name: '关闭详情' }).click()
+  await expect(left).toBeVisible()
+})
+
 test('uses one extension entry for built-in MCP and registered tabs', async ({ mount }) => {
   const component = await mount(ChatExtensionTabsFixture)
 

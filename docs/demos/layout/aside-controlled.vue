@@ -1,21 +1,34 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import { TinyButton, TinySlider } from '@opentiny/vue'
+import { TinyButton } from '@opentiny/vue'
+import { useElementSize } from '@vueuse/core'
 import type { LayoutAsideOptions, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
-const leftExpandedWidth = ref(220)
+const demoRef = ref<HTMLElement | null>(null)
+const { width: demoWidth } = useElementSize(demoRef)
+const requestedLeftWidth = ref(220)
 const leftWidthMin = 160
 const leftWidthMax = 320
+const leftWidthStep = 4
+const mainWidthMin = 100
 const rightOpen = ref(false)
+
+const availableLeftWidth = computed(() => {
+  if (demoWidth.value === 0) return leftWidthMax
+  const spaceForLeftAside = Math.max(0, demoWidth.value - mainWidthMin)
+  return Math.min(leftWidthMax, Math.floor(spaceForLeftAside / leftWidthStep) * leftWidthStep)
+})
+const minLeftWidth = computed(() => Math.min(leftWidthMin, availableLeftWidth.value))
+const leftExpandedWidth = computed(() => Math.min(requestedLeftWidth.value, availableLeftWidth.value))
 
 const leftAside = computed<LayoutAsideOptions>(() => ({
   open: leftOpen.value,
   expandedWidth: leftExpandedWidth.value,
   collapsedWidth: 0,
-  minExpandedWidth: leftWidthMin,
-  maxExpandedWidth: leftWidthMax,
+  minExpandedWidth: minLeftWidth.value,
+  maxExpandedWidth: availableLeftWidth.value,
   resizable: true,
 }))
 
@@ -29,7 +42,12 @@ function updateLeftAsideOpen(detail: LayoutAsideOpenValue) {
 }
 
 function updateLeftAsideWidth(detail: LayoutAsideResizeValue) {
-  leftExpandedWidth.value = detail.expandedWidth
+  requestedLeftWidth.value = detail.expandedWidth
+}
+
+function handleWidthInput(event: Event) {
+  requestedLeftWidth.value = (event.currentTarget as HTMLInputElement).valueAsNumber
+  leftOpen.value = true
 }
 
 function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
@@ -38,7 +56,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 </script>
 
 <template>
-  <div class="layout-slot-props-demo">
+  <div ref="demoRef" class="layout-slot-props-demo">
     <div class="layout-slot-props-demo__controls">
       <div class="layout-slot-props-demo__group">
         <span class="layout-slot-props-demo__group-label">左侧栏</span>
@@ -47,13 +65,15 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
         </TinyButton>
         <label class="layout-slot-props-demo__range-wrap">
           <span class="layout-slot-props-demo__range-label">宽度</span>
-          <TinySlider
-            v-model.number="leftExpandedWidth"
+          <input
+            type="range"
             class="layout-slot-props-demo__range"
-            :min="leftWidthMin"
-            :max="leftWidthMax"
-            :step="4"
-            @change="leftOpen = true"
+            :min="minLeftWidth"
+            :max="availableLeftWidth"
+            :step="leftWidthStep"
+            :value="leftExpandedWidth"
+            :disabled="minLeftWidth === availableLeftWidth"
+            @input="handleWidthInput"
           />
           <strong>{{ leftExpandedWidth }}px</strong>
         </label>
@@ -103,6 +123,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 <style>
 .layout-slot-props-demo__layout {
   --tr-layout-height: 360px;
+  --tr-layout-main-min-width: 0px;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
   border-radius: 16px;
@@ -112,6 +133,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 <style scoped>
 .layout-slot-props-demo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -134,7 +156,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 .layout-slot-props-demo__range-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 8px 16px;
   flex-wrap: wrap;
 }
 
@@ -145,6 +167,8 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 .layout-slot-props-demo__range {
   min-width: 160px;
   flex: 1;
+  margin: 0;
+  accent-color: var(--tr-color-primary);
 }
 
 .layout-slot-props-demo__header {
