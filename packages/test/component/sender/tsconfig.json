@@ -1,7 +1,0 @@
-{
-  "extends": "../../tsconfig.ct.json",
-  "compilerOptions": {
-    "types": ["vite/client", "node", "dom-speech-recognition"]
-  },
-  "include": ["**/*.ts", "**/*.vue", "../../../components/src/vite-env.d.ts"]
-}

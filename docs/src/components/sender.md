@@ -493,7 +493,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `header`         | 在输入区域上方添加内容               | —                     |
 | `prefix`         | 在编辑器左侧添加内容                 | —                     |
 | `input-prefix`    | 多行模式首行前置插槽                   | —                     |
-| `content`        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
+| `content`        | 完全替换默认编辑器内容               | `{ editor: Editor \| undefined }` |
 | `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`      |
 | `footer`         | 在多行模式底部左侧添加内容           | `SenderSlotScope`      |
 | `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | `SenderSlotScope`      |
