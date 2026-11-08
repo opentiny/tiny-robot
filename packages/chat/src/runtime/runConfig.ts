@@ -159,7 +159,7 @@ export function readRunConfigFromMessage(
           typeof raw.reasoning.enabled !== 'boolean' ||
           (raw.reasoning.effort !== undefined && typeof raw.reasoning.effort !== 'string')))
     ) {
-      throw new Error('Invalid legacy model feature snapshot')
+      return cloneRunConfig({ modelId: raw.modelId, mcp })
     }
     const model = typeof raw.modelId === 'string' ? resolveModel?.(raw.modelId) : undefined
     if (!model) {

@@ -299,6 +299,21 @@ describe('model feature fields', () => {
     expect(readRunConfigFromMessage(message)).toMatchObject({ modelId: 'a', mcp })
   })
 
+  it.each([{ features: { search: 'true' } }, { reasoning: { enabled: 'true' } }])(
+    'keeps the model and MCP settings when legacy settings are invalid (%j)',
+    (legacy) => {
+      const mcp = { serverIds: ['server'], toolIds: { server: ['tool'] } }
+      const message = {
+        role: 'user',
+        content: 'retry',
+        metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'a', mcp, ...legacy } },
+      }
+      const resolveModel = (id: string) => createModels().find((model) => model.id === id)
+
+      expect(readRunConfigFromMessage(message, resolveModel)).toEqual({ modelId: 'a', featureValues: undefined, mcp })
+    },
+  )
+
   it('required reasoning has no off value and disabled values cannot be selected', () => {
     const models = resolveProviderModels([
       {

@@ -1133,7 +1133,7 @@ const ui: ChatUIOptions = {
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
 | `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
-`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
+`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRemoveServer`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
 #### `sender.toolbar` {#sender-toolbar}
 
@@ -1142,7 +1142,7 @@ const ui: ChatUIOptions = {
 | 字段       | 内置项                                       | 自定义项                     |
 | ---------- | -------------------------------------------- | ---------------------------- |
 | `type`     | `'builtin'`                                  | `'custom'`                   |
-| `id`       | `'thinking' \| 'search' \| 'model' \| 'mcp'` | 唯一业务 ID，不能使用内置 ID |
+| `id`       | `'model' \| 'mcp'`                           | 唯一业务 ID，不能使用内置 ID |
 | `visible`  | 可选，默认 `true`                            | 同左                         |
 | `disabled` | 可选，默认 `false`                           | 同左                         |
 | `label`    | 使用 `labels` 中的文案                       | 必填，按钮文案               |
