@@ -24,7 +24,7 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
   }
 
   const featureValues = computed(() =>
-    resolveModelFeatureValues(getChatModelFields(selectedModel.value), storedFeatureValues.value),
+    resolveModelFeatureValues(selectedModel.value?.features, storedFeatureValues.value),
   )
 
   watch(

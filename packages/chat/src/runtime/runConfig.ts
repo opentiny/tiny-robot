@@ -1,13 +1,6 @@
-import type {
-  ChatComposerRuntime,
-  ChatMcpRunConfig,
-  ChatMcpRuntime,
-  ChatMessageItem,
-  ChatRunConfig,
-  ChatModelOption,
-} from '../types'
-import { getChatModelFeatureValues } from '../modelFeatures'
-import { resolveModelFeatureValues } from '@opentiny/tiny-robot'
+import type { ChatComposerRuntime, ChatMcpRunConfig, ChatMcpRuntime, ChatMessageItem, ChatRunConfig } from '../types'
+import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
+import { isModelFieldValue, resolveModelFeatureValues } from '@opentiny/tiny-robot'
 import { usesQwenThinkingBudget } from './provider/presets'
 import type { ChatResolvedProviderModel } from './provider/types'
 
@@ -85,15 +78,6 @@ export function resolveComposerRunConfig(composer: ChatComposerRuntime): ChatRun
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isValidFieldValue(
-  field: NonNullable<ChatModelOption['features']>[number],
-  value: unknown,
-): value is boolean | string {
-  return field.type === 'switch'
-    ? typeof value === 'boolean'
-    : typeof value === 'string' && field.options.some((option) => option.value === value && !option.disabled)
 }
 
 function readMcpRunConfig(value: unknown): ChatMcpRunConfig | undefined {
@@ -181,7 +165,7 @@ export function readRunConfigFromMessage(
     if (!model) {
       return cloneRunConfig({ modelId: raw.modelId, mcp })
     }
-    const fields = model.features ?? []
+    const fields = getChatModelFields(model)
     const features = raw.features as Record<string, boolean> | undefined
     const reasoning = raw.reasoning as { enabled: boolean; effort?: string } | undefined
     const values: Record<string, boolean | string> = {}
@@ -192,21 +176,21 @@ export function readRunConfigFromMessage(
         const fallback = resolveModelFeatureValues([field]).reasoning as string | undefined
         let value = fallback
         if (!enabled) {
-          value = isValidFieldValue(field, 'off') ? 'off' : fallback
+          value = isModelFieldValue(field, 'off') ? 'off' : fallback
         } else if (reasoning?.effort === undefined) {
-          if (isValidFieldValue(field, 'on')) {
+          if (isModelFieldValue(field, 'on')) {
             value = 'on'
           } else if (
             model.providerType === 'qwen' &&
             usesQwenThinkingBudget(model.id) &&
-            isValidFieldValue(field, 'max')
+            isModelFieldValue(field, 'max')
           ) {
             value = 'max'
           } else if (fallback === 'off') {
             value = field.options.find((option) => !option.disabled && option.value !== 'off')?.value ?? fallback
           }
         } else {
-          value = isValidFieldValue(field, reasoning.effort) ? reasoning.effort : fallback
+          value = isModelFieldValue(field, reasoning.effort) ? reasoning.effort : fallback
         }
         if (value !== undefined) values.reasoning = value
       }

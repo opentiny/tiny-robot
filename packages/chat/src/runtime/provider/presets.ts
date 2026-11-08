@@ -21,17 +21,19 @@ function mapQwenReasoningEffort(reasoning: string, modelId: string) {
     return {}
   }
 
-  return /^qwen3\.8-(max|flash|2\.4t-a95b|27b)(-|$)/.test(modelId) ? { reasoning_effort: reasoning } : {}
+  return /^qwen3\.8-(max|flash|omni-flash|2\.4t-a95b|27b)(-|$)/.test(modelId) ? { reasoning_effort: reasoning } : {}
 }
 
 const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
   openai: {
     label: 'OpenAI',
     apiUrl: 'https://api.openai.com/v1',
-    mapFeatureValues: (values) =>
-      typeof values.reasoning === 'string' && !['off', 'on'].includes(values.reasoning)
-        ? { reasoning_effort: values.reasoning }
-        : {},
+    mapFeatureValues: ({ reasoning }, modelId) => {
+      if (typeof reasoning !== 'string') return {}
+      if (reasoning !== 'off' && reasoning !== 'on') return { reasoning_effort: reasoning }
+      if (!/^gpt-5\.[45](-\d{4}-\d{2}-\d{2})?$/.test(modelId)) return {}
+      return { reasoning_effort: reasoning === 'off' ? 'none' : 'medium' }
+    },
   },
   deepseek: {
     label: 'DeepSeek',

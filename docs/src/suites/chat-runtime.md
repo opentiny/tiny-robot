@@ -105,7 +105,9 @@ const modelProviders: ChatProviderConfig[] = [
 | DeepSeek V4 Pro | `{ thinking: { type: 'enabled' }, reasoning_effort: 'high' }` |
 | Qwen3.7 Flash | `{ enable_thinking: true, thinking_budget: 8192, enable_search: true }` |
 
-预设已完成上述转换。Qwen3.5 至 Qwen3.7 的 Flash、Plus 和 Max 型号使用思考预算，`low` 为 1024 Token，`high` 为 8192 Token，`max` 使用模型默认的最大预算。对于支持 `reasoning_effort` 的 Qwen3.8 型号，预设发送对应的强度参数。其他 Qwen 型号由项目按需提供强度映射。OpenAI 预设将思考强度映射到 `reasoning_effort`。字段声明与交互行为见 [ModelSelector](../components/model-selector#模型特性字段)。[DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)，[百炼 Chat Completions API](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions/)
+预设已完成上述转换。Qwen3.5 至 Qwen3.7 的 Flash、Plus 和 Max 型号使用思考预算，`low` 为 1024 Token，`high` 为 8192 Token，`max` 使用模型默认的最大预算。支持 `reasoning_effort` 的 Qwen3.8 型号（包括 Omni Flash）使用强度参数。其他 Qwen 型号由项目按需提供强度映射。[DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)，[百炼 Chat Completions API](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions/)
+
+OpenAI 预设将思考强度映射到 `reasoning_effort`。GPT-5.4 和 GPT-5.5 的 `off`、`on` 分别映射到 `none`、`medium`。其他 OpenAI 兼容模型可使用服务接受的档位值，或自定义映射。[ModelSelector 字段配置](../components/model-selector#模型特性字段)
 
 如果项目需要调整某个模型的请求参数，可以在调用 `useChatRuntime` 前为该模型配置 `mapFeatureValues(featureValues)`。例如，将 Qwen3.7 Flash 的「高」改成 4096 Token。
 

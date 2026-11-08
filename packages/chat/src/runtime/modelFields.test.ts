@@ -190,14 +190,75 @@ describe('model feature fields', () => {
     scope.stop()
   })
 
+  it('sends explicit OpenAI reasoning choices for GPT-5.4 and GPT-5.5', () => {
+    const models = resolveProviderModels([
+      {
+        type: 'openai',
+        models: ['gpt-5.4', 'gpt-5.5', 'custom-model'].map((id) => ({ id, label: id })),
+      },
+    ])
+    const [gpt54, gpt55, custom] = models
+    expect(gpt54.mapFeatureValues?.({ reasoning: 'on' })).toEqual({ reasoning_effort: 'medium' })
+    expect(gpt55.mapFeatureValues?.({ reasoning: 'off' })).toEqual({ reasoning_effort: 'none' })
+    expect(gpt55.mapFeatureValues?.({})).toEqual({})
+    expect(custom.mapFeatureValues?.({ reasoning: 'off' })).toEqual({})
+  })
+
   it('only sends reasoning_effort for Qwen models that support it', () => {
     const models = resolveProviderModels([
-      { type: 'qwen', models: ['qwen3.8-flash', 'qwen-custom'].map((id) => ({ id, label: id, features: fields })) },
+      {
+        type: 'qwen',
+        models: ['qwen3.8-flash', 'qwen3.8-omni-flash', 'qwen-custom'].map((id) => ({
+          id,
+          label: id,
+          features: fields,
+        })),
+      },
     ])
-    expect(models.map((model) => model.mapFeatureValues?.({ reasoning: 'high' }))).toEqual([
-      { enable_thinking: true, reasoning_effort: 'high' },
+    expect(models.map((model) => model.mapFeatureValues?.({ reasoning: 'low' }))).toEqual([
+      { enable_thinking: true, reasoning_effort: 'low' },
+      { enable_thinking: true, reasoning_effort: 'low' },
       { enable_thinking: true },
     ])
+  })
+
+  it('validates runtime writes and legacy requests against the same deduplicated options', () => {
+    const modelId = 'deepseek-v4-pro'
+    const features: ModelSelectorField[] = [
+      {
+        key: 'reasoning',
+        type: 'select',
+        label: '思考强度',
+        defaultValue: 'off',
+        options: [
+          { value: 'off', label: '关闭' },
+          { value: 'high', label: '不可用', disabled: true },
+          { value: 'high', label: '高' },
+        ],
+      },
+    ]
+    const models = resolveProviderModels([{ type: 'deepseek', models: [{ id: modelId, label: 'DeepSeek', features }] }])
+    const scope = effectScope()
+    try {
+      const { model, resolveModel } = scope.run(() => createProviderModelRuntime(models))!
+      expect(() => model.setFeatureValue!({ modelId, key: 'reasoning', value: 'high' })).toThrow(/Invalid model field/)
+
+      const message = {
+        role: 'user',
+        content: 'retry',
+        metadata: { [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId, reasoning: { enabled: true, effort: 'high' } } },
+      }
+      const retry = readRunConfigFromMessage(message, resolveModel)
+      const requestBody: Record<string, unknown> = {}
+      const plugin = createProviderRequestPlugin(resolveModel)
+      plugin.onBeforeRequest!({
+        customContext: { [CHAT_RUN_CONFIG_CONTEXT_KEY]: retry },
+        requestBody,
+      } as unknown as Parameters<NonNullable<typeof plugin.onBeforeRequest>>[0])
+      expect(requestBody).toEqual({ __chat_provider_model_id: modelId, thinking: { type: 'disabled' } })
+    } finally {
+      scope.stop()
+    }
   })
 
   it('replays legacy Qwen thinking without imposing a new token budget', () => {

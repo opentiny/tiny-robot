@@ -29,11 +29,7 @@ export function isModelFieldValue(field: ModelSelectorField, value: unknown): va
 }
 
 export function canSetModelFieldValue(field: ModelSelectorField, value: unknown): value is ModelSelectorFeatureValue {
-  return (
-    !field.disabled &&
-    isModelFieldValue(field, value) &&
-    (field.type === 'switch' || field.options.some((option) => option.value === value && !option.disabled))
-  )
+  return !field.disabled && isModelFieldValue(field, value)
 }
 
 export function resolveModelFeatureValues(

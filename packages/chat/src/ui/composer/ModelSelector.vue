@@ -7,7 +7,6 @@ import {
   type ModelSelectorSnapshot,
 } from '@opentiny/tiny-robot'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import { getChatModelFields } from '../../modelFeatures'
 import type { ChatLabels, ChatModelFeatureValueChangePayload, ChatModelView } from '../../types'
 
 const props = defineProps<{
@@ -30,7 +29,7 @@ const modelOptions = computed<ModelSelectorOption[]>(() =>
     icon: model.icon,
     disabled: model.disabled,
     group: model.group,
-    features: getChatModelFields(model).map((field) => ({
+    features: (model.features ?? []).map((field) => ({
       ...field,
       disabled:
         field.disabled || props.model.featureValuesDisabled || props.model.pendingFeatureKeys?.includes(field.key),
