@@ -221,6 +221,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')))
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/index.css')))
     const readme = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/README.md'), 'utf8')
+    assert.equal(readme, fs.readFileSync(new URL('../templates/chat/README.md', import.meta.url), 'utf8'))
     assert.match(readme, /server\.proxy/)
     assert.match(readme, /https:\/\/modelcontextprotocol\.io\/mcp/)
     assert.match(readme, /path\.replace\(/)

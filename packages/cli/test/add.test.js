@@ -13,7 +13,7 @@ import {
   resolveTargetPackage,
 } from '../bin/commands/add.js'
 import { createRuntimeDependencies } from '../bin/runtime-version.js'
-import { listPackages, mergeEnvFile } from '../bin/utils.js'
+import { getTemplateDir, listPackages, mergeEnvFile } from '../bin/utils.js'
 
 const DEPENDENCIES = createRuntimeDependencies('0.5.2-alpha.15')
 
@@ -175,11 +175,13 @@ test('applyChanges rolls back files created before a later write fails', () => {
 test('chat feature files are namespaced and include feature CSS', () => {
   const files = getChatFeatureFiles(createTempProject())
   const targets = files.map((file) => file.target.replaceAll('\\', '/'))
+  const readme = files.find((file) => file.target.replaceAll('\\', '/').endsWith('/src/tiny-robot-chat/README.md'))
 
   assert.ok(targets.some((target) => target.endsWith('/src/tiny-robot-chat/TinyRobotChat.vue')))
   assert.ok(targets.some((target) => target.endsWith('/src/tiny-robot-chat/index.css')))
   assert.ok(!targets.some((target) => target.endsWith('/public/modelcontextprotocol.png')))
   assert.ok(!targets.some((target) => target.endsWith('/src/index.css')))
+  assert.equal(readme.source, path.join(getTemplateDir('chat'), 'README.md'))
 })
 
 test('workspace root without packages falls back to its package.json', async () => {
