@@ -4,6 +4,7 @@
 
 import type { Editor } from '@tiptap/core'
 import type { TemplateItem } from '../../index.type'
+import type { StructuredDataItem } from '../../types/base'
 import { NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
 
 /**
@@ -19,8 +20,15 @@ export const ZERO_WIDTH_CHAR = '\u200B'
  * 例如：请帮我分析 [模板内容1] 和 [模板内容2]
  */
 export function getTextWithTemplates(editor: Editor): string {
-  const items = getTemplateStructuredData(editor)
-  return items.map((item) => item.content).join('')
+  return getTemplateStructuredData(editor)
+    .map((item) => item.content)
+    .join('')
+}
+
+export function getTextFromStructuredData(items: StructuredDataItem[], mentionChar = '@'): string {
+  return items
+    .map((item) => (item.type === USER_API_TYPES.MENTION ? `${mentionChar}${item.content}` : item.content))
+    .join('')
 }
 
 /**
@@ -29,7 +37,15 @@ export function getTextWithTemplates(editor: Editor): string {
  * 返回包含文本和模板块的结构化数组
  */
 export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
-  const items: TemplateItem[] = []
+  return collectStructuredData(editor, false) as TemplateItem[]
+}
+
+export function getCombinedStructuredData(editor: Editor): StructuredDataItem[] {
+  return collectStructuredData(editor, true)
+}
+
+function collectStructuredData(editor: Editor, includeMentions: boolean): StructuredDataItem[] {
+  const items: StructuredDataItem[] = []
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
@@ -49,6 +65,12 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
         items.push({
           type: USER_API_TYPES.SELECT,
           content,
+        })
+      } else if (includeMentions && node.type.name === NODE_TYPE_NAMES.MENTION) {
+        items.push({
+          type: USER_API_TYPES.MENTION,
+          content: node.attrs.label as string,
+          value: (node.attrs.value as string) || '',
         })
       } else if (node.type.name === NODE_TYPE_NAMES.TEXT) {
         const text = (node.text || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')

@@ -10,7 +10,7 @@ const install = function <T>(app: App<T>) {
 MCPServerPicker.install = install
 
 /**
- * @deprecated Use ExtensionManager and its Card/CardGrid namespace components instead.
- * This entry point remains available for compatibility and will be removed in a future major release.
+ * @deprecated Since v1.0. Use ExtensionManager (`TrExtensionManager`) instead.
+ * This entry point remains available for compatibility and will be removed in a future release.
  */
 export default MCPServerPicker as typeof MCPServerPicker & { install: typeof install }

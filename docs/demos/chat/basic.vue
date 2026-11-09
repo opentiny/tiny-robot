@@ -1,14 +1,29 @@
 <script setup lang="ts">
-import { TrChat, useChatRuntime } from '@opentiny/tiny-robot-chat'
+import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
+import '@opentiny/tiny-robot/dist/style.css'
 import '@opentiny/tiny-robot-chat/dist/style.css'
-import { modelProviders } from './shared/modelProviders'
+
+const runtimeOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
+const modelProviders: ChatProviderConfig[] = [
+  {
+    type: 'openai',
+    // 文档通过模拟服务返回回答；接入项目时替换为实际服务地址
+    apiUrl: new URL(`${import.meta.env.BASE_URL}api`, runtimeOrigin).toString(),
+    models: [
+      {
+        id: 'your-model-id',
+        label: '应用助手',
+      },
+    ],
+  },
+]
 
 const runtime = useChatRuntime({ modelProviders })
 </script>
 
 <template>
   <div class="chat-basic-demo">
-    <tr-chat :runtime="runtime" />
+    <TrChat :runtime="runtime" />
   </div>
 </template>
 

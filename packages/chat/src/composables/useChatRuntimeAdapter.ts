@@ -1,12 +1,14 @@
-import { computed, shallowRef, toValue, watch } from 'vue'
+import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
+import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
+import { canSetModelFieldValue } from '@opentiny/tiny-robot'
 import type {
   ChatMcpServerView,
   ChatMcpToolView,
   ChatMcpView,
   ChatModelView,
-  ChatBuiltInModelFeature,
+  ChatModelFeatureValueUpdate,
   ChatHistoryData,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
@@ -27,98 +29,56 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const activeConversationId = computed(() => activeConversation.value?.id ?? null)
   const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
-  const pendingModelReasoningEffort = shallowRef(false)
-  const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
+  const pendingModelFields = shallowReactive(new Map<ChatRuntime, ReadonlySet<string>>())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
+  const emptyConversationSendSnapshots = new Set<Set<string>>()
+  const pendingAborts = new WeakMap<ChatRuntime, Set<string | null>>()
 
   watch(
     runtime,
     () => {
       pendingModelSelecting.value = false
-      pendingModelReasoningEffort.value = false
-      pendingModelFeatureIds.value = new Set()
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
+      emptyConversationSendSnapshots.clear()
       invalidateDraftForNavigation()
     },
     { flush: 'sync' },
   )
 
-  const sendsInFlight = new WeakMap<ChatRuntime, number>()
-
-  function getSendsInFlight(targetRuntime: ChatRuntime) {
-    return sendsInFlight.get(targetRuntime) ?? 0
-  }
-
-  function incrementSendsInFlight(targetRuntime: ChatRuntime) {
-    sendsInFlight.set(targetRuntime, getSendsInFlight(targetRuntime) + 1)
-  }
-
-  function decrementSendsInFlight(targetRuntime: ChatRuntime) {
-    const nextCount = getSendsInFlight(targetRuntime) - 1
-    if (nextCount === 0) {
-      sendsInFlight.delete(targetRuntime)
-    } else {
-      sendsInFlight.set(targetRuntime, nextCount)
-    }
-  }
-
-  async function send(payload: ChatSendPayload) {
+  function prepareSend() {
     const actionRuntime = runtime.value
-    const getActionConversationId = () => actionRuntime.activeConversation.value?.id ?? null
-    const getActionNavigationRevision = () => actionRuntime.conversationNavigationRevision?.value
-    const startConversationId = getActionConversationId()
-    const startNavigationRevision = getActionNavigationRevision()
-    incrementSendsInFlight(actionRuntime)
-
-    let actionResult: boolean | undefined
-    let synchronousConversationId = startConversationId
-    try {
-      let action: Promise<boolean> | undefined
+    const conversationId = actionRuntime.activeConversation.value?.id ?? null
+    const navigationRevision = actionRuntime.conversationNavigationRevision?.value
+    const emptySendSnapshot =
+      conversationId === null ? new Set(actionRuntime.conversations.value.map((item) => item.id)) : undefined
+    return async (payload: ChatSendPayload) => {
+      const currentConversationId = actionRuntime.activeConversation.value?.id ?? null
+      if (
+        runtime.value !== actionRuntime ||
+        currentConversationId !== conversationId ||
+        actionRuntime.conversationNavigationRevision?.value !== navigationRevision
+      ) {
+        return false
+      }
       try {
-        action = actionRuntime.actions.send(payload)
+        if (emptySendSnapshot) emptyConversationSendSnapshots.add(emptySendSnapshot)
+        return await actionRuntime.actions.send(payload)
       } catch (error) {
         options.onActionError({ action: 'send', payload, error })
+        return false
+      } finally {
+        await nextTick()
+        if (emptySendSnapshot) emptyConversationSendSnapshots.delete(emptySendSnapshot)
       }
-
-      synchronousConversationId = getActionConversationId()
-
-      if (action) {
-        try {
-          actionResult = await action
-        } catch (error) {
-          options.onActionError({ action: 'send', payload, error })
-        }
-      }
-    } finally {
-      decrementSendsInFlight(actionRuntime)
     }
-
-    if (runtime.value !== actionRuntime) {
-      return actionResult ?? false
-    }
-
-    const endConversationId = getActionConversationId()
-    const navigationChanged = getActionNavigationRevision() !== startNavigationRevision
-    const selfCreatedConversation =
-      startConversationId === null &&
-      synchronousConversationId !== null &&
-      endConversationId === synchronousConversationId
-
-    if (
-      navigationChanged ||
-      (startNavigationRevision === undefined && endConversationId !== startConversationId && !selfCreatedConversation)
-    ) {
-      invalidateDraftForNavigation()
-    }
-
-    return actionResult ?? false
   }
 
   const input = useChatDraft({
     allowEmptyText: true,
-    send,
+    send: (payload) => prepareSend()(payload),
+    prepareSend,
   })
 
   function invalidateDraftForNavigation() {
@@ -134,8 +94,14 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       if (
         conversationNavigationRevision.value === undefined &&
         nextId !== previousId &&
-        getSendsInFlight(runtime.value) === 0
+        runtime.value.conversationNavigationRevision === undefined
       ) {
+        const creationSnapshot =
+          nextId === null ? undefined : [...emptyConversationSendSnapshots].find((snapshot) => !snapshot.has(nextId))
+        if (previousId === null && nextId !== null && creationSnapshot) {
+          emptyConversationSendSnapshots.delete(creationSnapshot)
+          return
+        }
         invalidateDraftForNavigation()
       }
     },
@@ -171,11 +137,15 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       ? {
           options: model.options.value,
           selectedId: model.selectedId.value,
-          features: model.features.value,
-          reasoning: model.reasoning?.value,
+          featureValues: model.featureValues?.value,
+          renderTriggerText: model.renderTriggerText,
+          featureValuesDisabled: !model.setFeatureValue,
+          pendingFeatureKeys: getChatModelFields(
+            model.options.value.find((option) => option.id === model.selectedId.value),
+          )
+            .filter((field) => pendingModelFields.get(runtime.value)?.has(field.key))
+            .map((field) => field.key),
           selecting: pendingModelSelecting.value,
-          reasoningSelecting: pendingModelReasoningEffort.value,
-          pendingFeatureIds: [...pendingModelFeatureIds.value],
         }
       : undefined
     const mcpView: ChatMcpView | undefined = mcp
@@ -198,7 +168,9 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       },
       bubble: { messages: active?.messages ?? [] },
       sender: {
-        loading: active?.requestState === 'processing',
+        loading:
+          active?.requestState === 'processing' ||
+          (active?.requestState === 'paused' && typeof runtime.value.actions.abort === 'function'),
         disabled: Boolean(runtime.value.composer.disabled?.value),
         submitDisabled: Boolean(runtime.value.composer.submitDisabled?.value),
       },
@@ -305,26 +277,25 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
-  async function setModelFeature(id: ChatBuiltInModelFeature, enabled: boolean) {
-    const model = runtime.value.composer.model
-    if (!model || model.features.value[id] === enabled) return
-    await withPending(pendingModelFeatureIds, id, () =>
-      runAction('set-model-feature', { featureId: id, enabled }, () => model.setFeature(id, enabled)),
-    )
-  }
-
-  async function setModelReasoningEffort(effort: string | null) {
+  async function setModelFeatureValue(change: ChatModelFeatureValueUpdate) {
     const actionRuntime = runtime.value
     const model = actionRuntime.composer.model
-    if (!model || pendingModelReasoningEffort.value || model.reasoning?.value.effort === effort) return
-
-    pendingModelReasoningEffort.value = true
+    const option = model?.options.value.find((item) => item.id === change.modelId)
+    const field = getChatModelFields(option).find((item) => item.key === change.key)
+    if (!model?.setFeatureValue || !option || option.disabled || !field || !canSetModelFieldValue(field, change.value))
+      return
+    if (model.selectedId.value === change.modelId && getChatModelFeatureValues(model)[change.key] === change.value)
+      return
+    const pending = pendingModelFields.get(actionRuntime)
+    if (pending?.has(change.key)) return
+    pendingModelFields.set(actionRuntime, new Set(pending).add(change.key))
     try {
-      await runAction('set-model-reasoning-effort', { effort }, () => model.setReasoningEffort(effort))
+      await runAction('set-model-feature-value', change, () => model.setFeatureValue!({ ...change }))
     } finally {
-      if (runtime.value === actionRuntime) {
-        pendingModelReasoningEffort.value = false
-      }
+      const remaining = new Set(pendingModelFields.get(actionRuntime))
+      remaining.delete(change.key)
+      if (remaining.size) pendingModelFields.set(actionRuntime, remaining)
+      else pendingModelFields.delete(actionRuntime)
     }
   }
 
@@ -366,9 +337,33 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
+  async function abort() {
+    const actionRuntime = runtime.value
+    const conversationId = actionRuntime.activeConversation.value?.id ?? null
+    const pending = pendingAborts.get(actionRuntime) ?? new Set<string | null>()
+    if (!actionRuntime.actions.abort || pending.has(conversationId)) return
+
+    pending.add(conversationId)
+    pendingAborts.set(actionRuntime, pending)
+    try {
+      await runAction('abort', undefined, () => actionRuntime.actions.abort?.())
+    } finally {
+      pending.delete(conversationId)
+    }
+  }
+
   async function clearActiveConversation() {
+    const actionRuntime = runtime.value
     input.invalidate()
-    await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+
+    try {
+      await actionRuntime.actions.clearActiveConversation()
+      if (runtime.value === actionRuntime) {
+        invalidateDraftForNavigation()
+      }
+    } catch (error) {
+      options.onActionError({ action: 'clear-active-conversation', payload: undefined, error })
+    }
   }
 
   async function createConversation() {
@@ -394,8 +389,9 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     data,
     inputValue: input.inputValue,
     setInputValue: input.setInputValue,
+    setModelFeatureValue,
     send: (payload: ChatSendPayload) => input.send(payload),
-    abort: () => runAction('abort', undefined, () => runtime.value.actions.abort?.()),
+    abort,
     clearActiveConversation,
     createConversation,
     switchConversation,
@@ -405,8 +401,6 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       ),
     deleteConversation,
     selectModel,
-    setModelFeature,
-    setModelReasoningEffort,
     addMcpServer,
     removeMcpServer,
     setMcpServerEnabled,

@@ -60,9 +60,21 @@ Bubble 用于展示单条消息或消息列表，适合聊天、AI 流式回复�
 
 Bubble 提供 `BubbleRenderers.Markdown` 渲染器。使用前需要在应用中安装 `markdown-it` 和 `dompurify`；单个 Bubble 可以通过 `fallback-content-renderer` 配置，列表或组件树则推荐由 `BubbleProvider` 统一配置。
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm add markdown-it dompurify
 ```
+
+```bash [yarn]
+yarn add markdown-it dompurify
+```
+
+```bash [npm]
+npm install markdown-it dompurify
+```
+
+:::
 
 <demo vue="../../demos/bubble/markdown.vue" title="Markdown 内容" description="配置 Markdown 渲染器展示格式化文本。" />
 
@@ -160,7 +172,7 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 
 #### useAutoScroll
 
-`useAutoScroll` 是 BubbleList 内部使用的公开组合式函数。新代码推荐使用对象参数，并分别传入滚动容器和承载全部内容的内部元素：
+`useAutoScroll` 用于在内容增长时自动跟随到底部，向上浏览时暂停跟随。分别传入滚动容器和承载全部内容的元素：
 
 ```ts
 import { useAutoScroll } from '@opentiny/tiny-robot'
@@ -191,7 +203,8 @@ const { scrollToBottom, arrivedState } = useAutoScroll({
 
 | 返回值           | 类型                                           | 说明                                    |
 | ---------------- | ---------------------------------------------- | --------------------------------------- |
-| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部；不受 `enabled` 限制。 |
+| `pause`          | `() => void`                                  | 暂停自动跟随，适用于跳转到指定消息。 |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部并恢复跟随；不受 `enabled` 限制。 |
 | `arrivedState`   | `UseScrollReturn['arrivedState']`              | 当前是否到达各滚动边界的响应式状态。    |
 
 旧的位置参数签名仍为兼容性保留，但已弃用：
@@ -305,6 +318,8 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 <demo vue="../../demos/bubble/reasoning.vue" title="推理内容渲染器" description="使用内置 Reasoning 渲染器展示可展开的推理内容。" />
 
 <demo vue="../../demos/bubble/tools.vue" title="工具调用渲染器" description="使用内置 Tool 与 Tools 渲染器展示工具调用状态和结果。" />
+
+工具描述超过一行时会自动截断，鼠标悬停在描述上可以通过原生提示查看完整内容。
 
 #### 实现自定义渲染器
 
@@ -832,6 +847,7 @@ type BubbleMessageGroup = {
 | -------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | `--tr-bubble-box-bg`                   | Box 背景色                                                    | `var(--tr-container-bg-default)`                    |
 | `--tr-bubble-box-padding`              | Box 内边距                                                    | `8px 16px`                                          |
+| `--tr-bubble-box-content-gap`          | 默认 Box 内相邻内容块的垂直间距                               | `8px`                                               |
 | `--tr-bubble-box-border-radius`        | `shape="none"` 等场景使用的基础圆角                           | `0`                                                 |
 | `--tr-bubble-box-shadow`               | Box 阴影                                                      | `var(--tr-shadow-md)`                               |
 | `--tr-bubble-box-border`               | Box 边框                                                      | `none`                                              |
@@ -877,7 +893,7 @@ type BubbleMessageGroup = {
 | ---------------------------------- | ---------------------- | ---------------------------------- |
 | `--tr-bubble-tool-call-bg`         | 工具调用背景色         | `var(--tr-container-bg-default-2)` |
 | `--tr-bubble-tool-call-space-y`    | 工具调用之间的垂直间距 | `8px`                              |
-| `--tr-bubble-tool-call-min-width`  | 工具调用最小宽度       | `unset`                            |
+| `--tr-bubble-tool-call-min-width`  | 工具调用最小宽度       | `280px`                           |
 | `--tr-bubble-tool-call-max-width`  | 工具调用最大宽度       | `unset`                            |
 | `--tr-bubble-tool-call-max-height` | 工具调用详情最大高度   | `300px`                            |
 | `--tr-bubble-tool-key-color`       | JSON 键名颜色          | 浅色 `#922`；深色 `#ff6b6b`        |
@@ -903,6 +919,6 @@ type BubbleMessageGroup = {
 
 ## 迁移与弃用
 
-Bubble v0.4 重构了消息结构与渲染器体系。从 v0.3.x 升级时，请按照 [Bubble 迁移指南](../migration/bubble-migration) 调整消息数据、渲染器和事件接入方式；新项目直接使用本文 API。
+Bubble v0.4 重构了消息结构与渲染器体系。从 v0.3.x 升级时，请按照 [Bubble 迁移指南](../migration/v0.4/bubble) 调整消息数据、渲染器和事件接入方式；新项目直接使用本文 API。
 
 `BubbleMessageGroup.startIndex` 已弃用。自定义分组可能产生不连续消息，应用应使用 `messageIndexes` 将组内索引映射回原始消息索引。

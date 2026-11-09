@@ -9,6 +9,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { ZERO_WIDTH_CHAR } from '../utils'
 import { NODE_TYPE_NAMES, PLUGIN_KEY_NAMES } from '../../constants'
 import { isAnyKey, isKey } from '../../utils'
+import { hasCompositionTransaction, isImeKeyEvent } from '../../ime'
 
 /**
  * Template Select 下拉菜单状态
@@ -82,6 +83,9 @@ export function selectZeroWidthPlugin() {
     key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_SELECT_ZERO_WIDTH),
 
     appendTransaction(transactions: readonly Transaction[], _oldState: EditorState, newState: EditorState) {
+      // 组合期间修正文档会打断输入法维护的文本范围。
+      if (hasCompositionTransaction(transactions)) return null
+
       // 只在内容发生变化时修正
       const docChanged = transactions.some((tr) => tr.docChanged)
       if (!docChanged) return null
@@ -121,6 +125,8 @@ export function selectKeyboardPlugin() {
 
     props: {
       handleKeyDown(view: EditorView, event: KeyboardEvent) {
+        if (isImeKeyEvent(event, view)) return false
+
         const { state, dispatch } = view
         const { selection } = state
         const { $from } = selection
@@ -183,7 +189,12 @@ export function selectKeyboardPlugin() {
 
           // 场景4：光标在段落末尾（afterNode 为 null），前面是普通文本
           // 这种情况通常发生在删除了段落末尾的 templateSelect 之后
-          if (!afterNode && beforeNode?.isText && beforeNode.text !== ZERO_WIDTH_CHAR) {
+          if (
+            $from.parent.type.name === NODE_TYPE_NAMES.PARAGRAPH &&
+            !afterNode &&
+            beforeNode?.isText &&
+            beforeNode.text !== ZERO_WIDTH_CHAR
+          ) {
             dispatch(state.tr.delete($from.pos - 1, $from.pos))
             event.preventDefault()
             return true
@@ -238,7 +249,12 @@ export function selectKeyboardPlugin() {
 
           // 场景4：光标在段落开头（beforeNode 为 null），后面是普通文本
           // 这种情况通常发生在删除了段落开头的 templateSelect 之后
-          if (!beforeNode && afterNode?.isText && afterNode.text !== ZERO_WIDTH_CHAR) {
+          if (
+            $from.parent.type.name === NODE_TYPE_NAMES.PARAGRAPH &&
+            !beforeNode &&
+            afterNode?.isText &&
+            afterNode.text !== ZERO_WIDTH_CHAR
+          ) {
             dispatch(state.tr.delete($from.pos, $from.pos + 1))
             event.preventDefault()
             return true

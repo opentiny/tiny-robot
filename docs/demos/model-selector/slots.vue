@@ -6,19 +6,20 @@ const model = shallowRef<string | null>('general-pro')
 
 const models = [
   {
-    value: 'general-pro',
+    id: 'general-pro',
     label: '通用模型 Pro',
     description: '适合问答、写作和代码生成',
     group: '推荐',
+    features: [{ key: 'search', label: '联网搜索', type: 'switch' }],
   },
   {
-    value: 'reasoning-pro',
+    id: 'reasoning-pro',
     label: '推理模型 Pro',
     description: '适合数学和复杂分析',
     group: '推荐',
   },
   {
-    value: 'lightweight-model',
+    id: 'lightweight-model',
     label: '轻量模型',
     description: '低延迟，适合高频交互',
     group: '其他',

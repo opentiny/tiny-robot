@@ -1,8 +1,10 @@
 import type { ChatStructuredData } from './base'
+import type { SenderExternalPayload } from '@opentiny/tiny-robot'
 
 export interface ChatSendPayload {
   readonly text: string
   readonly structuredData?: ChatStructuredData
+  readonly externalPayloads?: readonly SenderExternalPayload[]
 }
 
 export interface ChatRuntimeActionErrorPayload {
@@ -15,8 +17,7 @@ export interface ChatRuntimeActionErrorPayload {
     | 'rename-conversation'
     | 'delete-conversation'
     | 'select-model'
-    | 'set-model-feature'
-    | 'set-model-reasoning-effort'
+    | 'set-model-feature-value'
     | 'add-mcp-server'
     | 'remove-mcp-server'
     | 'set-mcp-server-enabled'

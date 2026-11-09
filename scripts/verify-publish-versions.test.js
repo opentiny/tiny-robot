@@ -17,13 +17,17 @@ const packagePaths = {
   '@opentiny/tiny-robot-svgs': 'packages/svgs/package.json',
 }
 
-function createFixture(versions) {
+function createFixture(versions, kitPeer = versions['@opentiny/tiny-robot']) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tiny-robot-publish-versions-'))
 
   for (const [name, relativePath] of Object.entries(packagePaths)) {
     const packageFile = path.join(root, relativePath)
+    const packageJson = { name, version: versions[name] }
+    if (name === '@opentiny/tiny-robot') {
+      packageJson.peerDependencies = { '@opentiny/tiny-robot-kit': kitPeer }
+    }
     fs.mkdirSync(path.dirname(packageFile), { recursive: true })
-    fs.writeFileSync(packageFile, `${JSON.stringify({ name, version: versions[name] }, null, 2)}\n`)
+    fs.writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`)
   }
 
   return root
@@ -47,7 +51,7 @@ test('publish verification accepts synchronized prerelease packages on their cha
 })
 
 test('publish verification accepts synchronized stable packages on latest', () => {
-  const root = createFixture(synchronizedVersions('0.5.3'))
+  const root = createFixture(synchronizedVersions('0.5.3'), '^0.5.3')
 
   try {
     assert.deepEqual(verifyPublishVersions({ rootDir: root, distTag: 'latest' }), {
@@ -76,10 +80,7 @@ test('publish verification rejects a numeric prerelease channel unusable by npm'
   const root = createFixture(synchronizedVersions('1.2.3-0'))
 
   try {
-    assert.throws(
-      () => verifyPublishVersions({ rootDir: root, distTag: '0' }),
-      /unusable npm dist-tag.*0/i,
-    )
+    assert.throws(() => verifyPublishVersions({ rootDir: root, distTag: '0' }), /unusable npm dist-tag.*0/i)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -123,10 +124,97 @@ test('publish verification rejects a dist-tag that does not match the package ve
   }
 })
 
+test('publish verification rejects workspace protocols before publication', () => {
+  const root = createFixture(synchronizedVersions('1.0.0-rc.3'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.peerDependencies = { '@opentiny/tiny-robot-kit': 'workspace:^' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'rc' }),
+      /@opentiny\/tiny-robot.*peerDependencies.*@opentiny\/tiny-robot-kit.*workspace:\^/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects a caret range for a prerelease runtime peer', () => {
+  const root = createFixture(synchronizedVersions('1.0.0-rc.3'))
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.peerDependencies = { '@opentiny/tiny-robot-kit': '^1.0.0-rc.3' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'rc' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-kit.*\^1\.0\.0-rc\.3.*expected 1\.0\.0-rc\.3/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects a workspace dependency declared in multiple published sections', () => {
+  const root = createFixture(synchronizedVersions('1.0.0'), '^1.0.0')
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.dependencies = { '@opentiny/tiny-robot-svgs': 'workspace:*' }
+  component.optionalDependencies = { '@opentiny/tiny-robot-svgs': 'workspace:*' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'latest' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-svgs.*dependencies.*optionalDependencies/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects a dev dependency that shadows an optional workspace dependency', () => {
+  const root = createFixture(synchronizedVersions('1.0.0'), '^1.0.0')
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.devDependencies = { '@opentiny/tiny-robot-svgs': '1.0.0' }
+  component.optionalDependencies = { '@opentiny/tiny-robot-svgs': 'workspace:*' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'latest' }),
+      /@opentiny\/tiny-robot.*optionalDependencies.*@opentiny\/tiny-robot-svgs.*devDependencies/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects an internal dependency range that excludes the published version', () => {
+  const root = createFixture(synchronizedVersions('1.0.0'), '^1.0.0')
+  const componentFile = path.join(root, packagePaths['@opentiny/tiny-robot'])
+  const component = JSON.parse(fs.readFileSync(componentFile, 'utf8'))
+  component.dependencies = { '@opentiny/tiny-robot-svgs': '^2.0.0' }
+  fs.writeFileSync(componentFile, `${JSON.stringify(component, null, 2)}\n`)
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'latest' }),
+      /@opentiny\/tiny-robot.*@opentiny\/tiny-robot-svgs.*\^2\.0\.0.*1\.0\.0/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('publish verifier CLI fails before publication when package versions diverge', () => {
   const versions = synchronizedVersions('0.5.3')
   versions['@opentiny/tiny-robot-chat'] = '0.5.2'
-  const root = createFixture(versions)
+  const root = createFixture(versions, '^0.5.3')
 
   try {
     const result = spawnSync(process.execPath, [verifierFile, '--dist-tag', 'latest'], {

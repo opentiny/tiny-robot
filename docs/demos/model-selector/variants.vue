@@ -2,8 +2,8 @@
 import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
 
 const models = [
-  { value: 'general-model', label: '通用模型' },
-  { value: 'reasoning-model', label: '推理模型' },
+  { id: 'general-model', label: '通用模型' },
+  { id: 'reasoning-model', label: '推理模型' },
 ] satisfies readonly ModelSelectorOption[]
 
 const sizes = [

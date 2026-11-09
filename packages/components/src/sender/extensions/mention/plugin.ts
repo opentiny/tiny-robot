@@ -17,6 +17,7 @@ import { VueRenderer } from '@tiptap/vue-3'
 import type { Editor } from '@tiptap/core'
 import { isRef } from 'vue'
 import type { Ref } from 'vue'
+import { mountSenderPopup, observeLayoutMode } from '../../../shared/overlayHost'
 import MentionList from './components/mention-list.vue'
 import { findTextRange, generateId, isKey, isAnyKey } from '../utils'
 import type { MentionItem, MentionSuggestionState } from './types'
@@ -65,6 +66,29 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   let component: VueRenderer | null = null
   let popup: HTMLElement | null = null
   let cleanup: (() => void) | null = null
+  let stopObservingLayoutMode: (() => void) | null = null
+
+  function positionPopup(view: EditorView): void {
+    const referenceElement = view.dom.querySelector('.mention-trigger')
+
+    if (!referenceElement || !popup) return
+
+    mountSenderPopup(popup, referenceElement)
+    cleanup?.()
+    cleanup = autoUpdate(referenceElement, popup, () => {
+      computePosition(referenceElement, popup!, {
+        placement: 'bottom-start',
+        middleware: [offset(8), flip(), shift({ padding: 8 })],
+      }).then((result: { x: number; y: number }) => {
+        if (!popup) return
+
+        Object.assign(popup.style, {
+          left: `${result.x}px`,
+          top: `${result.y}px`,
+        })
+      })
+    })
+  }
 
   return new Plugin({
     key: MentionPluginKey,
@@ -264,7 +288,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               popup = component.element as HTMLElement
               popup.style.position = 'absolute'
               popup.style.zIndex = '1000'
-              document.body.appendChild(popup)
+              mountSenderPopup(popup, view.dom)
+              stopObservingLayoutMode = observeLayoutMode(view.dom, () => positionPopup(view))
             } else {
               // 更新 props
               component.updateProps({
@@ -272,30 +297,12 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               })
             }
 
-            // 使用 floating-ui 定位
-            const referenceElement = view.dom.querySelector('.mention-trigger')
-            if (referenceElement && popup) {
-              // 清理旧的自动更新
-              cleanup?.()
-
-              // 设置自动更新
-              cleanup = autoUpdate(referenceElement, popup, () => {
-                computePosition(referenceElement, popup!, {
-                  placement: 'bottom-start',
-                  middleware: [offset(8), flip(), shift({ padding: 8 })],
-                }).then((result: { x: number; y: number }) => {
-                  if (popup) {
-                    Object.assign(popup.style, {
-                      left: `${result.x}px`,
-                      top: `${result.y}px`,
-                    })
-                  }
-                })
-              })
-            }
+            positionPopup(view)
           } else {
             // 销毁弹窗
             if (component) {
+              stopObservingLayoutMode?.()
+              stopObservingLayoutMode = null
               cleanup?.()
               cleanup = null
               component.destroy()
@@ -309,6 +316,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         },
 
         destroy() {
+          stopObservingLayoutMode?.()
           cleanup?.()
           component?.destroy()
           popup?.remove()

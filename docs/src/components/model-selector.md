@@ -4,17 +4,17 @@ outline: [1, 3]
 
 # ModelSelector 模型选择器
 
-ModelSelector 用于从一组 AI 模型中选择当前模型。组件内置搜索、分组、禁用状态、思考强度、浮层定位和键盘操作，也支持通过插槽定制触发器与选项面板。
+ModelSelector 用于选择 AI 模型，并根据 `features` 展示开关和选项。组件支持搜索、分组、禁用状态、浮层定位、键盘操作和自定义插槽。
 
 适合聊天输入区、模型配置表单或工作流工具栏等场景。模型目录、Provider 路由、价格、上下文长度和请求参数属于应用层业务逻辑。
 
 ::: tip 组件边界
-ModelSelector 只展示传入的 `models` 并通知选择结果。它不会请求模型列表、判断模型能力，也不会把思考强度转换为 Provider 请求参数。
+应用提供模型列表和每个模型支持的设置项。ModelSelector 展示这些设置，并在用户操作时通知应用。应用可以根据所选模型和设置值生成请求参数。
 :::
 
 ## 基础用法
 
-`models` 提供候选模型，`v-model` 绑定当前模型。每个模型最少包含唯一的 `value` 和用于展示的 `label`。
+`models` 提供候选模型，`v-model` 绑定当前模型。每个模型最少包含唯一的 `id` 和用于展示的 `label`。
 
 <demo vue="../../demos/model-selector/basic.vue" title="基础用法" description="models 与 v-model 的基础选择。" />
 
@@ -22,15 +22,15 @@ ModelSelector 只展示传入的 `models` 并通知选择结果。它不会请�
 
 模型选项仅承载界面所需字段。价格、密钥和 Provider 参数等数据属于请求层业务逻辑。
 
-| 字段               | 必需 | 说明                         |
-| ------------------ | ---- | ---------------------------- |
-| `value`            | 是   | 模型的稳定且唯一的标识       |
-| `label`            | 是   | 模型名称                     |
-| `description`      | 否   | 模型能力、适用场景等辅助说明 |
-| `icon`             | 否   | Vue 组件或图片 URL           |
-| `disabled`         | 否   | 是否保留展示但禁止选择       |
-| `group`            | 否   | 分组标识和分组标题           |
-| `reasoningEfforts` | 否   | 当前模型支持的思考强度       |
+| 字段          | 必需 | 说明                                       |
+| ------------- | ---- | ------------------------------------------ |
+| `id`          | 是   | 模型的稳定且唯一的标识                     |
+| `label`       | 是   | 模型名称                                   |
+| `description` | 否   | 模型能力、适用场景等辅助说明               |
+| `icon`        | 否   | Vue 组件或图片 URL                         |
+| `disabled`    | 否   | 是否保留展示但禁止选择                     |
+| `group`       | 否   | 分组标识和分组标题                         |
+| `features`    | 否   | 当前模型的开关和选择字段；空数组不展示字段 |
 
 面板会根据选项内容收缩或展开，至少与触发器同宽，并受视口可用宽度限制。名称和描述所在文字列的默认最大宽度为 320px；面板打开期间可随更宽内容增长，不会因搜索过滤而收缩。
 
@@ -40,7 +40,7 @@ ModelSelector 只展示传入的 `models` 并通知选择结果。它不会请�
 
 <demo vue="../../demos/model-selector/search-and-group.vue" title="搜索与分组" description="名称、描述、分组搜索与禁用状态。" />
 
-默认搜索不区分大小写，会匹配 `label`、`value`、`description` 和 `group`。未设置 `group` 的选项进入无标题分组。
+默认搜索不区分大小写，会匹配 `label`、`id`、`description` 和 `group`。未设置 `group` 的选项进入无标题分组。
 
 `filterMethod(query, option)` 可承载拼音、标签或其他业务搜索规则，并会完全替代内置搜索逻辑。
 
@@ -52,23 +52,13 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 }
 ```
 
-## 思考强度
+## 模型特性字段
 
-`reasoningEfforts` 描述模型支持的思考强度，组件会在面板底部显示对应选项。`v-model:reasoning-effort` 绑定当前值。
+通过 `models[].features` 声明模型支持的设置，例如思考强度或联网搜索。切换模型时，相同 `key` 的设置会沿用新模型支持的值。
 
-<demo vue="../../demos/model-selector/reasoning-effort.vue" title="思考强度" description="内置选项、自定义选项与不支持思考强度的模型。" />
+<demo vue="../../demos/model-selector/reasoning-effort.vue" title="模型特性字段" description="切换模型或修改设置，查看当前模型的设置值（featureValues）。" />
 
-示例设置了 `:close-on-select="false"`，切换模型后面板保持打开，可继续选择思考强度。该属性只控制模型选择后的关闭行为，不会根据模型是否支持思考强度做隐式判断。
-
-- `true` 对应内置的 `Low`、`Medium`、`High`。
-- 选项数组支持自定义 `value`、`label` 和 `disabled`。
-- `false`、`undefined` 或空数组表示不显示思考强度。
-
-思考强度是独立状态。切换到不支持当前值的模型时，组件会保留该值，但不会在触发器或面板中显示为有效选项；切回支持它的模型后会恢复显示。组件不会自行清空业务状态。
-
-::: tip 切换模型时不会重置
-不同模型具有不同默认思考强度的场景，可由消费层监听模型变化并更新 `reasoningEffort`。
-:::
+由应用将设置值转换为请求参数。[查看 DeepSeek 和百炼 Qwen3.7 的映射示例](../suites/chat-runtime#模型功能)
 
 ## 尺寸与外观
 
@@ -80,9 +70,15 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 插槽只替换显示内容，选择、搜索、键盘操作和浮层定位仍由组件处理。
 
+### 自定义触发器文本
+
+用 `renderTriggerText({ model, featureValues })` 自定义按钮文字。返回的文字也用作悬浮提示和无障碍名称。
+
+<demo vue="../../demos/model-selector/trigger-text.vue" title="自定义触发器文本" description="打开「联网搜索」，按钮文字会变为「通用模型 · 联网」。" />
+
 ### 自定义触发器
 
-`trigger` 插槽用于调整按钮内容，并提供当前选项、展示文本、展开状态和当前模型支持的思考强度。
+`trigger` 插槽提供当前模型、模型名称、展开状态、有效设置值和 `text`。自定义按钮内容时，可以用 `text` 显示文字，让它与按钮的悬浮提示和无障碍名称一致。
 
 <demo vue="../../demos/model-selector/icon-trigger.vue" title="自定义触发器" description="模型标识、展开箭头与窄屏表现的定制效果。" />
 
@@ -96,7 +92,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 `item` 位于 `role="option"` 内，适合非交互内容。`header` 和 `footer` 支持按钮、链接或表单控件；作用域中的 `close()` 用于关闭面板。
 
-`footer` 插槽会完整替换默认的思考强度区域。自定义 Footer 可通过 `reasoningEfforts`、`reasoningEffortOption` 和 `setReasoningEffort()` 保留思考强度选择能力。
+`footer` 完整替换默认字段区，提供 `option`、`values`、`setFeatureValue(key, value)`、`disabled` 和 `close()`。字段区位于模型列表之外。
 
 ## 控制选中值与面板开关
 
@@ -104,15 +100,10 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 ### 初始状态
 
-`defaultValue`、`defaultReasoningEffort` 和 `defaultOpen` 只在初始化时使用。后续交互由组件维护内部状态。
+`defaultValue` 和 `defaultOpen` 只在初始化时使用。后续交互由组件维护内部状态。
 
 ```vue
-<TrModelSelector
-  :models="models"
-  default-value="general-model"
-  default-reasoning-effort="medium"
-  :default-open="false"
-/>
+<TrModelSelector :models="models" default-value="general-model" :default-open="false" />
 ```
 
 ### 完全控制状态
@@ -134,6 +125,13 @@ const open = shallowRef(false)
 
 未传入初始值时，组件显示 `placeholder`，不会自动选择第一项。当前值不存在或对应模型被移除时，组件保留原值并显示 `placeholder`，避免模型列表异步变化时替用户选择其他模型。
 
+### 设置值
+
+切换模型后，原值不可用时采用该设置项的有效默认值。未配置有效默认值时，开关用 `false`，选择框用第一个可用选项。不支持或没有可用值的设置项会从 `featureValues` 中省略。
+
+- 由组件管理时，用 `defaultFeatureValues` 设置初始值。组件会保存用户选择和回退后的值。
+- 由应用管理时，传入 `featureValues`，再根据 `change` 事件更新。若要保留其他模型才支持的设置，将 `current.featureValues` 合并到原有设置中。
+
 ## 键盘操作与无障碍
 
 | 位置           | 按键                    | 行为                                                                |
@@ -145,7 +143,7 @@ const open = shallowRef(false)
 | 非搜索模式列表 | `Home` / `End`          | 跳到首个或末个可用项                                                |
 | 搜索框或列表   | `Enter`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定；输入法组合期间不会误选 |
 | 非搜索模式列表 | `Space`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定                         |
-| 思考强度按钮   | `Enter` / `Space`       | 选择思考强度，不关闭面板                                            |
+| 字段控件       | `Enter` / `Space`       | 修改字段值                                                          |
 
 组件使用真实按钮以及 `combobox`、`listbox`、`option` 等 ARIA 语义。它不会拦截 `Tab` 或重排焦点；面板 Teleport 后，Tab 顺序由实际 DOM 位置决定。
 
@@ -157,28 +155,28 @@ const open = shallowRef(false)
 
 #### 选中值与开关状态
 
-| 属性名                   | 类型                             | 默认值      | 说明                                             |
-| ------------------------ | -------------------------------- | ----------- | ------------------------------------------------ |
-| `models`                 | `readonly ModelSelectorOption[]` | `[]`        | 模型列表                                         |
-| `modelValue`             | `string \| null`                 | `undefined` | 受控选中值；通过 `update:modelValue` 同步        |
-| `defaultValue`           | `string \| null`                 | `null`      | 非受控初始选中值                                 |
-| `reasoningEffort`        | `string \| null`                 | `undefined` | 受控思考强度；通过 `update:reasoningEffort` 同步 |
-| `defaultReasoningEffort` | `string \| null`                 | `null`      | 非受控初始思考强度                               |
-| `open`                   | `boolean`                        | `undefined` | 受控面板开关；通过 `update:open` 同步            |
-| `defaultOpen`            | `boolean`                        | `false`     | 非受控初始面板开关                               |
-| `closeOnSelect`          | `boolean`                        | `true`      | 选择模型后是否自动关闭面板                       |
-| `disabled`               | `boolean`                        | `false`     | 禁用组件并保持面板关闭                           |
+| 属性名          | 类型                             | 默认值      | 说明                                           |
+| --------------- | -------------------------------- | ----------- | ---------------------------------------------- |
+| `models`        | `readonly ModelSelectorOption[]` | `[]`        | 模型列表                                       |
+| `featureValues` | `ModelSelectorFeatureValues` | `undefined` | 当前模型的受控功能值 |
+| `defaultFeatureValues` | `ModelSelectorFeatureValues` | `{}` | 由组件管理时的初始功能值 |
+| `modelValue`    | `string \| null`                 | `undefined` | 受控选中值；通过 `update:modelValue` 同步      |
+| `defaultValue`  | `string \| null`                 | `null`      | 非受控初始选中值                               |
+| `open`          | `boolean`                        | `undefined` | 受控面板开关；通过 `update:open` 同步          |
+| `defaultOpen`   | `boolean`                        | `false`     | 非受控初始面板开关                             |
+| `closeOnSelect` | `boolean`                        | `true`      | 选择模型后是否自动关闭面板                     |
+| `disabled`      | `boolean`                        | `false`     | 禁用组件并保持面板关闭                         |
 
 #### 搜索与文案
 
-| 属性名                 | 类型                        | 默认值           | 说明                         |
-| ---------------------- | --------------------------- | ---------------- | ---------------------------- |
-| `searchable`           | `boolean`                   | `false`          | 是否显示搜索框               |
-| `placeholder`          | `string`                    | `'选择模型'`     | 没有匹配选中项时的触发器文本 |
-| `searchPlaceholder`    | `string`                    | `'搜索模型'`     | 搜索框占位文本               |
-| `emptyText`            | `string`                    | `'暂无可用模型'` | 默认空状态文本               |
-| `filterMethod`         | `ModelSelectorFilterMethod` | 内置包含匹配     | 自定义搜索过滤函数           |
-| `reasoningEffortLabel` | `string`                    | `'Thinking'`     | 默认思考强度区域的可见标题   |
+| 属性名              | 类型                        | 默认值           | 说明                         |
+| ------------------- | --------------------------- | ---------------- | ---------------------------- |
+| `searchable`        | `boolean`                   | `false`          | 是否显示搜索框               |
+| `placeholder`       | `string`                    | `'选择模型'`     | 没有匹配选中项时的触发器文本 |
+| `searchPlaceholder` | `string`                    | `'搜索模型'`     | 搜索框占位文本               |
+| `emptyText`         | `string`                    | `'暂无可用模型'` | 默认空状态文本               |
+| `renderTriggerText` | `(context: ModelSelectorTriggerTextContext) => string` | `undefined` | 自定义触发器文字。未传入函数或返回空字符串时显示模型名称 |
+| `filterMethod`      | `ModelSelectorFilterMethod` | 内置包含匹配     | 自定义搜索过滤函数           |
 
 #### 外观与浮层
 
@@ -191,29 +189,33 @@ const open = shallowRef(false)
 | `appendTo`   | `string \| HTMLElement`   | 当前 ShadowRoot 或 `document.body` | Teleport 目标；选择器未命中时回退到默认目标 |
 | `panelClass` | `ModelSelectorPanelClass` | —                                  | 附加到面板根元素的 class                    |
 
+未设置 `appendTo` 时，floating Layout 中的选择器使用所属窗口的 overlay host；其他场景使用当前 ShadowRoot 或 `document.body`。
+
 ### Events
 
-| 事件名                    | 参数                                                   | 说明                                   |
-| ------------------------- | ------------------------------------------------------ | -------------------------------------- |
-| `update:modelValue`       | `(value: string \| null)`                              | 用户选择不同模型时请求更新选中值       |
-| `change`                  | `(option: ModelSelectorOption)`                        | 用户选择不同模型后触发，返回完整选项   |
-| `update:reasoningEffort`  | `(value: string \| null)`                              | 用户选择或清空思考强度时请求更新当前值 |
-| `reasoning-effort-change` | `(option: ModelSelectorReasoningEffortOption \| null)` | 思考强度请求变化后触发                 |
-| `update:open`             | `(open: boolean)`                                      | 请求更新面板开关                       |
+| 事件名                 | 参数                                   | 说明                                              |
+| ---------------------- | -------------------------------------- | ------------------------------------------------- |
+| `update:modelValue`    | `(value: string \| null)`              | 用户选择不同模型时请求更新选中值                  |
+| `change`               | `(current: ModelSelectorSnapshot, previous: ModelSelectorSnapshot)` | 用户切换模型或修改设置时触发，参数依次对应操作后和操作前的选择 |
+| `update:open`          | `(open: boolean)`                      | 请求更新面板开关                                  |
 
-事件只响应用户交互，初始化、外部赋值和更新 `models` 不会触发 `change`。选择不同模型时依次触发 `update:modelValue` 和 `change`；`closeOnSelect` 为 `true` 时随后触发 `update:open(false)` 并关闭面板，为 `false` 时面板保持打开。选择思考强度时依次触发 `update:reasoningEffort` 和 `reasoning-effort-change`，并保持面板打开。
+`change` 的第一个参数 `current` 对应操作后的选择，第二个参数 `previous` 对应操作前的选择。两者都包含模型 ID（`modelId`）和对应模型的有效设置值（`featureValues`）。
+
+初始化、应用直接赋值或更新 `models` 时，组件不会触发 `change`。用户切换模型时，组件先触发 `update:modelValue`，再触发 `change`。如果 `closeOnSelect` 为 `true`，组件随后通过 `update:open(false)` 请求关闭面板。只修改设置值时，组件触发 `change`。
+
+由应用控制选中模型或设置值时，`current` 表示本次操作请求采用的选择，界面以应用传入的值为准。
 
 ### Slots
 
-| 插槽名    | 作用域参数                                                                              | 说明                     |
-| --------- | --------------------------------------------------------------------------------------- | ------------------------ |
-| `trigger` | `{ option, label, open, reasoningEffortOption }`                                        | 替换触发器按钮内容       |
-| `item`    | `{ option, selected, highlighted }`                                                     | 自定义模型项内容         |
-| `empty`   | `{ query }`                                                                             | 自定义空状态             |
-| `header`  | `{ option, query, close }`                                                              | 自定义面板头部           |
-| `footer`  | `{ option, query, close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }` | 完整替换默认思考强度区域 |
+| 插槽名    | 作用域参数                                                    | 说明               |
+| --------- | ------------------------------------------------------------- | ------------------ |
+| `trigger` | `{ option, label, open, featureValues, text }`                    | 替换触发器按钮内容 |
+| `item`    | `{ option, selected, highlighted }`                           | 自定义模型项内容   |
+| `empty`   | `{ query }`                                                   | 自定义空状态       |
+| `header`  | `{ option, query, close }`                                    | 自定义面板头部     |
+| `footer`  | `{ option, query, close, values, disabled, setFeatureValue }` | 完整替换默认字段区 |
 
-`close()` 关闭面板并恢复触发器焦点。使用受控 `open` 时，消费层需要同步更新值。`reasoningEffortOption` 只返回当前模型真正支持的选项；已保存但不受支持的值会解析为 `null`。
+`close()` 关闭面板并恢复触发器焦点。使用受控 `open` 时，消费层需要同步更新值。
 
 ### Types
 
@@ -227,32 +229,55 @@ export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
-export interface ModelSelectorReasoningEffortOption {
-  readonly value: string
-  readonly label: string
-  readonly disabled?: boolean
+export type ModelSelectorFeatureValue = boolean | string
+export type ModelSelectorFeatureValues = Readonly<Partial<Record<string, ModelSelectorFeatureValue>>>
+export interface ModelSelectorFieldBase {
+  key: string
+  label: string
+  disabled?: boolean
+}
+export type ModelSelectorField = ModelSelectorFieldBase &
+  (
+    | { type: 'switch'; defaultValue?: boolean }
+    | {
+        type: 'select'
+        defaultValue?: string
+        options: readonly {
+          value: string
+          label: string
+          disabled?: boolean
+        }[]
+      }
+  )
+export interface ModelSelectorSnapshot {
+  modelId: string | null
+  featureValues: ModelSelectorFeatureValues
 }
 
-export type ModelSelectorReasoningEfforts = boolean | readonly ModelSelectorReasoningEffortOption[]
-
 export interface ModelSelectorOption {
-  value: string
+  id: string
   label: string
   description?: string
   icon?: Component | string
   disabled?: boolean
   group?: string
-  reasoningEfforts?: ModelSelectorReasoningEfforts
+  features?: readonly ModelSelectorField[]
 }
 
 export type ModelSelectorFilterMethod = (query: string, option: ModelSelectorOption) => boolean
 
+export interface ModelSelectorTriggerTextContext {
+  model: ModelSelectorOption
+  featureValues: ModelSelectorFeatureValues
+}
+
 export interface ModelSelectorProps {
   models?: readonly ModelSelectorOption[]
+  featureValues?: ModelSelectorFeatureValues
+  defaultFeatureValues?: ModelSelectorFeatureValues
+  renderTriggerText?: (context: ModelSelectorTriggerTextContext) => string
   modelValue?: string | null
   defaultValue?: string | null
-  reasoningEffort?: string | null
-  defaultReasoningEffort?: string | null
   open?: boolean
   defaultOpen?: boolean
   closeOnSelect?: boolean
@@ -268,14 +293,14 @@ export interface ModelSelectorProps {
   offset?: number
   appendTo?: string | HTMLElement
   panelClass?: ModelSelectorPanelClass
-  reasoningEffortLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
+  featureValues: ModelSelectorFeatureValues
+  text: string
 }
 
 export interface ModelSelectorItemSlotProps {
@@ -295,9 +320,9 @@ export interface ModelSelectorSlotProps {
 }
 
 export interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
-  reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
-  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
-  setReasoningEffort: (value: string | null) => void
+  values: ModelSelectorFeatureValues
+  disabled: boolean
+  setFeatureValue: (key: string, value: ModelSelectorFeatureValue) => void
 }
 
 export interface ModelSelectorSlots {
@@ -310,9 +335,7 @@ export interface ModelSelectorSlots {
 
 export interface ModelSelectorEmits {
   (event: 'update:modelValue', value: string | null): void
-  (event: 'change', option: ModelSelectorOption): void
-  (event: 'update:reasoningEffort', value: string | null): void
-  (event: 'reasoning-effort-change', option: ModelSelectorReasoningEffortOption | null): void
+  (event: 'change', current: ModelSelectorSnapshot, previous: ModelSelectorSnapshot): void
   (event: 'update:open', open: boolean): void
 }
 ```
@@ -325,7 +348,6 @@ export interface ModelSelectorEmits {
 | -------------------------------------------------- | -------------------------------------------------------------- | ------------------------------ |
 | `--tr-model-selector-trigger-text-color`           | `var(--tr-text-primary)`                                       | 触发器文本颜色                 |
 | `--tr-model-selector-trigger-icon-color`           | `var(--tr-text-secondary)`                                     | 触发器图标与箭头颜色           |
-| `--tr-model-selector-trigger-effort-color`         | `var(--tr-text-tertiary)`                                      | 触发器思考强度文本颜色         |
 | `--tr-model-selector-trigger-outline-bg`           | `var(--tr-container-bg-default)`                               | outline 背景                   |
 | `--tr-model-selector-trigger-outline-border`       | `var(--tr-border-color-default)`                               | outline 边框                   |
 | `--tr-model-selector-trigger-ghost-bg`             | `transparent`                                                  | ghost 背景                     |
@@ -348,12 +370,12 @@ export interface ModelSelectorEmits {
 | `--tr-model-selector-group-title-color`            | `var(--tr-text-tertiary)`                                      | 分组标题颜色                   |
 | `--tr-model-selector-empty-color`                  | `var(--tr-text-secondary)`                                     | 空状态颜色                     |
 | `--tr-model-selector-scrollbar-color`              | `var(--tr-dropdown-menu-scrollbar-thumb-color)`                | 列表滚动条颜色                 |
-| `--tr-model-selector-effort-label-color`           | `var(--tr-text-secondary)`                                     | 思考强度标题颜色               |
-| `--tr-model-selector-effort-option-color`          | `var(--tr-text-secondary)`                                     | 思考强度选项文字颜色           |
-| `--tr-model-selector-effort-option-border`         | `var(--tr-border-color-default)`                               | 思考强度选项边框               |
-| `--tr-model-selector-effort-option-bg`             | `transparent`                                                  | 思考强度选项背景               |
-| `--tr-model-selector-effort-option-hover-bg`       | `var(--tr-container-bg-hover)`                                 | 思考强度选项 hover 背景        |
-| `--tr-model-selector-effort-option-active-color`   | `var(--tr-color-primary)`                                      | 思考强度激活文字颜色           |
-| `--tr-model-selector-effort-option-active-border`  | `var(--tr-color-primary)`                                      | 思考强度激活边框               |
-| `--tr-model-selector-effort-option-active-bg`      | `color-mix(in srgb, var(--tr-color-primary) 12%, transparent)` | 思考强度激活背景               |
-| `--tr-model-selector-effort-option-disabled-color` | `var(--tr-text-disabled)`                                      | 思考强度禁用文字颜色           |
+| `--tr-model-selector-field-label-color`           | `var(--tr-text-secondary)`                                     | 功能字段标题颜色               |
+| `--tr-model-selector-field-option-color`          | `var(--tr-text-secondary)`                                     | 功能选项文字颜色           |
+| `--tr-model-selector-field-option-border`         | `var(--tr-border-color-default)`                               | 功能选项边框               |
+| `--tr-model-selector-field-option-bg`             | `transparent`                                                  | 功能选项背景               |
+| `--tr-model-selector-field-option-hover-bg`       | `var(--tr-container-bg-hover)`                                 | 功能选项 hover 背景        |
+| `--tr-model-selector-field-option-active-color`   | `var(--tr-color-primary)`                                      | 功能选项激活文字颜色           |
+| `--tr-model-selector-field-option-active-border`  | `var(--tr-color-primary)`                                      | 功能选项激活边框               |
+| `--tr-model-selector-field-option-active-bg`      | `color-mix(in srgb, var(--tr-color-primary) 12%, transparent)` | 功能选项激活背景               |
+| `--tr-model-selector-field-option-disabled-color` | `var(--tr-text-disabled)`                                      | 功能选项禁用文字颜色           |

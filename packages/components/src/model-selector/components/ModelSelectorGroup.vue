@@ -37,7 +37,7 @@ defineSlots<{
       v-for="option in group.items"
       :key="option.key"
       :option="option"
-      :selected="selectedValue === option.value"
+      :selected="selectedValue === option.id"
       :highlighted="highlightedKey === option.key"
       :option-id="`${optionIdPrefix}-option-${option.index}`"
       :description-id="`${optionIdPrefix}-option-${option.index}-description`"

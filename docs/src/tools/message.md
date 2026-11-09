@@ -292,4 +292,4 @@ await message.dispatchCommand(TOOL_REJECT_COMMAND, {
 
 ## 迁移与弃用
 
-本页描述当前公开 API。仍在使用 `client`、`messageState` 或旧事件入口的项目，可参考 [useMessage 迁移](../migration/use-message-migration) 进入以 `responseProvider`、请求状态和插件为核心的当前架构；迁移后请以本页 API 为准。
+本页描述当前公开 API。仍在使用 `client`、`messageState` 或旧事件入口的项目，可参考 [useMessage 迁移](../migration/v0.4/use-message) 进入以 `responseProvider`、请求状态和插件为核心的当前架构；迁移后请以本页 API 为准。

@@ -16,6 +16,8 @@ import type {
   ChatWelcomeOptions,
 } from '../types'
 
+export const DEFAULT_CHAT_MOBILE_BREAKPOINT = 960
+
 export interface DefaultChatUIData {
   conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
   bubble: {
@@ -61,6 +63,7 @@ export interface DefaultChatUIOptions {
   sender: ChatSenderOptions
   model: Record<string, never>
   mcp: Record<string, never>
+  extensions: false
 }
 
 export function createDefaultChatLabels(): ChatLabels {
@@ -78,10 +81,9 @@ export function createDefaultChatLabels(): ChatLabels {
     modelEmptyText: '暂无模型',
     rightAsideTitle: '详情',
     mcp: 'MCP',
+    extensions: '扩展',
     mcpInstallServer: '安装',
     mcpRemoveServer: '卸载',
-    thinkingFeature: '深度思考',
-    searchFeature: '联网搜索',
     welcomeTitle: 'TinyRobot AI 助手',
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
     openRightAside: '打开详情',
@@ -95,9 +97,11 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
 
   return {
     layout: {
+      showScrollToBottom: true,
       surface: {
         mode: 'normal',
       },
+      mobileBreakpoint: DEFAULT_CHAT_MOBILE_BREAKPOINT,
       emptyState: 'start',
       composer: {
         welcome: 'footer',
@@ -151,6 +155,7 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
     },
     model: {},
     mcp: {},
+    extensions: false,
   }
 }
 

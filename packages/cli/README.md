@@ -12,11 +12,11 @@ npx @opentiny/tiny-robot-cli add chat --yes
 
 ## Options
 
-- `-t, --template <name>`: template name; `basic` generates the Chat Basic project and `chat` generates the standalone Chat project
+- `-t, --template <name>`: template name; `basic` is the only supported template and is used by default
 - `--runtime-version <version>`: override the TinyRobot runtime version used in the generated or updated project
 - `-h, --help`: show help
 
-`create` scaffolds a new project. The `basic` template creates the Chat Basic project, and the `chat` template creates a standalone Chat project.
+`create` scaffolds a new Chat Basic project. The `basic` template is the only supported template and is used by default.
 
 `add chat` creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and merges `.env.example`. Existing files with different contents are reported as conflicts and are never silently overwritten. If a write fails, the CLI attempts to roll back the changes that were already applied and reports any residual paths.
 

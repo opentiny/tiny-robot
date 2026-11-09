@@ -135,6 +135,7 @@ watch([editor, mode], () => nextTick(syncPlaceholder), { immediate: true })
   pointer-events: none;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .tr-sender-editor-content {

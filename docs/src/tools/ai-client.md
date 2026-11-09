@@ -7,7 +7,7 @@ outline: deep
 :::danger 重大版本升级 v0.4
 `AIClient` 已废弃，推荐使用 `useMessage` + `responseProvider`。
 
-**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/use-message-migration)。
+**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/v0.4/use-message)。
 :::
 
 客户端类，用于与 AI 模型交互（已废弃，仅作兼容保留）。

@@ -3,7 +3,7 @@ import type { ModelSelectorOption } from './index.type'
 export interface NormalizedModelSelectorOption {
   key: string
   index: number
-  value: string
+  id: string
   label: string
   description?: string
   icon?: ModelSelectorOption['icon']

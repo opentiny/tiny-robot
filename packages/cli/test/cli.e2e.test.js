@@ -23,6 +23,14 @@ function runCli(cwd, ...args) {
   return spawnSync(process.execPath, [cliFile, ...args], { cwd, encoding: 'utf8' })
 }
 
+function assertSetupGuidePath(stdout, expectedPath) {
+  const guide = stdout.match(/^Setup guide: (.+)$/m)?.[1].trim()
+
+  assert.ok(guide, 'add chat output must include the setup guide')
+  assert.ok(path.isAbsolute(guide), 'the setup guide path must be absolute')
+  assert.equal(fs.realpathSync(guide), fs.realpathSync(expectedPath))
+}
+
 function createVueProject(root) {
   fs.mkdirSync(path.join(root, 'src'), { recursive: true })
   fs.writeFileSync(
@@ -42,6 +50,7 @@ test('create basic scaffolds a complete chat-basic project', () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'))
 
     assert.equal(result.status, 0, result.stderr)
+    assert.doesNotMatch(result.stdout, /Template:/)
     assert.equal(packageJson.name, 'fixture-basic')
     const cliVersion = JSON.parse(fs.readFileSync(cliPackageFile, 'utf8')).version
     const expectedRuntimeSpecifier = cliVersion.includes('-') ? cliVersion : `^${cliVersion}`
@@ -54,6 +63,9 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.match(fs.readFileSync(path.join(project, 'src/App.vue'), 'utf8'), /IconBailian/)
     assert.match(fs.readFileSync(path.join(project, 'src/App.vue'), 'utf8'), /icon: IconDeepseek/)
     assert.match(fs.readFileSync(path.join(project, 'vite.config.ts'), 'utf8'), /modelcontextprotocol-mcp/)
+    const gitignore = fs.readFileSync(path.join(project, '.gitignore'), 'utf8')
+    assert.match(gitignore, /^\*\.local$/m)
+    assert.match(gitignore, /^\.env$/m)
     assert.ok(fs.existsSync(path.join(project, '.env.example')))
     assert.equal(fs.existsSync(path.join(project, '.env')), false)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
@@ -65,26 +77,15 @@ test('create basic scaffolds a complete chat-basic project', () => {
   }
 })
 
-test('create chat materializes the standalone chat template', () => {
+test('create rejects unsupported templates', () => {
   const root = createTempDir('tiny-robot-create-chat-')
 
   try {
-    const result = runCli(root, 'create', 'fixture-chat', '--template', 'chat', '--runtime-version', '0.5.2-rc.3')
-    const project = path.join(root, 'fixture-chat')
-    const packageFile = path.join(project, 'package.json')
-    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
-    const component = fs.readFileSync(path.join(project, 'src/TinyRobotChat.vue'), 'utf8')
-    const envExample = fs.readFileSync(path.join(project, '.env.example'), 'utf8')
+    const result = runCli(root, 'create', 'fixture-chat', '--template', 'chat')
 
-    assert.equal(result.status, 0, result.stderr)
-    assert.equal(packageJson.name, 'fixture-chat')
-    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
-    assert.doesNotMatch(fs.readFileSync(packageFile, 'utf8'), /__PROJECT_NAME__|__TINY_ROBOT_VERSION__/)
-    assert.match(component, /@opentiny\/tiny-robot\/dist\/style\.css/)
-    assert.match(component, /@opentiny\/tiny-robot-chat\/dist\/style\.css/)
-    assert.match(component, /import '\.\/index\.css'/)
-    assert.match(envExample, /VITE_QWEN_API_URL=/)
-    assert.match(envExample, /VITE_DEEPSEEK_API_URL=/)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /template "chat" does not exist\. Available: basic/)
+    assert.equal(fs.existsSync(path.join(root, 'fixture-chat')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -205,6 +206,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
     assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
     assert.match(dryRun.stdout, /Change Plan/)
+    assert.match(dryRun.stdout, /Dry run only\. No files were changed/)
     assert.match(dryRun.stdout, /\.env\.example/)
     assert.match(dryRun.stdout, /package\.json/)
     assert.match(dryRun.stdout, /added: @opentiny\/tiny-robot/)
@@ -218,6 +220,12 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(result.status, 0, result.stderr)
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')))
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/index.css')))
+    const readme = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/README.md'), 'utf8')
+    assert.match(readme, /server\.proxy/)
+    assert.match(readme, /https:\/\/modelcontextprotocol\.io\/mcp/)
+    assert.match(readme, /path\.replace\(/)
+    assert.match(readme, /import TinyRobotChat/)
+    assert.match(readme, /\.env\.local/)
     assert.ok(!fs.existsSync(path.join(root, 'vite.config.ts')))
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
@@ -232,6 +240,51 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
     assert.match(result.stdout, /server\.proxy/)
+    assertSetupGuidePath(result.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
+    const installIndex = result.stdout.indexOf('pnpm install')
+    const componentIndex = result.stdout.indexOf('Add <TinyRobotChat />')
+    assert.ok(installIndex >= 0, 'add chat output must include pnpm install')
+    assert.ok(componentIndex >= 0, 'add chat output must include the TinyRobotChat usage step')
+    assert.ok(installIndex < componentIndex)
+    assert.match(result.stdout, /If using Model Context MCP/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat prints an accessible setup guide when run from a project subdirectory', () => {
+  const root = createTempDir('tiny-robot-add-subdirectory-')
+
+  try {
+    createVueProject(root)
+    const cwd = path.join(root, 'src')
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = runCli(cwd, 'add', 'chat', '--yes')
+      assert.equal(result.status, 0, result.stderr)
+      assertSetupGuidePath(result.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
+      if (attempt === 1) assert.match(result.stdout, /No changes were necessary/i)
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat setup guide resolves to the same file through a directory link', () => {
+  const root = createTempDir('tiny-robot-add-linked-directory-')
+
+  try {
+    const project = path.join(root, 'project')
+    const linkedProject = path.join(root, 'linked-project')
+    createVueProject(project)
+    fs.symlinkSync(project, linkedProject, process.platform === 'win32' ? 'junction' : 'dir')
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = runCli(path.join(linkedProject, 'src'), 'add', 'chat', '--yes')
+      assert.equal(result.status, 0, result.stderr)
+      assertSetupGuidePath(result.stdout, path.join(project, 'src/tiny-robot-chat/README.md'))
+      assertSetupGuidePath(result.stdout, path.join(linkedProject, 'src/tiny-robot-chat/README.md'))
+      if (attempt === 1) assert.match(result.stdout, /No changes were necessary/i)
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -270,6 +323,7 @@ test('add chat is idempotent and reports when no changes are necessary', () => {
     assert.equal(first.status, 0, first.stderr)
     assert.equal(second.status, 0, second.stderr)
     assert.match(second.stdout, /No changes were necessary/i)
+    assertSetupGuidePath(second.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
   } finally {
@@ -360,6 +414,7 @@ test('add chat aborts the whole operation when a feature file conflicts', () => 
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, /file conflicts detected/i)
+    assert.match(result.stderr, /No files were changed or overwritten/)
     assert.equal(fs.readFileSync(conflictingFile, 'utf8'), '<template><div>host</div></template>\n')
     assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
     assert.equal(fs.readFileSync(appFile, 'utf8'), appBefore)

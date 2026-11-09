@@ -13,32 +13,33 @@ TinyRobot 提供官方 CLI 工具 [`@opentiny/tiny-robot-cli`](https://www.npmjs
 
 无需全局安装，可直接通过 `npx` 或 `pnpm dlx` 使用。
 
-```bash
-# npm
-npx @opentiny/tiny-robot-cli
+::: code-group
 
+```bash [pnpm]
 # pnpm
 pnpm dlx @opentiny/tiny-robot-cli
 ```
 
+```bash [npm]
+# npm
+npx @opentiny/tiny-robot-cli
+```
+
+:::
+
 ## create
 
 创建一个完整的 TinyRobot 工程。
+省略 `--template` 时默认使用 `basic`。
 
 ```bash
-npx @opentiny/tiny-robot-cli create <project-name> --template basic
+npx @opentiny/tiny-robot-cli create <project-name>
 ```
 
 示例：
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic
-```
-
-CLI 还提供独立的 Chat 模板：
-
-```bash
-npx @opentiny/tiny-robot-cli create my-chat --template chat
+npx @opentiny/tiny-robot-cli create my-app
 ```
 
 ### 运行时版本
@@ -46,7 +47,7 @@ npx @opentiny/tiny-robot-cli create my-chat --template chat
 `create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。通常无需指定版本；如需让生成项目使用特定 TinyRobot 版本，可通过 `--runtime-version <version>` 覆盖默认版本。
 
 ```bash
-npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2
+npx @opentiny/tiny-robot-cli create my-app --runtime-version 0.5.2-rc.2
 npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
 ```
 
@@ -54,7 +55,9 @@ npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
 
 创建完成后：
 
-```bash
+::: code-group
+
+```bash [pnpm]
 cd my-app
 pnpm install
 
@@ -63,6 +66,28 @@ pnpm install
 
 pnpm dev
 ```
+
+```bash [yarn]
+cd my-app
+yarn install
+
+# configure your API key
+# copy .env.example to .env.local
+
+yarn dev
+```
+
+```bash [npm]
+cd my-app
+npm install
+
+# configure your API key
+# copy .env.example to .env.local
+
+npm run dev
+```
+
+:::
 
 create 命令特性
 
@@ -90,6 +115,8 @@ CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package
 | `package.json`         | 添加或保留 TinyRobot Chat 所需依赖 |
 
 `add chat` 不会修改 `src/main.ts`、`src/main.js`、`src/App.vue` 或 `vite.config.*`。
+
+生成的 `src/tiny-robot-chat/README.md` 包含 MCP 代理配置说明。
 
 默认交互模式会显示待变更内容并请求确认；`--yes` 直接应用变更，`--dry-run` 只预览变更计划，不写入文件。如果写入过程中失败，CLI 会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
 
@@ -148,9 +175,21 @@ VITE_DEEPSEEK_API_KEY=your_api_key
 
 如果依赖更新了，不要忘记安装
 
-```shell
+::: code-group
+
+```bash [pnpm]
 pnpm install
 ```
+
+```bash [yarn]
+yarn install
+```
+
+```bash [npm]
+npm install
+```
+
+:::
 
 现在你可以启动你的应用体验 AI 聊天应用了
 

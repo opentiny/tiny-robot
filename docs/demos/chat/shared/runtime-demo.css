@@ -1,0 +1,81 @@
+.runtime-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  color: var(--tr-text-primary);
+}
+
+.runtime-demo__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.runtime-demo__button,
+.runtime-demo__input {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--tr-border-color-default);
+  border-radius: 6px;
+  color: var(--tr-text-primary);
+  background: var(--tr-container-bg-default);
+  font: inherit;
+}
+
+.runtime-demo__button {
+  cursor: pointer;
+}
+
+.runtime-demo__button:disabled,
+.runtime-demo__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.runtime-demo__button:focus-visible,
+.runtime-demo__input:focus-visible {
+  outline: 2px solid var(--tr-color-primary);
+  outline-offset: 2px;
+}
+
+.runtime-demo__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.runtime-demo__hint,
+.runtime-demo__status {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.runtime-demo__hint {
+  color: var(--tr-text-secondary);
+}
+
+.runtime-demo__chat {
+  --tr-layout-height: 100%;
+  height: min(620px, calc(100vh - 280px));
+  min-height: 480px;
+  min-width: 0;
+}
+
+.runtime-demo__chat :deep(.tr-chat-ui) {
+  height: 100%;
+  min-height: 0;
+}
+
+.runtime-demo__input {
+  width: min(100%, 220px);
+}
+
+@media (max-width: 640px) {
+  .runtime-demo__chat {
+    height: 560px;
+  }
+}

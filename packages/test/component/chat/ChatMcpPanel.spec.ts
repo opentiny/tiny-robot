@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import ChatMcpPanelFixture from './ChatMcpPanel.fixture.vue'
 
+test('uses the configured extensions label as the manager title', async ({ mount }) => {
+  const component = await mount(ChatMcpPanelFixture, { props: { extensionLabel: '扩展中心', withSkills: true } })
+
+  await expect(component.locator('.extension-manager__title')).toHaveText('扩展中心')
+})
+
 test('opens installed MCP details and forwards a tool switch', async ({ mount }) => {
   const component = await mount(ChatMcpPanelFixture)
 
@@ -25,6 +31,17 @@ test('submits a normalized custom MCP configuration with its input source', asyn
   await expect(component.getByTestId('event')).toHaveText(
     '{"kind":"create","config":{"name":"Custom Server","type":"sse","url":"https://example.com/mcp"},"source":"form"}',
   )
+})
+
+test('returns to the extension list when MCP becomes unavailable from the add form', async ({ mount }) => {
+  const component = await mount(ChatMcpPanelFixture, { props: { withMcp: true, withSkills: true } })
+
+  await component.getByRole('button', { name: '自定义添加' }).click()
+  await expect(component.getByRole('textbox', { name: '名称' })).toBeVisible()
+
+  await component.update({ props: { withMcp: false, withSkills: true } })
+
+  await expect(component.locator('.extension-manager__title')).toHaveText('扩展')
 })
 
 test('forwards install, enable, and remove requests for the selected server', async ({ mount }) => {

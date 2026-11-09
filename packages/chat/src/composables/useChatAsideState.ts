@@ -34,6 +34,7 @@ function toSize(value: number | undefined, fallback: number) {
 export function useChatAsideState(options: UseChatAsideStateOptions) {
   const leftInitial = toValue(options.leftAside)
   const leftOpen = shallowRef(leftInitial !== false ? (leftInitial?.defaultOpen ?? false) : false)
+  const leftAsideWidth = shallowRef(toSize(leftInitial !== false ? leftInitial?.width : undefined, 300))
   const rightOpen = shallowRef(toValue(options.defaultRightAsideOpen) ?? false)
   const rightInitial = toValue(options.rightAside)
   const rightAsideWidth = shallowRef(toSize(rightInitial !== false ? rightInitial?.width : undefined, 320))
@@ -42,6 +43,14 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const viewportWidth = computed(() => toValue(options.viewportWidth))
   const leftAside = computed(() => toValue(options.leftAside))
   const rightAside = computed(() => toValue(options.rightAside))
+  watch(
+    () => (leftAside.value !== false ? leftAside.value?.width : undefined),
+    (width) => {
+      if (typeof width === 'number') {
+        leftAsideWidth.value = width
+      }
+    },
+  )
   watch(
     () => (rightAside.value !== false ? rightAside.value?.width : undefined),
     (width) => {
@@ -68,13 +77,9 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const leftAsideMode = computed(() =>
     isMobileViewport.value ? 'drawer' : leftAside.value !== false ? leftAside.value?.mode : 'dock',
   )
-  const rightAsideMode = computed(() =>
-    isMobileViewport.value ? 'drawer' : rightAside.value !== false ? rightAside.value?.mode : 'dock',
-  )
-
   const leftAsideOptions = computed(() => {
     const layout = leftAside.value
-    const width = toSize(layout !== false ? layout?.width : undefined, 300)
+    const width = leftAsideWidth.value
     return {
       mode: leftAsideMode.value,
       open: resolvedLeftAsideOpen.value,
@@ -82,23 +87,28 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
         isMobileViewport.value && viewportWidth.value > 0
           ? Math.min(width, Math.floor(viewportWidth.value * 0.86))
           : width,
+      defaultExpandedWidth: width,
+      minExpandedWidth: !isMobileViewport.value && layout !== false ? layout?.minWidth : undefined,
+      maxExpandedWidth: !isMobileViewport.value && layout !== false ? layout?.maxWidth : undefined,
       collapsedWidth: isMobileViewport.value || layout === false ? 0 : toSize(layout?.collapsedWidth, 56),
       collapseEffect: 'overlay' as const,
+      resizable: !isMobileViewport.value && layout !== false && layout?.resizable === true,
     }
   })
   const rightAsideOptions = computed(() => {
     const layout = rightAside.value
-    const mobileWidth = isMobileViewport.value && viewportWidth.value > 0 ? viewportWidth.value : undefined
+    const mode = (layout !== false ? layout?.mode : undefined) ?? 'dock'
+    const drawerWidth = isMobileViewport.value ? viewportWidth.value : undefined
     return {
-      mode: rightAsideMode.value,
+      mode: drawerWidth !== undefined ? ('drawer' as const) : mode,
       open: resolvedRightAsideOpen.value,
-      expandedWidth: mobileWidth ?? rightAsideWidth.value,
+      expandedWidth: drawerWidth ?? rightAsideWidth.value,
       defaultExpandedWidth: rightAsideWidth.value,
-      minExpandedWidth: mobileWidth ?? (layout !== false ? layout?.minWidth : undefined),
-      maxExpandedWidth: mobileWidth ?? (layout !== false ? layout?.maxWidth : undefined),
-      collapsedWidth: isMobileViewport.value || layout === false ? 0 : toSize(layout?.collapsedWidth, 0),
+      minExpandedWidth: drawerWidth ?? (layout !== false ? layout?.minWidth : undefined),
+      maxExpandedWidth: drawerWidth ?? (layout !== false ? layout?.maxWidth : undefined),
+      collapsedWidth: drawerWidth !== undefined || layout === false ? 0 : toSize(layout?.collapsedWidth, 0),
       collapseEffect: 'overlay' as const,
-      resizable: !isMobileViewport.value && layout !== false && layout?.resizable === true,
+      resizable: drawerWidth === undefined && layout !== false && layout?.resizable === true,
     }
   })
 
@@ -115,8 +125,14 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     options.onRightOpenChange({ open, source })
   }
 
-  function handleRightAsideResize(detail: LayoutAsideResizeValue) {
+  function handleLeftAsideResize(detail: LayoutAsideResizeValue) {
     if (!isMobileViewport.value) {
+      leftAsideWidth.value = detail.expandedWidth
+    }
+  }
+
+  function handleRightAsideResize(detail: LayoutAsideResizeValue) {
+    if (rightAsideOptions.value.mode === 'dock') {
       rightAsideWidth.value = detail.expandedWidth
     }
   }
@@ -202,6 +218,7 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     closeRightAside,
     toggleRightAside,
     activateRightAsidePanel,
+    handleLeftAsideResize,
     handleRightAsideResize,
     handleLeftAsideOpenChange: (payload: { open: boolean }) => requestLeftAsideOpen(payload.open),
     handleRightAsideOpenChange: (payload: { open: boolean }) => requestRightAsideOpen(payload.open),

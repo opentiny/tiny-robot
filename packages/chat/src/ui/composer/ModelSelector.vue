@@ -1,49 +1,62 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TrModelSelector, type ModelSelectorOption, type ModelSelectorProps } from '@opentiny/tiny-robot'
+import {
+  TrModelSelector,
+  type ModelSelectorOption,
+  type ModelSelectorProps,
+  type ModelSelectorSnapshot,
+} from '@opentiny/tiny-robot'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import type { ChatLabels, ChatModelView } from '../../types'
+import type { ChatLabels, ChatModelFeatureValueChangePayload, ChatModelView } from '../../types'
 
 const props = defineProps<{
   model: ChatModelView
   labels: ChatLabels
   appendTo?: ModelSelectorProps['appendTo']
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
   selectModel: [payload: { id: string | null }]
-  updateReasoningEffort: [payload: { effort: string | null }]
+  featureValueChange: [payload: ChatModelFeatureValueChangePayload]
 }>()
 
-const thinkingEnabled = computed(() => props.model.reasoning?.enabled === true)
 const modelOptions = computed<ModelSelectorOption[]>(() =>
   (props.model.options ?? []).map((model) => ({
-    value: model.id,
+    id: model.id,
     label: model.label,
     description: model.description,
     icon: model.icon,
     disabled: model.disabled,
     group: model.group,
-    reasoningEfforts: thinkingEnabled.value ? model.efforts : undefined,
+    features: (model.features ?? []).map((field) => ({
+      ...field,
+      disabled:
+        field.disabled || props.model.featureValuesDisabled || props.model.pendingFeatureKeys?.includes(field.key),
+    })),
   })),
 )
 
-const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
+const disabled = computed(() => props.disabled === true || props.model.selecting)
 
 function handleModelSelect(id: string | null) {
-  if (props.model.selecting || id === props.model.selectedId) {
+  if (disabled.value || id === props.model.selectedId) {
     return
   }
 
   emit('selectModel', { id })
 }
 
-function handleReasoningEffortChange(effort: string | null) {
-  if (props.model.reasoningSelecting) {
-    return
-  }
+function handleChange(current: ModelSelectorSnapshot, previous: ModelSelectorSnapshot) {
+  const { modelId, featureValues } = current
+  if (disabled.value || modelId === null || modelId !== previous.modelId) return
 
-  emit('updateReasoningEffort', { effort })
+  for (const [featureKey, next] of Object.entries(featureValues)) {
+    const previousValue = previous.featureValues[featureKey]
+    if (next !== undefined && next !== previousValue) {
+      emit('featureValueChange', { modelId, featureKey, previous: previousValue, next, featureValues })
+    }
+  }
 }
 </script>
 
@@ -53,18 +66,17 @@ function handleReasoningEffortChange(effort: string | null) {
     class="tr-chat-model-selector"
     :models="modelOptions"
     :model-value="model.selectedId ?? null"
-    :disabled="model.selecting || model.reasoningSelecting"
-    :reasoning-effort="model.reasoning?.effort ?? null"
-    :default-reasoning-effort="selectedModel?.defaultEffort ?? null"
+    :disabled="disabled"
+    :feature-values="model.featureValues"
+    :render-trigger-text="model.renderTriggerText"
     :append-to="props.appendTo"
     :placeholder="labels.selectModel"
     :search-placeholder="labels.searchModel"
     :empty-text="labels.modelEmptyText"
-    :aria-label="labels.selectModel"
     @update:model-value="handleModelSelect"
-    @update:reasoning-effort="handleReasoningEffortChange"
+    @change="handleChange"
   >
-    <template #trigger="{ option, label, open }">
+    <template #trigger="{ option, text, open }">
       <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">
         <span class="tr-chat-model-selector__trigger-main">
           <component
@@ -80,7 +92,7 @@ function handleReasoningEffortChange(effort: string | null) {
             class="tr-chat-model-selector__icon"
             alt=""
           />
-          <span class="tr-chat-model-selector__label">{{ label }}</span>
+          <span class="tr-chat-model-selector__label">{{ text }}</span>
         </span>
         <IconArrowDown
           class="tr-chat-model-selector__chevron"
@@ -94,6 +106,25 @@ function handleReasoningEffortChange(effort: string | null) {
 </template>
 
 <style scoped>
+.tr-chat-model-selector {
+  display: block;
+  width: min(180px, 100%);
+  min-width: 0;
+  flex: 0 1 180px;
+}
+
+.tr-chat-model-selector :deep(.tr-model-selector__anchor) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
 .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
   height: 32px;
   min-height: 32px;
@@ -117,6 +148,7 @@ function handleReasoningEffortChange(effort: string | null) {
 
 .tr-chat-model-selector__trigger-main {
   min-width: 0;
+  overflow: hidden;
   gap: 8px;
 }
 
@@ -127,6 +159,7 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 .tr-chat-model-selector__label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,6 +175,17 @@ function handleReasoningEffortChange(effort: string | null) {
 }
 
 @container chat-composer (max-width: 640px) {
+  .tr-chat-model-selector {
+    width: auto;
+    max-width: min(180px, 100%);
+    flex: 0 1 auto;
+  }
+
+  .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+    width: auto;
+    max-width: 100%;
+  }
+
   .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {
     display: none;
   }

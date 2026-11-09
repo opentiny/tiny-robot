@@ -1,6 +1,5 @@
 import type { ChatConversationInfo } from '../base'
 import type { ChatSendPayload } from '../commands'
-import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatRightAsidePanelId } from './options'
 import type {
   LayoutFloatingDragDetail,
@@ -10,6 +9,11 @@ import type {
   McpExtensionFormValue,
   HistoryMenuItem,
   PromptProps,
+  ExtensionManagerActionEvent,
+  ExtensionManagerNameClickEvent,
+  ExtensionManagerTabChangeEvent,
+  ModelSelectorFeatureValue,
+  ModelSelectorFeatureValues,
 } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -42,13 +46,17 @@ export interface ChatModelSelectPayload {
   readonly modelId: string | null
 }
 
-export interface ChatModelFeatureChangePayload {
-  readonly featureId: ChatBuiltInModelFeature
-  readonly enabled: boolean
+export interface ChatModelFeatureValueChangePayload {
+  modelId: string
+  featureKey: string
+  previous: ModelSelectorFeatureValue | undefined
+  next: ModelSelectorFeatureValue
+  featureValues: ModelSelectorFeatureValues
 }
 
-export interface ChatModelReasoningEffortChangePayload {
-  readonly effort: string | null
+export interface SenderDragPayload {
+  readonly event: DragEvent
+  readonly target: HTMLElement
 }
 
 export interface ChatMcpAddServerPayload {
@@ -109,13 +117,20 @@ export interface ChatUIEmits {
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
   'model-select': [payload: ChatModelSelectPayload]
-  'model-feature-change': [payload: ChatModelFeatureChangePayload]
-  'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
+  'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'mcp-add-server': [payload: ChatMcpAddServerPayload]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'mcp-remove-server': [payload: ChatMcpRemoveServerPayload]
   'mcp-server-enabled-change': [payload: ChatMcpServerEnabledChangePayload]
   'mcp-tool-enabled-change': [payload: ChatMcpToolEnabledChangePayload]
+  'extension-action': [payload: ExtensionManagerActionEvent]
+  'extension-name-click': [payload: ExtensionManagerNameClickEvent]
+  'extension-tab-change': [payload: ExtensionManagerTabChangeEvent]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'update:right-aside-open': [value: boolean]

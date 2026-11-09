@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, defineComponent, h } from 'vue'
-import { TrChat, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
+import { computed, defineComponent, h, nextTick, ref } from 'vue'
+import { TrChat, type ChatAsideOpenChangePayload, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
 import { IconNewSession, IconPlus, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import GeminiComposer from './GeminiComposer.vue'
 import GeminiHeader from './GeminiHeader.vue'
@@ -31,6 +31,32 @@ const historyData = computed<ChatHistoryData>(() => {
 
   return items.length ? [{ group: '最近', items }] : []
 })
+
+const header = ref<InstanceType<typeof GeminiHeader> | null>(null)
+const rail = ref<InstanceType<typeof GeminiRail> | null>(null)
+const sidebarCloseButton = ref<HTMLButtonElement | null>(null)
+
+async function openSidebarFromHeader(openLeftAside: () => void) {
+  openLeftAside()
+  await nextTick()
+  sidebarCloseButton.value?.focus({ preventScroll: true })
+}
+
+async function focusSidebarTrigger(target: 'mobile' | 'desktop') {
+  await nextTick()
+  const triggerHost = target === 'mobile' ? header.value : rail.value
+  triggerHost?.focusSidebarTrigger()
+}
+
+function handleLeftAsideOpenChange({ open, source }: ChatAsideOpenChangePayload) {
+  if (open) return
+  if (source === 'viewport') {
+    const sidebar = sidebarCloseButton.value?.closest('aside')
+    if (!sidebar?.contains(document.activeElement)) return
+  }
+  // Let the backdrop's pointer event finish before restoring focus.
+  requestAnimationFrame(() => header.value?.focusSidebarTrigger())
+}
 
 async function selectModel(id: string | null) {
   runtime.composer.model!.select(id)
@@ -71,21 +97,36 @@ const chatUi = {
 <template>
   <div class="gemini-case">
     <main class="gemini-case__chat">
-      <TrChat :runtime="runtime" :ui="chatUi" :history-data="historyData">
-        <template #layout-header="{ isEmpty }">
-          <GeminiHeader :is-empty="isEmpty" />
+      <TrChat
+        :runtime="runtime"
+        :ui="chatUi"
+        :history-data="historyData"
+        @left-aside-open-change="handleLeftAsideOpenChange"
+      >
+        <template #layout-header="{ isEmpty, isMobileViewport, isLeftAsideOpen, openLeftAside }">
+          <GeminiHeader
+            ref="header"
+            :is-empty="isEmpty"
+            :is-mobile-viewport="isMobileViewport"
+            :is-sidebar-open="isLeftAsideOpen"
+            @open-sidebar="openSidebarFromHeader(openLeftAside)"
+            @focus-desktop-sidebar-trigger="focusSidebarTrigger('desktop')"
+          />
         </template>
 
         <template #layout-footer="slotProps">
           <GeminiComposer v-bind="slotProps" :model="runtime.composer.model!" :select-model="selectModel" />
         </template>
 
-        <template #layout-left-aside-rail="{ isOpen, conversation, openLeftAside, createConversation }">
+        <template #layout-left-aside-rail="{ isDock, isOpen, conversation, openLeftAside, createConversation }">
           <GeminiRail
+            ref="rail"
+            :is-dock="isDock"
             :is-open="isOpen"
             :is-new-conversation-active="!conversation.activeId"
             @open="openLeftAside"
             @create="createConversation"
+            @focus-mobile-sidebar-trigger="focusSidebarTrigger('mobile')"
           />
         </template>
 
@@ -96,6 +137,7 @@ const chatUi = {
               <span>Gemini</span>
             </div>
             <button
+              ref="sidebarCloseButton"
               class="gemini-left-brand__toggle"
               type="button"
               aria-label="收起边栏"
@@ -198,6 +240,11 @@ const chatUi = {
 .gemini-case__chat :deep(.tr-chat-ui) {
   height: 100%;
   min-height: 0;
+}
+
+.gemini-case__chat :deep(.tr-layout__aside--left.tr-layout__aside--drawer.tr-layout__aside--expanded) {
+  /* Make the opening drawer focusable immediately, including when reopening during its exit transition. */
+  transition-property: transform;
 }
 
 .gemini-case__chat :deep(.chat-panel-content--header) {

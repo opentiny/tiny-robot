@@ -60,6 +60,7 @@ export interface LegacyUseAutoScrollOptions extends AutoScrollBehaviorOptions {
 }
 
 export interface UseAutoScrollReturn {
+  pause: () => void
   scrollToBottom: (behavior?: ScrollBehavior) => Promise<void>
   arrivedState: UseScrollReturn['arrivedState']
 }
@@ -114,8 +115,20 @@ export function useAutoScroll(
   const { scrollOnMount = true, bottomThreshold = 20, scrollThrottle = 0, enabled = true } = options ?? {}
 
   const isFollowing = ref(true)
+  let explicitlyPaused = false
   let scheduledFrame: number | null = null
   const stopWatches = new Set<WatchHandle>()
+  let scrollRevision = 0
+
+  const pause = () => {
+    scrollRevision++
+    explicitlyPaused = true
+    isFollowing.value = false
+    if (scheduledFrame !== null) cancelAnimationFrame(scheduledFrame)
+    scheduledFrame = null
+    stopWatches.forEach((stop) => stop())
+    stopWatches.clear()
+  }
 
   const targetElement = () => unrefElement(scrollRef)
   const contentElement = () => (contentRef ? unrefElement(contentRef) : null)
@@ -134,11 +147,14 @@ export function useAutoScroll(
   }
 
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
+    const revision = ++scrollRevision
+    explicitlyPaused = false
     isFollowing.value = true
     const el = toValue(targetElement)
     if (!el) return
 
     await nextTick()
+    if (revision !== scrollRevision || el !== toValue(targetElement)) return
     el.scrollTo({ top: el.scrollHeight, behavior })
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
@@ -180,7 +196,8 @@ export function useAutoScroll(
       const el = toValue(targetElement)
       if (!el) return
 
-      if (isNearBottom(el as HTMLElement)) {
+      if (explicitlyPaused) return
+      if (isNearBottom(el as HTMLElement) && (isFollowing.value || newY > oldY)) {
         isFollowing.value = true
       } else if (newY < oldY) {
         isFollowing.value = false
@@ -222,18 +239,46 @@ export function useAutoScroll(
     stopWatches.clear()
   })
 
+  const isEditableTarget = (target: EventTarget | null) => {
+    const element = target instanceof HTMLElement ? target : null
+    return Boolean(element?.isContentEditable || element?.closest('input, textarea, select'))
+  }
+
+  const isScrollableElement = (element: HTMLElement) => {
+    if (element.scrollHeight <= element.clientHeight) return false
+    const overflowY = getComputedStyle(element).overflowY
+    return overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay'
+  }
+
+  const hasNestedScrollableTarget = (target: EventTarget | null, root: HTMLElement) => {
+    let element = target instanceof HTMLElement ? target : null
+    while (element && element !== root) {
+      if (isScrollableElement(element)) return true
+      element = element.parentElement
+    }
+    return false
+  }
+
   // 处理用户按下 End 键的滚动行为
   useEventListener('keydown', (e) => {
-    if (e.key === 'End' && !isFollowing.value) {
-      const stopWatch = useOnceFallingEdge(isScrolling, () => {
-        scrollToBottom('auto')
-        stopWatches.delete(stopWatch)
-      })
-      stopWatches.add(stopWatch)
-    }
+    if (e.key !== 'End' || e.defaultPrevented || isFollowing.value || isEditableTarget(e.target)) return
+    const root = toValue(targetElement)
+    if (
+      !(root instanceof HTMLElement) ||
+      !(e.target instanceof Node) ||
+      !root.contains(e.target) ||
+      hasNestedScrollableTarget(e.target, root)
+    )
+      return
+    const stopWatch = useOnceFallingEdge(isScrolling, () => {
+      scrollToBottom('auto')
+      stopWatches.delete(stopWatch)
+    })
+    stopWatches.add(stopWatch)
   })
 
   return {
+    pause,
     scrollToBottom,
     arrivedState,
   }

@@ -6,9 +6,9 @@ import { IconAi, IconAtom, IconThink } from '@opentiny/tiny-robot-svgs'
 const model = shallowRef<string | null>('general-model')
 
 const models = [
-  { value: 'general-model', label: '通用模型', icon: IconAi },
-  { value: 'reasoning-model', label: '推理模型', icon: IconThink },
-  { value: 'lightweight-model', label: '轻量模型', icon: IconAtom },
+  { id: 'general-model', label: '通用模型', icon: IconAi },
+  { id: 'reasoning-model', label: '推理模型', icon: IconThink },
+  { id: 'lightweight-model', label: '轻量模型', icon: IconAtom },
 ] satisfies readonly ModelSelectorOption[]
 </script>
 

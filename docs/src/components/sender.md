@@ -249,8 +249,10 @@ Sender 提供了多个插槽位置，方便扩展功能：
 - **`footer`** - 底部左侧区域，可添加功能按钮
 - **`footer-right`** - 底部右侧区域，可添加操作按钮
 
+`header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
+
 :::info 当前插槽作用域
-当前版本只有 `content` 插槽提供 `editor`。`actions-inline`、`footer` 和 `footer-right` 只负责放置内容，不提供作用域参数；需要操作输入内容时，请通过 Sender 实例公开的方法接入。
+`content` 插槽提供 `editor`。`actions-inline` 在单行和多行模式下均提供 `SenderSlotScope`，包含 `editor`、`focus`、`blur`、`insert`、`append`、`replace`、`disabled`、`loading` 和 `hasContent`；其中 `insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。`footer` 和 `footer-right` 不提供作用域参数，需要操作输入内容时，请通过 Sender 实例公开的方法接入。
 :::
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
@@ -492,7 +494,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `prefix`         | 在编辑器左侧添加内容                 | —                     |
 | input-prefix | 多行模式首行前置插槽 | - |
 | `content`        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
-| `actions-inline` | 在单行模式的默认操作按钮前添加内容   | —                     |
+| `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`      |
 | `footer`         | 在多行模式底部左侧添加内容           | —                     |
 | `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | —                     |
 
@@ -897,57 +899,6 @@ Context 动作与同名 Expose 方法具有相同行为；它们会修改编辑�
 
 ## 迁移与弃用
 
-### 升级路径
+从 v0.3.x 升级时，请查看 [v0.4 Sender 迁移指南](../migration/v0.4/sender)。指南分别说明通过 `SenderCompat` 快速过渡，以及直接迁移到当前 Sender API 的做法。
 
-- **快速迁移**：使用 `SenderCompat` 保持大部分 v0.3.x API 兼容，再处理少量破坏性变更。请查看 [SenderCompat 快速迁移指南](./sender-compat.md)。
-- **完全升级**：直接采用当前 Sender API，按照 [完整迁移方案](./sender-compat.md#完整迁移方案) 调整扩展、按钮、事件与主题接入。
-
-### 1.0 保留的弃用 API
-
-`has-external-content` 在 1.0 中仍保留兼容，但不推荐新代码继续使用。它只能让空文本进入可提交状态，不会生成 `externalPayloads`；请改用 `useSenderContentRegistration`，或将 `TrAttachments` 放在 `TrSender` 内自动注册附件内容。
-
-### v0.4 已移除的 API {#已移除的-api}
-
-以下列表集中记录 v0.4 已移除的入口及替代方案。
-
-#### Props
-
-| 属性名               | 原说明           | 替代方案                                                         |
-| -------------------- | ---------------- | ---------------------------------------------------------------- |
-| allowSpeech          | 是否开启语音输入 | [使用 VoiceButton 组件](./sender-compat.md#语音输入迁移)         |
-| speech               | 语音识别配置     | [使用 VoiceButton.speechConfig](./sender-compat.md#语音输入迁移) |
-| allowFiles           | 是否允许文件上传 | [使用 UploadButton 组件](./sender-compat.md#文件上传迁移)        |
-| buttonGroup          | 按钮组配置       | [使用 defaultActions 和插槽](./sender-compat.md#按钮配置迁移)    |
-| theme                | 主题样式         | [使用 ThemeProvider 包裹](./sender-compat.md#主题迁移)           |
-| suggestions          | 输入建议列表     | [使用 Suggestion 扩展](./sender-compat.md#联想迁移)              |
-| suggestionPopupWidth | 建议弹窗宽度     | [使用 Suggestion 扩展配置](./sender-compat.md#联想迁移)          |
-| activeSuggestionKeys | 激活建议项的按键 | [使用 Suggestion 扩展配置](./sender-compat.md#联想迁移)          |
-| templateData         | 模板数据         | [使用 Template 扩展](./sender-compat.md#模板迁移)                |
-
-#### Slots
-
-| 插槽名称          | 替代方案                    |
-| ----------------- | --------------------------- |
-| actions           | 改用 `actions-inline`       |
-| footer-left       | 改用 `footer`               |
-| decorativeContent | 改用 `disabled` + `content` |
-
-#### Events
-
-| 事件名            | 替代方案                                    |
-| ----------------- | ------------------------------------------- |
-| change            | 使用 `blur` 事件                            |
-| files-selected    | 使用 `UploadButton` 的 `select` 事件        |
-| speech-start      | 使用 `VoiceButton` 的 `speech-start` 事件   |
-| speech-end        | 使用 `VoiceButton` 的 `speech-end` 事件     |
-| speech-interim    | 使用 `VoiceButton` 的 `speech-interim` 事件 |
-| speech-error      | 使用 `VoiceButton` 的 `speech-error` 事件   |
-| suggestion-select | 使用 `Suggestion` 扩展的 `onSelect` 回调    |
-
-#### Methods
-
-| 方法名                     | 替代方案                   |
-| -------------------------- | -------------------------- |
-| startSpeech                | 使用 `VoiceButton.start()` |
-| stopSpeech                 | 使用 `VoiceButton.stop()`  |
-| activateTemplateFirstField | 自动处理，无需调用         |
+`has-external-content` 在 v1.0 中仍保留兼容，但不推荐新代码继续使用。它只能让空文本进入可提交状态，不会生成 `externalPayloads`；请改用 `useSenderContentRegistration`，或将 `TrAttachments` 放在 `TrSender` 内自动注册附件内容。
