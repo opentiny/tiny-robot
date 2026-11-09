@@ -113,7 +113,7 @@ description: 用于试用 Skill 导入。
 <tr-skill-extension-detail mode="edit" :definition="definition" @save="handleSave" />
 ```
 
-在编辑模式中，选中文本资源后右侧文件标题栏显示“编辑”按钮；二进制资源只显示预览或下载。资源项可通过 `editable: false` 单独禁用编辑。根目录 `SKILL.md` 在编辑模式下允许编辑。点击“编辑”后：
+在编辑模式中，选中文本资源后右侧文件标题栏显示“编辑”按钮；二进制资源只显示预览或下载。根目录 `SKILL.md` 在编辑模式下允许编辑。点击“编辑”后：
 
 1. Markdown 文件进入可视化编辑，切换“源码编辑”可以直接修改 Markdown。
 2. 其他文本文件进入文本编辑框。
@@ -133,43 +133,13 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 编辑期间切换文件时，如果当前文件有未保存修改，会显示确认提示，用户可以选择保存并切换、放弃修改或取消。
 
-#### 文件级编辑权限与文件树操作
+#### 编辑模式与文件树操作
 
-文件内容编辑权限按文件判断，不应与文件树上的新增、删除和重命名权限合并成一个组件级 `editable` 开关。`mode="view"` 控制详情是否展示编辑能力；`mode="edit"` 下，资源项的 `editable: false` 可以单独禁用该文件编辑，未设置时文本资源可编辑，二进制资源仍只读。根目录 `SKILL.md` 跟随详情模式允许编辑。
+`mode="view"` 控制详情是否展示编辑能力；`mode="edit"` 下，文本资源可以编辑，二进制资源仍只读。根目录 `SKILL.md` 跟随详情模式允许编辑。
 
-文件树操作是另一类配置。新增文件/文件夹、删除、重命名由组件提供通用交互，并通过 `file-action` 报告操作；应用负责持久化和处理空目录等 `SkillDefinition` 未表达的数据。若后续需要按文件或文件夹定制菜单，建议参考 `ExtensionCard` 的 action 模型，为树节点提供 `actions` 列表（例如稳定的 `id`、文案、隐藏、禁用和危险态），并通过一个带节点路径和 action 信息的统一事件回传。不要为每种操作分别增加 `canCreateFile`、`canDeleteFile` 等布尔属性。当前文件树菜单仍由组件固定生成，尚不支持自定义 action 列表。
+文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名，并通过 `file-action` 事件通知应用。应用负责处理这些事件并完成实际持久化，同时处理空目录等 `SkillDefinition` 未表达的数据。
 
-后续扩展可以按下面的结构落地：
-
-```ts
-type SkillTreeAction = {
-  id: string
-  label: string
-  type: SkillFileActionType | 'custom'
-  hidden?: boolean
-  disabled?: boolean
-  danger?: boolean
-}
-
-type SkillTreeNode = {
-  type: 'file' | 'folder'
-  path: string
-  resource?: SkillResourceDescriptor
-}
-
-type SkillTreeActionsResolver = (node: SkillTreeNode) => SkillTreeAction[]
-
-interface SkillTreeActionEvent {
-  id: string
-  type: SkillFileActionType | 'custom'
-  target: 'file' | 'folder'
-  path: string
-  nextPath?: string
-  payload?: unknown
-}
-```
-
-后续实现 `file-actions` 后，该属性可以接收 `SkillTreeActionsResolver`；操作触发时沿用 `file-action` 事件，并按 `ExtensionCardActionEvent` 的习惯发送归一化的 `id`、`type` 和可选 `payload`，同时附带节点路径。未来的 `SkillResourceDescriptor.editable` 只决定当前文件能否编辑正文；`SkillTreeActionsResolver` 决定该节点显示哪些树操作。两者可以独立配置，例如文件允许编辑但不允许重命名，或者文件只读但仍允许删除。组件只负责展示、校验和发出意图，具体权限判断和持久化仍由应用负责。
+文件树操作统一由 `mode="edit"` 控制；当前组件不支持自定义文件树 action 列表或 action resolver。
 
 ## 可访问性与设计约束
 
@@ -242,7 +212,6 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | `path`                  | `string`                                   | 资源相对路径。                               | 是           |
 | `kind`                  | `SkillFileKind`                            | 文本或二进制种类。                           | 是           |
 | `resourceId`            | `string`                                   | 稳定的资源标识。                             | 是           |
-| `editable`              | `boolean`                                  | 编辑模式下是否允许编辑该文本资源；默认允许。 | 否           |
 | `text` / `readText`     | `string` / `() => Promise<string>`         | 文本资源至少提供一种。                       | 文本资源是   |
 | `binary` / `readBinary` | `Uint8Array` / `() => Promise<Uint8Array>` | 二进制资源至少提供一种。                     | 二进制资源是 |
 | `mimeType`              | `string`                                   | MIME 类型。                                  | 否           |

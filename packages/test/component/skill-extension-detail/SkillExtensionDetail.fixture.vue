@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import SkillExtensionDetail from '../../../components/src/skill-extension-detail/index.vue'
 import type { SkillDefinition } from '../../../components/src/skill-import-form/index.type'
 import type { SkillFileAction } from '../../../components/src/skill-extension-detail/index.type'
@@ -21,13 +21,6 @@ const definition = {
       kind: 'text' as const,
       resourceId: 'references/lazy.md',
       readText: async () => '# Lazy resource',
-    },
-    {
-      path: 'references/readonly.md',
-      kind: 'text' as const,
-      resourceId: 'references/readonly.md',
-      editable: false,
-      text: '# Read only resource',
     },
     {
       path: 'assets/example.png',
@@ -57,6 +50,9 @@ const manyResourcesDefinition = {
 }
 
 const editableDefinition = ref<SkillDefinition>({ ...definition })
+const resourceIdentityLog = computed(() =>
+  (editableDefinition.value.resources ?? []).map((resource) => `${resource.path}|${resource.resourceId}`).join('|'),
+)
 const alternateDefinition: SkillDefinition = {
   name: 'alternate-skill',
   description: 'Alternate Skill',
@@ -91,8 +87,9 @@ const switchDefinition = () => {
   <output data-testid="file-action-log">
     {{ fileActionLog.map((action) => `${action.type}|${action.path}|${action.nextPath ?? ''}`).join('|') }}
   </output>
+  <output data-testid="resource-identity-log">{{ resourceIdentityLog }}</output>
   <SkillExtensionDetail data-testid="detail" :definition="definition" updated-at="2026-07-10" />
-  <SkillExtensionDetail data-testid="uncontrolled-detail" :definition="definition" />
+  <SkillExtensionDetail data-testid="uncontrolled-detail" :definition="definition" mode="edit" />
   <SkillExtensionDetail data-testid="empty-detail" :definition="emptyDefinition" />
   <SkillExtensionDetail
     data-testid="many-resources-detail"

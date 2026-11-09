@@ -42,6 +42,26 @@ const nonEditableState = {
   },
 }
 
+const stringToolCalls = [
+  {
+    id: 'call-tool-string-test',
+    type: 'function',
+    editable: true,
+    function: {
+      name: 'echo',
+      arguments: JSON.stringify('hello'),
+    },
+  },
+]
+
+const stringToolState = {
+  toolCall: {
+    'call-tool-string-test': {
+      open: true,
+    },
+  },
+}
+
 const events = ref<BubbleEvent[]>([])
 const lastEvent = computed(() => JSON.stringify(events.value.at(-1) ?? null))
 
@@ -65,6 +85,13 @@ const handleBubbleEvent = (event: BubbleEvent) => {
     content="只读工具参数。"
     :tool_calls="nonEditableToolCalls"
     :state="nonEditableState"
+  />
+  <Bubble
+    data-testid="string-editing-bubble"
+    role="assistant"
+    content="请检查字符串参数。"
+    :tool_calls="stringToolCalls"
+    :state="stringToolState"
   />
   <output data-testid="last-event">{{ lastEvent }}</output>
 </template>

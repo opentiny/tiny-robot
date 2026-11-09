@@ -8,7 +8,7 @@ import {
   IconPlugin,
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
-import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
+import { type Component, computed, nextTick, ref, useCssModule, watch } from 'vue'
 import { TinyButton } from '@opentiny/vue'
 import { type ToolCallState, useBubbleEventFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
@@ -95,7 +95,18 @@ const jsonStr = computed(() => {
   return prettyJSON(toolCallWithResult.value, 2)
 })
 
-const argumentsJson = computed(() => prettyJSON(toolCallWithResult.value.arguments))
+const argumentsJson = computed(() => {
+  const rawArguments = toolCall.value?.function.arguments
+  if (typeof rawArguments === 'string') {
+    try {
+      if (typeof JSON.parse(rawArguments) === 'string') {
+        return rawArguments
+      }
+    } catch {}
+  }
+
+  return prettyJSON(toolCallWithResult.value.arguments)
+})
 
 const detail = computed(() => {
   return highlightJSON(jsonStr.value)
@@ -127,10 +138,6 @@ const editError = ref(false)
 
 const canEdit = computed(() => Boolean(toolCall.value?.editable))
 
-watchEffect(() => {
-  open.value = state.value.open ?? false
-})
-
 const handleBubbleEvent = useBubbleEventFn()
 
 const emitToolAction = (action: 'resume' | 'reject') => {
@@ -156,6 +163,26 @@ const cancelEditing = () => {
   editing.value = false
 }
 
+watch(
+  () => state.value.open ?? false,
+  (nextOpen, previousOpen) => {
+    open.value = nextOpen
+    if (!nextOpen && previousOpen) {
+      cancelEditing()
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => toolCall.value?.id,
+  (nextId, previousId) => {
+    if (nextId !== previousId) {
+      cancelEditing()
+    }
+  },
+)
+
 const saveEditing = () => {
   const toolCallId = toolCall.value?.id
   if (!toolCallId || !canEdit.value) {
@@ -177,6 +204,9 @@ const saveEditing = () => {
 
 const handleClick = () => {
   open.value = !open.value
+  if (!open.value) {
+    cancelEditing()
+  }
 
   const toolCallId = toolCall.value?.id
   if (toolCallId) {

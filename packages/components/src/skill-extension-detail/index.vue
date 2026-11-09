@@ -170,9 +170,7 @@ const selectedResource = computed(() =>
   resources.value.find((resource) => resource.resourceId === selectedResourceId.value),
 )
 const selectedFileName = computed(() => selectedResource.value?.path ?? 'SKILL.md')
-const canEditSelectedFile = computed(
-  () => props.mode === 'edit' && (selectedResource.value ? selectedResource.value.editable !== false : true),
-)
+const canEditSelectedFile = computed(() => props.mode === 'edit')
 const textContent = ref('')
 const contentLoading = ref(false)
 const contentError = ref(false)
@@ -289,7 +287,6 @@ const emitFileAction = (action: SkillFileAction) => {
 const updateResourcePath = (resource: SkillResourceDescriptor, path: string): SkillResourceDescriptor => ({
   ...resource,
   path,
-  resourceId: path,
 })
 
 const clearSelectionIfPathMatches = (path: string, includeChildren = false) => {
@@ -398,7 +395,6 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
 
   if (isFolder) {
     const normalizedPath = normalizePath(currentPath)
-    const selectedPath = selectedResource.value?.path
     const nextResources = resources.value.map((resource) => {
       const resourcePath = normalizePath(resource.path)
       if (resourcePath === normalizedPath) return updateResourcePath(resource, nextPath)
@@ -416,19 +412,12 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
       return folderPath
     })
     emitResourceDefinition(nextResources)
-    if (selectedPath) {
-      const normalizedSelectedPath = normalizePath(selectedPath)
-      if (normalizedSelectedPath === normalizedPath || normalizedSelectedPath.startsWith(`${normalizedPath}/`)) {
-        selectedResourceId.value = `${nextPath}${normalizedSelectedPath.slice(normalizedPath.length)}`
-      }
-    }
   } else {
     emitResourceDefinition(
       resources.value.map((resource) =>
         normalizePath(resource.path) === normalizePath(currentPath) ? updateResourcePath(resource, nextPath) : resource,
       ),
     )
-    if (selectedResourceId.value === row.resource.resourceId) selectedResourceId.value = nextPath
   }
   emitFileAction({ type: 'rename', target: actionTarget, path: currentPath, nextPath })
 }
@@ -896,6 +885,7 @@ onBeforeUnmount(() => {
         <div
           class="skill-extension-detail__content"
           :class="{ 'skill-extension-detail__content--editing': isEditing }"
+          tabindex="0"
           aria-live="polite"
         >
           <p v-if="contentLoading" class="skill-extension-detail__status">正在读取文件…</p>
