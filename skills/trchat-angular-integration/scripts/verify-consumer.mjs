@@ -9,7 +9,7 @@ const KIT = '@opentiny/tiny-robot-kit';
 const ROBOT = '@opentiny/tiny-robot';
 const SVGS = '@opentiny/tiny-robot-svgs';
 const EDGES = { [CHAT]: [ROBOT, KIT, SVGS], [ROBOT]: [KIT, SVGS], [KIT]: [], [SVGS]: [] };
-const VERSION = '1.0.0-alpha.0';
+const VERSION = '1.0.0-rc.9';
 const inside = (root, path) => { const rel = relative(root, path); return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel); };
 function files(dir, excluded = new Set()) {
   if (!existsSync(dir)) return [];
@@ -72,6 +72,52 @@ function parseJsonc(text) {
   }
   return JSON.parse(withoutTrailingCommas);
 }
+function yamlScalar(value) {
+  const scalar = value.trim();
+  if (scalar.startsWith("'") && scalar.endsWith("'")) return scalar.slice(1, -1).replace(/''/g, "'");
+  if (scalar.startsWith('"') && scalar.endsWith('"')) return JSON.parse(scalar);
+  return scalar;
+}
+function pnpmRootDependencySpecifier(text, name) {
+  let importers = false;
+  let rootImporter = false;
+  let dependencySection = false;
+  let selectedDependency = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim() || line.trimStart().startsWith('#')) continue;
+    const indent = line.length - line.trimStart().length;
+    const trimmed = line.trim();
+    const colon = trimmed.indexOf(':');
+    if (colon < 0) continue;
+    const key = yamlScalar(trimmed.slice(0, colon));
+    const value = trimmed.slice(colon + 1);
+    if (indent === 0) {
+      importers = key === 'importers';
+      rootImporter = false;
+      dependencySection = false;
+      selectedDependency = false;
+      continue;
+    }
+    if (indent === 2) {
+      rootImporter = importers && key === '.';
+      dependencySection = false;
+      selectedDependency = false;
+      continue;
+    }
+    if (!rootImporter) continue;
+    if (indent === 4) {
+      dependencySection = ['dependencies', 'devDependencies', 'optionalDependencies'].includes(key);
+      selectedDependency = false;
+      continue;
+    }
+    if (!dependencySection) continue;
+    if (indent === 6) {
+      selectedDependency = key === name;
+      continue;
+    }
+    if (selectedDependency && indent === 8 && key === 'specifier') return yamlScalar(value);
+  }
+}
 function packageManifest(req, name, entry) {
   let resolved;
   try { resolved = req.resolve(`${name}/package.json`); }
@@ -125,10 +171,28 @@ export function verifyAngularConsumer({ projectRoot, buildDirs = [], testSecret 
     return 'No private monorepo source imports detected';
   });
   const directKit = () => sources.some(text => /["'`]@opentiny\/tiny-robot-kit(?:\/[^"'`]*)?["'`]/.test(text));
+  const verifyCandidateDependency = (name, value) => {
+    if (typeof value !== 'string' || !/^file:.+\.tgz$/.test(value)) throw new Error(`Direct dependency ${name} must use a local candidate .tgz; registry ${VERSION} lacks the Web Component`);
+    const tarball = resolve(root, value.slice('file:'.length));
+    if (!existsSync(tarball) || !statSync(tarball).isFile()) throw new Error(`Candidate tarball for ${name} does not exist as a regular file: ${tarball}`);
+
+    const pnpmLock = join(root, 'pnpm-lock.yaml');
+    const npmLock = join(root, 'package-lock.json');
+    if (existsSync(pnpmLock)) {
+      if (pnpmRootDependencySpecifier(readFileSync(pnpmLock, 'utf8'), name) !== value) throw new Error(`pnpm root importer does not record ${name} candidate specifier ${value}`);
+    } else if (existsSync(npmLock)) {
+      const lock = JSON.parse(readFileSync(npmLock, 'utf8'));
+      const locked = lock.packages?.[`node_modules/${name}`]?.resolved;
+      if (lock.packages?.['']?.dependencies?.[name] !== value || typeof locked !== 'string' || !locked.startsWith('file:') || resolve(root, locked.slice('file:'.length)) !== tarball) throw new Error(`npm lockfile does not record ${name} candidate tarball ${value}`);
+    } else {
+      throw new Error('A matching pnpm-lock.yaml or package-lock.json is required for candidate provenance');
+    }
+  };
   check('dependency versions', () => {
     const deps = { ...manifest.devDependencies, ...manifest.dependencies };
-    if (deps[CHAT] !== VERSION || ((directKit() || deps[KIT] !== undefined) && deps[KIT] !== VERSION)) throw new Error(`Direct dependency version must be ${VERSION} for Chat and directly used Kit`);
-    return 'Direct dependency versions match alpha';
+    verifyCandidateDependency(CHAT, deps[CHAT]);
+    if (directKit() || deps[KIT] !== undefined) verifyCandidateDependency(KIT, deps[KIT]);
+    return 'Direct dependencies and lockfile use existing local candidate tarballs';
   });
   const installedPackage = (resolver, name, entry) => {
     const installed = packageManifest(resolver, name, entry);

@@ -10,7 +10,9 @@ const chat = '@opentiny/tiny-robot-chat';
 const kit = '@opentiny/tiny-robot-kit';
 const robot = '@opentiny/tiny-robot';
 const svgs = '@opentiny/tiny-robot-svgs';
-const version = '1.0.0-alpha.0';
+const version = '1.0.0-rc.9';
+const chatTarball = 'file:./candidate/opentiny-tiny-robot-chat-1.0.0-rc.9.tgz';
+const kitTarball = 'file:./candidate/opentiny-tiny-robot-kit-1.0.0-rc.9.tgz';
 test('skill entrypoint links resolve to local resources', () => {
   const root = resolve('skills/trchat-angular-integration');
   const content = readFileSync(join(root, 'SKILL.md'), 'utf8');
@@ -43,6 +45,12 @@ test('advanced guidance is linked and keeps credentials outside browser configur
     .map(path => readFileSync(join('skills/trchat-angular-integration', path), 'utf8')).join('\n');
   assertSafeExamples(guidance);
 });
+test('advanced guidance uses the rc.9 unified model feature-value contract', () => {
+  const guidance = readFileSync('skills/trchat-angular-integration/references/advanced-capabilities.md', 'utf8');
+  assert.match(guidance, /model-feature-value-change/);
+  assert.match(guidance, /features[^\n]*switch\/select fields/);
+  assert.doesNotMatch(guidance, /model-feature-change|model-reasoning-effort-change|featureBody|effortParam/);
+});
 function assertSafeExamples(guidance) {
   // Examples are intentionally stricter than prose: never demonstrate this key
   // or credential assignments in a runtimeOptions code block.
@@ -67,11 +75,25 @@ test('Angular NgModule guidance opts the component out of standalone mode', () =
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
   assert.match(guidance, /NgModule[^\n]*standalone: false/);
 });
+test('skill distinguishes the rc.9 source baseline from the registry package without Web Components', () => {
+  const entry = readFileSync('skills/trchat-angular-integration/SKILL.md', 'utf8');
+  assert.match(entry, /published[^\n]*1\.0\.0-rc\.9[^\n]*does not include[^\n]*Web Component/i);
+  assert.match(entry, /local[^\n]*\.tgz/i);
+  assert.match(entry, /\.\/experimental/);
+  assert.match(entry, /experimental\/web-component\.css/);
+});
 function write(path, text) { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, text); }
 function fixture(t, pnpm = false) {
   const root = mkdtempSync(join(tmpdir(), 'trchat-consumer-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version } }));
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: chatTarball } }));
+  write(join(root, 'candidate/opentiny-tiny-robot-chat-1.0.0-rc.9.tgz'), 'candidate');
+  write(join(root, 'candidate/opentiny-tiny-robot-kit-1.0.0-rc.9.tgz'), 'candidate');
+  if (pnpm) {
+    write(join(root, 'pnpm-lock.yaml'), `lockfileVersion: '9.0'\nimporters:\n  .:\n    dependencies:\n      '${chat}':\n        specifier: ${chatTarball}\n      '${kit}':\n        specifier: ${kitTarball}\n`);
+  } else {
+    write(join(root, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: { '': { dependencies: { [chat]: chatTarball, [kit]: kitTarball } }, [`node_modules/${chat}`]: { resolved: chatTarball }, [`node_modules/${kit}`]: { resolved: kitTarball } } }));
+  }
   write(join(root, 'src/app.ts'), `import '${chat}/experimental';`);
   const target = pnpm ? join(root, 'node_modules/.pnpm/chat/node_modules', chat) : join(root, 'node_modules', chat);
   write(join(target, 'package.json'), JSON.stringify({ name: chat, version, type: 'module', exports: { './experimental': './experimental.js', './experimental/web-component.css': './style.css' }, dependencies: { [robot]: version, [kit]: version, [svgs]: version }, peerDependencies: { vue: '^3.3.11' } }));
@@ -80,7 +102,7 @@ function fixture(t, pnpm = false) {
   const modules = pnpm ? join(root, 'node_modules/.pnpm/chat/node_modules') : join(root, 'node_modules');
   for (const name of [robot, kit, svgs, 'vue']) {
     const dir = join(modules, name);
-    write(join(dir, 'package.json'), JSON.stringify({ name, version: name === 'vue' ? '3.4.0' : version, ...(name === svgs ? {} : { main: './index.js' }), ...(name !== 'vue' ? { peerDependencies: { vue: name === robot ? '^3.3.11' : '>=3.0.0', ...(name === robot ? { [kit]: '^1.0.0-alpha.0' } : {}) }, ...(name === robot ? { dependencies: { [svgs]: version } } : {}) } : {}) }));
+    write(join(dir, 'package.json'), JSON.stringify({ name, version: name === 'vue' ? '3.4.0' : version, ...(name === svgs ? {} : { main: './index.js' }), ...(name !== 'vue' ? { peerDependencies: { vue: name === robot ? '^3.3.11' : '>=3.0.0', ...(name === robot ? { [kit]: version } : {}) }, ...(name === robot ? { dependencies: { [svgs]: version } } : {}) } : {}) }));
     if (name !== svgs) write(join(dir, 'index.js'), '');
   }
   if (pnpm) { mkdirSync(join(root, 'node_modules/@opentiny'), { recursive: true }); symlinkSync(target, join(root, 'node_modules', chat), 'dir'); }
@@ -88,16 +110,46 @@ function fixture(t, pnpm = false) {
 }
 function report(root, options = {}) { return verifyAngularConsumer({ projectRoot: root, ...options }); }
 function failing(result, pattern) { assert.equal(result.ok, false); assert.match(result.checks.filter(c => !c.ok).map(c => c.detail).join(' '), pattern); }
-test('accepts an npm-style published alpha consumer', t => { assert.equal(report(fixture(t)).ok, true); });
-test('accepts a pnpm-style published alpha consumer', t => { assert.equal(report(fixture(t, true)).ok, true); });
-test('rejects a wrong chat or direct kit version', t => {
-  const root = fixture(t); write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: '^1.0.0-alpha.0', [kit]: '1.0.0' } }));
+test('accepts an npm-style rc.9 Web Component candidate consumer', t => { assert.equal(report(fixture(t)).ok, true); });
+test('accepts a pnpm-style rc.9 Web Component candidate consumer', t => { assert.equal(report(fixture(t, true)).ok, true); });
+test('accepts local rc.9 candidate tarball dependency declarations', t => {
+  const root = fixture(t);
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: {
+    [chat]: chatTarball,
+    [kit]: kitTarball,
+  } }));
   write(join(root, 'src/app.ts'), `import '${kit}';`);
-  failing(report(root), /version/i);
+  assert.equal(report(root).ok, true);
+});
+test('rejects a missing candidate tarball even when stale candidate files are installed', t => {
+  const root = fixture(t);
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: 'file:./candidate/missing.tgz' } }));
+  write(join(root, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: { '': { dependencies: { [chat]: 'file:./candidate/missing.tgz' } }, [`node_modules/${chat}`]: { resolved: 'file:./candidate/missing.tgz' } } }));
+  failing(report(root), /does not exist|regular file/i);
+});
+test('rejects a lockfile that resolves a different candidate tarball', t => {
+  const root = fixture(t);
+  write(join(root, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: { '': { dependencies: { [chat]: chatTarball } }, [`node_modules/${chat}`]: { resolved: kitTarball } } }));
+  failing(report(root), /lockfile/i);
+});
+test('rejects a pnpm root specifier mismatch even when another lock section contains the candidate path', t => {
+  const root = fixture(t, true);
+  write(join(root, 'pnpm-lock.yaml'), `lockfileVersion: '9.0'\nimporters:\n  .:\n    dependencies:\n      '${chat}':\n        specifier: file:./candidate/other.tgz\npackages:\n  unrelated:\n    resolution: {tarball: ${chatTarball}}\n`);
+  failing(report(root), /pnpm root importer/i);
+});
+test('rejects a bare registry rc.9 dependency even when stale candidate files are installed', t => {
+  const root = fixture(t);
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version } }));
+  failing(report(root), /local candidate \.tgz/i);
+});
+test('rejects a wrong chat or direct kit version', t => {
+  const root = fixture(t); write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: '^1.0.0-rc.9', [kit]: '1.0.0' } }));
+  write(join(root, 'src/app.ts'), `import '${kit}';`);
+  failing(report(root), /local candidate/i);
 });
 test('checks installed versions and direct Kit imports', t => {
   const root = fixture(t);
-  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version, [kit]: version } }));
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: chatTarball, [kit]: kitTarball } }));
   write(join(root, 'src/app.ts'), `import '${kit}';`);
   write(join(root, 'node_modules', kit, 'package.json'), JSON.stringify({ name: kit, version, main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
   write(join(root, 'node_modules', kit, 'index.js'), '');
@@ -113,6 +165,14 @@ test('rejects workspace dependencies in an installed manifest', t => {
 test('requires the experimental CSS export', t => {
   const root = fixture(t); rmSync(join(root, 'node_modules', chat, 'style.css'));
   failing(report(root), /style.css/i);
+});
+test('rejects the published registry rc.9 manifest without Web Component exports', t => {
+  const root = fixture(t);
+  const path = join(root, 'node_modules', chat, 'package.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  delete manifest.exports;
+  write(path, JSON.stringify(manifest));
+  failing(report(root), /experimental|browser|style\.css/i);
 });
 test('rejects package realpaths outside the consumer node_modules tree', t => {
   const root = fixture(t); const path = join(root, 'node_modules', chat); const outside = join(root, 'linked-chat');
@@ -157,7 +217,7 @@ test('checks nested robot dependency and peer package copies', t => {
 });
 test('checks the Vue resolved by a directly declared Kit copy', t => {
   const root = fixture(t, true);
-  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version, [kit]: version } }));
+  write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: chatTarball, [kit]: kitTarball } }));
   const directKit = join(root, 'node_modules', kit);
   write(join(directKit, 'package.json'), JSON.stringify({ name: kit, version, main: './index.js', peerDependencies: { vue: '>=3.0.0' } }));
   write(join(directKit, 'index.js'), '');
@@ -190,7 +250,7 @@ test('checks Angular configured source roots for direct Kit usage', t => {
   const root = fixture(t);
   write(join(root, 'angular.json'), JSON.stringify({ projects: { chat: { sourceRoot: 'projects/chat/src' } } }));
   write(join(root, 'projects/chat/src/app.ts'), `import '${kit}';`);
-  failing(report(root), /direct dependency version/i);
+  failing(report(root), /local candidate/i);
 });
 test('accepts Angular JSONC and scans its configured source root', t => {
   const root = fixture(t);

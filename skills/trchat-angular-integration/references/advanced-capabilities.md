@@ -1,11 +1,11 @@
-# Advanced capabilities (1.0.0-alpha.0)
+# Advanced capabilities (rc.9-based Web Component candidate)
 
-Use the installed alpha declarations as the authority. `tr-chat` accepts a `runtime` or creates and owns one from `runtimeOptions`; do not continually replace either object. Alternatively `createChatRuntime(options)` returns `{ runtime, dispose }`: the application owns and disposes that runtime. Wait for `whenTrChatReady` before runtime-dependent methods. `tr-chat-ui` is presentation-only: its `data` and interaction events require application orchestration. Event payloads below are DOM `CustomEvent.detail`.
+Use the installed candidate declarations as the authority. The published registry rc.9 package does not contain these Web Component declarations. `tr-chat` accepts a `runtime` or creates and owns one from `runtimeOptions`; do not continually replace either object. Alternatively `createChatRuntime(options)` returns `{ runtime, dispose }`: the application owns and disposes that runtime. Wait for `whenTrChatReady` before runtime-dependent methods. `tr-chat-ui` is presentation-only: its `data` and interaction events require application orchestration. Event payloads below are DOM `CustomEvent.detail`.
 
 ## Provider and model selection
 
-- **API:** `runtimeOptions.modelProviders` supplies provider `type` (`openai`, `deepseek`, or `qwen`), `apiUrl`, and `models` with `id` and `label`. Model capabilities, `featureBody`, efforts and `effortParam` are optional. A nonempty provider list conflicts with `responseProvider`; supply one mechanism. Use a same-origin proxy URL and no browser credential. A custom `responseProvider` is appropriate when the application controls request construction.
-- **Ownership:** The runtime selects the first enabled model and handles model selection; the application owns the provider list, proxy and credential. With `tr-chat-ui`, the app owns selection and handles `model-select`, `model-feature-change` and `model-reasoning-effort-change`.
+- **API:** `runtimeOptions.modelProviders` supplies provider `type` (`openai`, `deepseek`, or `qwen`), `apiUrl`, and `models` with `id` and `label`. A model can expose a `features` array of switch/select fields; provider presets map normalized `featureValues`, and a model can override that mapping with `mapFeatureValues`. A nonempty provider list conflicts with `responseProvider`; supply one mechanism. Use a same-origin proxy URL and no browser credential. A custom `responseProvider` is appropriate when the application controls request construction.
+- **Ownership:** The runtime selects the first enabled model and handles model and feature-value selection; the application owns the provider list, proxy and credential. With `tr-chat-ui`, the app owns selection and handles `model-select` and `model-feature-value-change`.
 - **Result and acceptance:** Configure two fake models and a local fake response endpoint; select the second, send, and inspect the endpoint's received model and visible response. Do not assume a remote provider supports any optional feature without checking its own contract.
 
 ## History and attachments
@@ -24,7 +24,7 @@ Use the installed alpha declarations as the authority. `tr-chat` accepts a `runt
 
 - **API:** Kit's public `SkillDefinition`, `skillPlugin`, `getSkillRequestContext`, and memory or IndexedDB Skill storage support application-selected Skills. Pass the plugin via `runtimeOptions.plugins`; use its `onBeforeRequest` to place resolved instructions into the request body according to the chosen provider contract. Loading or storing a Skill alone does not inject instructions. `extension-action` is a UI event, not an installation or execution service.
 - **Ownership:** The app owns Skill catalog, trust, selection, enablement, storage and provider-specific instruction placement. It must not treat imported instructions as trusted authority or expose secrets to them.
-- **Deterministic acceptance:** Define a local Skill with instructions `Answer with the marker SKILL_ALPHA`, select it in an app-owned plugin configuration and capture the outgoing request with a fake provider. Assert the injected instructions contain that marker; deselect it and assert the next captured request omits it. Return a fixed response and check it appears. This tests request injection, not a remote model's obedience.
+- **Deterministic acceptance:** Define a local Skill with instructions `Answer with the marker SKILL_RC9`, select it in an app-owned plugin configuration and capture the outgoing request with a fake provider. Assert the injected instructions contain that marker; deselect it and assert the next captured request omits it. Return a fixed response and check it appears. This tests request injection, not a remote model's obedience.
 
 ## Message actions
 

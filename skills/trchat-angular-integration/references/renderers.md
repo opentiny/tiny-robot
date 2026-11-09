@@ -1,6 +1,6 @@
 # Renderer reference
 
-Use this reference when an Angular host needs custom message content, a bubble box, or a scoped region. Import from `@opentiny/tiny-robot-chat/experimental`; these APIs are experimental in the pinned public alpha. Both `TrChatHTMLElement` and `TrChatUIHTMLElement` expose `bubbleRenderers` and `renderers` as JavaScript properties. Assign stable objects and arrays (for example, component fields) once to the element; replace them only when configuration intentionally changes. Do not serialize them into attributes or create arrays in Angular template expressions.
+Use this reference when an Angular host needs custom message content, a bubble box, or a scoped region. Import from `@opentiny/tiny-robot-chat/experimental`; these APIs are experimental in the locally packed rc.9-based candidate. Both `TrChatHTMLElement` and `TrChatUIHTMLElement` expose `bubbleRenderers` and `renderers` as JavaScript properties. Assign stable objects and arrays (for example, component fields) once to the element; replace them only when configuration intentionally changes. Do not serialize them into attributes or create arrays in Angular template expressions.
 
 ## Bubble matches
 
