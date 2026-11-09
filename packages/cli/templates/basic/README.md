@@ -1,10 +1,10 @@
 # __PROJECT_NAME__
 
-This project is generated from the TinyRobot Chat Basic template. It covers conversations, streaming responses, cancellation, Markdown rendering, responsive history, themes, model feature fields, and MCP Server/Tool management.
+本项目由 TinyRobot Chat Basic 模板生成，包含对话、流式响应、取消请求、Markdown 渲染、响应式历史记录、主题、模型功能选项，以及 MCP 服务和工具管理。
 
-## MCP support
+## MCP 支持
 
-The demo declares MCP Servers through `mcpServers`:
+示例通过 `mcpServers` 声明 MCP 服务：
 
 ```ts
 const mcpServers = [
@@ -18,38 +18,38 @@ const mcpServers = [
 ]
 ```
 
-`installed: true` means initially installed only. The Server remains disabled and does not connect or discover Tools until enabled.
+`installed: true` 仅表示初始状态为已安装。服务仍处于禁用状态，启用后才会建立连接并发现工具。
 
-| Server                     | Transport       | Authentication   |
+| 服务                       | 传输方式        | 认证方式         |
 | -------------------------- | --------------- | ---------------- |
-| 高德地图                   | Streamable HTTP | Optional API Key |
-| Model Context Protocol MCP | Streamable HTTP | None             |
+| 高德地图                   | Streamable HTTP | 可选 API Key     |
+| Model Context Protocol MCP | Streamable HTTP | 无需认证         |
 
-Tools are discovered dynamically with `client.listTools()`. Tool choices are stored in the next user message's `runConfig` metadata snapshot, so changing a Tool affects subsequent turns without modifying a request already in progress.
+工具通过 `client.listTools()` 动态发现。所选工具会保存到下一条用户消息的 `runConfig` 元数据快照中，因此修改工具选择仅影响后续对话，不会改变正在进行的请求。
 
-Server installation, enabling, Tool loading, retry, de-duplication, and Tool calls are handled by the default adapter in `@opentiny/tiny-robot-chat`. If a Server cannot load its Tools, it remains installed but is automatically disabled. Other enabled Servers and normal chat remain available.
+服务安装、启用、工具加载、重试、去重和工具调用均由 `@opentiny/tiny-robot-chat` 的默认适配器处理。如果某个服务无法加载工具，它会保留已安装状态，但会被自动禁用。其他已启用的服务和普通对话仍可正常使用。
 
-## Model connection modes
+## 模型连接方式
 
-- API Key only: connects directly to the official Qwen or DeepSeek endpoint.
-- `apiUrl` + API Key: connects to a custom service with frontend authentication.
-- `apiUrl` only: connects to a backend proxy without frontend authentication.
+- 仅配置 API Key：直接连接 Qwen 或 DeepSeek 的官方接口。
+- 配置 `apiUrl` 和 API Key：连接自定义服务，由前端提供认证信息。
+- 仅配置 `apiUrl`：连接后端代理，前端不提供认证信息。
 
-The Chat package does not prompt for or validate missing API Keys. The upstream service or backend proxy decides whether authentication is required.
+Chat 包不会提示补充或校验缺失的 API Key，是否需要认证由上游服务或后端代理决定。
 
-MCP follows the same three modes: the official endpoint with an optional API Key, a custom `baseUrl` with optional headers, or a proxy `baseUrl` without headers.
+MCP 同样支持三种方式：官方接口搭配可选 API Key、自定义 `baseUrl` 搭配可选请求头，或使用不携带认证请求头的代理 `baseUrl`。
 
-The basic template already includes the Model Context MCP proxy in `vite.config.ts`. If you use `add chat` in an existing project, the CLI does not modify that project's Vite configuration; add the same `/modelcontextprotocol-mcp` proxy under `server.proxy` manually and restart Vite.
+basic 模板已在 `vite.config.ts` 中配置 Model Context MCP 代理。通过 `add chat` 接入现有项目时，CLI 不会修改该项目的 Vite 配置，需要手动在 `server.proxy` 中添加相同的 `/modelcontextprotocol-mcp` 代理，并重启 Vite。
 
-## Model feature fields
+## 模型功能选项
 
-Qwen models expose thinking levels and web search through the model selector fields. DeepSeek models expose thinking levels through the same fields.
+Qwen 模型通过模型选择器中的选项提供思考强度和联网搜索设置，DeepSeek 模型通过相同方式提供思考强度设置。
 
-Configure `features` on a model in `src/App.vue` and use `mapFeatureValues` to map selected values to request parameters. A model that requires thinking omits the `关闭` option.
+在 `src/App.vue` 中为模型配置 `features`，并通过 `mapFeatureValues` 将所选值映射为请求参数。必须开启思考的模型不提供「关闭」选项。
 
-## Environment variables
+## 环境变量
 
-Copy `.env.example` to `.env.local`. Leave endpoint variables blank for official Provider/MCP defaults, or set them for custom services and backend proxies:
+复制 `.env.example` 为 `.env.local`。接口地址变量留空时使用模型服务或 MCP 的默认官方地址；接入自定义服务或后端代理时，填写对应地址：
 
 ```env
 VITE_QWEN_API_URL=
@@ -59,17 +59,17 @@ VITE_ALIYUN_DASHSCOPE_KEY=
 VITE_DEEPSEEK_API_KEY=
 ```
 
-For a proxy setup, set for example `VITE_QWEN_API_URL=/api/chat/qwen`, `VITE_DEEPSEEK_API_URL=/api/chat/deepseek`, and `VITE_AMAP_MCP_URL=/api/mcp/amap-maps`, then leave the API Key variables blank.
+使用代理时，可将地址配置为 `VITE_QWEN_API_URL=/api/chat/qwen`、`VITE_DEEPSEEK_API_URL=/api/chat/deepseek` 和 `VITE_AMAP_MCP_URL=/api/mcp/amap-maps`，并将 API Key 变量留空。
 
-Variables prefixed with `VITE_` are exposed to browser code. Direct browser connections are intended only for servers without secrets and with CORS enabled. Production applications should keep credentials behind a backend or BFF proxy.
+以 `VITE_` 为前缀的变量会暴露给浏览器代码。浏览器直连仅适用于无需保密凭证且已启用 CORS 的服务。生产应用应通过后端或 BFF 代理保管凭证。
 
-## Development
+## 本地开发
 
 ```bash
 pnpm dev
 ```
 
-## Build
+## 构建
 
 ```bash
 pnpm build
