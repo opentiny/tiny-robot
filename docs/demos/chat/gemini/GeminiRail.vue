@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { IconNewSession, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import geminiMask from './icons/gemini-mask.svg'
 
 const emit = defineEmits<{
   open: []
   create: []
+  focusMobileSidebarTrigger: []
 }>()
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    isDock: boolean
     isOpen: boolean
     isNewConversationActive?: boolean
   }>(),
@@ -16,11 +19,28 @@ withDefaults(
     isNewConversationActive: false,
   },
 )
+
+const railElement = ref<HTMLElement | null>(null)
+const sidebarTrigger = ref<HTMLButtonElement | null>(null)
+
+watch(
+  () => props.isDock,
+  (isDock) => {
+    if (!isDock && railElement.value?.contains(document.activeElement)) {
+      emit('focusMobileSidebarTrigger')
+    }
+  },
+)
+
+defineExpose({
+  focusSidebarTrigger: () => sidebarTrigger.value?.focus({ preventScroll: true }),
+})
 </script>
 
 <template>
-  <aside class="gemini-rail" aria-label="Gemini 导航">
+  <aside ref="railElement" class="gemini-rail" aria-label="Gemini 导航">
     <button
+      ref="sidebarTrigger"
       class="gemini-rail__logo"
       type="button"
       aria-label="展开边栏"

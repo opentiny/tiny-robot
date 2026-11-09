@@ -89,6 +89,8 @@ export type LayoutFloatingProps = LayoutAsidePanelsProps &
   LayoutFloatingStateControlProps & {
     mode: 'floating'
     floatingOptions?: LayoutFloatingOptions
+    /** Use a drawer for the right dock when the surface cannot fit both sidebars and the main area. */
+    rightAsideDrawerOnOverflow?: boolean
   }
 
 export type LayoutProps = LayoutNormalProps | LayoutFloatingProps

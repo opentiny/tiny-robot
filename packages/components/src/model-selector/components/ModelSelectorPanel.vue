@@ -3,19 +3,21 @@ import { IconNoData, IconSearch } from '@opentiny/tiny-robot-svgs'
 import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, watch, type VNode } from 'vue'
 import type {
   ModelSelectorEmptySlotProps,
+  ModelSelectorFeatureValue,
+  ModelSelectorFeatureValues,
+  ModelSelectorField,
   ModelSelectorFooterSlotProps,
   ModelSelectorFilterMethod,
   ModelSelectorItemSlotProps,
   ModelSelectorOption,
   ModelSelectorPanelClass,
-  ModelSelectorReasoningEffortOption,
   ModelSelectorSize,
   ModelSelectorSlotProps,
 } from '../index.type'
 import type { NormalizedModelSelectorOption } from '../internal.type'
 import { useModelSelectorFilter } from '../composables/useModelSelectorFilter'
 import { useModelSelectorNavigation } from '../composables/useModelSelectorNavigation'
-import ModelSelectorEffort from './ModelSelectorEffort.vue'
+import ModelSelectorFields from './ModelSelectorFields.vue'
 import ModelSelectorGroup from './ModelSelectorGroup.vue'
 
 defineOptions({ name: 'TrModelSelectorPanel' })
@@ -32,10 +34,9 @@ const props = defineProps<{
   placeholder: string
   searchPlaceholder: string
   emptyText: string
-  effortOptions: readonly ModelSelectorReasoningEffortOption[]
-  effortValue: string | null
-  effortLabel: string
-  effortDisabled: boolean
+  fieldsDisabled: boolean
+  fields: readonly ModelSelectorField[]
+  values: ModelSelectorFeatureValues
   size: ModelSelectorSize
   panelClass?: ModelSelectorPanelClass
   slotContext: ModelSelectorPanelSlotContext
@@ -43,7 +44,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [option: ModelSelectorOption]
-  'select-effort': [value: string | null]
+  'set-feature-value': [key: string, value: ModelSelectorFeatureValue]
   close: [restoreFocus: boolean]
 }>()
 
@@ -91,9 +92,9 @@ const headerSlotProps = computed<ModelSelectorSlotProps>(() => ({
 
 const footerSlotProps = computed<ModelSelectorFooterSlotProps>(() => ({
   ...headerSlotProps.value,
-  reasoningEfforts: props.effortOptions,
-  reasoningEffortOption: props.effortOptions.find((option) => option.value === props.effortValue) ?? null,
-  setReasoningEffort: (value) => emit('select-effort', value),
+  values: props.values,
+  disabled: props.fieldsDisabled,
+  setFeatureValue: (key, value) => emit('set-feature-value', key, value),
 }))
 
 function handleInput(event: Event) {
@@ -297,14 +298,13 @@ watch(
       </ModelSelectorGroup>
     </div>
 
-    <div v-if="$slots.footer || effortOptions.length > 0" class="tr-model-selector__footer">
+    <div v-if="$slots.footer || fields.length > 0" class="tr-model-selector__footer">
       <slot name="footer" v-bind="footerSlotProps">
-        <ModelSelectorEffort
-          :options="effortOptions"
-          :value="effortValue"
-          :label="effortLabel"
-          :disabled="effortDisabled"
-          @select="$emit('select-effort', $event)"
+        <ModelSelectorFields
+          :fields="fields"
+          :values="values"
+          :disabled="fieldsDisabled"
+          @change="(key, value) => $emit('set-feature-value', key, value)"
         />
       </slot>
     </div>

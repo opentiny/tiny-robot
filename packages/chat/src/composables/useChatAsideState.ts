@@ -77,10 +77,6 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const leftAsideMode = computed(() =>
     isMobileViewport.value ? 'drawer' : leftAside.value !== false ? leftAside.value?.mode : 'dock',
   )
-  const rightAsideMode = computed(() =>
-    isMobileViewport.value ? 'drawer' : rightAside.value !== false ? rightAside.value?.mode : 'dock',
-  )
-
   const leftAsideOptions = computed(() => {
     const layout = leftAside.value
     const width = leftAsideWidth.value
@@ -101,17 +97,18 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   })
   const rightAsideOptions = computed(() => {
     const layout = rightAside.value
-    const mobileWidth = isMobileViewport.value && viewportWidth.value > 0 ? viewportWidth.value : undefined
+    const mode = (layout !== false ? layout?.mode : undefined) ?? 'dock'
+    const drawerWidth = isMobileViewport.value ? viewportWidth.value : undefined
     return {
-      mode: rightAsideMode.value,
+      mode: drawerWidth !== undefined ? ('drawer' as const) : mode,
       open: resolvedRightAsideOpen.value,
-      expandedWidth: mobileWidth ?? rightAsideWidth.value,
+      expandedWidth: drawerWidth ?? rightAsideWidth.value,
       defaultExpandedWidth: rightAsideWidth.value,
-      minExpandedWidth: mobileWidth ?? (layout !== false ? layout?.minWidth : undefined),
-      maxExpandedWidth: mobileWidth ?? (layout !== false ? layout?.maxWidth : undefined),
-      collapsedWidth: isMobileViewport.value || layout === false ? 0 : toSize(layout?.collapsedWidth, 0),
+      minExpandedWidth: drawerWidth ?? (layout !== false ? layout?.minWidth : undefined),
+      maxExpandedWidth: drawerWidth ?? (layout !== false ? layout?.maxWidth : undefined),
+      collapsedWidth: drawerWidth !== undefined || layout === false ? 0 : toSize(layout?.collapsedWidth, 0),
       collapseEffect: 'overlay' as const,
-      resizable: !isMobileViewport.value && layout !== false && layout?.resizable === true,
+      resizable: drawerWidth === undefined && layout !== false && layout?.resizable === true,
     }
   })
 
@@ -135,7 +132,7 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   }
 
   function handleRightAsideResize(detail: LayoutAsideResizeValue) {
-    if (!isMobileViewport.value) {
+    if (rightAsideOptions.value.mode === 'dock') {
       rightAsideWidth.value = detail.expandedWidth
     }
   }

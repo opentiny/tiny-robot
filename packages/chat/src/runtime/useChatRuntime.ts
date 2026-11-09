@@ -52,7 +52,10 @@ export function createChatRuntimeLifecycle(options: UseChatRuntimeOptions) {
   const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
   const resolvedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : options.mcp
   const composerOptions = options.composer ?? {}
-  const builtInPlugins: UseMessagePlugin[] = [errorStatePlugin(), createRunConfigContextPlugin()]
+  const builtInPlugins: UseMessagePlugin[] = [
+    errorStatePlugin(),
+    createRunConfigContextPlugin(providerRuntime?.resolveModel),
+  ]
 
   if (providerRuntime) {
     builtInPlugins.push(createProviderRequestPlugin(providerRuntime.resolveModel))

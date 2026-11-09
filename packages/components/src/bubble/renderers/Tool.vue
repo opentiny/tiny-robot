@@ -23,6 +23,7 @@ const props = defineProps<
 >()
 
 const { toolCall, toolCallWithResult, state } = useToolCall(props)
+const toolName = computed(() => toolCall.value?.function.name || 'Untitled')
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['running', { text: '正在调用', icon: IconLoading }],
@@ -163,9 +164,9 @@ const handleClick = () => {
       <div class="header-left">
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
         <div class="tool-info">
-          <div>
+          <div class="title-row">
             <span>{{ textAndIcon.text }}&nbsp;</span>
-            <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
+            <span class="title" :title="toolName">{{ toolName }}</span>
           </div>
           <div v-if="description" class="description" :title="description">{{ description }}</div>
         </div>
@@ -187,15 +188,27 @@ const handleClick = () => {
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
+  @card-padding: 12px;
+  --tool-title-line-height: 24px;
+
   font-size: 14px;
-  line-height: 24px;
-  padding: 12px;
+  line-height: var(--tool-title-line-height);
+  padding: @card-padding;
   color: var(--tr-text-secondary);
   background-color: var(--tr-bubble-tool-call-bg);
   border-radius: 12px;
   margin-block: var(--tr-bubble-tool-call-space-y);
-  min-width: var(--tr-bubble-tool-call-min-width);
-  max-width: var(--tr-bubble-tool-call-max-width);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--tr-bubble-tool-call-max-width, 100%);
+
+  // Give the shrink-to-fit bubble a preferred width that can still shrink on narrow screens.
+  &::before {
+    content: '';
+    display: block;
+    width: calc(var(--tr-bubble-tool-call-min-width, 0px) - 2 * @card-padding);
+    max-width: 100%;
+  }
 
   &:first-child {
     margin-top: 0;
@@ -225,9 +238,16 @@ const handleClick = () => {
     min-width: 0;
   }
 
+  .title-row {
+    display: flex;
+    white-space: nowrap;
+  }
+
   .title {
     color: var(--tr-text-primary);
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .description {
@@ -246,6 +266,39 @@ const handleClick = () => {
     display: flex;
     gap: var(--tr-spacing-sm);
 
+    :deep(.tiny-button.tiny-button--default) {
+      --tv-Button-bg-color-default: var(--tr-bubble-tool-approval-default-bg);
+      --tv-Button-border-color-default: var(--tr-border-color-default);
+      --tv-Button-text-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-icon-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-bg-color-active-default: var(--tr-bubble-tool-approval-default-hover-bg);
+      --tv-Button-border-color-active-default: var(--tr-border-color-default);
+      --tv-Button-text-color-active-default: var(--tr-bubble-tool-approval-default-color);
+    }
+
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-bg-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-border-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-text-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-icon-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-bg-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-border-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-text-color-active-primary: var(--tr-bubble-tool-approval-primary-color);
+    }
+
+    :deep(button:focus-visible) {
+      outline: 2px solid var(--tr-text-primary);
+      outline-offset: 2px;
+    }
+
+    :deep(.tiny-button.tiny-button--default),
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-text-color-disabled: var(--tr-text-disabled);
+      --tv-Button-bg-color-disabled: var(--tr-container-bg-disabled);
+      --tv-Button-border-color-disabled: var(--tr-border-color-disabled);
+      --tv-Button-icon-color-disabled: var(--tr-icon-color-disabled);
+    }
+
     .tiny-button + .tiny-button {
       margin-left: 0;
     }
@@ -256,11 +309,13 @@ const handleClick = () => {
     grid-row: 1;
     display: flex;
     align-items: center;
+    block-size: var(--tool-title-line-height);
   }
 
   .header-icon {
     font-size: 20px;
     flex-shrink: 0;
+    margin-block-start: calc((var(--tool-title-line-height) - 1em) / 2);
 
     &.icon-running {
       color: #898989;

@@ -1,12 +1,6 @@
 # TinyRobot Chat Add
 
-这是一个独立的 Chat 项目模板，也可以通过 `add chat` 注入到现有 Vue 项目。
-
-创建独立 Chat 项目：
-
-```bash
-npx @opentiny/tiny-robot-cli create my-chat --template chat
-```
+这是用于通过 `add chat` 向现有 Vue 项目接入聊天功能的模板。执行 `add chat` 后，接入说明位于 `src/tiny-robot-chat/README.md`。
 
 ## 启动
 
@@ -29,13 +23,13 @@ pnpm build
 
 ## 模型配置
 
-模型配置中的 `icon` 用于模型选择器触发器；在窄容器中，带图标的模型会只显示图标。Qwen 模型支持深度思考和联网搜索，DeepSeek 模型支持深度思考。
+模型配置中的 `icon` 用于模型选择器触发器；在窄容器中，带图标的模型会只显示图标。Qwen 模型通过 `features` 配置思考强度和联网搜索，DeepSeek 模型通过 `features` 配置思考强度。
 
-DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认值为 `high`。开启 `深度思考` 后，模型选择器才会显示思考等级。业务侧可以在模型对象中通过 `efforts` 和 `defaultEffort` 覆盖选项；只有必须始终思考的模型才配置 `thinkingRequired: true`。
+模型字段通过 `defaultValue` 设置默认值。每个模型可通过自己的 `mapFeatureValues` 将有效设置值转换为请求参数。必须思考的模型省略「关闭」选项。
 
 ## MCP 代理
 
-独立模板的 `vite.config.ts` 已配置 `/modelcontextprotocol-mcp` 代理。使用 `add chat` 时，CLI 不会复制或修改业务项目的 `vite.config.*`，需要手动把该代理配置添加到业务项目的 `server.proxy` 下，并重启 Vite。
+使用 `add chat` 时，CLI 不会修改业务项目的 `vite.config.*`。执行 `add chat` 后，代理配置示例见 `src/tiny-robot-chat/README.md`。
 
 ## 目录职责
 

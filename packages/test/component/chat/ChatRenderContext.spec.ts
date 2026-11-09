@@ -183,7 +183,11 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(target).toHaveCSS('animation-duration', '1.8s')
     await expect(target).toHaveCSS('animation-timing-function', 'ease-out')
     await expect(target).toHaveCSS('outline-style', 'none')
-    const frames = await target.evaluate((el) => el.getAnimations()[0].effect!.getKeyframes())
+    const frames = await target.evaluate((el) => {
+      const effect = el.getAnimations()[0]?.effect
+      if (!(effect instanceof KeyframeEffect)) throw new Error('Expected a keyframe animation on the anchor target')
+      return effect.getKeyframes()
+    })
     expect(frames.map((frame) => frame.offset)).toEqual([0, 0.25, 0.45, 0.65, 0.85, 1])
     expect(frames[0].backgroundColor).not.toBe(restingColor)
     expect(frames[2].backgroundColor).toBe(restingColor)
@@ -201,7 +205,10 @@ for (const layout of [
   { name: 'CSS override', viewport: 1200, props: { contentMaxWidth: 640, contentPaddingInline: '37px' } },
   { name: 'floating', viewport: 1200, props: { floating: true, width: 600 } },
 ] as const) {
-  test(`${layout.name}: messages, Sender and back-to-bottom share their content edges`, async ({ mount, page }) => {
+  test(`${layout.name}: messages and Sender share content edges and back-to-bottom is centered`, async ({
+    mount,
+    page,
+  }) => {
     await page.setViewportSize({ width: layout.viewport, height: 800 })
     const props = layout.props
     const component = await mount(ChatRenderContext, { props: { anchor: false, ...props } })
@@ -223,7 +230,7 @@ for (const layout of [
       const composer = (await chat.locator('.chat-footer').boundingBox())!
       expect(Math.abs(list.x - sender.x)).toBeLessThanOrEqual(1)
       expect(Math.abs(list.x + list.width - sender.x - sender.width)).toBeLessThanOrEqual(1)
-      expect(Math.abs(action.x + action.width - sender.x - sender.width)).toBeLessThanOrEqual(1)
+      expect(Math.abs(action.x + action.width / 2 - (sender.x + sender.width / 2))).toBeLessThanOrEqual(1)
       expect(Math.abs(composer.y - action.y - action.height - 8)).toBeLessThanOrEqual(1)
     }
     await expect(aligned).toPass()
@@ -280,9 +287,9 @@ for (const hideSender of [false, true]) {
         const expectedX =
           scrollButtonAlign === 'flex-start'
             ? content.x
-            : scrollButtonAlign === 'center'
-              ? content.x + (content.width - action.width) / 2
-              : content.x + content.width - action.width
+            : scrollButtonAlign === 'flex-end'
+              ? content.x + content.width - action.width
+              : content.x + (content.width - action.width) / 2
         expect(Math.abs(action.x - expectedX)).toBeLessThanOrEqual(1)
       }).toPass()
     }

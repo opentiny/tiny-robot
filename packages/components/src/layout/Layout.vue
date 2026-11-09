@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useElementSize } from '@vueuse/core'
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
@@ -36,6 +37,13 @@ const layoutId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
 const leftDrawerId = `tr-layout-${layoutId}-left-drawer`
 const rightDrawerId = `tr-layout-${layoutId}-right-drawer`
 const drawerOpeners = new Map<'left' | 'right', HTMLElement>()
+const bodyRef = ref<HTMLElement | null>(null)
+const mainMinWidthRef = ref<HTMLElement | null>(null)
+const measureDockFit = computed(
+  () => props.mode === 'floating' && props.rightAsideDrawerOnOverflow && props.rightAside?.mode !== 'drawer',
+)
+const { width: surfaceWidth } = useElementSize(() => (measureDockFit.value ? bodyRef.value : null))
+const { width: mainMinWidth } = useElementSize(mainMinWidthRef)
 
 function onAsideOpenChange(detail: LayoutAsideOpenDetail): void {
   emitAsideOpenChangeEvents(emit, detail)
@@ -48,8 +56,21 @@ function onAsideExpandedWidthChange(detail: LayoutAsideResizeDetail): void {
 const { leftAsideState: leftPanel, rightAsideState: rightPanel } = useLayoutAsideStates({
   leftConfig: () => props.leftAside,
   rightConfig: () => props.rightAside,
+  forceRightDrawer: () => rightDrawerFallback.value,
   onOpenChange: onAsideOpenChange,
   onExpandedWidthChange: onAsideExpandedWidthChange,
+})
+
+const leftDockWidth = computed(() => getDockedAsideWidth(leftPanel, hasLeftAside.value))
+const rightDockWidth = computed(() => getDockedAsideWidth(rightPanel, hasRightAside.value))
+const rightDrawerFallback = computed(() => {
+  if (!measureDockFit.value || !hasRightAside.value || surfaceWidth.value <= 0) return false
+
+  // Keep the drawer mode while closed unless a docked rail can take its place.
+  const rightRailWidth = rightPanel.collapsedWidth.value
+  const requiredRightWidth =
+    !rightPanel.isOpen.value && rightRailWidth > 0 ? rightRailWidth : rightPanel.expandedWidth.value
+  return leftDockWidth.value + mainMinWidth.value + requiredRightWidth > surfaceWidth.value
 })
 
 function setDrawerOpen(
@@ -86,7 +107,7 @@ const isRightDrawerVisible = computed(() => hasRightAside.value && rightPanel.is
 const isDrawerVisible = computed(() => isLeftDrawerVisible.value || isRightDrawerVisible.value)
 
 function closeDrawers(): void {
-  if (isLeftDrawerVisible.value) {
+  if (isLeftDrawerVisible.value && !isLeftDrawerCovered.value) {
     leftPanel.setOpen(false)
   }
 
@@ -163,6 +184,7 @@ function handleDrawerKeydown(event: KeyboardEvent): void {
 
 provideLayoutContext({
   rootEl,
+  mode: computed(() => props.mode),
   left: {
     isOpen: leftPanel.isOpen,
     drawerId: leftDrawerId,
@@ -217,8 +239,13 @@ const floatingState = useControllableState<LayoutFloatingState>({
   onChange: (nextState) => emit('update:floatingState', nextState),
 })
 
-const leftDockWidth = computed(() => getDockedAsideWidth(leftPanel, hasLeftAside.value))
-const rightDockWidth = computed(() => getDockedAsideWidth(rightPanel, hasRightAside.value))
+const isLeftDrawerCovered = computed(
+  () => rightDrawerFallback.value && isRightDrawerVisible.value && isLeftDrawerVisible.value,
+)
+
+watch(isLeftDrawerCovered, (covered) => {
+  if (covered) setDrawerOpen(rightPanel, leftPanel, true, hasLeftAside.value)
+})
 
 const surfaceClass = computed(() => ({
   'tr-layout--left-dock': hasLeftAside.value && leftPanel.isDock.value,
@@ -274,9 +301,10 @@ const surfaceStyle = computed<Record<string, string>>(() => {
     @floating-resize="emit('floating-resize', $event)"
     @floating-resize-end="emit('floating-resize-end', $event)"
   >
-    <div class="tr-layout__body" @keydown="handleDrawerKeydown">
+    <div ref="bodyRef" class="tr-layout__body" @keydown="handleDrawerKeydown">
       <AsideContent
         v-if="hasLeftAside"
+        v-show="!isLeftDrawerCovered"
         :panel="leftPanel"
         :opposite-dock-width="rightDockWidth"
         :drawer-id="leftDrawerId"
@@ -306,6 +334,7 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         :opposite-dock-width="leftDockWidth"
         :drawer-id="rightDrawerId"
         :accessible-name="props.rightAside?.ariaLabel ?? 'Side panel'"
+        :style="rightDrawerFallback ? { '--tr-layout-aside-expanded-width': '100%' } : undefined"
         @width-change="setRightAsideWidth"
         @aside-resize-start="onAsideResizeStart"
         @aside-resize-end="onAsideResizeEnd"
@@ -313,6 +342,12 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         <slot name="right-aside" />
       </AsideContent>
 
+      <div
+        v-if="measureDockFit && hasRightAside"
+        ref="mainMinWidthRef"
+        class="tr-layout__main-min-width"
+        aria-hidden="true"
+      />
       <div v-if="isDrawerVisible" class="tr-layout__backdrop" aria-hidden="true" @pointerdown="closeDrawers" />
     </div>
   </LayoutSurface>
@@ -354,6 +389,14 @@ const surfaceStyle = computed<Record<string, string>>(() => {
 .tr-layout__header {
   grid-area: header;
   background: var(--tr-layout-header-bg);
+}
+
+.tr-layout__main-min-width {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: var(--tr-layout-main-min-width, 320px);
+  height: 0;
+  visibility: hidden;
 }
 
 .tr-layout__main {

@@ -34,8 +34,7 @@ import type {
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
   ChatMcpCreateServerPayload,
-  ChatModelFeatureChangePayload,
-  ChatModelReasoningEffortChangePayload,
+  ChatModelFeatureValueChangePayload,
   ChatRightAsidePanelOptions,
   ChatSenderSlotProps,
   ChatSendPayload,
@@ -222,8 +221,9 @@ const hasLayoutMainCustomization = computed(() =>
   Boolean(currentSlots.value['layout-main'] || props.renderers?.['layout-main']),
 )
 const layoutMainRenderer = computed(() => props.renderers?.['layout-main'])
+const anchorOptions = computed(() => props.ui?.anchor || undefined)
 const isAnchorEnabled = computed(() => {
-  const anchor = props.ui?.anchor
+  const anchor = anchorOptions.value
   return Boolean(
     anchor &&
     anchor.visible !== false &&
@@ -283,6 +283,7 @@ const layoutProps = computed<LayoutProps>(() => {
       mode: 'floating',
       floatingState: props.floatingState,
       floatingOptions: layout.surface.floatingOptions,
+      rightAsideDrawerOnOverflow: true,
     }
   }
 
@@ -430,12 +431,8 @@ function handleModelSelect(payload: { id: string | null }) {
   emit('model-select', { modelId: payload.id })
 }
 
-function handleModelFeatureChange(payload: { id: ChatModelFeatureChangePayload['featureId']; enabled: boolean }) {
-  emit('model-feature-change', { featureId: payload.id, enabled: payload.enabled })
-}
-
-function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChangePayload) {
-  emit('model-reasoning-effort-change', payload)
+function handleModelFeatureValueChange(payload: ChatModelFeatureValueChangePayload) {
+  emit('model-feature-value-change', payload)
 }
 
 function handleSenderDragEnter(payload: SenderDragPayload) {
@@ -528,6 +525,7 @@ function handleRightAsideResize(detail: LayoutAsideResizeValue) {
 
 const composerProps = computed(() => ({
   sender: resolvedData.value.sender,
+  request: resolvedData.value.request,
   value: inputValue.value,
   senderOptions: senderOptions.value,
   labels: resolvedOptions.value.labels,
@@ -546,8 +544,7 @@ const composerEvents = {
   onAttachmentError: handleAttachmentError,
   'onUpdate:value': handleInputValue,
   onModelSelect: handleModelSelect,
-  onModelFeatureChange: handleModelFeatureChange,
-  onModelReasoningEffortChange: handleModelReasoningEffortChange,
+  onModelFeatureValueChange: handleModelFeatureValueChange,
   onSenderDragEnter: handleSenderDragEnter,
   onSenderDragOver: handleSenderDragOver,
   onSenderDragLeave: handleSenderDragLeave,
@@ -566,8 +563,7 @@ const composerTemplateEvents = {
   attachmentError: handleAttachmentError,
   'update:value': handleInputValue,
   modelSelect: handleModelSelect,
-  modelFeatureChange: handleModelFeatureChange,
-  modelReasoningEffortChange: handleModelReasoningEffortChange,
+  modelFeatureValueChange: handleModelFeatureValueChange,
   senderDragEnter: handleSenderDragEnter,
   senderDragOver: handleSenderDragOver,
   senderDragLeave: handleSenderDragLeave,
@@ -615,6 +611,7 @@ function renderEmptyStateComposer() {
       'composer-after': resolveComposerCustomization('composer-after'),
       'layout-footer': resolveComposerCustomization('layout-footer'),
       'sender-header': currentSlots.value['sender-header'],
+      'input-prefix': currentSlots.value['input-prefix'],
       'sender-content': currentSlots.value['sender-content'],
       'sender-actions-inline': currentSlots.value['sender-actions-inline'],
       'sender-footer': currentSlots.value['sender-footer'],
@@ -814,7 +811,12 @@ function renderEmptyStateComposer() {
     </template>
 
     <template #main>
-      <section class="chat-panel">
+      <section
+        class="chat-panel"
+        :class="{
+          'has-anchor': isAnchorEnabled && (messagesRef?.anchorItems.length ?? 0) > 0,
+        }"
+      >
         <div ref="scrollTarget" class="chat-main-scroll-host">
           <ChatMessages
             ref="messagesRef"
@@ -926,6 +928,9 @@ function renderEmptyStateComposer() {
                 <template v-if="$slots['sender-header']" #sender-header>
                   <slot name="sender-header" />
                 </template>
+                <template v-if="$slots['input-prefix']" #input-prefix>
+                  <slot name="input-prefix" />
+                </template>
                 <template v-if="$slots['sender-content']" #sender-content="slotProps">
                   <slot name="sender-content" v-bind="slotProps" />
                 </template>
@@ -985,6 +990,7 @@ function renderEmptyStateComposer() {
           v-if="isAnchorEnabled && scrollTarget"
           :items="messagesRef?.anchorItems ?? []"
           :scroll-container="scrollTarget"
+          :hover-expand-delay="anchorOptions?.hoverExpandDelay"
           target-feedback-class="tr-chat-anchor-target-active"
           :target-feedback-duration="1800"
           @select="messagesRef?.pauseAutoScroll()"
@@ -1052,6 +1058,9 @@ function renderEmptyStateComposer() {
           </template>
           <template v-if="$slots['sender-header']" #sender-header>
             <slot name="sender-header" />
+          </template>
+          <template v-if="$slots['input-prefix']" #input-prefix>
+            <slot name="input-prefix" />
           </template>
           <template v-if="$slots['sender-content']" #sender-content="slotProps">
             <slot name="sender-content" v-bind="slotProps" />
@@ -1180,9 +1189,25 @@ function renderEmptyStateComposer() {
 
 <style scoped>
 .chat-panel {
+  container-type: inline-size;
   position: relative;
   height: 100%;
   box-sizing: border-box;
+}
+
+.chat-panel.has-anchor {
+  --tr-anchor-width-expanded: min(240px, 40cqw);
+  --tr-chat-anchor-inset-inline-end: var(--scrollbar-inline-end);
+  --chat-default-main-padding-right: 0px;
+}
+
+/* The scrollbar is mounted only while the message list overflows. */
+.chat-panel.has-anchor:has(~ .tr-layout-proxy-scrollbar) {
+  --tr-chat-anchor-inset-inline-end: calc(var(--scrollbar-inline-end) + var(--tr-layout-main-scrollbar-width) + 4px);
+}
+
+.chat-panel.has-anchor .chat-main-scroll-host {
+  width: calc(100% - var(--tr-chat-anchor-inset-inline-end) - var(--tr-anchor-width-collapsed) - 4px);
 }
 
 .chat-main-scroll-host {
@@ -1210,14 +1235,19 @@ function renderEmptyStateComposer() {
 }
 
 .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 0);
+  padding: var(--tr-chat-ui-header-padding, 24px var(--tr-chat-ui-content-padding-inline, 24px) 12px);
 }
 
 .chat-panel-content--main {
+  --chat-main-padding-block: var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding));
+  --chat-default-main-padding-inline: 24px;
+  --chat-main-padding-inline: var(--tr-chat-ui-content-padding-inline, var(--chat-default-main-padding-inline));
+
   padding: var(
     --tr-chat-ui-main-padding,
-    var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
-      var(--tr-chat-ui-content-padding-inline, 24px)
+    var(--chat-main-padding-block)
+      var(--tr-chat-ui-content-padding-inline, var(--chat-default-main-padding-right, var(--chat-main-padding-inline)))
+      var(--chat-main-padding-block) var(--chat-main-padding-inline)
   );
 }
 
@@ -1235,7 +1265,7 @@ function renderEmptyStateComposer() {
   right: 0;
   bottom: calc(100% + 8px);
   display: flex;
-  justify-content: var(--tr-chat-scroll-button-align, flex-end);
+  justify-content: var(--tr-chat-scroll-button-align, center);
   pointer-events: none;
 }
 
@@ -1264,15 +1294,11 @@ function renderEmptyStateComposer() {
 }
 
 .tr-chat-ui--mobile .chat-panel-content--header {
-  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 0);
+  padding: var(--tr-chat-ui-header-padding, 16px var(--tr-chat-ui-content-padding-inline, 16px) 8px);
 }
 
 .tr-chat-ui--mobile .chat-panel-content--main {
-  padding: var(
-    --tr-chat-ui-main-padding,
-    var(--tr-chat-ui-panel-padding, var(--tr-chat-ui-default-panel-padding))
-      var(--tr-chat-ui-content-padding-inline, 16px)
-  );
+  --chat-default-main-padding-inline: 16px;
 }
 
 .tr-chat-ui--mobile .chat-scroll-actions--main {

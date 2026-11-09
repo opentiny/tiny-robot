@@ -16,32 +16,32 @@ function createSearchText(parts: Array<string | undefined>) {
 }
 
 export function normalizeModelOptions(models: readonly ModelSelectorOption[]): NormalizedModelSelectorOption[] {
-  const seenValues = new Set<string>()
+  const seenIds = new Set<string>()
   const normalizedOptions: NormalizedModelSelectorOption[] = []
 
   models.forEach((model, index) => {
-    if (seenValues.has(model.value)) {
+    if (seenIds.has(model.id)) {
       return
     }
 
-    seenValues.add(model.value)
+    seenIds.add(model.id)
 
-    const label = normalizeText(model.label) || model.value
+    const label = normalizeText(model.label) || model.id
     const description = normalizeText(model.description) || undefined
     const group = normalizeText(model.group)
     const groupKey = group ? `group:${group}` : DEFAULT_GROUP_KEY
     const icon = typeof model.icon === 'string' ? model.icon : model.icon ? toRaw(model.icon) : undefined
 
     normalizedOptions.push({
-      key: `value:${model.value}`,
+      key: `id:${model.id}`,
       index,
-      value: model.value,
+      id: model.id,
       label,
       description,
       icon,
       disabled: Boolean(model.disabled),
       groupKey,
-      searchText: createSearchText([label, model.value, description, group]),
+      searchText: createSearchText([label, model.id, description, group]),
       raw: model,
     })
   })
@@ -49,17 +49,17 @@ export function normalizeModelOptions(models: readonly ModelSelectorOption[]): N
   return normalizedOptions
 }
 
-export function getDuplicateModelValues(models: readonly ModelSelectorOption[]) {
-  const seenValues = new Set<string>()
-  const duplicateValues = new Set<string>()
+export function getDuplicateModelIds(models: readonly ModelSelectorOption[]) {
+  const seenIds = new Set<string>()
+  const duplicateIds = new Set<string>()
 
   models.forEach((model) => {
-    if (seenValues.has(model.value)) {
-      duplicateValues.add(model.value)
+    if (seenIds.has(model.id)) {
+      duplicateIds.add(model.id)
     } else {
-      seenValues.add(model.value)
+      seenIds.add(model.id)
     }
   })
 
-  return [...duplicateValues]
+  return [...duplicateIds]
 }

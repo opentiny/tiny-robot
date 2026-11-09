@@ -115,10 +115,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="less" scoped>
-.tr-bubble__reasoning:not(:last-child) {
-  margin-bottom: 8px;
-}
-
 .header {
   font-size: 16px;
   line-height: 1.5;
@@ -161,7 +157,7 @@ onBeforeUnmount(() => {
 
 .detail {
   color: var(--tr-text-secondary);
-  margin-block: 8px;
+  margin-block-start: 8px;
   white-space: pre-line;
   display: flex;
   gap: 8px;

@@ -140,7 +140,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     const nextText = payload.text.trim()
     const content = payload.structuredData?.length ? payload.structuredData : nextText
 
-    if (!content || (Array.isArray(content) && content.length === 0)) {
+    if ((!content || (Array.isArray(content) && content.length === 0)) && !payload.externalPayloads?.length) {
       return null
     }
 
@@ -192,7 +192,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       )
     }
     try {
-      if ((!text && !hasStructuredData && !send) || !eligible()) {
+      if ((!text && !hasStructuredData && !transformedPayload.externalPayloads?.length && !send) || !eligible()) {
         return false
       }
 

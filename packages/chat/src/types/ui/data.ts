@@ -1,6 +1,10 @@
 import type { ChatConversationInfo, ChatIcon, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
-import type { ChatBuiltInModelFeature, ChatRunConfigReasoning } from '../runtime'
-import type { Attachment, ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
+import type {
+  Attachment,
+  ModelSelectorField,
+  ModelSelectorFeatureValues,
+  ModelSelectorProps,
+} from '@opentiny/tiny-robot'
 
 export interface ChatUIData {
   readonly conversation?: ChatConversationView
@@ -45,13 +49,13 @@ export interface ChatRequestView {
 }
 
 export interface ChatModelView {
+  readonly featureValues?: ModelSelectorFeatureValues
+  readonly renderTriggerText?: ModelSelectorProps['renderTriggerText']
+  readonly pendingFeatureKeys?: readonly string[]
+  readonly featureValuesDisabled?: boolean
   readonly options?: readonly ChatModelOptionView[]
   readonly selectedId?: string | null
-  readonly features?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
-  readonly reasoning?: ChatRunConfigReasoning
   readonly selecting?: boolean
-  readonly reasoningSelecting?: boolean
-  readonly pendingFeatureIds?: readonly ChatBuiltInModelFeature[]
 }
 
 export interface ChatModelOptionView {
@@ -61,10 +65,7 @@ export interface ChatModelOptionView {
   readonly icon?: ChatIcon
   readonly disabled?: boolean
   readonly group?: string
-  readonly efforts?: readonly ModelSelectorReasoningEffortOption[]
-  readonly defaultEffort?: string
-  readonly thinkingRequired?: boolean
-  readonly capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
+  readonly features?: readonly ModelSelectorField[]
   readonly metadata?: Readonly<Record<string, unknown>>
 }
 

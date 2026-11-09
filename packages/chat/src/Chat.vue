@@ -18,8 +18,7 @@ import type {
   ChatMcpRemoveServerPayload,
   ChatMcpServerEnabledChangePayload,
   ChatMcpToolEnabledChangePayload,
-  ChatModelFeatureChangePayload,
-  ChatModelReasoningEffortChangePayload,
+  ChatModelFeatureValueChangePayload,
   ChatModelSelectPayload,
   ChatPromptClickPayload,
   ChatRenameConversationPayload,
@@ -75,6 +74,7 @@ const slots = defineSlots<ChatUISlots>()
 
 const emit = defineEmits<{
   'renderer-error': [error: unknown]
+  'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
   'update:floating-state': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragDetail]
   'floating-drag': [detail: LayoutFloatingDragDetail]
@@ -151,12 +151,9 @@ async function handleSubmit(payload: ChatSendPayload) {
   if (sent && payload.attachments?.length) emit('update:attachments', [])
 }
 
-function handleModelFeatureChange(payload: ChatModelFeatureChangePayload) {
-  return adapter.setModelFeature(payload.featureId, payload.enabled)
-}
-
-function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChangePayload) {
-  return adapter.setModelReasoningEffort(payload.effort)
+function handleModelFeatureValueChange(payload: ChatModelFeatureValueChangePayload) {
+  emit('model-feature-value-change', payload)
+  return adapter.setModelFeatureValue({ modelId: payload.modelId, key: payload.featureKey, value: payload.next })
 }
 
 function handleMcpAddServer(payload: ChatMcpAddServerPayload) {
@@ -301,8 +298,7 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @attachment-error="emit('attachment-error', $event)"
     @update:input-value="adapter.setInputValue"
     @model-select="handleModelSelect"
-    @model-feature-change="handleModelFeatureChange"
-    @model-reasoning-effort-change="handleModelReasoningEffortChange"
+    @model-feature-value-change="handleModelFeatureValueChange"
     @mcp-add-server="handleMcpAddServer"
     @mcp-create-server="handleMcpCreateServer"
     @mcp-remove-server="handleMcpRemoveServer"
@@ -381,6 +377,9 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     </template>
     <template v-if="slots['sender-header']" #sender-header>
       <slot name="sender-header" />
+    </template>
+    <template v-if="slots['input-prefix']" #input-prefix>
+      <slot name="input-prefix" />
     </template>
     <template v-if="slots['sender-content']" #sender-content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />

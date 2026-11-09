@@ -156,6 +156,7 @@ defineExpose({
     @prompt-click="forward('prompt-click', $event)"
     @bubble-state-change="forward('bubble-state-change', $event)"
     @bubble-event="forward('bubble-event', $event)"
+    @model-feature-value-change="forward('model-feature-value-change', $event)"
     @left-aside-open-change="forward('left-aside-open-change', $event)"
     @right-aside-open-change="forward('right-aside-open-change', $event)"
     @update:right-aside-open="forward('update:right-aside-open', $event)"

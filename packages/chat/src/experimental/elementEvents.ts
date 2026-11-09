@@ -14,8 +14,7 @@ import type {
   ChatMcpRemoveServerPayload,
   ChatMcpServerEnabledChangePayload,
   ChatMcpToolEnabledChangePayload,
-  ChatModelFeatureChangePayload,
-  ChatModelReasoningEffortChangePayload,
+  ChatModelFeatureValueChangePayload,
   ChatModelSelectPayload,
   ChatPromptClickPayload,
   ChatRenameConversationPayload,
@@ -50,6 +49,7 @@ export interface TrChatCommonElementEventMap {
   'prompt-click': CustomEvent<ChatPromptClickPayload>
   'bubble-state-change': CustomEvent<ChatBubbleStateChangePayload>
   'bubble-event': CustomEvent<ChatBubbleEventPayload>
+  'model-feature-value-change': CustomEvent<ChatModelFeatureValueChangePayload>
   'left-aside-open-change': CustomEvent<ChatAsideOpenChangePayload>
   'right-aside-open-change': CustomEvent<ChatAsideOpenChangePayload>
   'right-aside-open-update': CustomEvent<boolean>
@@ -80,8 +80,6 @@ export interface TrChatUIElementEventMap extends TrChatCommonElementEventMap {
   'switch-conversation': CustomEvent<ChatSwitchConversationPayload>
   'rename-conversation': CustomEvent<ChatRenameConversationPayload>
   'model-select': CustomEvent<ChatModelSelectPayload>
-  'model-feature-change': CustomEvent<ChatModelFeatureChangePayload>
-  'model-reasoning-effort-change': CustomEvent<ChatModelReasoningEffortChangePayload>
   'mcp-add-server': CustomEvent<ChatMcpAddServerPayload>
   'mcp-create-server': CustomEvent<ChatMcpCreateServerPayload>
   'mcp-remove-server': CustomEvent<ChatMcpRemoveServerPayload>
@@ -109,6 +107,7 @@ export const TR_CHAT_EVENT_NAMES = [
   'prompt-click',
   'bubble-state-change',
   'bubble-event',
+  'model-feature-value-change',
   'left-aside-open-change',
   'right-aside-open-change',
   'update:right-aside-open',
@@ -138,8 +137,7 @@ export const TR_CHAT_UI_EVENT_NAMES = [
   'bubble-state-change',
   'bubble-event',
   'model-select',
-  'model-feature-change',
-  'model-reasoning-effort-change',
+  'model-feature-value-change',
   'mcp-add-server',
   'mcp-create-server',
   'mcp-remove-server',

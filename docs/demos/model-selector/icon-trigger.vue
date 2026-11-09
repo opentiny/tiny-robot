@@ -6,19 +6,19 @@ import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 const model = shallowRef<string | null>('general-model')
 
 const models = [
-  { value: 'general-model', label: '通用模型' },
-  { value: 'reasoning-model', label: '推理模型' },
-  { value: 'lightweight-model', label: '轻量模型' },
+  { id: 'general-model', label: '通用模型' },
+  { id: 'reasoning-model', label: '推理模型' },
+  { id: 'lightweight-model', label: '轻量模型' },
 ] satisfies readonly ModelSelectorOption[]
 </script>
 
 <template>
   <div class="model-selector-trigger-demo">
     <TrModelSelector v-model="model" :models="models">
-      <template #trigger="{ label, open }">
+      <template #trigger="{ text, open }">
         <span class="model-selector-trigger-demo__content">
           <span class="model-selector-trigger-demo__badge" aria-hidden="true">AI</span>
-          <span class="model-selector-trigger-demo__label">{{ label }}</span>
+          <span class="model-selector-trigger-demo__label">{{ text }}</span>
           <IconArrowDown
             class="model-selector-trigger-demo__arrow"
             :class="{ 'is-open': open }"
