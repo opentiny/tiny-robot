@@ -34,7 +34,7 @@ const decide = (decision: SkillFileSwitchDecision) => {
     @close="decide('cancel')"
   >
     <p class="skill-file-switch-dialog__message">
-      当前文件“{{ props.currentFile }}”有未保存的修改，切换到“{{ props.nextFile }}”前是否保存？
+      当前文件“{{ props.currentFile }}”有未保存的修改，执行“{{ props.nextFile }}”前是否保存？
     </p>
     <template #footer>
       <div class="skill-file-switch-dialog__footer">

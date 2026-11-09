@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { IconAddFile, IconAddFolder, IconMore, IconSkill } from '@opentiny/tiny-robot-svgs'
+import { IconAddFile, IconAddFolder, IconFile, IconFolder, IconMore, IconSkill } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 import type { SkillDefinition, SkillResourceDescriptor } from '../skill-import-form/index.type'
 import { useStableId } from '../shared/composables'
@@ -38,6 +38,7 @@ const fileSwitchDialog = ref<{
   nextFile: string
   resourceId: string | null
 }>()
+const pendingTreeAction = ref<PendingTreeAction>()
 
 const supportedSkillTextExtensions = ['.md', '.txt', '.json'] as const
 
@@ -73,6 +74,11 @@ interface NameDialogState {
 
 interface DeleteDialogState {
   action: 'delete-file' | 'delete-folder'
+  row: SkillFileNode | SkillFolderNode
+}
+
+interface PendingTreeAction {
+  action: TreeAction
   row: SkillFileNode | SkillFolderNode
 }
 
@@ -270,8 +276,7 @@ const openNameDialog = (action: NameAction, row: SkillFileNode | SkillFolderNode
 }
 
 const openRootCreateDialog = (action: 'create-file' | 'create-folder') => {
-  if (props.mode !== 'edit' || isEditing.value || switchingFile.value) return
-  openNameDialog(action, rootFolder)
+  requestTreeAction(action, rootFolder)
 }
 
 const emitResourceDefinition = (nextResources: SkillResourceDescriptor[]) => {
@@ -458,11 +463,40 @@ const hasUnsavedChanges = computed(() => isEditing.value && draftContent.value !
 
 const closeFileSwitchDialog = () => {
   fileSwitchDialog.value = undefined
+  pendingTreeAction.value = undefined
   switchingFile.value = false
+}
+
+const getTreeActionLabel = (action: TreeAction, row: SkillFileNode | SkillFolderNode) => {
+  const target = row.path || '根目录'
+  if (action === 'create-file') return `新建文件（${target}）`
+  if (action === 'create-folder') return `新建文件夹（${target}）`
+  if (action === 'delete-file') return `删除文件“${target}”`
+  if (action === 'delete-folder') return `删除文件夹“${target}”`
+  return `重命名“${target}”`
+}
+
+const requestTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNode) => {
+  if (props.mode !== 'edit' || switchingFile.value) return
+  openActionMenuKey.value = undefined
+
+  if (hasUnsavedChanges.value) {
+    pendingTreeAction.value = { action, row }
+    switchingFile.value = true
+    fileSwitchDialog.value = {
+      currentFile: selectedResource.value?.path ?? 'SKILL.md',
+      nextFile: getTreeActionLabel(action, row),
+      resourceId: selectedResourceId.value ?? null,
+    }
+    return
+  }
+
+  handleTreeAction(action, row)
 }
 
 const handleFileSwitchDecision = (decision: SkillFileSwitchDecision) => {
   const pendingSwitch = fileSwitchDialog.value
+  const pendingAction = pendingTreeAction.value
   if (!pendingSwitch) return
 
   if (decision === 'cancel') {
@@ -477,7 +511,14 @@ const handleFileSwitchDecision = (decision: SkillFileSwitchDecision) => {
   }
 
   fileSwitchDialog.value = undefined
+  pendingTreeAction.value = undefined
   switchingFile.value = false
+
+  if (pendingAction) {
+    handleTreeAction(pendingAction.action, pendingAction.row)
+    return
+  }
+
   selectResource(pendingSwitch.resourceId)
 }
 
@@ -663,7 +704,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="skill-extension-detail__sidebar-action"
-              :disabled="isEditing || switchingFile"
+              :disabled="switchingFile"
               aria-label="新增文件"
               title="新增文件"
               @click="openRootCreateDialog('create-file')"
@@ -673,7 +714,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="skill-extension-detail__sidebar-action"
-              :disabled="isEditing || switchingFile"
+              :disabled="switchingFile"
               aria-label="新增文件夹"
               title="新增文件夹"
               @click="openRootCreateDialog('create-folder')"
@@ -692,9 +733,7 @@ onBeforeUnmount(() => {
               :aria-current="selectedResourceId === undefined ? 'page' : undefined"
               @click="requestSelectResource(null)"
             >
-              <svg class="skill-extension-detail__file-icon" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M3.5 1.75h5l4 4v8.5h-9zM8.5 1.75v4h4" />
-              </svg>
+              <IconFile class="skill-extension-detail__file-icon" aria-hidden="true" />
               <span>SKILL.md</span>
             </button>
 
@@ -711,16 +750,14 @@ onBeforeUnmount(() => {
                   :class="{ 'skill-extension-detail__chevron--collapsed': collapsedFolders.has(row.key) }"
                   aria-hidden="true"
                 ></span>
-                <svg class="skill-extension-detail__folder-icon" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M1.75 4.25h4l1.5 1.5h7v7.5h-12.5zM1.75 4.25v-1.5h4.5l1.5 1.5" />
-                </svg>
+                <IconFolder class="skill-extension-detail__folder-icon" aria-hidden="true" />
                 <span>{{ row.name }}</span>
               </button>
               <button
                 v-if="props.mode === 'edit'"
                 type="button"
                 class="skill-extension-detail__tree-action-trigger"
-                :disabled="isEditing || switchingFile"
+                :disabled="switchingFile"
                 :aria-label="`${row.name} 操作`"
                 :aria-expanded="openActionMenuKey === row.key"
                 title="文件夹操作"
@@ -733,16 +770,16 @@ onBeforeUnmount(() => {
                 class="skill-extension-detail__tree-action-menu"
                 role="menu"
               >
-                <button type="button" role="menuitem" @click="handleTreeAction('create-folder', row)">
+                <button type="button" role="menuitem" @click="requestTreeAction('create-folder', row)">
                   新增文件夹
                 </button>
-                <button type="button" role="menuitem" @click="handleTreeAction('create-file', row)">新增文件</button>
-                <button type="button" role="menuitem" @click="handleTreeAction('rename', row)">重命名</button>
+                <button type="button" role="menuitem" @click="requestTreeAction('create-file', row)">新增文件</button>
+                <button type="button" role="menuitem" @click="requestTreeAction('rename', row)">重命名</button>
                 <button
                   type="button"
                   role="menuitem"
                   class="skill-extension-detail__tree-action-menu-item--danger"
-                  @click="handleTreeAction('delete-folder', row)"
+                  @click="requestTreeAction('delete-folder', row)"
                 >
                   删除文件夹
                 </button>
@@ -760,16 +797,14 @@ onBeforeUnmount(() => {
                 :aria-current="selectedResourceId === row.resource.resourceId ? 'page' : undefined"
                 @click="requestSelectResource(row.resource.resourceId)"
               >
-                <svg class="skill-extension-detail__file-icon" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3.5 1.75h5l4 4v8.5h-9zM8.5 1.75v4h4" />
-                </svg>
+                <IconFile class="skill-extension-detail__file-icon" aria-hidden="true" />
                 <span class="skill-extension-detail__tree-name">{{ row.name }}</span>
               </button>
               <button
                 v-if="props.mode === 'edit'"
                 type="button"
                 class="skill-extension-detail__tree-action-trigger"
-                :disabled="isEditing || switchingFile"
+                :disabled="switchingFile"
                 :aria-label="`${row.name} 操作`"
                 :aria-expanded="openActionMenuKey === row.key"
                 title="文件操作"
@@ -782,12 +817,12 @@ onBeforeUnmount(() => {
                 class="skill-extension-detail__tree-action-menu"
                 role="menu"
               >
-                <button type="button" role="menuitem" @click="handleTreeAction('rename', row)">重命名</button>
+                <button type="button" role="menuitem" @click="requestTreeAction('rename', row)">重命名</button>
                 <button
                   type="button"
                   role="menuitem"
                   class="skill-extension-detail__tree-action-menu-item--danger"
-                  @click="handleTreeAction('delete-file', row)"
+                  @click="requestTreeAction('delete-file', row)"
                 >
                   删除文件
                 </button>
@@ -800,14 +835,11 @@ onBeforeUnmount(() => {
 
       <section class="skill-extension-detail__viewer" :aria-label="selectedFileName">
         <div class="skill-extension-detail__viewer-heading">
-          <svg
+          <IconFile
             v-if="!selectedResource || selectedResource.kind === 'text'"
             class="skill-extension-detail__file-icon"
-            viewBox="0 0 16 16"
             aria-hidden="true"
-          >
-            <path d="M3.5 1.75h5l4 4v8.5h-9zM8.5 1.75v4h4" />
-          </svg>
+          />
           <span>{{ selectedFileName }}</span>
           <div class="skill-extension-detail__edit-actions">
             <template v-if="isEditing">
@@ -1289,10 +1321,6 @@ onBeforeUnmount(() => {
   stroke-width: 1.25;
 }
 
-.skill-extension-detail__folder-icon {
-  color: var(--tr-text-secondary);
-}
-
 .skill-extension-detail__chevron {
   flex: 0 0 7px;
   width: 7px;
@@ -1401,7 +1429,7 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 100%;
   padding: 14px 16px;
-  border: 1px solid var(--tr-border-color-default);
+  border: 1px solid color-mix(in srgb, var(--tr-border-color-default) 55%, transparent);
   border-radius: 6px;
   background: var(--tr-container-bg-default);
   color: var(--tr-text-primary);

@@ -206,7 +206,7 @@ watch(
   height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--tr-border-color-default);
+  border: 1px solid color-mix(in srgb, var(--tr-border-color-default) 55%, transparent);
   border-radius: 6px;
   background: var(--tr-container-bg-default, #fff);
   color: var(--tr-text-primary);
