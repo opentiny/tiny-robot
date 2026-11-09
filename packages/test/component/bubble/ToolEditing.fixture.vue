@@ -62,6 +62,26 @@ const stringToolState = {
   },
 }
 
+const largeNumberToolCalls = [
+  {
+    id: 'call-tool-large-number-test',
+    type: 'function',
+    editable: true,
+    function: {
+      name: 'lookup_record',
+      arguments: '{"id":9007199254740993}',
+    },
+  },
+]
+
+const largeNumberToolState = {
+  toolCall: {
+    'call-tool-large-number-test': {
+      open: true,
+    },
+  },
+}
+
 const events = ref<BubbleEvent[]>([])
 const lastEvent = computed(() => JSON.stringify(events.value.at(-1) ?? null))
 
@@ -92,6 +112,14 @@ const handleBubbleEvent = (event: BubbleEvent) => {
     content="请检查字符串参数。"
     :tool_calls="stringToolCalls"
     :state="stringToolState"
+  />
+  <Bubble
+    data-testid="large-number-editing-bubble"
+    role="assistant"
+    content="请检查大整数参数。"
+    :tool_calls="largeNumberToolCalls"
+    :state="largeNumberToolState"
+    @bubble-event="handleBubbleEvent"
   />
   <output data-testid="last-event">{{ lastEvent }}</output>
 </template>

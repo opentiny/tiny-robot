@@ -58,6 +58,31 @@ test.describe('Tool argument editing', () => {
     await expect(bubble.getByRole('textbox', { name: '工具参数' })).toHaveValue('"hello"')
   })
 
+  test('preserves large numeric arguments when saving without edits', async ({ mount }) => {
+    const component = await mount(ToolEditingFixture)
+    const bubble = component.getByTestId('large-number-editing-bubble')
+
+    await bubble.getByRole('button', { name: '编辑' }).click()
+    await expect(bubble.getByRole('textbox', { name: '工具参数' })).toHaveValue(`{
+  "id": 9007199254740993
+}`)
+    await bubble.getByRole('button', { name: '保存' }).click()
+
+    await expect(component.getByTestId('last-event')).toHaveText(
+      JSON.stringify({
+        name: 'tool-call:edit',
+        payload: {
+          toolCallId: 'call-tool-large-number-test',
+          arguments: `{
+  "id": 9007199254740993
+}`,
+        },
+        contentIndex: 0,
+        messageIndex: 0,
+      }),
+    )
+  })
+
   test('clears the edit draft when the details collapse', async ({ mount }) => {
     const component = await mount(ToolEditingFixture)
     const bubble = component.getByTestId('editing-bubble')

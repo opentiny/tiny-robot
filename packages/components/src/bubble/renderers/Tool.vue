@@ -54,6 +54,115 @@ const prettyJSON = (json: unknown, space = 2) => {
   return prettyJson
 }
 
+const formatJsonPreservingNumbers = (json: string, space = 2) => {
+  let index = 0
+  const indent = (level: number) => ' '.repeat(level * space)
+  const skipWhitespace = () => {
+    while (index < json.length && /\s/.test(json[index] ?? '')) index += 1
+  }
+
+  const parseString = () => {
+    const start = index
+    if (json[index] !== '"') throw new Error('Invalid JSON string')
+    index += 1
+
+    while (index < json.length) {
+      if (json[index] === '\\') {
+        index += 2
+        continue
+      }
+      if (json[index] === '"') {
+        index += 1
+        const token = json.slice(start, index)
+        JSON.parse(token)
+        return token
+      }
+      index += 1
+    }
+
+    throw new Error('Unterminated JSON string')
+  }
+
+  const parsePrimitive = () => {
+    const start = index
+    while (index < json.length && !/[\s,\]}]/.test(json[index] ?? '')) index += 1
+    const token = json.slice(start, index)
+    if (!token) throw new Error('Invalid JSON value')
+    JSON.parse(token)
+    return token
+  }
+
+  const parseValue = (level: number): string => {
+    skipWhitespace()
+    const valueStart = json[index]
+    if (valueStart === '"') return parseString()
+    if (valueStart === '{') return parseObject(level)
+    if (valueStart === '[') return parseArray(level)
+    return parsePrimitive()
+  }
+
+  const parseObject = (level: number): string => {
+    index += 1
+    skipWhitespace()
+    if (json[index] === '}') {
+      index += 1
+      return '{}'
+    }
+
+    const entries: string[] = []
+    while (index < json.length) {
+      const key = parseString()
+      skipWhitespace()
+      if (json[index] !== ':') throw new Error('Invalid JSON object')
+      index += 1
+      entries.push(`${indent(level + 1)}${key}: ${parseValue(level + 1)}`)
+      skipWhitespace()
+      if (json[index] === '}') {
+        index += 1
+        return `{
+${entries.join(',\n')}
+${indent(level)}}`
+      }
+      if (json[index] !== ',') throw new Error('Invalid JSON object')
+      index += 1
+      skipWhitespace()
+    }
+
+    throw new Error('Unterminated JSON object')
+  }
+
+  const parseArray = (level: number): string => {
+    index += 1
+    skipWhitespace()
+    if (json[index] === ']') {
+      index += 1
+      return '[]'
+    }
+
+    const values: string[] = []
+    while (index < json.length) {
+      values.push(`${indent(level + 1)}${parseValue(level + 1)}`)
+      skipWhitespace()
+      if (json[index] === ']') {
+        index += 1
+        return `[
+${values.join(',\n')}
+${indent(level)}]`
+      }
+      if (json[index] !== ',') throw new Error('Invalid JSON array')
+      index += 1
+      skipWhitespace()
+    }
+
+    throw new Error('Unterminated JSON array')
+  }
+
+  const formatted = parseValue(0)
+  skipWhitespace()
+  if (index !== json.length) throw new Error('Unexpected JSON value')
+  return formatted
+}
+
 const classes = useCssModule()
 
 // Escape HTML entities to prevent XSS attacks when rendering with v-html
@@ -99,7 +208,7 @@ const argumentsJson = computed(() => {
   const rawArguments = toolCall.value?.function.arguments
   if (typeof rawArguments === 'string') {
     try {
-      return JSON.stringify(JSON.parse(rawArguments), null, 2)
+      return formatJsonPreservingNumbers(rawArguments)
     } catch {
       // Invalid or incomplete JSON falls back to the repaired value.
     }
@@ -190,10 +299,11 @@ const saveEditing = () => {
   }
 
   try {
-    const argumentsValue = JSON.parse(editedArguments.value || '{}')
+    const argumentsText = editedArguments.value.trim() || '{}'
+    JSON.parse(argumentsText)
     handleBubbleEvent({
       name: 'tool-call:edit',
-      payload: { toolCallId, arguments: JSON.stringify(argumentsValue) },
+      payload: { toolCallId, arguments: argumentsText },
     })
     editError.value = false
     editing.value = false
