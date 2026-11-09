@@ -15,8 +15,8 @@ const props = withDefaults(
 const mode = ref(props.mode)
 const modelValue = ref<string | null>('gpt-4o')
 const models: ModelSelectorOption[] = [
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'gpt-4.1', label: 'GPT-4.1' },
+  { id: 'gpt-4o', label: 'GPT-4o' },
+  { id: 'gpt-4.1', label: 'GPT-4.1' },
 ]
 const floatingState: LayoutFloatingState = {
   placement: 'center',
