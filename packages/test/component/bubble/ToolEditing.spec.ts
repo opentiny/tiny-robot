@@ -17,6 +17,10 @@ test.describe('Tool argument editing', () => {
 
     await bubble.getByRole('button', { name: '编辑' }).click()
     const editor = bubble.getByRole('textbox', { name: '工具参数' })
+    await expect(editor).toHaveValue(`{
+  "to": "team@example.com",
+  "subject": "Hello"
+}`)
     await editor.fill('{"to":"ops@example.com"}')
     await bubble.getByRole('button', { name: '保存' }).click()
 

@@ -99,10 +99,10 @@ const argumentsJson = computed(() => {
   const rawArguments = toolCall.value?.function.arguments
   if (typeof rawArguments === 'string') {
     try {
-      if (typeof JSON.parse(rawArguments) === 'string') {
-        return rawArguments
-      }
-    } catch {}
+      return JSON.stringify(JSON.parse(rawArguments), null, 2)
+    } catch {
+      // Invalid or incomplete JSON falls back to the repaired value.
+    }
   }
 
   return prettyJSON(toolCallWithResult.value.arguments)
