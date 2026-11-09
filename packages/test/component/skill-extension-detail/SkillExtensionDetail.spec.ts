@@ -250,7 +250,7 @@ test.describe('SkillExtensionDetail', () => {
     await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
 
     const switchDialog = page.getByRole('dialog')
-    await expect(switchDialog).toContainText('切换到“references/schema.md”前是否保存？')
+    await expect(switchDialog).toContainText('执行“references/schema.md”前是否保存？')
     await expect(detail.getByRole('button', { name: 'SKILL.md' })).toHaveAttribute('aria-current', 'page')
     await expect(detail.getByRole('textbox', { name: '源码编辑 SKILL.md' })).toBeVisible()
 
