@@ -282,10 +282,10 @@ provide(queryContextKey, {
 - [GenUI SDK](https://github.com/opentiny/genui-sdk)。
 - [独立 Schema 渲染器](https://github.com/opentiny/tiny-schema-renderer)。
 
-[project]: https://github.com/SonyLeo/tiny-robot/tree/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project
-[app]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/App.vue
-[prompt]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/genui/prompt.ts
-[schema]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/genui/schema.ts
-[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/components/SchemaContent.vue
-[context]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/genui/context.ts
-[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/fix/cli-readme-file/docs/src/best-practices/genui-sdk-integration/project/src/schema-renderer.d.ts
+[project]: https://github.com/SonyLeo/tiny-robot/tree/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project
+[app]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/App.vue
+[prompt]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/prompt.ts
+[schema]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/schema.ts
+[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/components/SchemaContent.vue
+[context]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/context.ts
+[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/schema-renderer.d.ts
