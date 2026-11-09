@@ -44,6 +44,7 @@ const measureDockFit = computed(
 )
 const { width: surfaceWidth } = useElementSize(() => (measureDockFit.value ? bodyRef.value : null))
 const { width: mainMinWidth } = useElementSize(mainMinWidthRef)
+const rightDrawerFallback = ref(false)
 
 function onAsideOpenChange(detail: LayoutAsideOpenDetail): void {
   emitAsideOpenChangeEvents(emit, detail)
@@ -63,7 +64,7 @@ const { leftAsideState: leftPanel, rightAsideState: rightPanel } = useLayoutAsid
 
 const leftDockWidth = computed(() => getDockedAsideWidth(leftPanel, hasLeftAside.value))
 const rightDockWidth = computed(() => getDockedAsideWidth(rightPanel, hasRightAside.value))
-const rightDrawerFallback = computed(() => {
+const shouldFallbackRightDrawer = computed(() => {
   if (!measureDockFit.value || !hasRightAside.value || surfaceWidth.value <= 0) return false
 
   // Keep the drawer mode while closed unless a docked rail can take its place.
@@ -72,6 +73,8 @@ const rightDrawerFallback = computed(() => {
     !rightPanel.isOpen.value && rightRailWidth > 0 ? rightRailWidth : rightPanel.expandedWidth.value
   return leftDockWidth.value + mainMinWidth.value + requiredRightWidth > surfaceWidth.value
 })
+
+watch(shouldFallbackRightDrawer, (fallback) => (rightDrawerFallback.value = fallback), { immediate: true })
 
 function setDrawerOpen(
   panel: LayoutAsideState,
