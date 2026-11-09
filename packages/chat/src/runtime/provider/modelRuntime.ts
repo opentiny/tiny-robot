@@ -1,8 +1,10 @@
-import { computed, reactive, shallowRef } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import type { ComputedRef } from 'vue'
-import { CHAT_BUILT_IN_MODEL_FEATURES } from '../../types/runtime'
-import type { ChatBuiltInModelFeature, ChatModelOption, ChatModelRuntime } from '../../types'
+import { canSetModelFieldValue, resolveModelFeatureValues } from '@opentiny/tiny-robot'
+import type { ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
+import type { ChatModelOption, ChatModelRuntime } from '../../types'
 import type { ChatResolvedProviderModel } from './types'
+import { getChatModelFields } from '../../modelFeatures'
 
 export interface ChatProviderModelRuntime {
   model: ChatModelRuntime
@@ -13,10 +15,7 @@ export interface ChatProviderModelRuntime {
 export function createProviderModelRuntime(models: readonly ChatResolvedProviderModel[]): ChatProviderModelRuntime {
   const initialModel = models.find((model) => !model.disabled)
   const selectedModelId = shallowRef<string | null>(initialModel?.id ?? null)
-  const reasoningEffort = shallowRef<string | undefined>(getDefaultEffort(initialModel))
-  const featureState = reactive<Partial<Record<ChatBuiltInModelFeature, boolean>>>({
-    thinking: initialModel?.thinkingRequired === true,
-  })
+  const storedFeatureValues = shallowRef<ModelSelectorFeatureValues>({})
 
   const selectedModel = computed(() => models.find((item) => item.id === selectedModelId.value))
 
@@ -24,82 +23,54 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
     return models.find((item) => item.id === modelId)
   }
 
-  function getDefaultEffort(model: ChatResolvedProviderModel | undefined) {
-    if (!model?.efforts?.length) {
-      return undefined
-    }
+  const featureValues = computed(() =>
+    resolveModelFeatureValues(selectedModel.value?.features, storedFeatureValues.value),
+  )
 
-    return model.efforts.some((option) => option.value === model.defaultEffort)
-      ? model.defaultEffort
-      : model.efforts[0]?.value
-  }
-
-  function resetUnsupportedFeatures(modelId: string | null) {
-    const model = modelId ? resolveModel(modelId) : undefined
-
-    CHAT_BUILT_IN_MODEL_FEATURES.forEach((id) => {
-      if (!model?.capabilities?.[id]) {
-        featureState[id] = false
-      } else if (id === 'thinking' && model.thinkingRequired) {
-        featureState[id] = true
+  watch(
+    featureValues,
+    (values) => {
+      if (Object.entries(values).some(([key, value]) => storedFeatureValues.value[key] !== value)) {
+        storedFeatureValues.value = { ...storedFeatureValues.value, ...values }
       }
-    })
-
-    if (!model?.efforts?.some((option) => option.value === reasoningEffort.value)) {
-      reasoningEffort.value = getDefaultEffort(model)
-    }
-  }
+    },
+    { immediate: true, flush: 'sync' },
+  )
 
   const model: ChatModelRuntime = {
     options: computed<readonly ChatModelOption[]>(() =>
-      models.map(
-        ({
-          id,
-          label,
-          description,
-          icon,
-          disabled,
-          group,
-          efforts,
-          defaultEffort,
-          thinkingRequired,
-          capabilities,
-        }) => ({
-          id,
-          label,
-          description,
-          icon,
-          disabled,
-          group,
-          efforts,
-          defaultEffort,
-          thinkingRequired,
-          capabilities,
-        }),
-      ),
+      models.map(({ id, label, description, icon, disabled, group, features }) => ({
+        id,
+        label,
+        description,
+        icon,
+        disabled,
+        group,
+        features,
+      })),
     ),
 
     selectedId: computed(() => selectedModelId.value),
+    featureValues,
 
-    features: computed(() =>
-      Object.fromEntries(
-        CHAT_BUILT_IN_MODEL_FEATURES.map((id) => [
-          id,
-          Boolean(selectedModel.value?.capabilities?.[id] && featureState[id]),
-        ]),
-      ),
-    ),
+    setFeatureValue({ modelId, key, value }) {
+      const target = resolveModel(modelId)
+      const field = getChatModelFields(target).find((item) => item.key === key)
+      if (!target || target.disabled || !field || !canSetModelFieldValue(field, value)) {
+        throw new Error(`Invalid model field value: ${modelId}.${key}`)
+      }
 
-    reasoning: computed(() => {
-      const currentModel = selectedModel.value
-      const enabled = Boolean(currentModel?.capabilities?.thinking && featureState.thinking)
-
-      const effort = currentModel?.efforts?.some((option) => option.value === reasoningEffort.value)
-        ? reasoningEffort.value
-        : undefined
-
-      return { enabled, effort: enabled ? effort : undefined }
-    }),
+      const nextValues = { ...storedFeatureValues.value, [key]: value }
+      const activeModel = selectedModel.value
+      if (activeModel && activeModel !== target) {
+        const activeField = getChatModelFields(activeModel).find((item) => item.key === key)
+        const effectiveValue = activeField && resolveModelFeatureValues([activeField], nextValues)[key]
+        if (effectiveValue !== undefined && effectiveValue !== value) {
+          throw new Error(`Model field ${modelId}.${key} is incompatible with active model: ${activeModel.id}`)
+        }
+      }
+      storedFeatureValues.value = nextValues
+    },
 
     select(id) {
       const nextModel = id === null ? undefined : resolveModel(id)
@@ -113,40 +84,6 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
       }
 
       selectedModelId.value = id
-      resetUnsupportedFeatures(id)
-    },
-
-    setFeature(id: ChatBuiltInModelFeature, enabled) {
-      if (id === 'thinking' && !enabled && selectedModel.value?.thinkingRequired) {
-        throw new Error('Current model requires thinking')
-      }
-
-      if (enabled) {
-        if (!Object.prototype.hasOwnProperty.call(selectedModel.value?.capabilities ?? {}, id)) {
-          throw new Error(`Unknown model feature: ${id}`)
-        }
-
-        if (!selectedModel.value?.capabilities?.[id]) {
-          throw new Error(`Current model does not support ${id}`)
-        }
-      }
-
-      featureState[id] = enabled
-    },
-
-    setReasoningEffort(effort) {
-      const currentModel = selectedModel.value
-
-      if (effort === null) {
-        reasoningEffort.value = getDefaultEffort(currentModel)
-        return
-      }
-
-      if (!currentModel?.efforts?.some((option) => option.value === effort)) {
-        throw new Error(`Current model does not support reasoning effort: ${effort}`)
-      }
-
-      reasoningEffort.value = effort
     },
   }
 

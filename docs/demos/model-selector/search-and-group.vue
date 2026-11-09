@@ -7,28 +7,28 @@ const model = shallowRef<string | null>('general-pro')
 
 const models = [
   {
-    value: 'general-pro',
+    id: 'general-pro',
     label: '通用模型 Pro',
     description: '适合问答、写作和代码生成',
     group: '通用模型',
     icon: IconAi,
   },
   {
-    value: 'general-fast',
+    id: 'general-fast',
     label: '通用模型 Fast',
     description: '低延迟，适合高频交互',
     group: '通用模型',
     icon: IconAtom,
   },
   {
-    value: 'reasoning-pro',
+    id: 'reasoning-pro',
     label: '推理模型 Pro',
     description: '适合数学和复杂分析',
     group: '推理模型',
     icon: IconThink,
   },
   {
-    value: 'reasoning-preview',
+    id: 'reasoning-preview',
     label: '推理模型 Preview',
     description: '当前工作区暂不可用',
     group: '推理模型',

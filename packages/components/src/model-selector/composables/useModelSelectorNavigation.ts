@@ -44,7 +44,7 @@ export function useModelSelectorNavigation(options: UseModelSelectorNavigationOp
 
   function highlightSelectedOrBoundary(boundary: 'first' | 'last' = 'first') {
     const selectedValue = options.selectedValue()
-    const selectedOption = options.options().find((option) => option.value === selectedValue && !option.disabled)
+    const selectedOption = options.options().find((option) => option.id === selectedValue && !option.disabled)
 
     if (selectedOption) {
       highlightedKey.value = selectedOption.key
@@ -83,7 +83,7 @@ export function useModelSelectorNavigation(options: UseModelSelectorNavigationOp
       }
 
       const previousSelectedValue = previous?.[2]
-      const selectedOption = visibleOptions.find((option) => option.value === selectedValue && !option.disabled)
+      const selectedOption = visibleOptions.find((option) => option.id === selectedValue && !option.disabled)
 
       if (selectedValue !== previousSelectedValue && selectedOption) {
         highlightedKey.value = selectedOption.key

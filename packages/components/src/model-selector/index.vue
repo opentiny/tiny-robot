@@ -2,18 +2,20 @@
 import { computed, getCurrentInstance, nextTick, onMounted, onScopeDispose, shallowRef, watch } from 'vue'
 import ModelSelectorPanel from './components/ModelSelectorPanel.vue'
 import ModelSelectorTrigger from './components/ModelSelectorTrigger.vue'
-import { useModelSelectorEffort } from './composables/useModelSelectorEffort'
 import { useModelSelectorFloating } from './composables/useModelSelectorFloating'
 import { useModelSelectorState } from './composables/useModelSelectorState'
 import type {
   ModelSelectorEmits,
+  ModelSelectorFeatureValue,
+  ModelSelectorFeatureValues,
   ModelSelectorOption,
   ModelSelectorProps,
+  ModelSelectorSnapshot,
   ModelSelectorSlots,
   ModelSelectorTriggerSlotProps,
 } from './index.type'
-import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
-import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
+import { getDuplicateModelIds, normalizeModelOptions } from './normalizeModelOptions'
+import { canSetModelFieldValue, normalizeModelFields, resolveModelFeatureValues } from './featureFields'
 import { useStableId, useTeleportTarget } from '../shared/composables'
 import { getFloatingOverlayHost, observeLayoutMode } from '../shared/overlayHost'
 
@@ -22,8 +24,6 @@ defineOptions({ name: 'TrModelSelector' })
 const props = withDefaults(defineProps<ModelSelectorProps>(), {
   models: () => [],
   defaultValue: null,
-  reasoningEffort: undefined,
-  defaultReasoningEffort: null,
   open: undefined,
   defaultOpen: false,
   closeOnSelect: true,
@@ -36,7 +36,6 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   size: 'normal',
   placement: 'bottom-start',
   offset: 8,
-  reasoningEffortLabel: 'Thinking',
 })
 
 const emit = defineEmits<ModelSelectorEmits>()
@@ -47,6 +46,10 @@ const initialVNodeProps = instance?.vnode.props ?? {}
 const hasInitialVNodeProp = (...names: string[]) => {
   return names.some((name) => Object.prototype.hasOwnProperty.call(initialVNodeProps, name))
 }
+const featureValuesControlled = hasInitialVNodeProp('featureValues', 'feature-values')
+const storedFeatureValues = shallowRef<ModelSelectorFeatureValues>({ ...props.defaultFeatureValues })
+const inputFeatureValues = computed(() => (featureValuesControlled ? props.featureValues : storedFeatureValues.value))
+
 const idPrefix = `tr-model-selector-${useStableId()}`
 const listboxId = `${idPrefix}-listbox`
 const referenceEl = shallowRef<HTMLElement | null>(null)
@@ -103,29 +106,40 @@ const state = useModelSelectorState({
 })
 
 const normalizedOptions = computed(() => normalizeModelOptions(props.models))
-const duplicateValues = computed(() => getDuplicateModelValues(props.models))
+const duplicateIds = computed(() => getDuplicateModelIds(props.models))
 const currentOption = computed(() => {
-  return normalizedOptions.value.find((option) => option.value === state.value.value) ?? null
+  return normalizedOptions.value.find((option) => option.id === state.value.value) ?? null
 })
-const currentEfforts = computed(() => normalizeModelEfforts(currentOption.value?.raw.reasoningEfforts))
-const duplicateEffortValues = computed(() => getDuplicateModelEffortValues(currentOption.value?.raw.reasoningEfforts))
-// Raw vnode props preserve an explicitly bound `undefined`, which still denotes controlled usage.
-const effortState = useModelSelectorEffort({
-  value: () => props.reasoningEffort,
-  defaultValue: props.defaultReasoningEffort,
-  efforts: () => currentEfforts.value,
-  controlled: hasInitialVNodeProp('reasoningEffort', 'reasoning-effort'),
-  onUpdateValue: (value) => emit('update:reasoningEffort', value),
-})
-const activeEffort = computed<string | null>(() => effortState.activeOption.value?.value ?? null)
+const currentFields = computed(() => normalizeModelFields(currentOption.value?.raw.features))
+const currentValues = computed<ModelSelectorFeatureValues>(() =>
+  resolveModelFeatureValues(currentFields.value, inputFeatureValues.value),
+)
+
+if (!featureValuesControlled) {
+  watch(
+    currentValues,
+    (values) => {
+      if (Object.entries(values).some(([key, value]) => storedFeatureValues.value[key] !== value)) {
+        storedFeatureValues.value = { ...storedFeatureValues.value, ...values }
+      }
+    },
+    { immediate: true, flush: 'sync' },
+  )
+}
+
 const isOpen = computed(() => state.open.value && !props.disabled)
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
+const triggerText = computed(() => {
+  const model = currentOption.value?.raw
+  return (model && props.renderTriggerText?.({ model, featureValues: currentValues.value })) || triggerLabel.value
+})
 
 const triggerSlotProps = computed<ModelSelectorTriggerSlotProps>(() => ({
   option: currentOption.value?.raw ?? null,
   label: triggerLabel.value,
   open: isOpen.value,
-  reasoningEffortOption: effortState.activeOption.value,
+  featureValues: currentValues.value,
+  text: triggerText.value,
 }))
 
 const panelSlotContext = computed(() => ({
@@ -203,17 +217,24 @@ function handleTriggerEnter() {
   requestOpen()
 }
 
+function getCurrentSnapshot(): ModelSelectorSnapshot {
+  return { modelId: state.value.value, featureValues: { ...currentValues.value } }
+}
+
 function handleSelectOption(option: ModelSelectorOption) {
-  const normalizedOption = normalizedOptions.value.find((item) => item.value === option.value)
+  const normalizedOption = normalizedOptions.value.find((item) => item.id === option.id)
 
   if (!normalizedOption || normalizedOption.disabled) {
     return
   }
 
-  const changed = state.setValue(normalizedOption.value)
-
-  if (changed) {
-    emit('change', normalizedOption.raw)
+  const previous = getCurrentSnapshot()
+  const current = {
+    modelId: normalizedOption.id,
+    featureValues: resolveModelFeatureValues(normalizedOption.raw.features, inputFeatureValues.value),
+  }
+  if (state.setValue(normalizedOption.id)) {
+    emit('change', current, previous)
   }
 
   if (props.closeOnSelect) {
@@ -221,17 +242,23 @@ function handleSelectOption(option: ModelSelectorOption) {
   }
 }
 
-function handleSelectEffort(value: string | null) {
-  if (props.disabled || currentOption.value?.disabled) {
+function setFeatureValue(key: string, value: ModelSelectorFeatureValue) {
+  const option = currentOption.value
+  const field = currentFields.value.find((item) => item.key === key)
+  if (
+    !option ||
+    props.disabled ||
+    option.disabled ||
+    !field ||
+    !canSetModelFieldValue(field, value) ||
+    currentValues.value[key] === value
+  )
     return
+  const previous = getCurrentSnapshot()
+  if (!featureValuesControlled) {
+    storedFeatureValues.value = { ...storedFeatureValues.value, [key]: value }
   }
-
-  const option = value === null ? null : (currentEfforts.value.find((item) => item.value === value) ?? null)
-  const changed = effortState.setValue(value)
-
-  if (changed) {
-    emit('reasoning-effort-change', option)
-  }
+  emit('change', { modelId: option.id, featureValues: { ...previous.featureValues, [key]: value } }, previous)
 }
 
 function closeFromSlot() {
@@ -250,24 +277,10 @@ const { isPositioned } = useModelSelectorFloating({
 
 if (import.meta.env.DEV) {
   watch(
-    duplicateValues,
-    (values) => {
-      if (values.length > 0) {
-        console.warn(
-          `[TrModelSelector] model values must be unique. Duplicate values are ignored: ${values.join(', ')}`,
-        )
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(
-    duplicateEffortValues,
-    (values) => {
-      if (values.length > 0) {
-        console.warn(
-          `[TrModelSelector] reasoning effort values must be unique for model "${currentOption.value?.value ?? ''}". Duplicate values are ignored: ${values.join(', ')}`,
-        )
+    duplicateIds,
+    (ids) => {
+      if (ids.length > 0) {
+        console.warn(`[TrModelSelector] model IDs must be unique. Duplicate IDs are ignored: ${ids.join(', ')}`)
       }
     },
     { immediate: true },
@@ -325,8 +338,7 @@ onScopeDispose(() => {
       <ModelSelectorTrigger
         :open="isOpen"
         :disabled="disabled"
-        :label="triggerLabel"
-        :effort-label="effortState.activeOption.value?.label"
+        :text="triggerText"
         :icon="currentOption?.icon"
         :controls-id="listboxId"
         :variant="variant"
@@ -358,15 +370,14 @@ onScopeDispose(() => {
             :placeholder="placeholder"
             :search-placeholder="searchPlaceholder"
             :empty-text="emptyText"
-            :effort-options="currentEfforts"
-            :effort-value="activeEffort"
-            :effort-label="reasoningEffortLabel"
-            :effort-disabled="Boolean(currentOption?.disabled)"
+            :fields-disabled="Boolean(currentOption?.disabled)"
+            :fields="currentFields"
+            :values="currentValues"
             :size="size"
             :panel-class="panelClass"
             :slot-context="panelSlotContext"
             @select="handleSelectOption"
-            @select-effort="handleSelectEffort"
+            @set-feature-value="setFeatureValue"
             @close="requestClose"
           >
             <template v-if="$slots.header" #header="slotProps">

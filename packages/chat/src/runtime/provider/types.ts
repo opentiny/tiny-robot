@@ -1,15 +1,10 @@
-import type { ChatBuiltInModelFeature, ChatModelOption } from '../../types'
+import type { ChatModelOption } from '../../types'
+import type { ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
 
 export type ChatProviderType = 'openai' | 'deepseek' | 'qwen'
 
-export interface ChatProviderFeatureBody {
-  enabled?: Record<string, unknown>
-  disabled?: Record<string, unknown>
-}
-
 export interface ChatProviderModelConfig extends Omit<ChatModelOption, 'metadata'> {
-  featureBody?: Partial<Record<ChatBuiltInModelFeature, ChatProviderFeatureBody>>
-  effortParam?: string
+  mapFeatureValues?: (values: ModelSelectorFeatureValues) => Record<string, unknown>
 }
 
 export interface ChatProviderConfig {

@@ -95,9 +95,16 @@ const snapshots = {
     },
     sender: { loading: false, disabled: false, submitDisabled: true },
     model: {
-      options: [{ id: 'assistant', label: '通用助手', description: '支持工具调用' }],
+      options: [
+        {
+          id: 'assistant',
+          label: '通用助手',
+          description: '支持工具调用',
+          features: [{ key: 'search', label: '联网搜索', type: 'switch' }],
+        },
+      ],
       selectedId: 'assistant',
-      features: { search: true },
+      featureValues: { search: true },
     },
     mcp: {
       servers: [
