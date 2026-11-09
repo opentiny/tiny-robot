@@ -14,6 +14,7 @@ import type { AnyExtension } from '@tiptap/core'
 import type { SenderEmits, UseEditorReturn } from '../index.type'
 import type { SenderPropsWithDefaults } from '../index.vue'
 import { countGraphemes } from '../utils/countGraphemes'
+import { ImeGuard } from '../extensions/ime'
 
 /**
  * 编辑器 Hook
@@ -27,6 +28,9 @@ import { countGraphemes } from '../utils/countGraphemes'
  */
 export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
+  const isComposing = ref(false)
+  const hasPendingModelValue = ref(false)
+  let pendingModelTimer: ReturnType<typeof setTimeout> | undefined
 
   // 将 placeholder 转换为响应式引用
   const placeholderRef = toRef(props, 'placeholder')
@@ -42,6 +46,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       Paragraph,
       Text,
       History, // 提供 undo/redo 功能
+      ImeGuard,
       Placeholder.configure({
         placeholder: () => placeholderRef.value || '请输入内容...',
       }),
@@ -66,6 +71,34 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       attributes: {
         class: 'tr-sender-editor',
         enterkeyhint: props.enterkeyhint,
+      },
+      handleDOMEvents: {
+        compositionstart: () => {
+          clearTimeout(pendingModelTimer)
+          pendingModelTimer = undefined
+          isComposing.value = true
+          return false
+        },
+        compositionend: () => {
+          isComposing.value = false
+          if (hasPendingModelValue.value) {
+            clearTimeout(pendingModelTimer)
+            // 等待 ProseMirror 同步最终输入及父组件回传模型。
+            pendingModelTimer = setTimeout(() => {
+              pendingModelTimer = undefined
+              const currentEditor = editor.value
+              if (!currentEditor || currentEditor.isDestroyed) return
+              if (isComposing.value || currentEditor.view.composing) return
+
+              hasPendingModelValue.value = false
+              const externalValue = props.modelValue ?? ''
+              if (externalValue !== currentEditor.getText()) {
+                currentEditor.commands.setContent(externalValue, { emitUpdate: false })
+              }
+            }, 0)
+          }
+          return false
+        },
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
@@ -105,6 +138,11 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
   watch(
     () => props.modelValue,
     (newValue) => {
+      if (isComposing.value || editor.value?.view.composing || pendingModelTimer !== undefined) {
+        hasPendingModelValue.value = true
+        return
+      }
+
       if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue ?? '', { emitUpdate: false })
       }
@@ -140,6 +178,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
 
   // 清理
   onBeforeUnmount(() => {
+    clearTimeout(pendingModelTimer)
     editor.value?.destroy()
   })
 

@@ -1,173 +1,153 @@
-# TinyRobot
-
 <p align="center">
   <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
-    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="100" style="max-width:100%;">
+    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="88" style="max-width:100%;">
   </a>
 </p>
 
-[![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-**TinyRobot** is an AI component library built for Vue 3, following the OpenTiny Design system. It provides rich AI interaction components to help developers quickly build enterprise-level AI applications.
-
-## ✨ Features
-
-- 🤖 **Rich AI Components**: Comprehensive set of AI interaction components including chat bubbles, message input, conversation management, and more
-- 🎨 **OpenTiny Design**: Follows OpenTiny Design system for consistent UI/UX
-- 🚀 **Out of the Box**: Get started in minutes with minimal configuration
-- 🎯 **TypeScript Support**: Full TypeScript support with complete type definitions
-- 🌈 **Theme Customization**: Flexible theme system supporting multiple themes and custom styles
-- 📦 **Tree Shaking**: Optimized for tree shaking, import only what you need
-- 🔄 **Streaming Support**: Built-in support for streaming AI responses
-- 💾 **Storage Strategy**: Flexible storage strategies (LocalStorage, IndexedDB, custom)
+<p align="center">
+  <a href="https://github.com/opentiny/tiny-robot"><img src="https://img.shields.io/github/stars/opentiny/tiny-robot" alt="GitHub stars"></a>
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+  <img src="https://img.shields.io/badge/Vue-3.x-42b883.svg" alt="Vue 3">
+  <img src="https://img.shields.io/badge/TypeScript-Ready-3178c6.svg" alt="TypeScript">
+</p>
 
 English | [简体中文](https://github.com/opentiny/tiny-robot/blob/HEAD/README.zh-CN.md)
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
+**TinyRobot** is an AI component library and application development suite built with Vue 3 and following the OpenTiny Design system. It helps enterprises quickly build intelligent chat applications and business assistants.
 
-## 📦 Packages
+<p align="center">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-highlights.gif" alt="TinyRobot MCP tool calls and Skill extensions demo" width="1100">
+</p>
 
-TinyRobot is a monorepo containing the following packages:
+## ✨ Core Capabilities
 
-| Package                     | Description                                                  | Version                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `@opentiny/tiny-robot`      | Core component library with all AI interaction components    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)           |
-| `@opentiny/tiny-robot-kit`  | Utility functions and AI client tools for model interactions | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit)   |
-| `@opentiny/tiny-robot-svgs` | SVG icon library with all component icons                    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+Core capabilities span the Chat suite, composable components, the data layer, and MCP extensions:
 
-## 🚀 Quick Start
+- **Chat suite**: Provides a complete chat interface with model service integration, messaging, streaming responses, and management of multiple conversations, plus theme customization and model switching.
+- **Composable architecture**: Use Components and Kit to control the interface, runtime, message requests, and conversation data as needed.
+- **Tools and MCP**: Supports tool call display, MCP server management, tool selection, and approval workflows.
+- **Vue 3 + TypeScript**: Follows the OpenTiny Design system, with support for importing only what you need, theme customization, and typed APIs for extensions.
 
-### Prerequisites
+## 🧭 Capability Overview
 
-- Node.js >= 20.13.0
-- Vue >= 3.2.0
-- Package manager: npm, yarn, or pnpm
+<p align="center">
+  <img src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/robot-panorama.png" alt="TinyRobot product capability overview" width="1100">
+</p>
 
-### Installation
+Combine TinyRobot's capabilities as needed, from project setup and chat interfaces to business extensions.
 
-**Core package** — `@opentiny/tiny-robot` is the main package.
+## 🚀 How to Use
+
+TinyRobot offers three ways to get started: use the CLI, install the complete Chat suite, or combine Components and Kit as needed.
+
+### Package Overview
+
+TinyRobot separates project setup, chat pages, UI components, and the data layer into public packages that can be used independently:
+
+| Package | Description | Version |
+| --- | --- | --- |
+| [`@opentiny/tiny-robot`](https://www.npmjs.com/package/@opentiny/tiny-robot) | AI chat component library with Bubble, Sender, History, Layout, and more | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot) |
+| [`@opentiny/tiny-robot-chat`](https://www.npmjs.com/package/@opentiny/tiny-robot-chat) | Chat suite with a complete chat page, runtime, conversation management, and MCP support | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-chat.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-chat) |
+| [`@opentiny/tiny-robot-kit`](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) | AI chat toolkit for message management, model service integration, multiple conversations, and data storage | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) |
+| [`@opentiny/tiny-robot-cli`](https://www.npmjs.com/package/@opentiny/tiny-robot-cli) | CLI for creating projects or adding Chat to an existing Vue project | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-cli.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-cli) |
+| [`@opentiny/tiny-robot-svgs`](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) | SVG icon library for TinyRobot components | [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+
+### 1. Get Started with the CLI
+
+#### Create a New Project
+
+Use the CLI to create a Vue project with Chat capabilities:
 
 ```bash
-# Using pnpm (recommended)
-pnpm add @opentiny/tiny-robot
-
-# Using npm
-npm install @opentiny/tiny-robot
-
-# Using yarn
-yarn add @opentiny/tiny-robot
+npx @opentiny/tiny-robot-cli create my-app --template basic
+cd my-app
+pnpm install
+pnpm dev
 ```
 
-**Optional packages**:
+#### Add Chat to an Existing Vue Project
 
-- `@opentiny/tiny-robot-kit` — Only needed if you use AI model request or data-processing features. Add it when required:
-
-  ```bash
-  pnpm add @opentiny/tiny-robot-kit
-  ```
-
-- `@opentiny/tiny-robot-svgs` — Optional. Install separately only if you need to use the SVG icon library standalone or with custom icons:
-
-  ```bash
-  pnpm add @opentiny/tiny-robot-svgs
-  ```
-
-### Basic Usage
-
-#### 1. Import Styles
-
-In your `main.js` or `main.ts`:
-
-```ts
-import { createApp } from 'vue'
-import App from './App.vue'
-import '@opentiny/tiny-robot/dist/style.css'
-
-const app = createApp(App)
-app.mount('#app')
+```bash
+npx @opentiny/tiny-robot-cli add chat
 ```
 
-#### 2. Use Components
+The CLI generates `src/tiny-robot-chat/TinyRobotChat.vue` and related configuration. It does not automatically modify `App.vue`, `src/main.*`, or `vite.config.*`, or mount the component. See the [CLI integration guide](https://docs.opentiny.design/tiny-robot/guide/cli-integration) for more options and integration details.
+
+### 2. Use the Complete Chat Suite
+
+For a complete Chat application, install:
+
+```bash
+pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-chat
+```
+
+Create a chat page with `TrChat` and `useChatRuntime`:
 
 ```vue
-<template>
-  <div class="chat-container">
-    <tr-bubble role="ai" content="Hello! I'm TinyRobot, an AI component library for Vue 3." placement="start" />
-    <tr-bubble role="user" content="That's great! How can I get started?" placement="end" />
-  </div>
-</template>
+<script setup lang="ts">
+import '@opentiny/tiny-robot/dist/style.css'
+import '@opentiny/tiny-robot-chat/dist/style.css'
+import { TrChat, useChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 
-<script setup>
-import { TrBubble } from '@opentiny/tiny-robot'
+const modelProviders: ChatProviderConfig[] = [
+  {
+    type: 'openai',
+    apiUrl: '/api/chat',
+    models: [{ id: 'deepseek-flash', label: 'DeepSeek Flash' }],
+  },
+]
+
+const runtime = useChatRuntime({ modelProviders })
 </script>
+
+<template>
+  <tr-chat :runtime="runtime" />
+</template>
 ```
 
-## 📚 Documentation
+Replace `apiUrl` with your model service URL or a backend endpoint that forwards requests to the model service. The endpoint must use a format compatible with OpenAI's chat API. If you already have your own request and data layers, use `TrChatUI` to integrate just the Chat interface.
 
-- 📖 [Full Documentation](https://docs.opentiny.design/tiny-robot/) - Complete API reference and guides
-- 🎯 [Quick Start Guide](https://docs.opentiny.design/tiny-robot/guide/quick-start) - Get started in minutes
-- 🎨 [Theme Configuration](https://docs.opentiny.design/tiny-robot/guide/theme-config) - Customize themes
-- 📝 [Update Log](https://docs.opentiny.design/tiny-robot/guide/update-log) - Version history
-- 💡 [Examples](https://docs.opentiny.design/tiny-robot/examples/assistant) - Complete application examples
+### 3. Compose Your Own Chat Application
 
-## 🏗️ Project Structure
+#### Components
 
-```text
-tiny-robot/
-├── packages/
-│   ├── components/          # Core component library
-│   │   ├── src/
-│   │   │   ├── bubble/      # Chat bubble components
-│   │   │   ├── sender/      # Message input component
-│   │   │   ├── container/   # Container component
-│   │   │   ├── history/     # Conversation history
-│   │   │   ├── attachments/ # File attachments
-│   │   │   └── ...          # Other components
-│   │   └── package.json
-│   ├── kit/                 # Utility functions and AI tools
-│   │   ├── src/
-│   │   │   ├── providers/   # AI provider implementations
-│   │   │   ├── vue/         # Vue composables
-│   │   │   │   ├── message/ # useMessage composable
-│   │   │   │   └── conversation/ # useConversation composable
-│   │   │   └── storage/     # Storage utilities
-│   │   └── package.json
-│   ├── svgs/                # SVG icon library
-│   ├── playground/          # Development playground
-│   └── test/                # Test suite
-├── docs/                    # Documentation site
-│   ├── src/                 # Documentation source
-│   └── demos/               # Component demos
-├── scripts/                 # Build and utility scripts
-└── package.json
-```
+`@opentiny/tiny-robot` provides the basic components for AI chat interfaces, which you can combine to build your own pages:
+
+- Messages and input: `TrBubble`, `TrBubbleList`, `TrSender`, `TrSenderCompat`
+- Page structure and extensions: `TrLayout`, `TrContainer`, `TrHistory`, `TrPrompts`, `TrAttachments`, `TrMcpServerPicker`
+
+#### Kit
+
+`@opentiny/tiny-robot-kit` provides message processing, model requests, and conversation management for AI chat applications. Use it with TinyRobot components or your own interface:
+
+- `useMessage`: Manages message state and handles streaming responses.
+- `useConversation`: Manages multiple conversations and their messages.
+- Conversation storage: Supports LocalStorage, IndexedDB, and custom storage strategies.
+- Custom requests: Connects to model services or business APIs through `responseProvider`.
+
+## 📚 Documentation and Examples
+
+- [Full Documentation](https://docs.opentiny.design/tiny-robot/)
+- [Quick Start](https://docs.opentiny.design/tiny-robot/guide/quick-start)
+- [CLI Integration](https://docs.opentiny.design/tiny-robot/guide/cli-integration)
+- [Chat Suite](https://docs.opentiny.design/tiny-robot/suites/quick-start)
+- [Chat Example](https://docs.opentiny.design/tiny-robot/examples/chat-tiny-robot)
 
 ## 🛠️ Development
-
-### Setup
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Start development server (playground + docs)
+# Start development server
 pnpm dev
+
+# Run tests
+pnpm test
+
+# Build
+pnpm build
 ```
-
-### Development Workflow
-
-1. **Start Development Server**:
-   - Run `pnpm dev` in the project root directory
-   - This starts both the playground and documentation site
-   - After modifying components in `packages/components/src/`, changes will be automatically reflected in the documentation page
-
-2. **Documentation**:
-   - Documentation source: `docs/src/`
-   - Component demos: `docs/demos/`
-
-3. **Testing**:
-   - Run `pnpm test` to execute tests
 
 ## 📄 License
 

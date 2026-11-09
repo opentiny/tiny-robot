@@ -73,11 +73,13 @@ export type { SenderContentRegister } from './shared/composables/useSenderConten
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,
+  getBubbleMessageGroups,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
   useBubbleErrorRenderer,
   useBubbleEventFn,
   useBubbleStateChangeFn,
+  useAskUser,
   useMessageContent,
   useOmitMessageFields,
   useToolCall,

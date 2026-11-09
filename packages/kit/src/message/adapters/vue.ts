@@ -28,7 +28,11 @@ const toPlainValue = <T>(value: T): T => {
     return rawValue.map((item) => toPlainValue(item)) as T
   }
 
-  if (rawValue && typeof rawValue === 'object') {
+  if (
+    rawValue &&
+    typeof rawValue === 'object' &&
+    (Object.getPrototypeOf(rawValue) === Object.prototype || Object.getPrototypeOf(rawValue) === null)
+  ) {
     const result: Record<string, unknown> = {}
 
     for (const [key, item] of Object.entries(rawValue)) {

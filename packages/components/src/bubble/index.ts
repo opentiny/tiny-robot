@@ -41,9 +41,11 @@ export {
   useBubbleErrorRenderer,
   useBubbleEventFn,
   useBubbleStateChangeFn,
+  useAskUser,
   useMessageContent,
   useOmitMessageFields,
   useToolCall,
 } from './composables'
 export { BubbleRendererMatchPriority } from './constants'
 export { BubbleRenderers } from './renderers/allRenderers'
+export { getBubbleMessageGroups } from './messageGroups'

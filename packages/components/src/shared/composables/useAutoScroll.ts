@@ -60,6 +60,7 @@ export interface LegacyUseAutoScrollOptions extends AutoScrollBehaviorOptions {
 }
 
 export interface UseAutoScrollReturn {
+  pause: () => void
   scrollToBottom: (behavior?: ScrollBehavior) => Promise<void>
   arrivedState: UseScrollReturn['arrivedState']
 }
@@ -114,8 +115,20 @@ export function useAutoScroll(
   const { scrollOnMount = true, bottomThreshold = 20, scrollThrottle = 0, enabled = true } = options ?? {}
 
   const isFollowing = ref(true)
+  let explicitlyPaused = false
   let scheduledFrame: number | null = null
   const stopWatches = new Set<WatchHandle>()
+  let scrollRevision = 0
+
+  const pause = () => {
+    scrollRevision++
+    explicitlyPaused = true
+    isFollowing.value = false
+    if (scheduledFrame !== null) cancelAnimationFrame(scheduledFrame)
+    scheduledFrame = null
+    stopWatches.forEach((stop) => stop())
+    stopWatches.clear()
+  }
 
   const targetElement = () => unrefElement(scrollRef)
   const contentElement = () => (contentRef ? unrefElement(contentRef) : null)
@@ -134,11 +147,14 @@ export function useAutoScroll(
   }
 
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
+    const revision = ++scrollRevision
+    explicitlyPaused = false
     isFollowing.value = true
     const el = toValue(targetElement)
     if (!el) return
 
     await nextTick()
+    if (revision !== scrollRevision || el !== toValue(targetElement)) return
     el.scrollTo({ top: el.scrollHeight, behavior })
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
@@ -180,7 +196,8 @@ export function useAutoScroll(
       const el = toValue(targetElement)
       if (!el) return
 
-      if (isNearBottom(el as HTMLElement)) {
+      if (explicitlyPaused) return
+      if (isNearBottom(el as HTMLElement) && (isFollowing.value || newY > oldY)) {
         isFollowing.value = true
       } else if (newY < oldY) {
         isFollowing.value = false
@@ -234,6 +251,7 @@ export function useAutoScroll(
   })
 
   return {
+    pause,
     scrollToBottom,
     arrivedState,
   }

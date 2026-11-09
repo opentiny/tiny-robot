@@ -15,6 +15,7 @@ declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
+      moveCursorAfterTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
@@ -27,6 +28,7 @@ const result = ref('')
 const submitDetail = ref('')
 
 const isMultipleMode = ref(false)
+const constrainedWidth = ref(false)
 const clearable = ref(false)
 const loading = ref(false)
 const disabled = ref(false)
@@ -227,7 +229,7 @@ const extensions = computed(() => {
   return exts
 })
 
-const moveCursorBeforeTemplate = (index: number) => {
+const moveCursorToTemplate = (index: number, after: boolean) => {
   const exposedEditor = senderRef.value?.editor
   const editor = exposedEditor?.value ?? exposedEditor
   if (!editor) return false
@@ -235,13 +237,14 @@ const moveCursorBeforeTemplate = (index: number) => {
   let currentIndex = 0
   let templatePosition: number | null = null
 
-  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
+  editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
-      if (currentIndex === index) {
-        templatePosition = pos
+      const matches = currentIndex === index
+      currentIndex += 1
+      if (matches) {
+        templatePosition = after ? pos + node.nodeSize : pos
         return false
       }
-      currentIndex += 1
     }
     return true
   })
@@ -251,8 +254,12 @@ const moveCursorBeforeTemplate = (index: number) => {
   editor.commands.setTextSelection(templatePosition)
   editor.commands.focus(templatePosition)
 
-  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
+  const adjacentNode = after ? editor.state.selection.$from.nodeBefore : editor.state.selection.$from.nodeAfter
+  return adjacentNode?.type?.name === 'templateBlock'
 }
+
+const moveCursorBeforeTemplate = (index: number) => moveCursorToTemplate(index, false)
+const moveCursorAfterTemplate = (index: number) => moveCursorToTemplate(index, true)
 
 const pressDeleteBeforeTemplate = (index: number) => {
   const exposedEditor = senderRef.value?.editor
@@ -271,6 +278,7 @@ const pressDeleteBeforeTemplate = (index: number) => {
 onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
+    moveCursorAfterTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,
   }
@@ -322,6 +330,10 @@ onBeforeUnmount(() => {
           <div class="control-item">
             <label>hasExternalContent:</label>
             <tiny-switch data-testid="toggle-external-content-btn" v-model="hasExternalContent"></tiny-switch>
+          </div>
+          <div class="control-item">
+            <label>constrainedWidth:</label>
+            <tiny-switch data-testid="toggle-constrained-width-btn" v-model="constrainedWidth"></tiny-switch>
           </div>
           <div class="control-item">
             <label>attachmentsSource:</label>
@@ -405,38 +417,57 @@ onBeforeUnmount(() => {
       </p>
     </div>
 
-    <Sender
-      :key="componentKey"
-      ref="senderRef"
-      v-model="content"
-      data-testid="test-sender"
-      :mode="mode"
-      :size="size"
-      :clearable="clearable"
-      :loading="loading"
-      :disabled="disabled"
-      :extensions="extensions"
-      :max-length="maxLength"
-      :show-word-limit="showWordLimit"
-      :placeholder="placeholder"
-      :submit-type="submitType"
-      :has-external-content="hasExternalContent"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-      @clear="handleClear"
-    >
-      <template v-if="attachmentsSourceMounted" #header>
-        <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
-      </template>
+    <div :class="{ 'sender-width-constraint': constrainedWidth }">
+      <Sender
+        :key="componentKey"
+        ref="senderRef"
+        v-model="content"
+        data-testid="test-sender"
+        :mode="mode"
+        :size="size"
+        :clearable="clearable"
+        :loading="loading"
+        :disabled="disabled"
+        :extensions="extensions"
+        :max-length="maxLength"
+        :show-word-limit="showWordLimit"
+        :placeholder="placeholder"
+        :submit-type="submitType"
+        :has-external-content="hasExternalContent"
+        @submit="handleSubmit"
+        @cancel="handleCancel"
+        @clear="handleClear"
+      >
+        <template v-if="attachmentsSourceMounted" #header>
+          <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
+        </template>
 
-      <template #input-prefix>
-        <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
-      </template>
+        <template #input-prefix>
+          <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
+        </template>
 
-      <template #footer>
-        <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
-      </template>
-    </Sender>
+        <template #footer>
+          <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
+        </template>
+
+        <template #actions-inline="{ insert, disabled, loading, hasContent }">
+          <button
+            data-testid="actions-inline-btn"
+            type="button"
+            :disabled="disabled || loading"
+            :data-has-content="hasContent"
+            @mousedown.prevent
+            @click="insert('插入')"
+          >
+            单行操作
+          </button>
+        </template>
+
+        <template #footer-right>
+          <button data-testid="footer-right-btn" type="button">多行操作</button>
+        </template>
+      </Sender>
+    </div>
 
     <div id="template-select-teleport-target" data-testid="template-select-teleport-target"></div>
   </div>
@@ -489,5 +520,10 @@ onBeforeUnmount(() => {
 
 #template-select-teleport-target {
   position: relative;
+}
+
+.sender-width-constraint {
+  width: 320px;
+  max-width: 100%;
 }
 </style>

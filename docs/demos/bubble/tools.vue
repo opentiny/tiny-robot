@@ -19,10 +19,15 @@ const toolCalls = ref([
 ])
 
 const state = ref<{
-  toolCall: Record<string, { status?: string; open?: boolean }>
+  toolCall: Record<string, { status?: string; open?: boolean; description?: string }>
 }>({
   toolCall: {
-    call_0: { status: 'running', open: true },
+    call_0: {
+      status: 'running',
+      open: true,
+      description:
+        '查询工具支持按城市、日期和天气类型获取实时天气信息，并返回温度、体感温度、风力、湿度、降水概率、空气质量、紫外线指数、能见度、日出日落时间以及未来几小时的天气变化趋势等详细结果。',
+    },
     call_1: { open: true },
   },
 })

@@ -87,6 +87,9 @@ jobs:
             --expected-version "${tag_name#v}" \
             --dist-tag "${{ steps.parse_tag.outputs.dist_tag }}"
 
+      - name: Test npm and pnpm package installation
+        run: pnpm test:package-install
+
       # 步骤8: 构建文档
       - name: Build VitePress
         run: pnpm build:docs --nocomponents

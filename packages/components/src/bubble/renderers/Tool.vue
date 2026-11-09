@@ -204,7 +204,7 @@ const handleClick = () => {
             <span>{{ textAndIcon.text }}&nbsp;</span>
             <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
           </div>
-          <div v-if="description" class="description">{{ description }}</div>
+          <div v-if="description" class="description" :title="description">{{ description }}</div>
         </div>
       </div>
       <div class="header-right">
@@ -266,7 +266,7 @@ const handleClick = () => {
   .header-left {
     grid-column: 1 / 3;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     min-width: 0;
   }
@@ -281,6 +281,10 @@ const handleClick = () => {
   }
 
   .description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
     color: var(--tr-text-secondary);
     font-size: 12px;
     line-height: 18px;

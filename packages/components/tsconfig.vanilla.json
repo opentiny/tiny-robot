@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./.temp/vanilla-types",
+    "rootDir": "./src/vanilla",
+    "jsx": "preserve"
+  },
+  "include": ["src/vanilla/**/*.ts"]
+}
