@@ -8,6 +8,7 @@ import {
   assertPublishVersion,
   PUBLISHED_DEPENDENCY_SECTIONS,
   readPublishPackages,
+  resolveKitPeerRange,
   resolvePublishedDependencyRange,
 } from './publish-version-utils.js'
 
@@ -79,7 +80,7 @@ export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion
 
   const component = packages.find((pkg) => pkg.name === '@opentiny/tiny-robot')
   const runtimePeer = component.packageJson.peerDependencies?.['@opentiny/tiny-robot-kit']
-  const expectedRuntimePeer = `^${component.version}`
+  const expectedRuntimePeer = resolveKitPeerRange(component.version)
   if (runtimePeer !== expectedRuntimePeer) {
     throw new Error(
       `${component.name} peer @opentiny/tiny-robot-kit uses ${String(runtimePeer)}; expected ${expectedRuntimePeer}`,
