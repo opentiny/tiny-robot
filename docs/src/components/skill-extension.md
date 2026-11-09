@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # Skill 扩展导入与详情
 
-`SkillImportForm` 提供本地文件夹和 GitHub 两种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 只读展示已取得的定义、说明和资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
+`SkillImportForm` 提供本地文件夹和 GitHub 两种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 展示已取得的定义、说明和资源，并允许编辑 Skill 正文或文本资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
 
 ## 概览
 
@@ -87,23 +87,69 @@ description: 用于试用 Skill 导入。
 
 ### 查看 Skill 详情
 
-将已取得的 `SkillDefinition` 传给 `SkillExtensionDetail`，即可显示名称、描述、`SKILL.md` 正文和资源路径。详情默认打开 `SKILL.md` 页签，用户可切换到“资源文件”查看清单。组件按 `resources.length` 显示数量，并列出每项的路径及可选大小；它不读取 `text`、`binary` 或惰性读取器的内容。
+将已取得的 `SkillDefinition` 传给 `SkillExtensionDetail`，即可显示 Skill 名称、描述、更新时间和文件浏览区。左侧目录树包含 `SKILL.md` 及 Skill 的资源文件；选择文件后，右侧查看内容。Markdown 文件会渲染为格式化内容，文本资源支持按需读取；图片资源可预览，其他二进制资源可下载。组件不会自动获取远程资源，内容由定义中的 `text`、`binary` 或惰性读取器提供。
 
 <demo
   vue="../../demos/skill-extension-detail/basic.vue"
-  title="展示 Skill 定义"
-  description="切换 SKILL.md 与资源文件页签，查看只读正文、资源路径和大小。"
+  title="查看 Skill 详情"
+  description="浏览 Skill 文件树并查看说明正文和资源文件。"
 />
+
+### Skill 编辑与文件管理
+
+下面的示例单独展示编辑流程。示例默认选中 `SKILL.md`，可以直接点击右侧文件标题栏的“编辑”进入编辑态；保存后，示例会更新传入的定义并显示保存提示。
+
+<demo
+  vue="../../demos/skill-extension-detail/editing.vue"
+  title="编辑 Skill 正文"
+  description="点击右侧文件标题栏的“编辑”，切换可视化或源码模式并保存；也可以选择文本资源编辑。"
+/>
+
+#### 编辑入口
+
+`SkillExtensionDetail` 默认使用 `mode="view"`，只展示文件和内容，不显示编辑按钮或文件树操作。需要启用编辑界面时，显式传入 `mode="edit"`：
+
+```vue
+<tr-skill-extension-detail mode="edit" :definition="definition" @save="handleSave" />
+```
+
+在编辑模式中，选中文本资源后右侧文件标题栏显示“编辑”按钮；二进制资源只显示预览或下载。根目录 `SKILL.md` 在编辑模式下允许编辑。点击“编辑”后：
+
+1. Markdown 文件进入可视化编辑，切换“源码编辑”可以直接修改 Markdown。
+2. 其他文本文件进入文本编辑框。
+3. 点击“保存”触发 `save` 事件，应用需要保存事件中的新 `SkillDefinition`，并将它重新传给组件。
+
+```vue
+<tr-skill-extension-detail mode="edit" :definition="definition" @save="handleSave" />
+```
+
+```ts
+const handleSave = (nextDefinition: SkillDefinition) => {
+  saveDefinition(nextDefinition)
+}
+```
+
+“编辑”入口位于右侧文件标题栏；左侧文件树中的新增、删除和重命名操作也只在 `mode="edit"` 时出现。
+
+编辑期间切换文件时，如果当前文件有未保存修改，会显示确认提示，用户可以选择保存并切换、放弃修改或取消。
+
+#### 编辑模式与文件树操作
+
+`mode="view"` 控制详情是否展示编辑能力；`mode="edit"` 下，文本资源可以编辑，二进制资源仍只读。根目录 `SKILL.md` 跟随详情模式允许编辑。
+
+文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名，并通过 `file-action` 事件通知应用。应用负责处理这些事件并完成实际持久化，同时处理空目录等 `SkillDefinition` 未表达的数据。
+
+文件树操作统一由 `mode="edit"` 控制；当前组件不支持自定义文件树 action 列表或 action resolver。
 
 ## 可访问性与设计约束
 
 本地文件选择区支持键盘访问；移除文件夹后焦点回到上传入口。GitHub 地址无效时输入框会标记错误并获得焦点，解析错误以可见提示呈现。解析期间提交按钮不可用，用户可以在失败后修改输入并重试。
 
-页签支持点击，以及左右方向键、Home 和 End 切换。`SKILL.md` 正文位于可聚焦、可滚动的只读编辑区，保留原有换行和空格。光标进入后可选中、复制，按 Ctrl+A（macOS 上按 Command+A）可全选正文；长文本可以用键盘阅读。资源清单也在自身区域内滚动，不会无限拉长详情。两处默认最大高度都是 `240px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
+查看模式下，文件树中的文件和文件夹按钮支持键盘操作。当前文件内容位于可聚焦、可滚动的只读区域，保留原有换行和空格；光标进入后可选中、复制，按 Ctrl+A（macOS 上按 Command+A）可全选正文，长文本可以用键盘阅读。文件树和内容预览区域在自身区域内滚动，不会无限拉长详情。文件浏览区域默认最大高度为 `520px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。查看模式下详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
 
 ## API
 
-组件和以下类型均从 `@opentiny/tiny-robot` 导入；示例使用 `TrSkillImportForm`、`TrSkillExtensionDetail` 及对应的 `<tr-skill-import-form>`、`<tr-skill-extension-detail>` 标签。两个组件都没有公开 Slots 或 Expose 方法。
+组件和以下类型均从 `@opentiny/tiny-robot` 导入；示例使用 `TrSkillImportForm`、`TrSkillExtensionDetail` 及对应的 `<tr-skill-import-form>`、`<tr-skill-extension-detail>` 标签。组件没有公开 Expose 方法。
 
 ### SkillImportForm
 
@@ -161,40 +207,61 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 
 `SkillResourceDescriptor` 的公共字段与按种类区分的内容要求如下。资源需要稳定的 `resourceId` 和相对路径 `path`；文本资源至少提供 `text` 或 `readText()`，二进制资源至少提供 `binary` 或 `readBinary()`。两种资源均可补充另一种内容表示。
 
-| 字段                    | 类型                                       | 说明                     | 必填         |
-| ----------------------- | ------------------------------------------ | ------------------------ | ------------ |
-| `path`                  | `string`                                   | 资源相对路径。           | 是           |
-| `kind`                  | `SkillFileKind`                            | 文本或二进制种类。       | 是           |
-| `resourceId`            | `string`                                   | 稳定的资源标识。         | 是           |
-| `text` / `readText`     | `string` / `() => Promise<string>`         | 文本资源至少提供一种。   | 文本资源是   |
-| `binary` / `readBinary` | `Uint8Array` / `() => Promise<Uint8Array>` | 二进制资源至少提供一种。 | 二进制资源是 |
-| `mimeType`              | `string`                                   | MIME 类型。              | 否           |
-| `size`                  | `number`                                   | 文件大小，字节。         | 否           |
-| `lastModified`          | `number`                                   | 最后修改时间数值。       | 否           |
-| `metadata`              | `Record<string, unknown>`                  | 附加元数据。             | 否           |
+| 字段                    | 类型                                       | 说明                                         | 必填         |
+| ----------------------- | ------------------------------------------ | -------------------------------------------- | ------------ |
+| `path`                  | `string`                                   | 资源相对路径。                               | 是           |
+| `kind`                  | `SkillFileKind`                            | 文本或二进制种类。                           | 是           |
+| `resourceId`            | `string`                                   | 稳定的资源标识。                             | 是           |
+| `text` / `readText`     | `string` / `() => Promise<string>`         | 文本资源至少提供一种。                       | 文本资源是   |
+| `binary` / `readBinary` | `Uint8Array` / `() => Promise<Uint8Array>` | 二进制资源至少提供一种。                     | 二进制资源是 |
+| `mimeType`              | `string`                                   | MIME 类型。                                  | 否           |
+| `size`                  | `number`                                   | 文件大小，字节。                             | 否           |
+| `lastModified`          | `number`                                   | 最后修改时间数值。                           | 否           |
+| `metadata`              | `Record<string, unknown>`                  | 附加元数据。                                 | 否           |
 
 ### SkillExtensionDetail
 
 #### Props
 
-| 属性名       | 说明                                          | 类型              | 默认值 | 必填 |
-| ------------ | --------------------------------------------- | ----------------- | ------ | ---- |
-| `definition` | 要展示的完整 Skill 定义；组件不加载或修改它。 | `SkillDefinition` | —      | 是   |
-| `updated-at` | 已格式化的更新时间文本；未提供时不显示。      | `string`          | —      | 否   |
+| 属性名       | 说明                                                       | 类型               | 默认值   | 必填 |
+| ------------ | ---------------------------------------------------------- | ------------------ | -------- | ---- |
+| `definition` | 要展示的完整 Skill 定义；组件不加载或修改它。              | `SkillDefinition`  | —        | 是   |
+| `updated-at` | 已格式化的更新时间文本；未提供时不显示。                   | `string`           | —        | 否   |
+| `mode`       | 详情模式。`view` 只查看；`edit` 显示编辑和文件树操作入口。 | `'view' \| 'edit'` | `'view'` | 否   |
 
 #### Types
 
-| 类型名                      | 类型或签名 | 说明               |
-| --------------------------- | ---------- | ------------------ |
-| `SkillExtensionDetailProps` | interface  | 详情的公开 Props。 |
+| 类型名                       | 类型或签名 | 说明                                                                                 |
+| ---------------------------- | ---------- | ------------------------------------------------------------------------------------ |
+| `SkillExtensionDetailProps`  | interface  | 详情的公开 Props。                                                                   |
+| `SkillFileActionType`        | union      | `'create-file' \| 'create-folder' \| 'delete-file' \| 'delete-folder' \| 'rename'`。 |
+| `SkillFileAction`            | interface  | 文件树操作的目标类型、原路径和可选的新路径。                                         |
+| `SkillResourceDescriptor`    | union      | 资源文件描述，支持逐文件配置 `editable`。                                            |
+| `SkillExtensionDetailSlots`  | interface  | Skill 详情组件插槽的类型。                                                           |
+| `SkillVisualEditorSlotProps` | interface  | 可视化编辑器插槽接收的草稿、当前文件路径和更新方法。                                 |
 
-`SkillExtensionDetail` 不触发公开事件；说明和资源都是只读内容。`updated-at` 只展示传入文本，不自行格式化日期。
+#### Slots
+
+| 插槽名          | 说明                                                           | 作用域参数                   |
+| --------------- | -------------------------------------------------------------- | ---------------------------- |
+| `visual-editor` | 自定义 Markdown 可视化编辑器；未提供时使用内置 Tiptap 编辑器。 | `SkillVisualEditorSlotProps` |
+
+#### Events
+
+| 事件名        | 什么时候触发                                                                                             | 参数                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `save`        | 用户在编辑状态下点击“保存”时；应用应保存定义并更新传入的 `definition`。                                  | `(definition: SkillDefinition) => void` |
+| `file-action` | 用户执行新增、删除或重命名文件/文件夹后。文件操作同时会触发 `save`；文件夹操作可由应用根据此事件持久化。 | `(action: SkillFileAction) => void`     |
+
+文件树中的文件夹支持新增文件夹、新增文件、删除和重命名；文件支持删除和重命名。名称只能包含英文字母、数字、下划线、中划线和点号；新增文本文件及文本文件重命名仅支持 `.md`、`.txt`、`.json` 后缀。删除操作会显示危险色菜单项，根目录 `SKILL.md` 不提供这些操作。文件变更会立即反映在组件的文件树中，并通过 `save` 事件交给业务持久化；文件夹操作通过 `file-action` 事件通知业务。由于 `SkillDefinition` 只描述文件资源，空文件夹的持久化由业务处理。
+
+`updated-at` 只展示传入文本，不自行格式化日期。选择资源文件时，组件会读取定义提供的内容；Markdown 文本按格式化内容显示，其他文本显示为纯文本，图片可预览，其他二进制文件提供下载。
 
 #### CSS Variables
 
-| 变量名                                           | 说明                                        | 默认值  |
-| ------------------------------------------------ | ------------------------------------------- | ------- |
-| `--tr-skill-extension-detail-content-max-height` | `SKILL.md` 编辑区和资源清单各自的最大高度。 | `240px` |
+| 变量名                                           | 说明                                         | 默认值  |
+| ------------------------------------------------ | -------------------------------------------- | ------- |
+| `--tr-skill-extension-detail-content-max-height` | 文件浏览区域（目录树和内容预览）的最大高度。 | `520px` |
 
 开发者可在组件或外层容器上设置此变量，例如：
 

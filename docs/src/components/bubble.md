@@ -399,6 +399,8 @@ defineProps<BubbleBoxRendererProps>()
 
 Bubble 也支持通过 `state` 属性存储 UI 相关的数据，例如展开状态、点赞状态等。这些状态不会写入消息内容本身，适合放置只影响渲染表现的交互数据。
 
+工具调用可在 `ToolCall` 上设置 `editable: true` 开启参数编辑。开启后，展开详情下方会显示“编辑”入口；保存时 Tool 渲染器触发 `tool-call:edit`，payload 为 `{ toolCallId, arguments }`，其中 `arguments` 是 JSON 字符串。Bubble 不会直接修改消息数据，应用应在事件回调中校验并保存新的参数。
+
 Bubble 内部统一通过 `bubble-event` 抛出渲染器交互事件。状态变化本身也是一种特定事件，事件名为 `state:update`；对于常见的 UI 状态更新场景，可以使用 `useBubbleStateChangeFn()` 这个便捷 API，它会自动触发 `name` 为 `state:update` 的 `bubble-event`：
 
 ```ts
@@ -641,6 +643,7 @@ AskUser 将模型返回的 `ask_user` 工具调用渲染为表单，支持文本
 | `state:update`        | `{ key: string; value: unknown }`      | 请求应用更新消息的 `state`；组件随后额外触发 `state-change`，不会自行持久化状态。     |
 | `tool-call:resume`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“允许”触发；应用需转发 `TOOL_RESUME_COMMAND`。     |
 | `tool-call:reject`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“拒绝”触发；应用需转发 `TOOL_REJECT_COMMAND`。      |
+| `tool-call:edit`      | `{ toolCallId: string; arguments: string }` | Tool 开启 `editable` 且保存合法 JSON 参数时触发；应用负责更新工具调用参数。 |
 | `ask-user:step-change` | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId: string }` | AskUser 切换步骤时触发；点击“下一步”或进度步骤时触发。 |
 | `ask-user:submit`      | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'submitted'; stepId?: string }` | AskUser 提交当前结果时触发；应用可在此处校验答案或继续后续流程。 |
 | `ask-user:retry`       | `{ interactionId: string; currentStep: number; answers: Record<string, unknown>; status: 'active'; stepId?: string }` | AskUser 处于 `error` 状态时点击“重试”触发。 |
@@ -866,6 +869,7 @@ type AskUserStateValue = AskUserState | AskUserStateMap
 interface ToolCall {
   id: string
   type: 'function' | string
+  editable?: boolean
   function: {
     name: string
     arguments: string
