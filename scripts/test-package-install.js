@@ -46,7 +46,10 @@ function packPublishPackages(stagingRoot, tarballDirectory) {
       ['pack', packageDirectory, '--pack-destination', tarballDirectory, '--json', '--ignore-scripts'],
       { cwd: stagingRoot },
     )
-    const [{ filename }] = JSON.parse(output)
+    const [{ filename, files }] = JSON.parse(output)
+    if (name === '@opentiny/tiny-robot-cli' && !files.some(({ path }) => path === 'templates/basic/_gitignore')) {
+      throw new Error(`${name} tarball must contain templates/basic/_gitignore`)
+    }
     tarballs.set(name, path.join(tarballDirectory, filename))
   }
 
