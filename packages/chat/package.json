@@ -29,8 +29,8 @@
     "build": "pnpm type-check && vite build",
     "dev": "vite --host 0.0.0.0",
     "type-check": "vue-tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

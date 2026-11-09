@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import type { SenderSlotScope } from '@opentiny/tiny-robot'
 import ChatSender from './ChatSender.vue'
 import type {
-  ChatBuiltInModelFeature,
+  ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
@@ -35,8 +35,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
-  modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
-  modelReasoningEffortChange: [payload: { effort: string | null }]
+  modelFeatureValueChange: [payload: ChatModelFeatureValueChangePayload]
   senderDragEnter: [payload: SenderDragPayload]
   senderDragOver: [payload: SenderDragPayload]
   senderDragLeave: [payload: SenderDragPayload]
@@ -103,8 +102,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         @open-mcp-panel="emit('openMcpPanel')"
         @open-extensions-panel="emit('openExtensionsPanel')"
         @model-select="emit('modelSelect', $event)"
-        @model-feature-change="emit('modelFeatureChange', $event)"
-        @model-reasoning-effort-change="emit('modelReasoningEffortChange', $event)"
+        @model-feature-value-change="emit('modelFeatureValueChange', $event)"
         @sender-drag-enter="emit('senderDragEnter', $event)"
         @sender-drag-over="emit('senderDragOver', $event)"
         @sender-drag-leave="emit('senderDragLeave', $event)"

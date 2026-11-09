@@ -32,8 +32,7 @@ import type {
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
   ChatMcpCreateServerPayload,
-  ChatModelFeatureChangePayload,
-  ChatModelReasoningEffortChangePayload,
+  ChatModelFeatureValueChangePayload,
   ChatRightAsidePanelOptions,
   ChatSendPayload,
   SenderDragPayload,
@@ -358,12 +357,8 @@ function handleModelSelect(payload: { id: string | null }) {
   emit('model-select', { modelId: payload.id })
 }
 
-function handleModelFeatureChange(payload: { id: ChatModelFeatureChangePayload['featureId']; enabled: boolean }) {
-  emit('model-feature-change', { featureId: payload.id, enabled: payload.enabled })
-}
-
-function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChangePayload) {
-  emit('model-reasoning-effort-change', payload)
+function handleModelFeatureValueChange(payload: ChatModelFeatureValueChangePayload) {
+  emit('model-feature-value-change', payload)
 }
 
 function handleSenderDragEnter(payload: SenderDragPayload) {
@@ -468,8 +463,7 @@ const composerEvents = {
   onClear: handleClear,
   'onUpdate:value': handleInputValue,
   onModelSelect: handleModelSelect,
-  onModelFeatureChange: handleModelFeatureChange,
-  onModelReasoningEffortChange: handleModelReasoningEffortChange,
+  onModelFeatureValueChange: handleModelFeatureValueChange,
   onSenderDragEnter: handleSenderDragEnter,
   onSenderDragOver: handleSenderDragOver,
   onSenderDragLeave: handleSenderDragLeave,
@@ -485,8 +479,7 @@ const composerTemplateEvents = {
   clear: handleClear,
   'update:value': handleInputValue,
   modelSelect: handleModelSelect,
-  modelFeatureChange: handleModelFeatureChange,
-  modelReasoningEffortChange: handleModelReasoningEffortChange,
+  modelFeatureValueChange: handleModelFeatureValueChange,
   senderDragEnter: handleSenderDragEnter,
   senderDragOver: handleSenderDragOver,
   senderDragLeave: handleSenderDragLeave,
