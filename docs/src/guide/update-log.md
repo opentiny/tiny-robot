@@ -6,12 +6,12 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 ## v1.0.0
 
-`2026-10-08`
+`2026-11-09`
 
 > [!IMPORTANT]
 > **升级提示**：
-> - `McpServerPicker` 已弃用，现有代码仍可使用；新功能建议采用 `ExtensionManager`。两者的职责和 API 并非一一对应，迁移前请阅读 [McpServerPicker 迁移说明](../components/mcp-server-picker.md#迁移到-extensionmanager)。
-> - `Container` 已弃用并保留兼容；新布局建议使用 `Layout`（`TrLayout`），迁移时需按区域插槽和布局模式重新配置。参见 [Container 文档](../components/container.md)。
+> - `McpServerPicker` 已弃用，现有代码仍可使用。新功能建议采用 `ExtensionManager`，具体步骤见 [McpServerPicker 迁移指南](../migration/v1.0/mcp-server-picker.md)。
+> - `Container` 已弃用并保留兼容。新布局建议使用 `Layout`（`TrLayout`），迁移时需按区域插槽和布局模式重新配置。参见 [Container 迁移指南](../migration/v1.0/container.md)。
 > - CLI 的 `add chat` 现在将聊天代码生成到 `src/tiny-robot-chat/`，不再修改应用入口；应用需自行挂载生成的 `TinyRobotChat`，组件样式由生成代码导入。参见 [CLI 接入指南](./cli-integration.md)。
 
 ### ✨ 新特性
@@ -19,12 +19,14 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 **聊天界面与运行时**
 
 - **Chat**：新增 `@opentiny/tiny-robot-chat`，提供由 Runtime 驱动的 `TrChat` 和由应用数据驱动的 `TrChatUI`；可组合会话、消息、输入区、模型选择与页面布局。详见 [Chat 聊天界面](../suites/chat.md)。 by @SonyLeo in [#411](https://github.com/opentiny/tiny-robot/pull/411)
+- **Chat 界面定制**：支持配置输入工具栏，在自定义渲染器中访问聊天上下文，并通过消息目录快速跳转到用户消息。 by @SonyLeo in [#460](https://github.com/opentiny/tiny-robot/pull/460) [#464](https://github.com/opentiny/tiny-robot/pull/464)
+- **Chat 扩展管理**：内置面板支持添加 MCP 服务和管理工具，也可注册 Skills 等应用页签。 by @SonyLeo in [#451](https://github.com/opentiny/tiny-robot/pull/451) and by @gene9831 in [#461](https://github.com/opentiny/tiny-robot/pull/461)
 - **Chat Runtime**：新增 `useChatRuntime`、`useChatRuntimeFromConversation` 等入口，支持模型服务配置、复用 Kit 会话和接入 MCP 工具；应用也可通过适配器连接自定义界面。详见 [Chat 运行时](../suites/chat-runtime.md)。 by @SonyLeo in [#412](https://github.com/opentiny/tiny-robot/pull/412) [#425](https://github.com/opentiny/tiny-robot/pull/425)
 
 **组件与扩展**
 
 - **ExtensionManager**：新增通用扩展管理组件，支持按标签页浏览、搜索筛选、已安装与可安装分区及操作事件；`ExtensionCard` 和 `ExtensionCardGrid` 也可单独使用。同时提供 MCP 添加与详情、Skill 导入与详情组件，由应用负责持久化和后续操作。 by @gene9831 in [#389](https://github.com/opentiny/tiny-robot/pull/389) [#390](https://github.com/opentiny/tiny-robot/pull/390) [#428](https://github.com/opentiny/tiny-robot/pull/428) [#429](https://github.com/opentiny/tiny-robot/pull/429)
-- **ModelSelector**：新增模型选择器，支持搜索、分组、思考强度和自定义触发器；SVG 包新增常见模型提供商图标。 by @SonyLeo in [#392](https://github.com/opentiny/tiny-robot/pull/392) [#393](https://github.com/opentiny/tiny-robot/pull/393)
+- **ModelSelector**：新增模型选择器，支持搜索、分组和自定义触发器，可按模型配置思考强度、联网搜索等设置。SVG 包新增常见模型提供商图标。 by @SonyLeo in [#392](https://github.com/opentiny/tiny-robot/pull/392) [#393](https://github.com/opentiny/tiny-robot/pull/393) [#483](https://github.com/opentiny/tiny-robot/pull/483)
 - **Sender**：多行模式新增 `input-prefix` 插槽，可在首行输入前放置自定义内容；Template Select 新增 `appendTo` 配置，可指定下拉菜单的挂载位置。 by @SonyLeo in [#394](https://github.com/opentiny/tiny-robot/pull/394) [#408](https://github.com/opentiny/tiny-robot/pull/408)
 
 **工具与开发工具**
@@ -36,7 +38,6 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 - **BubbleList**：异步渲染内容增高时继续跟随底部；用户向上滚动后暂停自动跟随，返回底部后恢复。 by @gene9831 in [#421](https://github.com/opentiny/tiny-robot/pull/421)
 - **Reasoning**：批量处理思考内容的渲染更新，减少流式输出时的重复刷新。 by @gene9831 in [#387](https://github.com/opentiny/tiny-robot/pull/387)
-- **ModelSelector**：面板宽度随内容自适应，至少与触发器同宽并受视口限制；打开期间保持已展开宽度，避免搜索筛选导致面板收缩。 by @gene9831 in [#401](https://github.com/opentiny/tiny-robot/pull/401)
 
 ### 🐛 问题修复
 
