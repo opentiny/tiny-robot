@@ -4,7 +4,7 @@
 
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import { watch, isRef } from 'vue'
+import { watch, isRef, type WatchStopHandle } from 'vue'
 import type { TemplateOptions } from '../types'
 import TemplateBlockView from './template-block-view.vue'
 import { ensureZeroWidthChars, keyboardNavigationPlugin, pasteHandlerPlugin } from './plugins'
@@ -24,14 +24,17 @@ export const TemplateBlock = Node.create<TemplateOptions>({
   selectable: true,
   draggable: false,
 
+  addStorage() {
+    return { watchStopHandle: null as WatchStopHandle | null }
+  },
+
   onCreate() {
     const { items } = this.options
 
-    if (items && isRef(items)) {
-      watch(
+    if (isRef(items)) {
+      this.storage.watchStopHandle = watch(
         items,
-        () => {
-          const currentItems = isRef(items) ? items.value : items
+        (currentItems) => {
           if (currentItems !== null && currentItems !== undefined) {
             this.editor.commands.setTemplateData(currentItems)
             this.editor.commands.focusFirstTemplate()
@@ -40,6 +43,11 @@ export const TemplateBlock = Node.create<TemplateOptions>({
         { deep: true, immediate: true },
       )
     }
+  },
+
+  onDestroy() {
+    this.storage.watchStopHandle?.()
+    this.storage.watchStopHandle = null
   },
 
   // 节点属性
