@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { copyFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -13,13 +13,15 @@ try {
     copyFileSync(readme, path.join(componentDirectory, readme))
   }
 
+  const packArgs = ['pack', '.', '--dry-run', '--json', '--ignore-scripts', '--offline']
+
   for (const [name, manifest] of PUBLISH_PACKAGES) {
     const directory = path.dirname(manifest)
-    const output = execFileSync(
-      'npm',
-      ['pack', path.resolve(directory), '--dry-run', '--json', '--ignore-scripts', '--offline'],
-      { encoding: 'utf8' },
-    )
+    const options = { cwd: path.resolve(directory), encoding: 'utf8' }
+    const output =
+      process.platform === 'win32'
+        ? execSync(['npm.cmd', ...packArgs].join(' '), { ...options, shell: 'cmd.exe' })
+        : execFileSync('npm', packArgs, options)
     const [{ files }] = JSON.parse(output)
     const requiredReadmes = directory === componentDirectory ? componentReadmes : ['README.md']
 
