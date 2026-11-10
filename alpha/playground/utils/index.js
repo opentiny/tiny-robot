@@ -1,6 +1,6 @@
 import { useVueImportMap as g, useStore as $, File as f } from "@vue/repl";
-function V(o) {
-  const { tinyRobotVersion: t = "latest" } = o || {};
+function A(i) {
+  const { tinyRobotVersion: e = "latest" } = i || {};
   return [
     {
       filename: "src/App.vue",
@@ -18,7 +18,7 @@ import { TrBubble } from '@opentiny/tiny-robot'
     },
     {
       filename: "src/index.css",
-      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${t}/dist/style.css') layer(base);
+      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${e}/dist/style.css') layer(base);
 @import url('https://cdn.jsdelivr.net/npm/@opentiny/vue-theme@3.22.0/index.min.css') layer(base);
 
 @layer base {
@@ -36,30 +36,17 @@ import { TrBubble } from '@opentiny/tiny-robot'
     }
   ];
 }
-function M(o) {
-  const { tinyRobotVersion: t, builtinImportMap: e, extraImports: d } = o, a = `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${t}/dist/vanilla`, l = `const link = document.createElement('link');
-link.rel = 'stylesheet';
-link.href = ${JSON.stringify(`${a}/style.css`)};
-document.head.appendChild(link);`, i = "https://esm.sh/monaco-editor@0.57.0", c = `const link = document.createElement('link');
-link.rel = 'stylesheet';
-link.href = ${JSON.stringify(`${i}/es2022/editor/editor.api.css`)};
-await new Promise((resolve, reject) => {
-  link.onload = resolve;
-  link.onerror = () => reject(new Error('Failed to load Monaco editor styles'));
-  document.head.appendChild(link);
-});
-export * from ${JSON.stringify(`${i}/editor/editor.api?target=es2022`)};`, r = Object.entries(d || {}).map(([n, p]) => ({
-    [n]: `https://cdn.jsdelivr.net/npm/${n}@${p}`
-  })).reduce((n, p) => ({ ...n, ...p }), {});
+function V(i) {
+  const { tinyRobotVersion: e, builtinImportMap: t, extraImports: a } = i, c = Object.entries(a || {}).map(([s, r]) => ({
+    [s]: `https://cdn.jsdelivr.net/npm/${s}@${r}`
+  })).reduce((s, r) => ({ ...s, ...r }), {});
   return {
     imports: {
-      ...e == null ? void 0 : e.imports,
+      ...t == null ? void 0 : t.imports,
       // TinyRobot 相关包 - 使用统一版本号
-      "@opentiny/tiny-robot": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${t}/dist/index.min.js`,
-      "@opentiny/tiny-robot/vanilla": `${a}/index.js`,
-      "@opentiny/tiny-robot/vanilla/style.css": `data:text/javascript,${encodeURIComponent(l)}`,
-      "@opentiny/tiny-robot-svgs": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${t}/dist/tiny-robot-svgs.min.js`,
-      "@opentiny/tiny-robot-kit": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${t}/dist/index.mjs`,
+      "@opentiny/tiny-robot": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${e}/dist/index.min.js`,
+      "@opentiny/tiny-robot-svgs": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${e}/dist/tiny-robot-svgs.min.js`,
+      "@opentiny/tiny-robot-kit": `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${e}/dist/index.mjs`,
       // TinyVue 相关包
       "@opentiny/vue": "https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-pc.mjs",
       "@opentiny/vue-icon": "https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-icon.mjs",
@@ -72,11 +59,6 @@ export * from ${JSON.stringify(`${i}/editor/editor.api?target=es2022`)};`, r = O
       echarts: "https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js",
       idb: "https://cdn.jsdelivr.net/npm/idb@8/+esm",
       yaml: "https://cdn.jsdelivr.net/npm/yaml@2/browser/index.min.js",
-      "monaco-editor/editor/editor.api": `data:text/javascript,${encodeURIComponent(c)}`,
-      "monaco-editor/languages/definitions/typescript/register": `${i}/languages/definitions/typescript/register?bundle=false&target=es2022`,
-      // Route the language module's relative editor import to the same bundled
-      // API, avoiding duplicate registries and raw CSS imports in the browser.
-      [`${i}/es2022/esm/vs/editor/editor.api.nobundle.mjs`]: `data:text/javascript,${encodeURIComponent(c)}`,
       // Tiptap 编辑器相关包 (用于 Sender 组件)
       // 使用 esm.sh CDN，自动处理子路径导入和依赖解析
       // 添加 ?external=vue 参数，避免 Vue 版本冲突
@@ -91,61 +73,61 @@ export * from ${JSON.stringify(`${i}/editor/editor.api?target=es2022`)};`, r = O
       "@tiptap/extension-history": "https://esm.sh/@tiptap/extension-history@3.17.1",
       "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@3.17.1",
       "@tiptap/extension-character-count": "https://esm.sh/@tiptap/extension-character-count@3.17.1",
-      ...r
+      ...c
     }
   };
 }
-const I = (o) => {
-  const { files: t, tinyRobotVersion: e = "latest", vueVersion: d = "latest", extraImports: a } = o, { importMap: l, vueVersion: i, productionMode: c } = g();
-  i.value = d, c.value = !0;
-  const r = $({
+const I = (i) => {
+  const { files: e, tinyRobotVersion: t = "latest", vueVersion: a = "latest", extraImports: c } = i, { importMap: m, vueVersion: s, productionMode: r } = g();
+  s.value = a, r.value = !0;
+  const o = $({
     // pre-set import map
-    builtinImportMap: l,
-    vueVersion: i
+    builtinImportMap: m,
+    vueVersion: s
   });
-  if (t && t.length > 0) {
-    for (const n of t)
-      r.addFile(n instanceof f ? n : new f(n.filename, n.code));
-    r.setActive(t[0].filename);
+  if (e && e.length > 0) {
+    for (const p of e)
+      o.addFile(p instanceof f ? p : new f(p.filename, p.code));
+    o.setActive(e[0].filename);
   }
-  const m = M({
-    tinyRobotVersion: e,
-    builtinImportMap: l.value,
-    extraImports: a
+  const u = V({
+    tinyRobotVersion: t,
+    builtinImportMap: m.value,
+    extraImports: c
   });
-  return r.setImportMap(m), {
-    store: r,
-    builtinImportMap: l,
-    vueVersion: i
+  return o.setImportMap(u), {
+    store: o,
+    builtinImportMap: m,
+    vueVersion: s
   };
 }, b = /* @__PURE__ */ new Map();
-async function A(o, t = {}) {
-  var r, m;
-  const { includePrerelease: e = !1, limit: d = 20, includeLatest: a = !0 } = t, l = Array.isArray(e) ? e.join(",") : e, i = `${o}-${l}-${d}-${a}`, c = b.get(i);
-  if (c)
-    return c;
+async function T(i, e = {}) {
+  var o, u;
+  const { includePrerelease: t = !1, limit: a = 20, includeLatest: c = !0 } = e, m = Array.isArray(t) ? t.join(",") : t, s = `${i}-${m}-${a}-${c}`, r = b.get(s);
+  if (r)
+    return r;
   try {
-    const p = await (await fetch(`https://registry.npmmirror.com/${o}`)).json(), j = (p == null ? void 0 : p.time) || {}, x = (r = p["dist-tags"]) == null ? void 0 : r.latest;
-    let u = Object.entries(j).filter(([s]) => s !== "created" && s !== "modified").slice().sort((s, v) => new Date(v[1]).getTime() - new Date(s[1]).getTime()).map(([s]) => s).filter((s) => {
-      if (typeof e == "boolean") {
-        if (!e && /[a-zA-Z]/.test(s))
+    const l = await (await fetch(`https://registry.npmmirror.com/${i}`)).json(), j = (l == null ? void 0 : l.time) || {}, x = (o = l["dist-tags"]) == null ? void 0 : o.latest;
+    let d = Object.entries(j).filter(([n]) => n !== "created" && n !== "modified").slice().sort((n, v) => new Date(v[1]).getTime() - new Date(n[1]).getTime()).map(([n]) => n).filter((n) => {
+      if (typeof t == "boolean") {
+        if (!t && /[a-zA-Z]/.test(n))
           return !1;
-      } else if (Array.isArray(e) && /[a-zA-Z]/.test(s) && !e.some(
-        (h) => s.includes(`-${h}.`) || s.includes(`-${h}-`) || s.endsWith(`-${h}`)
+      } else if (Array.isArray(t) && /[a-zA-Z]/.test(n) && !t.some(
+        (h) => n.includes(`-${h}.`) || n.includes(`-${h}-`) || n.endsWith(`-${h}`)
       ))
         return !1;
       return !0;
     });
-    u = u.slice(0, d), a && ((m = p["dist-tags"]) != null && m.latest) && (u.includes("latest") || u.unshift("latest"));
-    const y = { versions: u, lastVersion: x };
-    return b.set(i, y), y;
-  } catch (n) {
-    return console.error(`Failed to fetch versions for ${o}:`, n), { versions: ["latest"], lastVersion: void 0 };
+    d = d.slice(0, a), c && ((u = l["dist-tags"]) != null && u.latest) && (d.includes("latest") || d.unshift("latest"));
+    const y = { versions: d, lastVersion: x };
+    return b.set(s, y), y;
+  } catch (p) {
+    return console.error(`Failed to fetch versions for ${i}:`, p), { versions: ["latest"], lastVersion: void 0 };
   }
 }
 export {
-  M as generateImportMap,
+  V as generateImportMap,
   I as generateStore,
-  V as getDefaultFiles,
-  A as getVersions
+  A as getDefaultFiles,
+  T as getVersions
 };
