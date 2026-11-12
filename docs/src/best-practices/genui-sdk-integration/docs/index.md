@@ -18,57 +18,31 @@
 
 本例完成“生成表单 → 填写提交 → 回传对话”的交互闭环。实际查询订单需要接入业务接口或工具。
 
-## 下载示例并体验
+## 接入方案
 
-[查看完整示例项目][project]
+### 下载并启动
 
-> 当前示例链接指向演示分支，正式发布前需切换到上游仓库。完整项目包含源代码和环境变量示例。
+[查看完整示例项目][project]。准备 Node.js 22 LTS 和 pnpm 10，然后按以下步骤启动：
 
-准备 Node.js 22 LTS 和 pnpm 10。下载仓库并解压，进入 [`docs/src/best-practices/genui-sdk-integration/project`][project] 目录，安装依赖：
+1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/src/best-practices/genui-sdk-integration/project` 目录，运行 `pnpm install`。
+2. 复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key，再运行 `pnpm dev`。
 
-```bash
-pnpm install
-```
+模型配置位于 [`src/App.vue`][app] 的 `modelProviders`；请选择账号可用且服务端支持的模型名称。修改环境变量后需重启 Vite。
 
-### 配置真实模型
-
-复制项目根目录的 `.env.example` 为 `.env.local`，填写所选模型对应的认证配置：
-
-| 模型服务 | 认证变量 |
-| --- | --- |
-| DashScope | `VITE_ALIYUN_DASHSCOPE_KEY` |
-| DeepSeek | `VITE_DEEPSEEK_API_KEY` |
-
-使用自定义模型接口时，可选配置如下；留空时使用对应服务的默认地址：
-
-| 用途 | 变量 |
-| --- | --- |
-| Qwen 完整模型接口地址 | `VITE_QWEN_API_URL` |
-| DeepSeek 完整模型接口地址 | `VITE_DEEPSEEK_API_URL` |
-
-模型配置位于 [`src/App.vue`][app] 的 `modelProviders`。选择账号实际可用的模型；模型名称需要与服务端支持的名称一致。
-
-示例保留了模板的高德 MCP 配置，`VITE_AMAP_MCP_URL` 可用于指定其地址。本文的表单生成与提交只需要模型服务。
+自定义模型接口可选配置 `VITE_QWEN_API_URL` 和 `VITE_DEEPSEEK_API_URL`；高德 MCP 地址可选配置 `VITE_AMAP_MCP_URL`。本文的表单生成与提交只需要模型服务。
 
 ::: warning
 以 `VITE_` 为前缀的变量会暴露给浏览器代码。浏览器直连适用于服务端支持 CORS 的本地验证场景；生产环境应由后端保管密钥并转发模型请求。
 :::
 
-### 启动并操作
+### 推荐体验步骤
 
-```bash
-pnpm dev --host 127.0.0.1 --port 5181
-```
+1. 在模型选择器中选择已配置的模型，发送一条普通消息，确认模型连接正常。
+2. 开启“生成式 UI”，发送：“生成一个订单查询表单，包含关键词、订单状态和提交按钮。订单状态支持全部、待处理和已完成。”
+3. 等待表单生成完成，填写关键词和订单状态并提交，观察模型如何处理下一轮消息。
+4. 关闭“生成式 UI”后再发送普通消息，确认新回复不生成界面，已生成的历史卡片仍保留。
 
-访问 http://127.0.0.1:5181，使用输入区的模型选择器选择已配置的模型，先发送一条普通消息，验证模型连接。
-
-点击“生成式 UI”按钮后，发送：
-
-> 生成一个订单查询表单，包含关键词、订单状态和提交按钮。订单状态支持全部、待处理和已完成。
-
-表单完整生成后，填写关键词并提交，模型会收到查询条件。关闭“生成式 UI”后，新回复只按普通 Markdown 展示。修改环境变量后需要重启 Vite。
-
-## 接入方案
+### 组件分工
 
 完整示例由以下三个部分协作：
 
@@ -82,7 +56,12 @@ pnpm dev --host 127.0.0.1 --port 5181
 
 本例使用 `@opentiny/genui-sdk-core` 与 `@opentiny/tiny-schema-renderer` 组合。GenUI Core 和界面渲染分别接入，选择其他渲染器时，需要同步调整输出协议与校验规则。
 
-以下为示例采用的版本组合：
+## 接入步骤
+
+以下步骤从基础 TrChat 项目开始，展示如何逐步接入 GenUI。
+
+::: info 版本基线
+本文步骤基于以下依赖版本：
 
 | 依赖 | 版本 |
 | --- | --- |
@@ -91,37 +70,29 @@ pnpm dev --host 127.0.0.1 --port 5181
 | `@opentiny/tiny-schema-renderer` | `1.0.0-beta.6` |
 
 TinyRobot 相关包保持版本一致，本例未引入 `@opentiny/genui-sdk-vue`。
+:::
 
-## 从基础 TrChat 项目开始接入
-
-本节面向需要在自己的 Chat 项目中复现接入过程的开发者。下载完整示例的用户可以直接阅读对应源码。
-
-### 1. 创建基础项目
+### 1. 创建基础项目并安装依赖
 
 使用正式发布的 `@opentiny/tiny-robot-cli` 创建 TrChat 项目：
 
 ```bash
-pnpm dlx @opentiny/tiny-robot-cli create tiny-robot-genui-chat
+pnpm dlx @opentiny/tiny-robot-cli create tiny-robot-genui-chat --runtime-version 1.0.0-rc.8
 cd tiny-robot-genui-chat
 pnpm install
 ```
 
-当前 `create` 提供的 `basic` 模板已包含 `TrChat`。按前文配置真实模型并启动，先验证基础聊天，再安装 GenUI 依赖：
+当前 `create` 提供的 `basic` 模板已包含 `TrChat`。先复制新项目根目录的 `.env.example` 为 `.env.local`，按前文说明配置模型并验证基础聊天，再安装 GenUI 依赖：
 
 ```bash
 pnpm add @opentiny/genui-sdk-core@1.4.0 @opentiny/tiny-schema-renderer@1.0.0-beta.6 @opentiny/tiny-robot-kit@1.0.0-rc.8 --save-exact
 ```
 
-### 2. 约定模型输出的界面协议
+### 2. 配置 Bubble Schema 渲染
 
-在 [`src/genui/prompt.ts`][prompt] 中使用 `genPrompt`，声明允许的组件和输出规则。普通说明使用 Markdown，界面使用独立的 `schemaJson` 代码块。
+先明确 Bubble 要渲染的数据结构。本例使用根节点为 `Page` 的静态 Schema，节点仅包含 `componentName`、`props` 和 `children`；组件与属性通过白名单限制，规则见 [`src/genui/schema.ts`][schema]。
 
-下面是界面内容的结构示意：
-
-````markdown
-下面是生成的界面：
-
-```schemaJson
+```json
 {
   "componentName": "Page",
   "children": [
@@ -129,78 +100,8 @@ pnpm add @opentiny/genui-sdk-core@1.4.0 @opentiny/tiny-schema-renderer@1.0.0-bet
   ]
 }
 ```
-````
 
-本例要求根节点为 `Page`，节点只包含 `componentName`、`props` 和 `children`。允许的组件、属性与静态 Schema 校验规则位于 [`src/genui/schema.ts`][schema]。
-
-订单表单另有以下约定：
-
-| 项目 | 约定 |
-| --- | --- |
-| 表单 | 原生 `form`，设置 `data-action="order-query"` |
-| 关键词字段 | `keyword`，最多 80 个字符 |
-| 订单状态字段 | `status`，值为 `""`、`pending` 或 `completed` |
-| 提交按钮 | 原生 `button`，设置 `type="submit"` |
-
-`schemaJson` 标记和表单字段属于本示例的接入约定。提示词、前端校验与渲染器应遵循同一协议。
-
-### 3. 将 GenUI 开关关联到每轮请求
-
-在原有 `useChatRuntime` 上注册插件，保留模板的模型和 MCP 配置：
-
-```ts
-import { shallowRef } from 'vue'
-import { createGenuiPlugin } from './genui/prompt'
-
-const genuiEnabled = shallowRef(false)
-const genuiPlugin = createGenuiPlugin(() => genuiEnabled.value)
-const runtime = useChatRuntime({
-  mcpServers,
-  modelProviders,
-  conversation: {
-    useMessageOptions: { plugins: [genuiPlugin] },
-  },
-})
-```
-
-插件通过三个生命周期连接开关和模型回复：
-
-| 生命周期 | 处理逻辑 |
-| --- | --- |
-| `onTurnStart` | 将开关状态保存到本轮 `customContext` |
-| `onBeforeRequest` | 开启时补充 GenUI 提示词；关闭时要求普通 Markdown 回复 |
-| `onCompletionChunk` | 将本轮状态写入回复的 `metadata.genuiEnabled` |
-
-提示词只补充到当前请求中。每轮固定状态，使工具续请求沿用同一能力设置；回复携带自己的标记，使历史卡片保持原有展示。
-
-通过 `ui.sender.toolbar` 追加输入区按钮：
-
-```ts
-sender: {
-  toolbar: defaults => [
-    ...defaults,
-    {
-      type: 'custom',
-      id: 'genui',
-      label: '生成式 UI',
-      icon: IconGenerativeUi,
-      active: genuiEnabled.value,
-      disabled: busy.value,
-      onClick: () => {
-        if (!busy.value) genuiEnabled.value = !genuiEnabled.value
-      },
-    },
-  ],
-},
-```
-
-该配置位于 `computed<ChatUIOptions>` 中，`busy` 根据当前会话是否正在生成计算。按钮默认关闭，生成期间禁止切换，`...defaults` 保留原有工具栏按钮。
-
-`active` 负责按钮高亮；实际能力由请求插件和下一节的渲染判断共同控制。
-
-### 4. 在消息区渲染 Schema
-
-在原有 `chatUi.bubble` 中注册内容解析和渲染器，以下为核心配置片段，完整导入与类型见 [`src/App.vue`][app]：
+在原有 `chatUi.bubble` 中注册内容解析和自定义渲染器。以下为核心配置片段，完整导入与类型见 [`src/App.vue`][app]：
 
 ```ts
 bubble: {
@@ -226,7 +127,7 @@ bubble: {
 },
 ```
 
-`splitContent` 保留普通 Markdown，只将独立的 `schemaJson` 围栏拆分为卡片内容。渲染权限读取消息自己的 `metadata.genuiEnabled`，因此关闭后新回复不会渲染卡片，历史卡片继续显示。
+`splitContent` 保留普通 Markdown，只将独立的 `schemaJson` 围栏拆分为卡片内容；Bubble 再将对应内容交给 [`SchemaContent.vue`][schema-content] 渲染。该组件调用 `@opentiny/tiny-schema-renderer` 展示通过校验的 Schema；此示例的类型补充见 [`src/schema-renderer.d.ts`][renderer-types]。
 
 [`SchemaContent.vue`][schema-content] 负责界面展示和生成状态：
 
@@ -235,11 +136,39 @@ bubble: {
 - 内容未完整生成或会话正在生成时禁用表单，防止提前提交。
 - 解析或渲染失败时展示错误，并提供原始 Schema 查看入口。
 
-JSON 修复用于流式预览，完整内容仍需严格校验。
+JSON 修复用于流式预览，完整内容仍需严格校验。回复是否启用 GenUI 由消息自身状态控制，具体开关接入见第 5 步。
 
-### 5. 将表单操作回传对话
+### 3. 约定模型输出 Schema
 
-模型负责生成静态表单，提交事件由宿主处理。[`SchemaContent.vue`][schema-content] 捕获原生 `submit` 事件，读取并校验 `keyword` 和 `status`，通过注入的 `queryContextKey` 发送条件。
+渲染链路准备好后，再通过 [`src/genui/prompt.ts`][prompt] 中的 `genPrompt` 告诉模型输出符合上述协议的界面。普通说明使用 Markdown，界面使用独立的 `schemaJson` 代码块：
+
+````markdown
+下面是生成的界面：
+
+```schemaJson
+{
+  "componentName": "Page",
+  "children": [
+    { "componentName": "h3", "children": "订单查询" }
+  ]
+}
+```
+````
+
+订单表单还约定了以下字段：
+
+| 项目 | 约定 |
+| --- | --- |
+| 表单 | 原生 `form`，设置 `data-action="order-query"` |
+| 关键词字段 | `keyword`，最多 80 个字符 |
+| 订单状态字段 | `status`，值为 `""`、`pending` 或 `completed` |
+| 提交按钮 | 原生 `button`，设置 `type="submit"` |
+
+`schemaJson` 标记和表单字段属于本示例的接入约定，提示词、前端校验和渲染器必须遵循同一协议；示例复用模板的模型服务配置，没有额外实现 GenUI 专用后端接口。
+
+### 4. 将表单提交接入下一轮对话
+
+模型负责生成静态表单，提交事件由宿主处理。[`SchemaContent.vue`][schema-content] 捕获原生 `submit` 事件，读取并校验 `keyword` 和 `status`，通过注入的 `queryContextKey` 发送条件；提交上下文定义在 [`src/genui/context.ts`][context]。
 
 在 [`App.vue`][app] 中提供提交入口：
 
@@ -256,20 +185,59 @@ provide(queryContextKey, {
 
 当前提示词要求模型确认查询条件，实际订单查询需由业务接口或工具执行。
 
-## 示例代码位置
+### 5. 添加 GenUI 开关
 
-| 文件 | 职责 |
+最后将输入区按钮与每轮请求关联。在原有 `useChatRuntime` 上注册插件，并保留模板的模型和 MCP 配置：
+
+```ts
+import { shallowRef } from 'vue'
+import { createGenuiPlugin } from './genui/prompt'
+
+const genuiEnabled = shallowRef(false)
+const genuiPlugin = createGenuiPlugin(() => genuiEnabled.value)
+const runtime = useChatRuntime({
+  mcpServers,
+  modelProviders,
+  conversation: {
+    useMessageOptions: { plugins: [genuiPlugin] },
+  },
+})
+```
+
+插件通过三个生命周期连接开关和模型回复：
+
+| 生命周期 | 处理逻辑 |
 | --- | --- |
-| [`src/App.vue`][app] | 关联运行时、输入区按钮与消息渲染 |
-| [`src/genui/prompt.ts`][prompt] | 生成提示词、固定每轮状态、标记回复 |
-| [`src/genui/schema.ts`][schema] | 拆分内容、修复 JSON、校验静态 Schema |
-| [`src/components/SchemaContent.vue`][schema-content] | 展示界面、处理生成状态和表单提交 |
-| [`src/genui/context.ts`][context] | 连接卡片提交与 Chat 发送入口 |
-| [`src/schema-renderer.d.ts`][renderer-types] | 补充本例所用独立渲染器版本的类型声明 |
+| `onTurnStart` | 将开关状态保存到本轮 `customContext` |
+| `onBeforeRequest` | 开启时补充 GenUI 提示词；关闭时要求普通 Markdown 回复 |
+| `onCompletionChunk` | 将本轮状态写入回复的 `metadata.genuiEnabled` |
 
-## 当前能力范围
+提示词只补充到当前请求中。每轮固定状态，使工具续请求沿用同一能力设置；Bubble 根据消息自己的 `metadata.genuiEnabled` 判断是否解析和渲染 Schema，因此历史卡片保持原有展示。
 
-本例支持静态 HTML Schema，包含文本、表单和表格等白名单元素。模型生成的表达式、方法、事件和外部资源不在支持范围内；表单操作由宿主实现，未提交的填写值不持久化。
+通过 `ui.sender.toolbar` 追加输入区按钮：
+
+```ts
+sender: {
+  toolbar: defaults => [
+    ...defaults,
+    {
+      type: 'custom',
+      id: 'genui',
+      label: '生成式 UI',
+      icon: IconGenerativeUi,
+      active: genuiEnabled.value,
+      disabled: busy.value,
+      onClick: () => {
+        if (!busy.value) genuiEnabled.value = !genuiEnabled.value
+      },
+    },
+  ],
+},
+```
+
+该配置位于 `computed<ChatUIOptions>` 中，`busy` 根据当前会话是否正在生成计算。按钮默认关闭，生成期间禁止切换，`...defaults` 保留原有工具栏按钮；`active` 负责按钮高亮，插件和 Bubble 渲染判断共同控制实际能力。
+
+本例只支持文本、表单和表格等白名单内的静态 HTML Schema，不支持表达式、方法、事件或外部资源；未提交的表单值不持久化，真实业务查询需另行接入。
 
 示例已完成真实模型手动验证。完整动图将在发布前补充。
 
