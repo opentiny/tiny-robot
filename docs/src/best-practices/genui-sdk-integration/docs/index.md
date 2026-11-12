@@ -1,3 +1,8 @@
+---
+outline: [1, 3]
+pageClass: demo-container-page-bg
+---
+
 # TrChat 接入 GenUI SDK
 
 在 TrChat 中接入 GenUI SDK，可以让模型根据对话生成表单等界面，并把用户在界面中的操作作为下一轮消息继续发送。
