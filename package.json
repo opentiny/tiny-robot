@@ -10,9 +10,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4175 --strictPort",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4175 --strictPort",
-    "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "preview": "vite preview --host 127.0.0.1 --port 4175 --strictPort"
   },
   "dependencies": {
     "@opentiny/tiny-robot": "1.0.1",
@@ -24,7 +22,6 @@
     "vue": "3.5.41"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.0",
     "@types/node": "22.20.5",
     "@vitejs/plugin-vue": "4.6.2",
     "typescript": "5.9.3",

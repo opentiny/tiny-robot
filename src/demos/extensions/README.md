@@ -1,6 +1,6 @@
 # 扩展管理
 
-[Demo.vue](Demo.vue) 独立使用 `TrExtensionManager`，展示 MCP、Skills 和业务工具三个页签；条目来自 [fixtures/data.ts](../../fixtures/data.ts)。
+[Demo.vue](Demo.vue) 独立使用 `TrExtensionManager`，展示 MCP、Skills 和业务工具页签；条目来自 [fixtures/data.ts](../../fixtures/data.ts)。
 
 可体验标签筛选、搜索、安装进度、启停、卸载及详情查看。安装和业务工具动作由应用模拟，不连接真实 MCP 服务。
 

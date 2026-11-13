@@ -17,8 +17,7 @@ export const demos = [
   {
     id: 'anchor',
     title: '长对话导航',
-    description:
-      '悬停在右侧标记上展开消息目录，点击提问跳转；手动滚动时高亮同步变化。目录默认在视口宽度达到 768px 时显示。',
+    description: '悬停在右侧标记上展开消息目录，点击提问跳转；手动滚动时高亮同步变化。',
     component: AnchorDemo,
   },
   {

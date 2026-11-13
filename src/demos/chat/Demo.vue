@@ -14,7 +14,7 @@ const imageTypes = ['image/png', 'image/jpeg']
 const props = withDefaults(defineProps<{ source?: 'mock' | 'live' }>(), { source: 'mock' })
 const attachments = ref<Attachment[]>([])
 const reading = ref(false)
-const error = ref('')
+const attachmentError = ref('')
 const runtime = useChatRuntime({
   modelProviders: [
     {
@@ -71,7 +71,7 @@ watch(
     readRevision++
     attachments.value = []
     reading.value = false
-    error.value = ''
+    attachmentError.value = ''
   },
 )
 
@@ -80,9 +80,9 @@ function attach(files: ArrayLike<File> | null | undefined) {
   if (!file) return
   const revision = ++readRevision
   reading.value = false
-  error.value = ''
+  attachmentError.value = ''
   if (!imageTypes.includes(file.type) || file.size > 2 * 1024 * 1024) {
-    error.value = '请选择 2 MB 以内的 PNG 或 JPEG 图片。'
+    attachmentError.value = '请选择 2 MB 以内的 PNG 或 JPEG 图片。'
     return
   }
   reading.value = true
@@ -91,7 +91,7 @@ function attach(files: ArrayLike<File> | null | undefined) {
     if (revision !== readRevision) return
     reading.value = false
     if (typeof reader.result !== 'string') {
-      error.value = '图片读取失败，请重新选择。'
+      attachmentError.value = '图片读取失败，请重新选择。'
       return
     }
     attachments.value = [
@@ -131,10 +131,9 @@ onUnmounted(() => {
       @sender-drag-over="allowDrop"
       @sender-drop="handleDrop"
       @sender-paste="handlePaste"
-      @runtime-action-error="error = String($event.error)"
     >
       <template #sender-header>
-        <p v-if="error" class="error-message" role="alert">{{ error }}</p>
+        <p v-if="attachmentError" class="error-message" role="alert">{{ attachmentError }}</p>
         <TrAttachments v-if="attachments.length" v-model:items="attachments" variant="card" />
       </template>
       <template #sender-footer-right>

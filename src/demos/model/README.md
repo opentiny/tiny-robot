@@ -1,6 +1,6 @@
 # 模型选择
 
-[Demo.vue](Demo.vue) 独立使用 `TrModelSelector`，不调用模型服务。
+[Demo.vue](Demo.vue) 使用 `TrModelSelector` 展示模型及设置选项。
 
 打开面板可浏览“通用模型”和“推理模型”分组；搜索“推理”并选中“推理助手”后，可将思考强度设置为“深度”。
 

@@ -43,7 +43,7 @@ onUnmounted(() => window.removeEventListener('hashchange', syncRoute))
     <main>
       <header class="demo-heading">
         <div>
-          <p class="eyebrow">VUE 3 · TINYROBOT 1.0.1</p>
+          <p class="eyebrow">VUE 3 · TINYROBOT</p>
           <h1>{{ current.title }}</h1>
         </div>
         <button class="utility-button" @click="reset">重置示例</button>
