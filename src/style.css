@@ -1,0 +1,341 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #23314a;
+  background: #f5f7fb;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+a {
+  color: #2563c7;
+}
+button:focus-visible,
+a:focus-visible,
+select:focus-visible {
+  outline: 2px solid #2671f3;
+  outline-offset: 3px;
+}
+.demo-app {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 36px;
+  max-width: 1440px;
+  padding: 32px;
+  margin: auto;
+}
+.sidebar {
+  position: sticky;
+  top: 32px;
+  align-self: start;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: #21375c;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #2468e6;
+  color: #fff;
+  font-weight: 800;
+  font-size: 24px;
+}
+.brand strong {
+  font-size: 19px;
+}
+.brand small {
+  display: block;
+  font-size: 12px;
+  color: #738096;
+  margin-top: 3px;
+  font-weight: 500;
+}
+.sidebar-intro {
+  font-size: 13px;
+  color: #718099;
+  margin: 24px 0 16px;
+}
+nav {
+  display: grid;
+  gap: 5px;
+}
+nav a {
+  padding: 12px 14px;
+  border-radius: 9px;
+  text-decoration: none;
+  color: #4c5d78;
+  font-size: 14px;
+}
+nav a:hover {
+  background: #eaf0fc;
+}
+nav a[aria-current] {
+  background: #e5edff;
+  color: #1854b5;
+  font-weight: 600;
+}
+.docs-link {
+  display: inline-block;
+  margin: 28px 14px;
+  font-size: 13px;
+  text-decoration: none;
+}
+main {
+  min-width: 0;
+}
+.demo-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.eyebrow {
+  margin: 0;
+  color: #72849e;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+h1 {
+  margin: 10px 0 0;
+  font-size: 28px;
+  color: #1f3150;
+  font-weight: 650;
+}
+.demo-description {
+  color: #586a84;
+  font-size: 14px;
+  line-height: 1.9;
+  margin: 20px 0 8px;
+}
+.source-path {
+  color: #748198;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin: 0 0 24px;
+}
+code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.demo-settings {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 18px;
+  font-size: 13px;
+}
+.demo-settings select {
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #d9e1ee;
+  border-radius: 8px;
+  background: white;
+  color: #344765;
+}
+.demo-settings a {
+  margin-left: auto;
+}
+.demo-stage {
+  min-height: 620px;
+  background: white;
+  border: 1px solid #e1e7f0;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px #17315406;
+  overflow: hidden;
+}
+.primary-button,
+.utility-button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.primary-button {
+  background: #2167e8;
+  color: white;
+  border: 1px solid #2167e8;
+}
+.utility-button {
+  background: white;
+  color: #455a7a;
+  border: 1px solid #d7e0ef;
+}
+.chat-scene {
+  height: 650px;
+  --tr-layout-height: 100%;
+}
+.chat-scene > .tr-chat-ui {
+  height: 100%;
+}
+.feature-scene {
+  padding: 28px;
+}
+.model-scene {
+  width: min(320px, calc(100% - 48px));
+  margin: 40px auto;
+}
+.floating-demo {
+  padding: 28px;
+  color: #65758f;
+  font-size: 14px;
+}
+.floating-demo p {
+  line-height: 1.8;
+}
+.extension-panel .tr-extension-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.scene-notice {
+  min-height: 20px;
+  margin: 18px 0 0;
+  color: #27684f;
+  font-size: 13px;
+}
+.detail-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid #dce2ec;
+  border-radius: 16px;
+  color: #23314a;
+  background: white;
+  box-shadow: 0 24px 80px #10274426;
+}
+.detail-dialog::backdrop {
+  background: #15253c55;
+}
+.dialog-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 19px;
+  outline: none;
+}
+.conversation-panel {
+  display: flex;
+  flex-direction: column;
+  height: 570px;
+  min-height: 0;
+  gap: 12px;
+}
+.conversation-toolbar {
+  padding: 0 0 14px;
+  border-bottom: 1px solid #edf0f5;
+  font-size: 13px;
+  color: #67748a;
+}
+.approval-scene .tr-bubble-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.approval-scene .tr-bubble__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e5efff;
+  color: #1c62d0;
+  font-size: 20px;
+}
+.approval-scene [data-role='user'] .tr-bubble__avatar {
+  background: #edf0f5;
+  color: #54637a;
+}
+.approval-scene [data-box-type='box'][data-role='user'] {
+  --tr-bubble-box-bg: var(--tr-color-primary-light);
+}
+.input-prefix {
+  color: #2167e8;
+  font-size: 14px;
+  font-weight: 600;
+  padding-right: 8px;
+}
+.error-message {
+  color: #a4232c;
+  padding: 10px 14px;
+  background: #fff0f0;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .demo-app {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 20px;
+  }
+  .sidebar {
+    position: static;
+  }
+  nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sidebar-intro {
+    margin: 14px 0;
+  }
+  .docs-link {
+    margin: 14px;
+  }
+  .extension-panel .tr-extension-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .demo-heading {
+    align-items: flex-start;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  .feature-scene,
+  .floating-demo {
+    padding: 18px;
+  }
+  .demo-description {
+    margin-top: 16px;
+  }
+  .demo-stage {
+    border-radius: 12px;
+  }
+  .chat-scene {
+    height: 620px;
+  }
+  .demo-settings a {
+    margin-left: 0;
+  }
+  .task-entries button {
+    white-space: normal;
+  }
+}

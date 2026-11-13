@@ -1,0 +1,30 @@
+name: Demo checks
+
+on:
+  push:
+    branches: [demo/v1.0-showcase]
+  pull_request:
+    branches: [demo/v1.0-showcase]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm test
+        env:
+          TEST_PREVIEW: '1'
