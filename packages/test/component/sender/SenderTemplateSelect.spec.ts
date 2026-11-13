@@ -176,6 +176,39 @@ test.describe('Sender TemplateSelect', () => {
     await expect(dropdown(page)).toHaveCount(0)
   })
 
+  for (const [name, appendTarget, senderLocation] of [
+    ['SELECT-21 falls back to body for an invalid selector', 'invalid-selector', 'document'],
+    ['SELECT-22 falls back to body for a detached HTMLElement', 'detached-element', 'document'],
+    ['SELECT-23 falls back to body for a missing selector inside a real ShadowRoot', 'missing-selector', 'shadow'],
+  ] as const) {
+    test(name, async ({ mount, page }) => {
+      const component = await mount(SenderExtensionsFixture, {
+        props: { kind: 'template', templateScenario: 'two-selects', appendTarget, senderLocation },
+      })
+      const trigger = page.locator('[data-testid="sender-root"] .template-select__trigger').first()
+
+      await expect(trigger.evaluate((element) => element.getRootNode() instanceof ShadowRoot)).resolves.toBe(
+        senderLocation === 'shadow',
+      )
+      await trigger.click()
+      await expect(dropdown(page)).toBeVisible()
+      await expect(dropdown(page).evaluate((element) => element.parentElement?.tagName)).resolves.toBe('BODY')
+      await expect(dropdown(page)).not.toHaveClass(/is-absolute/)
+      await options(page).first().click()
+      await expect(trigger.locator('.template-select__text')).toHaveText('第一个')
+      await expect(dropdown(page)).toHaveCount(0)
+      await expect(component.getByTestId('submit-count')).toHaveText('0')
+      await trigger.click()
+      await expect(dropdown(page)).toBeVisible()
+      await trigger.press('Escape')
+      await expect(dropdown(page)).toHaveCount(0)
+      await trigger.click()
+      await expect(dropdown(page)).toBeVisible()
+      await component.unmount()
+      await expect(dropdown(page)).toHaveCount(0)
+    })
+  }
+
   test('SELECT-19 resolves the default target to body for a Sender inside a real ShadowRoot', async ({
     mount,
     page,

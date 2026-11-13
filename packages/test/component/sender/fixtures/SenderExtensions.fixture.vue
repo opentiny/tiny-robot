@@ -27,7 +27,15 @@ type TemplateScenario =
 interface Props {
   kind: ExtensionKind
   templateScenario?: TemplateScenario
-  appendTarget?: 'body' | 'explicit-body' | 'selector' | 'element' | 'shadow'
+  appendTarget?:
+    | 'body'
+    | 'explicit-body'
+    | 'selector'
+    | 'element'
+    | 'shadow'
+    | 'invalid-selector'
+    | 'detached-element'
+    | 'missing-selector'
   senderLocation?: 'document' | 'shadow'
   mentionChar?: string
   allowSpaces?: boolean
@@ -72,16 +80,16 @@ shadowSenderTarget.dataset.testid = 'shadow-sender-target'
 shadowRoot.appendChild(shadowSenderTarget)
 document.body.appendChild(shadowHost)
 
-const appendTo =
-  props.appendTarget === 'explicit-body'
-    ? 'body'
-    : props.appendTarget === 'selector'
-      ? '#sender-template-selector-target'
-      : props.appendTarget === 'element'
-        ? elementTarget
-        : props.appendTarget === 'shadow'
-          ? shadowTarget
-          : undefined
+const appendTo = {
+  body: undefined,
+  'explicit-body': 'body',
+  selector: '#sender-template-selector-target',
+  element: elementTarget,
+  shadow: shadowTarget,
+  'invalid-selector': '[',
+  'detached-element': document.createElement('div'),
+  'missing-selector': '#template-select-missing',
+}[props.appendTarget]
 
 const mentionItems = ref<MentionItem[]>([
   { id: 'artist', label: '小小画家', value: 'artist-value' },
