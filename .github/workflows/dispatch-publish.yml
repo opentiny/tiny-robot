@@ -144,6 +144,9 @@ jobs:
           name: dispatch-package-dist
           path: ./packages
 
+      - name: Prepare and verify package READMEs
+        run: node scripts/prepare-publish-readmes.js
+
       # 步骤9: 发布组件到NPM
       - name: Publish components
         run: pnpm lerna publish from-package --pre-dist-tag ${{ inputs.tag }} --yes

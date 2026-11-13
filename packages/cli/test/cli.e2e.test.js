@@ -221,6 +221,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')))
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/index.css')))
     const readme = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/README.md'), 'utf8')
+    assert.equal(readme, fs.readFileSync(new URL('../templates/chat/README.md', import.meta.url), 'utf8'))
     assert.match(readme, /server\.proxy/)
     assert.match(readme, /https:\/\/modelcontextprotocol\.io\/mcp/)
     assert.match(readme, /path\.replace\(/)
@@ -326,6 +327,53 @@ test('add chat is idempotent and reports when no changes are necessary', () => {
     assertSetupGuidePath(second.stdout, path.join(root, 'src/tiny-robot-chat/README.md'))
     assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
     assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat protects a conflicting README and regenerates it after a manual backup', () => {
+  const root = createTempDir('tiny-robot-add-readme-conflict-')
+
+  try {
+    createVueProject(root)
+    const initial = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.2')
+    assert.equal(initial.status, 0, initial.stderr)
+    const readmeFile = path.join(root, 'src/tiny-robot-chat/README.md')
+    const backupFile = path.join(root, 'src/tiny-robot-chat/README.rc-backup.md')
+    const customReadme = '# Existing setup guide\n\nProject-specific setup instructions.\n'
+    fs.writeFileSync(readmeFile, customReadme)
+    const packageFile = path.join(root, 'package.json')
+    const packageBefore = fs.readFileSync(packageFile, 'utf8')
+
+    const dryRun = runCli(root, 'add', 'chat', '--dry-run', '--runtime-version', '0.5.2-rc.3')
+    assert.equal(dryRun.status, 0, dryRun.stderr)
+    assert.match(dryRun.stdout, /src\/tiny-robot-chat\/README\.md/)
+    assert.match(dryRun.stdout, /1 conflict/)
+    assert.equal(fs.readFileSync(readmeFile, 'utf8'), customReadme)
+    assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
+
+    const conflict = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.3')
+    assert.equal(conflict.status, 1)
+    assert.match(conflict.stderr, /file conflicts detected/)
+    assert.match(conflict.stderr, /src\/tiny-robot-chat\/README\.md/)
+    assert.equal(fs.readFileSync(readmeFile, 'utf8'), customReadme)
+    assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
+
+    fs.renameSync(readmeFile, backupFile)
+    const upgrade = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.3')
+    assert.equal(upgrade.status, 0, upgrade.stderr)
+    const expectedReadme = fs.readFileSync(new URL('../templates/chat/README.md', import.meta.url), 'utf8')
+    assert.equal(fs.readFileSync(readmeFile, 'utf8'), expectedReadme)
+    assert.equal(fs.readFileSync(backupFile, 'utf8'), customReadme)
+    const upgradedPackage = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    for (const name of runtimePackageNames) assert.equal(upgradedPackage.dependencies[name], '0.5.2-rc.3')
+
+    const repeat = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.3')
+    assert.equal(repeat.status, 0, repeat.stderr)
+    assert.match(repeat.stdout, /No changes were necessary/i)
+    assert.equal(fs.readFileSync(readmeFile, 'utf8'), expectedReadme)
+    assert.equal(fs.readFileSync(backupFile, 'utf8'), customReadme)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

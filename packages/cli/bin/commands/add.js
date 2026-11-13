@@ -236,7 +236,7 @@ function getChatFeatureFiles(targetDir) {
     target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'index.css'),
   })
   featureFiles.push({
-    source: path.join(getTemplateDir('chat-add'), 'README.md'),
+    source: getTemplateFile('README.md'),
     target: path.join(targetDir, CHAT_ADD_FEATURE_DIR, 'README.md'),
   })
 
