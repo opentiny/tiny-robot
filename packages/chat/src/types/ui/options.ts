@@ -13,7 +13,6 @@ import type {
   ExtensionManagerTab,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo, ChatIcon } from '../base'
-import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
@@ -101,8 +100,6 @@ export interface ChatLabels {
   extensions: string
   mcpInstallServer: string
   mcpRemoveServer: string
-  thinkingFeature: string
-  searchFeature: string
   welcomeTitle: string
   welcomeDescription: string
   rightAsideTitle: string
@@ -165,7 +162,7 @@ export type ChatSenderToolbarItem = Readonly<
   } & (
     | {
         type: 'builtin'
-        id: ChatBuiltInModelFeature | 'model' | 'mcp'
+        id: 'model' | 'mcp'
       }
     | {
         type: 'custom'

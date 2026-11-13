@@ -67,6 +67,8 @@ test.describe('Sender TemplateBlock deletion matrix', () => {
     await component.getByTestId('select-after-block').click()
     await expectSelection(component, /^empty\|paragraph\|templateBlock\|[^|]+$/)
     await editor.press('Backspace')
+    await expectSelection(component, /^empty\|templateBlock\|/)
+    await expect(component.getByTestId('editor-text')).toHaveText('我是张三，来自')
     await editor.pressSequentially('X')
     await expect(component.getByTestId('block-texts')).toHaveText('["张三X"]')
   })

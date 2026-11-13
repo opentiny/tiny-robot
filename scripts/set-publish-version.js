@@ -8,6 +8,7 @@ import {
   readPublishPackages,
   replaceDependencyVersion,
   replaceTopLevelVersion,
+  resolveKitPeerRange,
 } from './publish-version-utils.js'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -22,7 +23,7 @@ export function setPublishVersion({ rootDir: targetRootDir = rootDir, version, w
         updated,
         'peerDependencies',
         '@opentiny/tiny-robot-kit',
-        `^${version}`,
+        resolveKitPeerRange(version),
         relativePath,
       )
     }

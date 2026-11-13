@@ -1,11 +1,8 @@
-import type {
-  ChatComposerRuntime,
-  ChatMcpRunConfig,
-  ChatMcpRuntime,
-  ChatMessageItem,
-  ChatRunConfig,
-  ChatRunConfigReasoning,
-} from '../types'
+import type { ChatComposerRuntime, ChatMcpRunConfig, ChatMcpRuntime, ChatMessageItem, ChatRunConfig } from '../types'
+import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
+import { isModelFieldValue, resolveModelFeatureValues } from '@opentiny/tiny-robot'
+import { usesQwenThinkingBudget } from './provider/presets'
+import type { ChatResolvedProviderModel } from './provider/types'
 
 export const CHAT_RUN_CONFIG_METADATA_KEY = 'run_config_metadata'
 export const CHAT_RUN_CONFIG_CONTEXT_KEY = 'run_config_context'
@@ -17,8 +14,7 @@ export function cloneRunConfig(runConfig?: ChatRunConfig): ChatRunConfig | undef
 
   return {
     ...runConfig,
-    features: runConfig.features ? { ...runConfig.features } : undefined,
-    reasoning: runConfig.reasoning ? { ...runConfig.reasoning } : undefined,
+    featureValues: runConfig.featureValues ? { ...runConfig.featureValues } : undefined,
     mcp: runConfig.mcp
       ? {
           serverIds: [...runConfig.mcp.serverIds],
@@ -67,17 +63,15 @@ function resolveMcpRunConfig(mcp?: ChatMcpRuntime): ChatMcpRunConfig | undefined
 
 export function resolveComposerRunConfig(composer: ChatComposerRuntime): ChatRunConfig | undefined {
   const model = composer.model
-  const reasoning = composer.model?.reasoning?.value
   const mcp = resolveMcpRunConfig(composer.mcp)
 
-  if (!model && !reasoning && !mcp) {
+  if (!model && !mcp) {
     return undefined
   }
 
   return cloneRunConfig({
     modelId: model?.selectedId.value ?? undefined,
-    features: model ? { ...model.features.value } : undefined,
-    reasoning,
+    featureValues: model ? getChatModelFeatureValues(model) : undefined,
     mcp,
   })
 }
@@ -127,7 +121,10 @@ function readMcpRunConfig(value: unknown): ChatMcpRunConfig | undefined {
   }
 }
 
-export function readRunConfigFromMessage(message?: ChatMessageItem): ChatRunConfig | undefined {
+export function readRunConfigFromMessage(
+  message?: ChatMessageItem,
+  resolveModel?: (modelId: string) => ChatResolvedProviderModel | undefined,
+): ChatRunConfig | undefined {
   const raw = message?.metadata?.[CHAT_RUN_CONFIG_METADATA_KEY]
 
   if (!isRecord(raw)) {
@@ -139,28 +136,11 @@ export function readRunConfigFromMessage(message?: ChatMessageItem): ChatRunConf
   }
 
   if (
-    raw.features !== undefined &&
-    (!isRecord(raw.features) || Object.values(raw.features).some((enabled) => typeof enabled !== 'boolean'))
+    raw.featureValues !== undefined &&
+    (!isRecord(raw.featureValues) ||
+      Object.values(raw.featureValues).some((value) => typeof value !== 'boolean' && typeof value !== 'string'))
   ) {
     return undefined
-  }
-
-  let reasoning: ChatRunConfig['reasoning']
-
-  if (raw.reasoning !== undefined) {
-    if (
-      !isRecord(raw.reasoning) ||
-      typeof raw.reasoning.enabled !== 'boolean' ||
-      (raw.reasoning.effort !== undefined &&
-        (typeof raw.reasoning.effort !== 'string' || raw.reasoning.effort.length === 0))
-    ) {
-      return undefined
-    }
-
-    reasoning = {
-      enabled: raw.reasoning.enabled,
-      effort: raw.reasoning.effort as ChatRunConfigReasoning['effort'],
-    }
   }
 
   const mcp = raw.mcp === undefined ? undefined : readMcpRunConfig(raw.mcp)
@@ -169,10 +149,64 @@ export function readRunConfigFromMessage(message?: ChatMessageItem): ChatRunConf
     return undefined
   }
 
+  let featureValues = raw.featureValues as ChatRunConfig['featureValues']
+  if (featureValues === undefined && (raw.features !== undefined || raw.reasoning !== undefined)) {
+    if (
+      !isRecord(raw.features ?? {}) ||
+      Object.values(raw.features ?? {}).some((value) => typeof value !== 'boolean') ||
+      (raw.reasoning !== undefined &&
+        (!isRecord(raw.reasoning) ||
+          typeof raw.reasoning.enabled !== 'boolean' ||
+          (raw.reasoning.effort !== undefined && typeof raw.reasoning.effort !== 'string')))
+    ) {
+      return cloneRunConfig({ modelId: raw.modelId, mcp })
+    }
+    const model = typeof raw.modelId === 'string' ? resolveModel?.(raw.modelId) : undefined
+    if (!model) {
+      return cloneRunConfig({ modelId: raw.modelId, mcp })
+    }
+    const fields = getChatModelFields(model)
+    const features = raw.features as Record<string, boolean> | undefined
+    const reasoning = raw.reasoning as { enabled: boolean; effort?: string } | undefined
+    const values: Record<string, boolean | string> = {}
+    if (reasoning || features?.thinking !== undefined) {
+      const field = fields.find((item) => item.key === 'reasoning')
+      const enabled = reasoning?.enabled ?? features?.thinking
+      if (field?.type === 'select') {
+        const fallback = resolveModelFeatureValues([field]).reasoning as string | undefined
+        let value = fallback
+        if (!enabled) {
+          value = isModelFieldValue(field, 'off') ? 'off' : fallback
+        } else if (reasoning?.effort === undefined) {
+          if (isModelFieldValue(field, 'on')) {
+            value = 'on'
+          } else if (
+            model.providerType === 'qwen' &&
+            usesQwenThinkingBudget(model.id) &&
+            isModelFieldValue(field, 'max')
+          ) {
+            value = 'max'
+          } else if (fallback === 'off') {
+            value = field.options.find((option) => !option.disabled && option.value !== 'off')?.value ?? fallback
+          }
+        } else {
+          value = isModelFieldValue(field, reasoning.effort) ? reasoning.effort : fallback
+        }
+        if (value !== undefined) values.reasoning = value
+      }
+    }
+    if (features?.search !== undefined) {
+      const field = fields.find((item) => item.key === 'search')
+      if (field?.type === 'switch') {
+        values.search = features.search
+      }
+    }
+    featureValues = values
+  }
+
   return cloneRunConfig({
     modelId: raw.modelId as string | undefined,
-    features: raw.features as Readonly<Record<string, boolean>> | undefined,
-    reasoning,
+    featureValues,
     mcp,
   })
 }

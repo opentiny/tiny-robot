@@ -19,7 +19,7 @@ interface GeminiComposerProps {
 
 const props = defineProps<GeminiComposerProps>()
 const modelOptions = computed<ModelSelectorOption[]>(() =>
-  props.model.options.value.map((option) => ({ value: option.id, label: option.label, icon: option.icon })),
+  props.model.options.value.map((option) => ({ id: option.id, label: option.label, icon: option.icon })),
 )
 </script>
 

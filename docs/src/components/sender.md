@@ -241,7 +241,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 自定义插槽
 
-Sender 提供了多个插槽位置，方便扩展功能。`header` 和 `prefix` 没有作用域参数；`content` 仅提供编辑器实例。`actions-inline` 仅在单行模式渲染，`footer` 和 `footer-right` 仅在多行模式渲染。
+Sender 提供了多个插槽位置，方便扩展功能。`header` 和 `prefix` 没有作用域参数；`content` 仅提供编辑器实例。`actions-inline` 在多行模式下移至底部右侧，`footer` 和 `footer-right` 仅在多行模式渲染。
 
 - **`header`** - 顶部区域，可添加标题、提示信息等
 - **`prefix`** - 输入框前缀区域，可添加图标、标签等（位于输入框内部）
@@ -254,7 +254,7 @@ Sender 提供了多个插槽位置，方便扩展功能。`header` 和 `prefix` 
 
 `header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
 
-`content` 插槽提供 `editor`。`actions-inline` 在单行和多行模式下均提供 `SenderSlotScope`，包含 `editor`、`focus`、`blur`、`insert`、`append`、`replace`、`disabled`、`loading` 和 `hasContent`；其中 `insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。`footer` 和 `footer-right` 当前也提供相同的作用域参数。
+`content` 插槽提供 `editor`；`insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。
 :::
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
@@ -487,6 +487,8 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `on-button-click`   | 点击拦截器；调用 `preventDefault()` 后由应用接管录音开始/停止 | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                   | 否   |
 
 ### Slots
+
+#### Sender Slots
 
 | 插槽名           | 用途                                 | 作用域参数            |
 | ---------------- | ------------------------------------ | --------------------- |

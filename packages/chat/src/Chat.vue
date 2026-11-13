@@ -17,8 +17,7 @@ import type {
   ChatMcpRemoveServerPayload,
   ChatMcpServerEnabledChangePayload,
   ChatMcpToolEnabledChangePayload,
-  ChatModelFeatureChangePayload,
-  ChatModelReasoningEffortChangePayload,
+  ChatModelFeatureValueChangePayload,
   ChatModelSelectPayload,
   ChatPromptClickPayload,
   ChatRenameConversationPayload,
@@ -67,6 +66,7 @@ const props = withDefaults(
 const slots = defineSlots<ChatUISlots>()
 
 const emit = defineEmits<{
+  'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
   'update:floating-state': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragDetail]
   'floating-drag': [detail: LayoutFloatingDragDetail]
@@ -134,12 +134,9 @@ function handleModelSelect(payload: ChatModelSelectPayload) {
   return adapter.selectModel(payload.modelId)
 }
 
-function handleModelFeatureChange(payload: ChatModelFeatureChangePayload) {
-  return adapter.setModelFeature(payload.featureId, payload.enabled)
-}
-
-function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChangePayload) {
-  return adapter.setModelReasoningEffort(payload.effort)
+function handleModelFeatureValueChange(payload: ChatModelFeatureValueChangePayload) {
+  emit('model-feature-value-change', payload)
+  return adapter.setModelFeatureValue({ modelId: payload.modelId, key: payload.featureKey, value: payload.next })
 }
 
 function handleMcpAddServer(payload: ChatMcpAddServerPayload) {
@@ -279,8 +276,7 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @clear="() => adapter.setInputValue('')"
     @update:input-value="adapter.setInputValue"
     @model-select="handleModelSelect"
-    @model-feature-change="handleModelFeatureChange"
-    @model-reasoning-effort-change="handleModelReasoningEffortChange"
+    @model-feature-value-change="handleModelFeatureValueChange"
     @mcp-add-server="handleMcpAddServer"
     @mcp-create-server="handleMcpCreateServer"
     @mcp-remove-server="handleMcpRemoveServer"

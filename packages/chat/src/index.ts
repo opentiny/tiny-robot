@@ -32,9 +32,4 @@ export type {
   UseChatHistoryItemsOptions,
 } from './composables/useChatHistoryItems'
 export type { ChatMcpServerConfig, ChatMcpServers } from './runtime/mcp/types'
-export type {
-  ChatProviderConfig,
-  ChatProviderFeatureBody,
-  ChatProviderModelConfig,
-  ChatProviderType,
-} from './runtime/provider'
+export type { ChatProviderConfig, ChatProviderModelConfig, ChatProviderType } from './runtime/provider'
