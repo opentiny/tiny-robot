@@ -256,7 +256,7 @@ const handleDrop = async (event: DragEvent) => {
 
   if (selectionGeneration !== browserSelectionGeneration.value) return
 
-  if (props.source === 'archive') updateArchiveFile(files.find((file) => file.name.toLowerCase().endsWith('.zip')))
+  if (props.source === 'archive') updateArchiveFile(files.find((file) => /\.(zip|tar|tar\.gz|tgz)$/i.test(file.name)))
   else updateBrowserFiles(files)
 }
 
@@ -351,7 +351,11 @@ watch(
               aria-label="Skill 包"
               :aria-describedby="errorMessage ? errorId : browserDescriptionId"
               :aria-invalid="Boolean(errorMessage)"
-              :accept="props.source === 'archive' ? '.zip,application/zip' : undefined"
+              :accept="
+                props.source === 'archive'
+                  ? '.zip,.tar,.tar.gz,.tgz,application/zip,application/gzip,application/x-tar'
+                  : undefined
+              "
               :webkitdirectory="props.source === 'local' ? '' : undefined"
               :directory="props.source === 'local' ? '' : undefined"
               :multiple="props.source === 'local'"
@@ -379,7 +383,7 @@ watch(
               <span :id="browserDescriptionId" class="skill-add__upload-description"
                 >{{
                   props.source === 'archive'
-                    ? '支持 ZIP 格式，解压后需包含 SKILL.md 文件'
+                    ? '支持 ZIP、TAR、TAR.GZ 和 TGZ，解压后需包含 SKILL.md 文件'
                     : '技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述'
                 }}，{{ maxUploadSizeLabel }}M以内</span
               >

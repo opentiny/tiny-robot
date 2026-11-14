@@ -300,7 +300,7 @@ async function importFromInput(input: HTMLInputElement) {
 }
 ```
 
-也可以通过 `source: 'archive'` 加载 ZIP 文件。kit 会移除包中的单一顶层目录，保留其余相对路径，并在解压前检查总展开大小。支持 Store 和 Deflate ZIP；TAR/TAR.GZ、7z、RAR、加密、ZIP64 与分卷归档不支持。默认展开上限为 10 MiB，可通过 `maxUncompressedSize` 调整：
+也可以通过 `source: 'archive'` 加载 ZIP、TAR、TAR.GZ 或 TGZ。kit 会移除包中的单一顶层目录，保留其余相对路径，并限制解包总大小（默认 10 MiB）和归档条目数（最多 10,000）。ZIP 支持 Store 和 Deflate；TAR 目前支持普通文件和目录，不解包链接或设备文件。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档不支持：
 
 ```typescript
 const skill = await loadSkill({
@@ -310,7 +310,7 @@ const skill = await loadSkill({
 })
 ```
 
-浏览器入口和 `/node` 入口都支持 ZIP source；Node 侧可以传入读取归档数据的 `File` 或 `Blob`。
+浏览器入口和 `/node` 入口都支持以上归档格式；Node 侧可以传入读取归档数据的 `File` 或 `Blob`。
 
 支持 File System Access API 的浏览器也可以使用目录句柄：
 

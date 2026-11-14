@@ -18,40 +18,155 @@ export async function loadArchiveSkillFiles(
   options: ArchiveSkillLoadOptions,
   context: SkillLoadContext,
 ): Promise<LoadableSkillFile[]> {
-  if (!/\.zip$/i.test(options.file.name)) {
-    throw new Error('Unsupported skill archive format. Use a .zip file.')
+  const bytes = new Uint8Array(await options.file.arrayBuffer())
+  const limit = options.maxUncompressedSize ?? DEFAULT_MAX_UNCOMPRESSED_SIZE
+  if (options.file.size > limit + 10 * 1024 * 1024) {
+    throw new Error('Skill archive file is too large to process.')
   }
+  const filename = options.file.name.toLowerCase()
+  if (filename.endsWith('.zip')) return loadZip(bytes, limit, context)
+  if (filename.endsWith('.tar')) return loadTar(bytes, limit, context)
+  if (filename.endsWith('.tar.gz') || filename.endsWith('.tgz')) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('TAR.GZ import requires a runtime with DecompressionStream support.')
+    }
+    return loadGzipTar(bytes, limit, context)
+  }
+  throw new Error('Unsupported skill archive format. Use .zip, .tar, .tar.gz, or .tgz.')
+}
 
+async function loadZip(bytes: Uint8Array, limit: number, context: SkillLoadContext) {
   if (typeof DecompressionStream === 'undefined') {
     throw new Error('ZIP import requires a runtime with DecompressionStream support.')
   }
-
-  const bytes = new Uint8Array(await options.file.arrayBuffer())
   const entries = readCentralDirectory(bytes)
-  const limit = options.maxUncompressedSize ?? DEFAULT_MAX_UNCOMPRESSED_SIZE
   const totalSize = entries.reduce((total, entry) => total + (entry.directory ? 0 : entry.uncompressedSize), 0)
   if (totalSize > limit) throw new Error(`Skill archive expands beyond the ${limit}-byte limit.`)
 
   const files: LoadableSkillFile[] = []
   for (const entry of entries) {
     throwIfSkillLoadCancelled(context.signal)
-    if (entry.directory) continue
-    if (entry.path.split(/[\\/]/).includes('__MACOSX') || entry.path.split(/[\\/]/).at(-1) === '.DS_Store') continue
-
+    if (entry.directory || isMetadataFile(entry.path)) continue
     const path = normalizeArchivePath(entry.path)
     const data = await readEntry(bytes, entry)
     throwIfSkillLoadCancelled(context.signal)
-    const kind = isTextSkillFilePath(path) ? 'text' : 'binary'
-
-    files.push({
-      path,
-      kind,
-      content: kind === 'text' ? UTF8.decode(data) : data,
-      size: data.byteLength,
-    })
+    files.push(toLoadableFile(path, data))
   }
-
   return stripSingleRootDirectory(files)
+}
+
+async function loadGzipTar(bytes: Uint8Array, limit: number, context: SkillLoadContext) {
+  let tarBytes: Uint8Array
+  try {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+    tarBytes = await readBoundedStream(stream, limit + 10000 * 512)
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('limit')) throw error
+    throw new Error('Could not decompress TAR.GZ skill archive.')
+  }
+  return loadTar(tarBytes, limit, context)
+}
+
+function loadTar(bytes: Uint8Array, limit: number, context: SkillLoadContext) {
+  const files: LoadableSkillFile[] = []
+  let offset = 0
+  let totalSize = 0
+  let entryCount = 0
+  let nextPath: string | undefined
+  while (offset + 512 <= bytes.length) {
+    throwIfSkillLoadCancelled(context.signal)
+    const header = bytes.subarray(offset, offset + 512)
+    if (header.every((byte) => byte === 0)) break
+    if (!isValidTarHeader(header)) throw new Error('Invalid TAR archive header or checksum.')
+
+    const name = readTarString(header, 0, 100)
+    const prefix = readTarString(header, 345, 155)
+    const headerPath = prefix ? `${prefix}/${name}` : name
+    const path = nextPath ?? headerPath
+    nextPath = undefined
+    const size = parseTarOctal(header.subarray(124, 136))
+    const type = header[156] ?? 0
+    const dataOffset = offset + 512
+    const paddedSize = Math.ceil(size / 512) * 512
+    if (dataOffset + paddedSize > bytes.length) throw new Error(`Invalid TAR archive: truncated entry ${path}.`)
+    entryCount += 1
+    if (entryCount > 10000) throw new Error('Skill archive contains too many files (maximum 10000).')
+
+    if (type === 0 || type === 48) {
+      totalSize += size
+      if (totalSize > limit) throw new Error(`Skill archive expands beyond the ${limit}-byte limit.`)
+      if (!isMetadataFile(path)) {
+        const normalizedPath = normalizeArchivePath(path)
+        files.push(toLoadableFile(normalizedPath, bytes.slice(dataOffset, dataOffset + size)))
+      }
+    } else if (type === 120 || type === 103) {
+      const metadata = UTF8.decode(bytes.subarray(dataOffset, dataOffset + size))
+      const pathRecord = /(?:^|\n)\d+ path=([^\n]+)/.exec(metadata)
+      if (pathRecord?.[1]) nextPath = pathRecord[1]
+    } else if (type === 76) {
+      nextPath = readTarString(bytes.subarray(dataOffset, dataOffset + size), 0, size)
+    } else if (type === 53) {
+      // Directory entries do not contribute skill resources.
+    } else {
+      throw new Error(`Unsupported TAR entry type in ${path}.`)
+    }
+
+    offset = dataOffset + paddedSize
+  }
+  return stripSingleRootDirectory(files)
+}
+
+function isValidTarHeader(header: Uint8Array) {
+  const expected = parseTarOctal(header.subarray(148, 156))
+  let checksum = 0
+  for (let index = 0; index < 512; index += 1) checksum += index >= 148 && index < 156 ? 32 : header[index]!
+  return checksum === expected
+}
+
+function readTarString(bytes: Uint8Array, start: number, length: number) {
+  const end = bytes.subarray(start, start + length).indexOf(0)
+  return UTF8.decode(bytes.subarray(start, end < 0 ? start + length : start + end))
+}
+
+function parseTarOctal(bytes: Uint8Array) {
+  const value = UTF8.decode(bytes).replace(/\0.*$/, '').trim()
+  if (!value) return 0
+  if (!/^[0-7]+$/.test(value)) throw new Error('Invalid TAR numeric field.')
+  const parsed = Number.parseInt(value, 8)
+  if (!Number.isSafeInteger(parsed)) throw new Error('TAR entry size is not supported.')
+  return parsed
+}
+
+async function readBoundedStream(stream: ReadableStream<Uint8Array>, limit: number) {
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > limit) {
+      await reader.cancel()
+      throw new Error(`Skill archive expands beyond the ${limit}-byte limit.`)
+    }
+    chunks.push(value)
+  }
+  const result = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    result.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return result
+}
+
+function isMetadataFile(path: string) {
+  return path.split(/[\\/]/).includes('__MACOSX') || path.split(/[\\/]/).at(-1) === '.DS_Store'
+}
+
+function toLoadableFile(path: string, data: Uint8Array): LoadableSkillFile {
+  const kind = isTextSkillFilePath(path) ? 'text' : 'binary'
+  return { path, kind, content: kind === 'text' ? UTF8.decode(data) : data, size: data.byteLength }
 }
 
 function readCentralDirectory(bytes: Uint8Array): ZipEntry[] {
@@ -80,6 +195,7 @@ function readCentralDirectory(bytes: Uint8Array): ZipEntry[] {
     throw new Error('Invalid ZIP archive: central directory is out of bounds.')
 
   const entries: ZipEntry[] = []
+  if (entryCount > 10000) throw new Error('Skill archive contains too many files (maximum 10000).')
   let offset = centralOffset
   for (let index = 0; index < entryCount; index += 1) {
     if (offset + 46 > centralOffset + centralSize || view.getUint32(offset, true) !== 0x02014b50) {
@@ -132,10 +248,10 @@ function readCentralDirectory(bytes: Uint8Array): ZipEntry[] {
 function normalizeArchivePath(rawPath: string) {
   const path = rawPath.replace(/\\/g, '/')
   if (!path || path.startsWith('/') || /^[a-zA-Z]:/.test(path) || path.split('/').some((part) => part === '..')) {
-    throw new Error(`Invalid path in ZIP archive: ${rawPath}`)
+    throw new Error(`Invalid path in skill archive: ${rawPath}`)
   }
   const normalized = normalizeSkillPath(path)
-  if (!normalized) throw new Error(`Invalid path in ZIP archive: ${rawPath}`)
+  if (!normalized) throw new Error(`Invalid path in skill archive: ${rawPath}`)
   return normalized
 }
 

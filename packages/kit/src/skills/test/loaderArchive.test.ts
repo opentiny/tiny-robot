@@ -1,4 +1,4 @@
-import { deflateRawSync } from 'node:zlib'
+import { deflateRawSync, gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { loadSkill } from '../loader'
 
@@ -72,6 +72,44 @@ const createZip = (entries: Record<string, string>, method: 0 | 8 = 8) => {
 
 const skillMd = '---\nname: archive-skill\ndescription: ZIP skill\n---\n\n# Archive skill'
 
+const createTar = (entries: Record<string, string>) => {
+  const blocks: Uint8Array[] = []
+  const encoder = new TextEncoder()
+  for (const [path, content] of Object.entries(entries)) {
+    const data = encoder.encode(content)
+    const header = new Uint8Array(512)
+    const view = new DataView(header.buffer)
+    const write = (offset: number, length: number, value: string) =>
+      header.set(encoder.encode(value).subarray(0, length), offset)
+    const octal = (offset: number, length: number, value: number) =>
+      write(offset, length, `${value.toString(8).padStart(length - 1, '0')}\0`)
+    write(0, 100, path)
+    octal(100, 8, 0o644)
+    octal(108, 8, 0)
+    octal(116, 8, 0)
+    octal(124, 12, data.length)
+    octal(136, 12, 0)
+    header.fill(32, 148, 156)
+    header[156] = 48
+    write(257, 6, 'ustar\0')
+    write(263, 2, '00')
+    const checksum = header.reduce((sum, byte) => sum + byte, 0)
+    write(148, 8, `${checksum.toString(8).padStart(6, '0')}\0 `)
+    blocks.push(header)
+    const paddedData = new Uint8Array(Math.ceil(data.length / 512) * 512)
+    paddedData.set(data)
+    blocks.push(paddedData)
+  }
+  blocks.push(new Uint8Array(1024))
+  const result = new Uint8Array(blocks.reduce((sum, block) => sum + block.length, 0))
+  let offset = 0
+  for (const block of blocks) {
+    result.set(block, offset)
+    offset += block.length
+  }
+  return result
+}
+
 describe('archive skill loader', () => {
   it.each([0, 8] as const)('loads ZIP compression method %i and strips one package root', async (method) => {
     const skill = await loadSkill({
@@ -85,7 +123,7 @@ describe('archive skill loader', () => {
 
   it('rejects archive traversal paths', async () => {
     await expect(loadSkill({ source: 'archive', file: createZip({ '../SKILL.md': skillMd }) })).rejects.toThrow(
-      'Invalid path in ZIP archive',
+      'Invalid path in skill archive',
     )
   })
 
@@ -107,7 +145,41 @@ describe('archive skill loader', () => {
 
   it('rejects non-ZIP archive extensions', async () => {
     const zip = createZip({ 'SKILL.md': skillMd })
-    const tarball = new File([zip], 'skill.tar.gz')
+    const tarball = new File([zip], 'skill.rar')
     await expect(loadSkill({ source: 'archive', file: tarball })).rejects.toThrow('Unsupported skill archive format')
+  })
+
+  it.each(['skill.tar', 'skill.tar.gz', 'skill.tgz'])('loads TAR archive format %s', async (name) => {
+    const tar = createTar({ 'package/SKILL.md': skillMd, 'package/reference.md': 'Guide' })
+    const content = name.endsWith('.gz') || name.endsWith('.tgz') ? gzipSync(tar) : tar
+    const skill = await loadSkill({ source: 'archive', file: new File([content], name) })
+    expect(skill.name).toBe('archive-skill')
+    expect(skill.resources?.map((resource) => resource.path)).toEqual(['reference.md'])
+  })
+
+  it('enforces the uncompressed size limit while reading gzip streams', async () => {
+    const content = gzipSync(createTar({ 'SKILL.md': skillMd }))
+    await expect(
+      loadSkill({ source: 'archive', file: new File([content], 'skill.tgz'), maxUncompressedSize: 10 }),
+    ).rejects.toThrow('expands beyond')
+  })
+
+  it('rejects path traversal and unsupported TAR link entries', async () => {
+    const traversal = createTar({ '../SKILL.md': skillMd })
+    await expect(loadSkill({ source: 'archive', file: new File([traversal], 'skill.tar') })).rejects.toThrow(
+      'Invalid path in skill archive',
+    )
+
+    const symlinkTar = createTar({ 'SKILL.md': skillMd })
+    symlinkTar[156] = 50
+    const header = symlinkTar.subarray(0, 512)
+    header.fill(32, 148, 156)
+    let checksum = 0
+    for (const byte of header) checksum += byte
+    const checksumText = checksum.toString(8).padStart(6, '0')
+    header.set(new TextEncoder().encode(`${checksumText}\0 `), 148)
+    await expect(loadSkill({ source: 'archive', file: new File([symlinkTar], 'skill.tar') })).rejects.toThrow(
+      'Unsupported TAR entry type',
+    )
   })
 })

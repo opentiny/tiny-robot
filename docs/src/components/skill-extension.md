@@ -4,13 +4,13 @@ outline: [1, 3]
 
 # Skill 扩展导入与详情
 
-`SkillImportForm` 提供本地文件夹、ZIP 压缩包和 GitHub 三种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 只读展示已取得的定义、说明和资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
+`SkillImportForm` 提供本地文件夹、ZIP/TAR 系列压缩包和 GitHub 三种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 只读展示已取得的定义、说明和资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
 
 ## 概览
 
 ### 适用场景
 
-- 从本地文件夹、ZIP 压缩包或 GitHub 仓库路径取得一个 Skill 定义。
+- 从本地文件夹、ZIP/TAR 系列压缩包或 GitHub 仓库路径取得一个 Skill 定义。
 - 展示 Skill 的说明与资源清单，让用户了解已加载的内容。
 - 与 [ExtensionManager](./extension-manager.md) 组合时，由应用处理通用操作事件，打开对应界面并更新扩展列表。
 
@@ -73,23 +73,24 @@ description: 用于试用 Skill 导入。
   description="选择包含 SKILL.md 的文件夹，确认后查看应用收到的定义。"
 />
 
-### 导入 ZIP 压缩包
+### 导入压缩包
 
-`source="archive"` 接受单个 `.zip` 文件。ZIP 可以直接包含 `SKILL.md`，也可以在唯一顶层目录中包含它；压缩包解开后按相对路径生成资源。kit 支持 Store 和 Deflate 压缩方法，使用运行时 `DecompressionStream` 解压。默认解析上限为 10 MB，`max-upload-size` 同时限制上传文件大小和解压后文件总大小。TAR、TAR.GZ、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
+`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz` 文件。归档可以直接包含 `SKILL.md`，也可以在唯一顶层目录中包含它；解包后按相对路径生成资源。ZIP 支持 Store 和 Deflate 压缩方法，TAR.GZ/TGZ 使用运行时 `DecompressionStream` 解压。默认解析上限为 10 MB，`max-upload-size` 同时限制上传文件大小和解包后文件总大小，并将归档条目数限制为 10,000。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
 
-| 格式         | 常见用途                 | 当前支持              | 说明                                                          |
-| ------------ | ------------------------ | --------------------- | ------------------------------------------------------------- |
-| ZIP          | 跨平台文件分发、应用上传 | 支持 Store 和 Deflate | 浏览器与现代 Node 可用原生流 API 解压，不需额外运行时依赖。   |
-| TAR.GZ / TGZ | 开源源码与 Linux 工具包  | 暂不支持              | 需同时解析 TAR 目录项并做 Gzip 解压；浏览器没有统一 TAR API。 |
-| 7z           | 桌面大容量压缩           | 暂不支持              | 通常需要专用解压库，增加包体和格式维护成本。                  |
-| RAR          | 桌面压缩与分卷包         | 暂不支持              | 常依赖专有格式实现或 WebAssembly 解压器。                     |
+| 格式         | 常见用途                 | 当前支持              | 说明                                                        |
+| ------------ | ------------------------ | --------------------- | ----------------------------------------------------------- |
+| ZIP          | 跨平台文件分发、应用上传 | 支持 Store 和 Deflate | 浏览器与现代 Node 可用原生流 API 解压，不需额外运行时依赖。 |
+| TAR.GZ / TGZ | 开源源码与 Linux 工具包  | 支持                  | TAR 解析与 Gzip 流解压由 Kit 完成。                         |
+| TAR          | 不压缩的归档             | 支持                  | 保留文件路径，并拒绝不支持的链接/设备条目。                 |
+| 7z           | 桌面大容量压缩           | 暂不支持              | 通常需要专用解压库，增加包体和格式维护成本。                |
+| RAR          | 桌面压缩与分卷包         | 暂不支持              | 常依赖专有格式实现或 WebAssembly 解压器。                   |
 
 Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、压缩包/展开大小限制和状态反馈；Chat 应用继续处理保存、更新列表和启用偏好。自定义 `resolve-skill` 收到 `{ source: 'archive', file, maxUncompressedSize }`，可调用 kit 的 `loadSkillWithDetails({ source: 'archive', ... })`，随后仍通过原有 `submit` 流程交付定义。
 
 <demo
   vue="../../demos/skill-import-form/archive-import.vue"
-  title="导入 ZIP Skill 包"
-  description="选择一个 ZIP 文件并查看解出的 Skill 定义。"
+  title="导入压缩包 Skill 包"
+  description="选择一个 ZIP 或 TAR 系列归档并查看解出的 Skill 定义。"
 />
 
 ### 观察加载、失败与重试
@@ -131,7 +132,7 @@ Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、�
 | 属性名            | 说明                                                                                           | 类型                    | 默认值              | 必填 |
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------- | ------------------- | ---- |
 | `source`          | 导入来源；切换时重置组件内的草稿、解析结果和错误。                                             | `SkillImportFormSource` | `'local'`           | 否   |
-| `max-upload-size` | 文件夹的文件总字节数、ZIP 文件大小和解压后文件总字节数上限。                                   | `number`                | `10485760`（10 MB） | 否   |
+| `max-upload-size` | 文件夹的文件总字节数、归档文件大小和解包后文件总字节数上限。                                   | `number`                | `10485760`（10 MB） | 否   |
 | `resolve-timeout` | 解析超时毫秒数；`0` 表示不超时。超时不取消在途请求，但组件会忽略其晚到结果。                   | `number`                | `30000`（30 秒）    | 否   |
 | `resolve-skill`   | 自定义异步解析器；未提供时使用 kit 默认解析器，并在线解析 GitHub URL 中的真实 ref 与目录边界。 | `SkillResolver`         | kit 默认解析器      | 否   |
 
@@ -157,7 +158,7 @@ Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、�
 | `SkillResourceDescriptor` | union      | 资源路径、标识、元数据及按种类区分的内容读取方式。         |
 | `SkillDefinition`         | interface  | 解析完成的 Skill 定义。                                    |
 | `SkillImportFormSource`   | union      | `'local' \| 'archive' \| 'github'`。                       |
-| `SkillImportFormInput`    | union      | 解析器收到的本地文件、ZIP 文件，或 GitHub URL 与仓库标识。 |
+| `SkillImportFormInput`    | union      | 解析器收到的本地文件、归档文件，或 GitHub URL 与仓库标识。 |
 | `SkillResolver`           | function   | 接收 `SkillImportFormInput`，异步返回 `SkillDefinition`。  |
 | `SkillImportFormProps`    | interface  | 导入组件的公开 Props。                                     |
 | `SkillImportFormEmits`    | interface  | `submit` 和 `cancel` 的公开事件签名。                      |

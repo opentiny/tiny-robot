@@ -253,7 +253,7 @@ test.describe('SkillImportForm', () => {
       mimeType: 'application/x-rar-compressed',
       buffer: Buffer.from('rar'),
     })
-    await expect(component.getByRole('alert')).toHaveText('目前仅支持 ZIP 格式压缩包')
+    await expect(component.getByRole('alert')).toHaveText('目前仅支持 ZIP、TAR、TAR.GZ 和 TGZ 格式压缩包')
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
 
     await input.setInputFiles({

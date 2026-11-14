@@ -60,7 +60,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handlePointerD
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-archive')">
         <ExtensionAddIcon kind="skill" />
-        上传ZIP技能包
+        上传压缩包
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-github')">
         <ExtensionAddIcon kind="skill" />
