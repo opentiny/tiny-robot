@@ -28,7 +28,12 @@ export function createSenderTestHelper(page: Page) {
       await this.getEditor().click()
       await page.keyboard.press('ControlOrMeta+A')
       await page.keyboard.press('Delete')
-      await page.waitForTimeout(50)
+      await expect
+        .poll(async () => {
+          const content = await this.getEditor().textContent()
+          return (content ?? '').replace(/[\u200b\u00a0]/g, '').trim()
+        })
+        .toBe('')
     },
 
     async clickSubmit() {
@@ -90,7 +95,9 @@ export function createSenderTestHelper(page: Page) {
     },
 
     async setPlaceholder(text: string) {
-      await page.locator(selectors.placeholderInput).fill(text)
+      const input = page.locator(selectors.placeholderInput)
+      await input.fill(text)
+      await expect(input).toHaveValue(text)
     },
 
     async toggleMention() {

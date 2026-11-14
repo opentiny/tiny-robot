@@ -382,7 +382,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="control-item">
             <label>placeholder:</label>
-            <input data-testid="placeholder-input" type="text" v-model="placeholder" />
+            <textarea data-testid="placeholder-input" v-model="placeholder"></textarea>
           </div>
         </div>
       </fieldset>
