@@ -180,6 +180,25 @@ const setTemplateSelect = () => {
   result.value = '已设置模板选择器'
 }
 
+const setTemplateMixed = () => {
+  templateData.value = [
+    { type: 'text', content: '前缀 ' },
+    { type: 'block', content: '原值' },
+    { type: 'text', content: ' 中间 ' },
+    {
+      type: 'select',
+      content: '',
+      placeholder: '请选择模型',
+      options: [
+        { label: 'GPT-4', value: 'gpt-4' },
+        { label: 'DeepSeek', value: 'deepseek' },
+      ],
+    },
+    { type: 'text', content: ' 后缀' },
+  ]
+  result.value = '已设置混合模板'
+}
+
 const toggleTemplateAppendTo = () => {
   templateAppendTo.value = templateAppendTo.value ? undefined : '#template-select-teleport-target'
   result.value = templateAppendTo.value ? '模板选择器挂载到自定义容器' : '模板选择器挂载到 body'
@@ -363,7 +382,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="control-item">
             <label>placeholder:</label>
-            <input data-testid="placeholder-input" type="text" v-model="placeholder" />
+            <textarea data-testid="placeholder-input" v-model="placeholder"></textarea>
           </div>
         </div>
       </fieldset>
@@ -408,6 +427,7 @@ onBeforeUnmount(() => {
           <button data-testid="set-template-simple-btn" @click="setTemplateSimple">简单模板</button>
           <button data-testid="set-template-empty-btn" @click="setTemplateEmpty">空模板块</button>
           <button data-testid="set-template-multiple-btn" @click="setTemplateMultiple">多模板块</button>
+          <button data-testid="set-template-mixed-btn" @click="setTemplateMixed">混合模板</button>
           <button data-testid="set-template-select-btn" @click="setTemplateSelect">模板选择器</button>
           <button data-testid="clear-template-btn" @click="clearTemplate">清空模板</button>
         </div>

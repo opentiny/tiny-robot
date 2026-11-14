@@ -291,13 +291,13 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           }
         }
 
-        // 保持关闭状态，防止立即重新打开
-        if (justClosed) {
+        // 关闭后的纯选区/焦点事务仍保持关闭；新的文档变更必须继续重算
+        if (justClosed && !tr.docChanged) {
           return state
         }
 
         // 如果文档没有变化，保持状态
-        if (!tr.docChanged && !tr.selectionSet) {
+        if (!tr.docChanged && !tr.selectionSet && meta?.type !== 'update') {
           return state
         }
 

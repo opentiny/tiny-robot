@@ -9,6 +9,21 @@ const settle = (root: Locator) =>
   root.evaluate(
     () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
   )
+const settleRendererRecovery = (root: Locator) =>
+  root.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let frames = 0
+        const nextFrame = () => {
+          if (++frames === 5) {
+            resolve()
+            return
+          }
+          requestAnimationFrame(nextFrame)
+        }
+        requestAnimationFrame(nextFrame)
+      }),
+  )
 const resize = (probe: Locator, action = 'expand') => probe.getByTestId(action).dispatchEvent('click')
 
 test.use({ launchOptions: { args: ['--enable-smooth-scrolling'] } })
@@ -431,10 +446,13 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
   await atBottom(second)
   await second.evaluate((el) => {
     el.scrollTop -= 200
+    el.dispatchEvent(new Event('scroll'))
   })
+  await expect.poll(() => distance(second)).toBeGreaterThanOrEqual(200)
   await settle(second)
   await resize(component.locator('.context-probe'))
   await settle(second)
+  await settleRendererRecovery(second)
   const before = await second.evaluate((el) => el.scrollTop)
   await first.evaluate((el) => {
     el.scrollTop = el.scrollHeight

@@ -241,7 +241,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 自定义插槽
 
-Sender 提供了多个插槽位置，方便扩展功能：
+Sender 提供了多个插槽位置，方便扩展功能。`header` 和 `prefix` 没有作用域参数；`content` 仅提供编辑器实例。`actions-inline` 在多行模式下移至底部右侧，`footer` 和 `footer-right` 仅在多行模式渲染。
 
 - **`header`** - 顶部区域，可添加标题、提示信息等
 - **`prefix`** - 输入框前缀区域，可添加图标、标签等（位于输入框内部）
@@ -249,10 +249,12 @@ Sender 提供了多个插槽位置，方便扩展功能：
 - **`footer`** - 底部左侧区域，可添加功能按钮
 - **`footer-right`** - 底部右侧区域，可添加操作按钮
 
+:::tip 插槽作用域
+`actions-inline`、`footer` 和 `footer-right` 使用相同的 `SenderSlotScope`：`editor`、`insert`、`append`、`replace`、`focus`、`blur`、`disabled`、`loading`、`hasContent`。这些插槽提供的操作和状态可用于实现自定义功能按钮。
+
 `header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
 
-:::info 当前插槽作用域
-`content` 插槽提供 `editor`。`actions-inline` 在单行和多行模式下均提供 `SenderSlotScope`，包含 `editor`、`focus`、`blur`、`insert`、`append`、`replace`、`disabled`、`loading` 和 `hasContent`；其中 `insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。`footer` 和 `footer-right` 不提供作用域参数，需要操作输入内容时，请通过 Sender 实例公开的方法接入。
+`content` 插槽提供 `editor`；`insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。
 :::
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
@@ -492,11 +494,11 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | ---------------- | ------------------------------------ | --------------------- |
 | `header`         | 在输入区域上方添加内容               | —                     |
 | `prefix`         | 在编辑器左侧添加内容                 | —                     |
-| input-prefix | 多行模式首行前置插槽 | - |
-| `content`        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
+| `input-prefix`    | 多行模式首行前置插槽                   | —                     |
+| `content`        | 完全替换默认编辑器内容               | `{ editor: Editor \| undefined }` |
 | `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`      |
-| `footer`         | 在多行模式底部左侧添加内容           | —                     |
-| `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | —                     |
+| `footer`         | 在多行模式底部左侧添加内容           | `SenderSlotScope`      |
+| `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | `SenderSlotScope`      |
 
 #### ActionButton Slots
 

@@ -82,6 +82,15 @@ export function createTemplateTestHelper(page: Page) {
     },
 
     /**
+     * 设置包含文本、可编辑块和选择器的混合模板
+     */
+    async setMixedTemplate() {
+      await page.click(selectors.setTemplateMixedBtn)
+      await expect(this.getTemplates().first()).toBeVisible()
+      await expect(page.locator(selectors.templateSelect)).toBeVisible()
+    },
+
+    /**
      * 设置模板选择器
      */
     async setSelectTemplate() {
@@ -171,7 +180,7 @@ export function createTemplateTestHelper(page: Page) {
       await this.moveCursorAtTemplate(index, 'start')
     },
 
-    async moveCursorAtTemplate(index: number, position: 'start' | 'end' | 'after') {
+    async moveCursorAtTemplate(index: number, position: 'before' | 'start' | 'end' | 'after') {
       const cursorPlaced = await page.evaluate(
         ({ index, position }) => window.__senderTestApi?.moveCursorAtTemplate(index, position),
         { index, position },

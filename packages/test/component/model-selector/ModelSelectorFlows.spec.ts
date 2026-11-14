@@ -49,14 +49,18 @@ test('keyboard navigation skips disabled models, supports boundaries and restore
 })
 
 test('disabled models cannot be selected with pointer or keyboard', async ({ mount, page }) => {
-  const component = await mount(ModelSelectorFlows)
+  const component = await mount(ModelSelectorFlows, { props: { keyboard: true } })
   await component.getByRole('button', { name: 'Alpha model', exact: true }).click()
   const locked = page.getByRole('option', { name: 'Locked model' })
   await locked.click({ force: true })
   await expect(component.getByRole('button', { name: 'Alpha model', exact: true })).toBeVisible()
   await expect(component.getByTestId('events')).toHaveText('[]')
-  await page.getByRole('listbox').press('End')
-  await page.getByRole('listbox').press('Enter')
+  const listbox = page.getByRole('listbox', { name: 'Choose model' })
+  await listbox.focus()
+  await expect(listbox).toBeFocused()
+  await listbox.press('End')
+  await expect(listbox.getByRole('option', { name: 'Beta model highlighted' })).toBeVisible()
+  await listbox.press('Enter')
   await expect(component.getByTestId('events')).toHaveText('["model:beta"]')
 })
 

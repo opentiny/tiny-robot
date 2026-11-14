@@ -2,6 +2,7 @@
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
 import type { SenderSlotScope } from '../../types/slots'
+import type { Editor } from '@tiptap/vue-3'
 import EditorContent from '../editor-content/index.vue'
 import SenderHeader from './SenderHeader.vue'
 import { DefaultActionButtons, WordCounter } from '../../../sender-actions/index'
@@ -12,7 +13,7 @@ const slotScope = useSlotScope()
 defineSlots<{
   header?: () => unknown
   prefix?: () => unknown
-  content?: (props: { editor: unknown }) => unknown
+  content?: (props: { editor: Editor | undefined }) => unknown
   'actions-inline'?: (scope: SenderSlotScope) => unknown
 }>()
 </script>

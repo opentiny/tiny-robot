@@ -5,6 +5,7 @@ packages:
 
 overrides:
   '@vueuse/core': 13.9.0
+  prosemirror-inputrules: 1.5.1
   rollup: 4.62.4
   vue: 3.5.41
 

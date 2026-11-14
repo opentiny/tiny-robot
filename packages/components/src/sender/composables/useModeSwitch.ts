@@ -63,13 +63,31 @@ export function useModeSwitch(
   const setMode = (mode: InputMode) => {
     if (currentMode.value === mode) return
 
+    const activeElement =
+      editor.value?.view.dom.getRootNode() instanceof ShadowRoot
+        ? (editor.value.view.dom.getRootNode() as ShadowRoot).activeElement
+        : editor.value?.view.dom.ownerDocument.activeElement
+    const restoreEditorFocus = Boolean(
+      editor.value?.isFocused || (activeElement && editorRef.value?.contains(activeElement)),
+    )
+
     isAutoSwitching.value = true
     currentMode.value = mode
 
     nextTick(() => {
       if (disposed) return
       if (editor.value && !editor.value.isDestroyed) {
-        editor.value.commands.focus('end')
+        const root = editor.value.view.dom.getRootNode()
+        const currentActiveElement =
+          root instanceof ShadowRoot ? root.activeElement : editor.value.view.dom.ownerDocument.activeElement
+        const focusWasNotMovedOutside =
+          !currentActiveElement ||
+          currentActiveElement === editor.value.view.dom.ownerDocument.body ||
+          Boolean(editorRef.value?.contains(currentActiveElement))
+
+        if (restoreEditorFocus && focusWasNotMovedOutside) {
+          editor.value.commands.focus('end')
+        }
       }
       isAutoSwitching.value = false
       scheduleOverflowCheck()

@@ -26,6 +26,8 @@
   "devDependencies": {
     "@playwright/experimental-ct-vue": "1.62.0",
     "@playwright/test": "1.62.0",
+    "@tiptap/pm": "3.17.1",
+    "@tiptap/vue-3": "3.17.1",
     "@types/node": "^22.13.17",
     "@vitejs/plugin-vue": "^4.5.2",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
