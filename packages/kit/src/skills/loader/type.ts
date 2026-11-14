@@ -85,6 +85,13 @@ export type BrowserSkillLoadOptions = SkillLoadBaseOptions &
       }
   )
 
+export type ArchiveSkillLoadOptions = SkillLoadBaseOptions & {
+  source: 'archive'
+  file: File
+  /** Maximum total uncompressed file size. Defaults to 10 MiB. */
+  maxUncompressedSize?: number
+}
+
 export type FsSkillLoadOptions = SkillLoadBaseOptions & {
   source: 'fs'
   root: string

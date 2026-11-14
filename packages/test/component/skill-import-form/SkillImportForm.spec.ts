@@ -227,6 +227,44 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByTestId('submit-output')).toContainText('"description":"Skill package used')
   })
 
+  test('selects a ZIP archive, resolves it, and emits the resulting skill', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'weather.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from('zip contents'),
+    })
+
+    await expect(component.getByTestId('resolver-input')).toContainText('"source":"archive"')
+    await expect(component.getByTestId('resolver-input')).toContainText('"file":"weather.zip"')
+    await expect(component.getByText('weather.zip', { exact: true })).toBeVisible()
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-archive"')
+  })
+
+  test('rejects unsupported archive types and oversized ZIPs before resolving', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture, { props: { maxUploadSize: 4 * 1024 * 1024 } })
+    await component.getByTestId('show-archive').click()
+    const input = component.locator('input[type="file"]')
+
+    await input.setInputFiles({
+      name: 'skill.rar',
+      mimeType: 'application/x-rar-compressed',
+      buffer: Buffer.from('rar'),
+    })
+    await expect(component.getByRole('alert')).toHaveText('目前仅支持 ZIP 格式压缩包')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+
+    await input.setInputFiles({
+      name: 'skill.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.alloc(4 * 1024 * 1024 + 1),
+    })
+    await expect(component.getByRole('alert')).toHaveText('Skill 压缩包大小不能超过 4 MB')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+  })
+
   test('rejects invalid local selections before calling the resolver', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
     const dropzone = component.getByTestId('skill-dropzone')
