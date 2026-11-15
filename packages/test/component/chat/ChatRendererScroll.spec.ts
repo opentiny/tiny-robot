@@ -419,6 +419,7 @@ for (const actualBottom of [true, false]) {
 
 test('changing the scroll root invalidates pending recovery and rebinds it to the current container', async ({
   mount,
+  page,
 }) => {
   const component = await mount(ChatRendererScroll)
   const first = component.getByTestId('first-root')
@@ -429,9 +430,10 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
     el.querySelector<HTMLElement>('[data-testid="switch-root"]')!.click()
   })
   await atBottom(second)
-  await second.evaluate((el) => {
-    el.scrollTop -= 200
-  })
+  // Native input lets the mounted root process its initial scroll before pausing from history.
+  await second.hover()
+  await page.mouse.wheel(0, -200)
+  await expect.poll(() => distance(second)).toBe(200)
   await settle(second)
   await resize(component.locator('.context-probe'))
   await settle(second)
