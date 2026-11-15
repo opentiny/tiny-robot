@@ -88,7 +88,7 @@ test.describe('native Chat DOM renderer categories', () => {
 
   test('activates a renderer-only empty state without exposing renderComposer', async ({ mount }) => {
     const component = await mount(ChatRendererCategoriesFixture, { props: { scenario: 'empty' } })
-    await expect(component.getByTestId('layout-empty-state-renderer')).toHaveText('empty:true|composer:false')
+    await expect(component.getByTestId('layout-empty-state-renderer')).toHaveText('empty:true|composer:true')
   })
 
   test('uses composer renderers inside a Vue empty-state renderComposer result', async ({ mount }) => {

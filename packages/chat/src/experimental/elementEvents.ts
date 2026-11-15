@@ -25,6 +25,7 @@ import type {
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
+  SenderDragPayload,
 } from '../types'
 import {
   dispatchExperimentalEvent,
@@ -36,6 +37,11 @@ import type { TrChatRuntimeSnapshot } from './runtime/runtimeSnapshot'
 
 export interface TrChatCommonElementEventMap {
   ready: CustomEvent<void>
+  'sender-drag-enter': CustomEvent<SenderDragPayload>
+  'sender-drag-over': CustomEvent<SenderDragPayload>
+  'sender-drag-leave': CustomEvent<SenderDragPayload>
+  'sender-drop': CustomEvent<SenderDragPayload>
+  'sender-paste': CustomEvent<ClipboardEvent>
   'experimental-error': CustomEvent<ExperimentalErrorDetail>
   'tr-chat-error': CustomEvent<TrChatErrorDetail>
   'floating-state-update': CustomEvent<LayoutFloatingState>
@@ -108,6 +114,11 @@ export const TR_CHAT_EVENT_NAMES = [
   'bubble-state-change',
   'bubble-event',
   'model-feature-value-change',
+  'sender-drag-enter',
+  'sender-drag-over',
+  'sender-drag-leave',
+  'sender-drop',
+  'sender-paste',
   'left-aside-open-change',
   'right-aside-open-change',
   'update:right-aside-open',
@@ -146,6 +157,11 @@ export const TR_CHAT_UI_EVENT_NAMES = [
   'extension-action',
   'extension-name-click',
   'extension-tab-change',
+  'sender-drag-enter',
+  'sender-drag-over',
+  'sender-drag-leave',
+  'sender-drop',
+  'sender-paste',
   'left-aside-open-change',
   'right-aside-open-change',
   'update:right-aside-open',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 import type {
   Attachment,
   ExtensionManagerActionEvent,
@@ -7,6 +7,7 @@ import type {
   ExtensionManagerTabChangeEvent,
 } from '@opentiny/tiny-robot'
 import ChatUI from './ChatUI.vue'
+import { rendererRuntimeOwner } from './ui/renderers/rendererRuntimeOwner'
 import { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 import type {
   ChatAsideOpenChangePayload,
@@ -112,6 +113,8 @@ const adapter = useChatRuntimeAdapter({
   attachments: () => props.attachments,
   onActionError: (payload) => emit('runtime-action-error', payload),
 })
+
+provide(rendererRuntimeOwner, { runtime: computed(() => props.runtime), data: adapter.data })
 
 defineExpose({
   send: adapter.send,

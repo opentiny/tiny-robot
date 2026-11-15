@@ -21,6 +21,7 @@ defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<{
+    isEmpty?: boolean
     runtime?: ChatRuntime
     runtimeOptions?: CreateChatRuntimeOptions
     ui?: ChatUIOptions
@@ -34,7 +35,7 @@ const props = withDefaults(
     historyData?: ChatHistoryData
     attachments?: readonly Attachment[]
   }>(),
-  { rightAsideOpen: undefined },
+  { rightAsideOpen: undefined, isEmpty: undefined },
 )
 const attrs = useAttrs()
 const chatTitle = computed(() => (typeof attrs.title === 'string' ? attrs.title : undefined))
@@ -46,7 +47,7 @@ let runtimeTransition = Promise.resolve()
 let runtimeTransitioning = false
 const { forward } = useExperimentalElementHost(
   props as unknown as Record<string, unknown>,
-  ['rightAsideOpen', 'defaultRightAsideOpen'],
+  ['isEmpty', 'rightAsideOpen', 'defaultRightAsideOpen'],
   () => Boolean(resolvedRuntime.value),
 )
 const runtimeSnapshot = computed(() => createRuntimeSnapshot(resolvedRuntime.value))
@@ -110,6 +111,9 @@ onUnmounted(() => {
 })
 
 defineExpose({
+  setInputValue: (value: string) => chat.value?.setInputValue(value),
+  clearInput: () => chat.value?.clearInput(),
+  focusInput: () => chat.value?.focusInput() ?? Promise.resolve(false),
   send: (payload: ChatSendPayload) =>
     runtimeTransitioning ? Promise.resolve(false) : (chat.value?.send(payload) ?? Promise.resolve(false)),
   getRuntime: () => resolvedRuntime.value,
@@ -126,6 +130,7 @@ defineExpose({
     v-if="resolvedRuntime"
     ref="chat"
     :runtime="resolvedRuntime"
+    :is-empty="props.isEmpty"
     :ui="props.ui"
     :title="chatTitle"
     :floating-state="props.floatingState"
@@ -157,6 +162,11 @@ defineExpose({
     @bubble-state-change="forward('bubble-state-change', $event)"
     @bubble-event="forward('bubble-event', $event)"
     @model-feature-value-change="forward('model-feature-value-change', $event)"
+    @sender-drag-enter="forward('sender-drag-enter', $event)"
+    @sender-drag-over="forward('sender-drag-over', $event)"
+    @sender-drag-leave="forward('sender-drag-leave', $event)"
+    @sender-drop="forward('sender-drop', $event)"
+    @sender-paste="forward('sender-paste', $event)"
     @left-aside-open-change="forward('left-aside-open-change', $event)"
     @right-aside-open-change="forward('right-aside-open-change', $event)"
     @update:right-aside-open="forward('update:right-aside-open', $event)"
@@ -166,8 +176,11 @@ defineExpose({
     <template #header-notice><slot name="header-notice" /></template>
     <template #welcome-footer><slot name="welcome-footer" /></template>
     <template #prompts-footer><slot name="prompts-footer" /></template>
+    <template #input-prefix><slot name="input-prefix" /></template>
     <template #sender-header><slot name="sender-header" /></template>
-    <template #sender-footer><slot name="sender-footer" /></template>
-    <template #sender-footer-right><slot name="sender-footer-right" /></template>
+    <template v-if="!props.renderers?.['sender-footer']" #sender-footer><slot name="sender-footer" /></template>
+    <template v-if="!props.renderers?.['sender-footer-right']" #sender-footer-right
+      ><slot name="sender-footer-right"
+    /></template>
   </Chat>
 </template>

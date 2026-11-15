@@ -22,6 +22,11 @@ const expectedChatEvents = [
   'bubble-state-change',
   'bubble-event',
   'model-feature-value-change',
+  'sender-drag-enter',
+  'sender-drag-over',
+  'sender-drag-leave',
+  'sender-drop',
+  'sender-paste',
   'left-aside-open-change',
   'right-aside-open-change',
   'update:right-aside-open',
@@ -60,6 +65,11 @@ const expectedUIEvents = [
   'extension-action',
   'extension-name-click',
   'extension-tab-change',
+  'sender-drag-enter',
+  'sender-drag-over',
+  'sender-drag-leave',
+  'sender-drop',
+  'sender-paste',
   'left-aside-open-change',
   'right-aside-open-change',
   'update:right-aside-open',
@@ -1163,6 +1173,7 @@ declare global {
       defineTrChatElements: () => void
       forwardElementEvent: (target: EventTarget, name: string, detail: unknown) => boolean
       whenTrChatReady: (element: HTMLElement) => Promise<void>
+      createChatRuntime: typeof import('../../../chat/src/experimental').createChatRuntime
     }
   }
 }

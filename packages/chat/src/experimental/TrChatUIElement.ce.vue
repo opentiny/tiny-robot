@@ -4,14 +4,18 @@ import ChatUI from '../ChatUI.vue'
 import type { ChatRightAsidePanelId, ChatUIProps } from '../types'
 import { useExperimentalElementHost } from './elementHost'
 
-const props = withDefaults(defineProps<ChatUIProps>(), { rightAsideOpen: undefined })
+const props = withDefaults(defineProps<ChatUIProps>(), { rightAsideOpen: undefined, isEmpty: undefined })
 const chatUI = ref<InstanceType<typeof ChatUI>>()
 const { forward } = useExperimentalElementHost(props as unknown as Record<string, unknown>, [
+  'isEmpty',
   'rightAsideOpen',
   'defaultRightAsideOpen',
 ])
 
 defineExpose({
+  setInputValue: (value: string) => chatUI.value?.setInputValue(value),
+  clearInput: () => chatUI.value?.clearInput(),
+  focusInput: () => chatUI.value?.focusInput() ?? Promise.resolve(false),
   openRightAside: (panel?: ChatRightAsidePanelId) => chatUI.value?.openRightAside(panel),
   closeRightAside: () => chatUI.value?.closeRightAside(),
   toggleRightAside: (panel?: ChatRightAsidePanelId) => chatUI.value?.toggleRightAside(panel),
@@ -54,6 +58,11 @@ defineExpose({
     @extension-action="forward('extension-action', $event)"
     @extension-name-click="forward('extension-name-click', $event)"
     @extension-tab-change="forward('extension-tab-change', $event)"
+    @sender-drag-enter="forward('sender-drag-enter', $event)"
+    @sender-drag-over="forward('sender-drag-over', $event)"
+    @sender-drag-leave="forward('sender-drag-leave', $event)"
+    @sender-drop="forward('sender-drop', $event)"
+    @sender-paste="forward('sender-paste', $event)"
     @left-aside-open-change="forward('left-aside-open-change', $event)"
     @right-aside-open-change="forward('right-aside-open-change', $event)"
     @update:right-aside-open="forward('update:right-aside-open', $event)"
@@ -63,8 +72,11 @@ defineExpose({
     <template #header-notice><slot name="header-notice" /></template>
     <template #welcome-footer><slot name="welcome-footer" /></template>
     <template #prompts-footer><slot name="prompts-footer" /></template>
+    <template #input-prefix><slot name="input-prefix" /></template>
     <template #sender-header><slot name="sender-header" /></template>
-    <template #sender-footer><slot name="sender-footer" /></template>
-    <template #sender-footer-right><slot name="sender-footer-right" /></template>
+    <template v-if="!props.renderers?.['sender-footer']" #sender-footer><slot name="sender-footer" /></template>
+    <template v-if="!props.renderers?.['sender-footer-right']" #sender-footer-right
+      ><slot name="sender-footer-right"
+    /></template>
   </ChatUI>
 </template>

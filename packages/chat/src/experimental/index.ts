@@ -30,7 +30,7 @@ export type {
   TrChatSharedElementProperties,
   TrChatUIHTMLElement,
 } from './elementTypes'
-export type { Attachment } from '../types'
+export type { Attachment, ChatSenderRendererContext, ChatEmptyStateRendererContext } from '../types'
 export type {
   CreateChatRuntimeComposerOptions,
   CreateChatRuntimeOptions,

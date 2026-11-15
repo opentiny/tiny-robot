@@ -6,6 +6,7 @@ import type {
   Attachment,
   ChatModelFeatureValueChangePayload,
   ChatLabels,
+  ChatRenderers,
   ChatMcpView,
   ChatModelView,
   ChatRequestView,
@@ -26,9 +27,11 @@ const props = defineProps<{
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
   hasRegisteredExtensions?: boolean
+  renderers?: Readonly<ChatRenderers>
 }>()
 
 const emit = defineEmits<{
+  rendererError: [error: unknown]
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
@@ -99,6 +102,8 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         :model-options="props.modelOptions"
         :mcp="props.mcp"
         :has-registered-extensions="props.hasRegisteredExtensions"
+        :renderers="props.renderers"
+        @renderer-error="emit('rendererError', $event)"
         @submit="handleSubmit"
         @cancel="emit('cancel')"
         @clear="emit('clear')"

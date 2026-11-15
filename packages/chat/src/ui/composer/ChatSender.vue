@@ -5,7 +5,9 @@ import type { Attachment, SenderSlotScope, SenderSubmitExtra } from '@opentiny/t
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelSelector from './ModelSelector.vue'
 import ChatToolbarButton from './ChatToolbarButton.vue'
+import ChatSenderRendererOutlet from '../renderers/ChatSenderRendererOutlet.vue'
 import type {
+  ChatRenderers,
   ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
@@ -28,9 +30,11 @@ const props = defineProps<{
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
   hasRegisteredExtensions?: boolean
+  renderers?: Readonly<ChatRenderers>
 }>()
 
 const emit = defineEmits<{
+  rendererError: [error: unknown]
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
@@ -203,10 +207,28 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     <template v-if="$slots['sender-content']" #content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['sender-actions-inline']" #actions-inline="slotProps">
-      <slot name="sender-actions-inline" v-bind="getSenderSlotScope(slotProps)" />
+    <template
+      v-if="$slots['sender-actions-inline'] || props.renderers?.['sender-actions-inline']"
+      #actions-inline="slotProps"
+    >
+      <slot
+        v-if="$slots['sender-actions-inline']"
+        name="sender-actions-inline"
+        v-bind="getSenderSlotScope(slotProps)"
+      />
+      <ChatSenderRendererOutlet
+        v-else
+        :renderer="props.renderers!['sender-actions-inline']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
-    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer="slotProps">
+    <template
+      v-if="$slots['sender-footer'] || props.renderers?.['sender-footer'] || toolbarItems.length"
+      #footer="slotProps"
+    >
       <div v-if="toolbarItems.length" class="tr-chat-toolbar">
         <template v-for="item in toolbarItems" :key="item.id">
           <ChatToolbarButton
@@ -235,9 +257,22 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
           />
         </template>
       </div>
-      <slot name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
+      <slot v-if="$slots['sender-footer']" name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
+      <ChatSenderRendererOutlet
+        v-else-if="props.renderers?.['sender-footer']"
+        :renderer="props.renderers['sender-footer']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
-    <template v-if="sender.attachments !== undefined || $slots['sender-footer-right']" #footer-right="slotProps">
+    <template
+      v-if="
+        sender.attachments !== undefined || $slots['sender-footer-right'] || props.renderers?.['sender-footer-right']
+      "
+      #footer-right="slotProps"
+    >
       <UploadButton
         v-if="sender.attachments !== undefined"
         accept="*"
@@ -247,7 +282,15 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
         @select="emit('attachmentsSelect', $event)"
         @error="emit('attachmentError', $event)"
       />
-      <slot name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
+      <slot v-if="$slots['sender-footer-right']" name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
+      <ChatSenderRendererOutlet
+        v-else-if="props.renderers?.['sender-footer-right']"
+        :renderer="props.renderers['sender-footer-right']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
   </TrSender>
 </template>

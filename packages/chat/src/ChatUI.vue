@@ -20,6 +20,7 @@ import ChatMessages from './ui/messages/ChatMessages.vue'
 import ChatRightAside from './ui/layout/ChatRightAside.vue'
 import ChatMcpPanel from './ui/layout/ChatMcpPanel.vue'
 import { ChatRendererOutlet } from './ui/renderers/ChatRendererOutlet'
+import { ChatEmptyStateRendererOutlet } from './ui/renderers/ChatEmptyStateRendererOutlet'
 import { useChatAsideState } from './composables/useChatAsideState'
 import { createDefaultChatUIOptions } from './ui/defaults'
 import { resolveChatUIData } from './ui/resolveData'
@@ -533,9 +534,11 @@ const composerProps = computed(() => ({
   modelOptions: modelOptions.value,
   mcp: visibleMcp.value,
   hasRegisteredExtensions: hasRegisteredExtensions.value,
+  renderers: props.renderers,
 }))
 
 const composerEvents = {
+  onRendererError: handleRendererError,
   onSubmit: handleSubmit,
   onCancel: handleCancel,
   onClear: handleClear,
@@ -555,6 +558,7 @@ const composerEvents = {
 }
 
 const composerTemplateEvents = {
+  rendererError: handleRendererError,
   submit: handleSubmit,
   cancel: handleCancel,
   clear: handleClear,
@@ -869,10 +873,13 @@ function renderEmptyStateComposer() {
                 :is-empty="true"
                 :render-composer="renderEmptyStateComposer"
               />
-              <ChatRendererOutlet
+              <ChatEmptyStateRendererOutlet
                 v-else
                 :renderer="props.renderers!['layout-empty-state']!"
                 :context="emptyStateRendererContext"
+                :source-data="props.data"
+                :render-composer="renderEmptyStateComposer"
+                :sender-visible="isSenderVisible"
                 :on-error="handleRendererError"
               />
             </template>

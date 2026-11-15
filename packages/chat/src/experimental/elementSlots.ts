@@ -15,16 +15,22 @@ export const SCOPED_RENDERER_NAMES = [
   'layout-footer',
   'composer-before',
   'composer-after',
+  'sender-actions-inline',
+  'sender-footer',
+  'sender-footer-right',
   'bubble-prefix',
   'bubble-suffix',
   'bubble-after',
   'bubble-content-footer',
+  'extension-header-actions',
+  'extension-overlay',
 ] as const
 
 export const STATIC_SLOT_NAMES = [
   'header-notice',
   'welcome-footer',
   'prompts-footer',
+  'input-prefix',
   'sender-header',
   'sender-footer',
   'sender-footer-right',

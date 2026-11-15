@@ -7,6 +7,7 @@ import {
   defineTrChatElements,
   forwardElementEvent,
   whenTrChatReady,
+  createChatRuntime,
 } from '../../../chat/src/experimental'
 
 Object.assign(window, {
@@ -18,6 +19,7 @@ Object.assign(window, {
     defineTrChatElements,
     forwardElementEvent,
     whenTrChatReady,
+    createChatRuntime,
   },
 })
 </script>

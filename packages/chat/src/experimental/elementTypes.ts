@@ -17,6 +17,11 @@ import type { TrChatElementEventMap, TrChatUIElementEventMap } from './elementEv
 export type TrChatRenderers = ChatRenderers
 
 export interface TrChatSharedElementProperties {
+  /** Override empty-state detection; undefined derives it from visible messages. */
+  isEmpty?: boolean
+  setInputValue(value: string): void
+  clearInput(): void
+  focusInput(): Promise<boolean>
   ui?: Readonly<ChatUIOptions>
   renderers?: Readonly<TrChatRenderers>
   bubbleRenderers?: Readonly<ChatBubbleRenderers>
@@ -45,9 +50,29 @@ export interface TrChatHTMLElement extends HTMLElement, TrChatSharedElementPrope
     listener: (this: TrChatHTMLElement, event: TrChatElementEventMap[K]) => unknown,
     options?: boolean | AddEventListenerOptions,
   ): void
+  addEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, event: HTMLElementEventMap[K]) => unknown,
+    options?: boolean | AddEventListenerOptions,
+  ): void
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions,
+  ): void
   removeEventListener<K extends keyof TrChatElementEventMap>(
     type: K,
     listener: (this: TrChatHTMLElement, event: TrChatElementEventMap[K]) => unknown,
+    options?: boolean | EventListenerOptions,
+  ): void
+  removeEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, event: HTMLElementEventMap[K]) => unknown,
+    options?: boolean | EventListenerOptions,
+  ): void
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
     options?: boolean | EventListenerOptions,
   ): void
 }
@@ -61,9 +86,29 @@ export interface TrChatUIHTMLElement extends HTMLElement, TrChatSharedElementPro
     listener: (this: TrChatUIHTMLElement, event: TrChatUIElementEventMap[K]) => unknown,
     options?: boolean | AddEventListenerOptions,
   ): void
+  addEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, event: HTMLElementEventMap[K]) => unknown,
+    options?: boolean | AddEventListenerOptions,
+  ): void
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions,
+  ): void
   removeEventListener<K extends keyof TrChatUIElementEventMap>(
     type: K,
     listener: (this: TrChatUIHTMLElement, event: TrChatUIElementEventMap[K]) => unknown,
+    options?: boolean | EventListenerOptions,
+  ): void
+  removeEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: (this: HTMLElement, event: HTMLElementEventMap[K]) => unknown,
+    options?: boolean | EventListenerOptions,
+  ): void
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
     options?: boolean | EventListenerOptions,
   ): void
 }
