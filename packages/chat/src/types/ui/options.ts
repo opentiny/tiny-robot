@@ -12,7 +12,8 @@ import type {
   ModelSelectorProps,
   ExtensionManagerTab,
 } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo, ChatIcon } from '../base'
+import type { ChatConversationInfo, ChatIcon, ChatMessageItem, ChatRequestState } from '../base'
+import type { ChatTokenUsage } from '@opentiny/tiny-robot-kit'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
@@ -139,6 +140,65 @@ export interface ChatBubbleOptions {
   readonly autoScroll?: boolean
   readonly bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   readonly bubbleList?: ChatBubbleListOptions
+  readonly actions?: false | Readonly<ChatBubbleActionsOptions>
+}
+
+export type ChatBubbleActionId = 'copy' | 'edit' | 'regenerate' | 'usage'
+export type ChatActionCondition = boolean | ((context: ChatBubbleActionContext) => boolean)
+export type ChatActionDisplay = 'always' | 'hover'
+
+export interface ChatBubbleActionContext {
+  readonly conversationId?: string | null
+  readonly messageId?: string
+  readonly messageKey: string
+  readonly message: ChatMessageItem
+  readonly messages: readonly ChatMessageItem[]
+  readonly isLatest: boolean
+  readonly turnState: ChatRequestState | 'unknown'
+  readonly capabilities: { readonly canEdit: boolean; readonly canRegenerate: boolean }
+}
+
+export interface ChatBubbleActionPresentation {
+  readonly visible?: ChatActionCondition
+  readonly disabled?: ChatActionCondition
+}
+
+export type ChatBubbleActionItem =
+  | ChatBubbleActionId
+  | (ChatBubbleActionPresentation & {
+      readonly type: 'builtin'
+      readonly id: ChatBubbleActionId
+      readonly label?: string
+      readonly icon?: ChatIcon
+    })
+  | (ChatBubbleActionPresentation & {
+      readonly type: 'custom'
+      readonly id: string
+      readonly label: string
+      readonly icon?: ChatIcon
+      readonly active?: ChatActionCondition
+      readonly onClick: (context: ChatBubbleActionContext) => void | Promise<void>
+    })
+  | (ChatBubbleActionPresentation & { readonly type: 'slot'; readonly id: string })
+
+export type ChatBubbleRoleActions =
+  | false
+  | readonly ChatBubbleActionItem[]
+  | ((
+      defaults: readonly ChatBubbleActionItem[],
+      context: ChatBubbleActionContext,
+    ) => false | readonly ChatBubbleActionItem[])
+
+export interface ChatBubbleActionsOptions {
+  readonly visible?: ChatActionCondition
+  readonly display?: ChatActionDisplay | ((context: ChatBubbleActionContext) => ChatActionDisplay)
+  readonly user?: ChatBubbleRoleActions
+  readonly assistant?: ChatBubbleRoleActions
+  readonly copy?: { readonly getText?: (context: ChatBubbleActionContext) => string }
+  readonly usage?: {
+    readonly trigger?: 'click' | 'hover'
+    readonly resolve?: (context: ChatBubbleActionContext) => ChatTokenUsage | undefined
+  }
 }
 
 export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'>

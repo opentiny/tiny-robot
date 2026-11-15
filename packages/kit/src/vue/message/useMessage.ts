@@ -6,6 +6,7 @@ import {
   BasePluginContext as CoreBasePluginContext,
   BeforeRequestContext as CoreBeforeRequestContext,
   ChatMessage as CoreChatMessage,
+  ChatResponseChunk,
   CompletionChunkContext as CoreCompletionChunkContext,
   MessageEngineInitContext as CoreMessageEngineInitContext,
   ResponseProvider as CoreResponseProvider,
@@ -228,7 +229,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages: initialMessages as CoreChatMessage[],
     requestMessageFields,
     requestMessageFieldsExclude,
-    responseProvider: initialResponseProvider as CoreResponseProvider,
+    responseProvider: initialResponseProvider as CoreResponseProvider<ChatResponseChunk>,
     onCompletionChunk: onCompletionChunk ? onCompletionChunkHandler : undefined,
     plugins: plugins.map((plugin) => createCorePlugin(plugin)),
   })
@@ -238,7 +239,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   watch(
     responseProvider,
     (provider) => {
-      engine.setResponseProvider(provider as CoreResponseProvider)
+      engine.setResponseProvider(provider as CoreResponseProvider<ChatResponseChunk>)
     },
     { flush: 'sync' },
   )
@@ -253,6 +254,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     canStartTurn: adapter.canStartTurn,
     sendMessage: engine.sendMessage,
     send: engine.send,
+    rerun: (target, replacement) =>
+      engine.rerun(
+        toRaw(resolveReactiveMessage(target as unknown as ChatMessage)) as unknown as CoreChatMessage,
+        replacement
+          ? (toRaw(resolveReactiveMessage(replacement as unknown as ChatMessage)) as unknown as CoreChatMessage)
+          : undefined,
+      ),
     abortRequest: engine.abort,
     dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn

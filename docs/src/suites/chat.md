@@ -389,6 +389,105 @@ const ui: ChatUIOptions = {
 
 需要自定义消息内容时，参考 [Bubble 自定义渲染器](../components/bubble#实现自定义渲染器)。渲染器也可获取当前会话、消息状态和滚动容器，见[自定义消息渲染上下文](#自定义消息渲染上下文)。
 
+#### 配置消息操作
+
+在气泡下方启用复制、编辑、重新生成和用量操作。消息操作默认关闭，需要在 `ui.bubble.actions` 中显式配置；用户和助手的动作列表分别配置，数组会替换该角色的默认列表。
+
+<demo
+  vue="../../demos/chat/bubble-actions.vue"
+  :vueFiles="['../../demos/chat/bubble-actions.vue']"
+  title="消息操作"
+  description="使用本地确定性回答，演示复制、编辑用户消息、重新生成助手回答和查看 Token 用量。"
+/>
+
+```ts
+const ui: ChatUIOptions = {
+  bubble: {
+    actions: {
+      display: 'always',
+      user: ['copy', 'edit'],
+      assistant: ['copy', 'regenerate', 'usage'],
+      usage: { trigger: 'click' },
+    },
+  },
+}
+```
+
+内置动作的行为如下：
+
+| 动作 | 说明 |
+| --- | --- |
+| `copy` | 复制消息文本；数组内容只拼接其中的文本片段。可通过 `copy.getText(context)` 自定义复制内容。 |
+| `edit` | 编辑最新的纯文本用户消息。`TrChat` 会调用 Runtime 的 `actions.editMessage`，成功后关闭编辑器。 |
+| `regenerate` | 重新生成与消息关联的助手回答。请求处于错误或中止状态时，按钮文案会显示为“重试”。 |
+| `usage` | 显示助手消息的输入、输出和总 Token。默认读取 `message.metadata.usage`，没有可解析用量时不显示。 |
+
+`display` 可设为 `'always'` 或 `'hover'`；默认使用 `'hover'`。`usage.trigger` 可设为 `'click'` 或 `'hover'`。使用 `visible`、`user` 和 `assistant` 可以按角色或消息上下文调整动作，函数配置会收到默认动作列表和 `ChatBubbleActionContext`。
+
+`edit` 和 `regenerate` 是否显示由 `ChatBubbleActionContext.capabilities` 决定。默认 Kit Runtime 只允许重放最新的纯文本用户回合；有附件、工具调用、处理中会话、空闲会话，或原模型已不存在或被禁用时，对应动作会隐藏。外部 Runtime 若未提供 `getMessageCapabilities`，使用 `TrChatUI` 时应自行在 `data.bubble.actions` 中提供能力映射。
+
+需要添加应用动作时，可在角色动作数组中追加 `type: 'custom'`，异步 `onClick` 执行期间按钮会自动禁用；也可以使用 `type: 'slot'` 配合 `bubble-action` 插槽完全自定义内容。插槽参数包含 `item`、`context`、`disabled` 和 `setOpen`；展开浮层时调用 `setOpen(true)`，可在鼠标离开历史消息后保持动作区域可见。
+
+#### 在 TrChatUI 中接入消息操作
+
+`TrChatUI` 只展示 `data` 并触发事件，不会自动调用 Runtime。应用需要提供每条消息的能力映射，并在事件处理完成后更新消息。
+
+```ts
+const messages = shallowRef<ChatMessageItem[]>([
+  {
+    role: 'user',
+    content: '请总结这份报告',
+    metadata: { id: 'user-1', chat_action_metadata: { id: 'user-1' } },
+  },
+  {
+    role: 'assistant',
+    content: '这是一份本地示例回答。',
+    metadata: {
+      id: 'assistant-1',
+      usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
+      chat_action_metadata: { id: 'assistant-1', userMessageId: 'user-1' },
+    },
+  },
+])
+
+const data = computed<ChatUIData>(() => ({
+  conversation: { title: '受控消息操作', activeId: 'demo' },
+  bubble: {
+    messages: messages.value,
+    actions: {
+      'user-1': { canEdit: true, canRegenerate: true, turnState: 'completed' },
+      'assistant-1': { canEdit: false, canRegenerate: true, turnState: 'completed' },
+    },
+  },
+}))
+
+async function handleEdit(payload: ChatBubbleMessageActionPayload) {
+  const accepted = Boolean(payload.text?.trim())
+  if (accepted) {
+    messages.value = messages.value.map((message) =>
+      message.metadata?.id === payload.messageId ? { ...message, content: payload.text } : message,
+    )
+  }
+  payload.complete?.(accepted)
+}
+
+function handleRegenerate(payload: ChatBubbleMessageActionPayload) {
+  // 应用在这里请求服务或替换本地 mock，然后更新 messages。
+  console.log('regenerate', payload.messageId)
+}
+```
+
+```vue
+<TrChatUI
+  :data="data"
+  :ui="{ bubble: { actions: { display: 'always', user: ['copy', 'edit'], assistant: ['copy', 'regenerate', 'usage'] } } }"
+  @edit-message="handleEdit"
+  @regenerate-message="handleRegenerate"
+/>
+```
+
+编辑处理可以异步执行；接受编辑时传 `complete(true)`，拒绝或保存失败时传 `complete(false)`，否则编辑器会保持提交中状态。重新生成事件只提供目标消息信息，应用负责请求、持久化和写回新的消息内容。
+
 #### 消息错误提示配置
 
 请求失败时，在对应的 AI 消息下显示错误提示，帮助用户了解失败原因。

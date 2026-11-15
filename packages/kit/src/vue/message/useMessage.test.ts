@@ -10,6 +10,41 @@ import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
 
 describe('useMessage', () => {
+  it('reruns the latest user message in place and starts a fresh turn lifecycle', async () => {
+    const lifecycle: string[] = []
+    const responseProvider = mockResponseProvider('new answer')
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        {
+          name: 'rerun-lifecycle',
+          onTurnStart({ currentTurn }) {
+            lifecycle.push(`start:${currentTurn[0]?.content}`)
+          },
+          onFinally({ currentTurn, requestState }) {
+            lifecycle.push(`finally:${currentTurn[0]?.content}:${requestState}`)
+          },
+        },
+      ],
+    })
+
+    await engine.sendMessage('first question')
+    const originalUser = engine.messages.value[0]!
+    await engine.sendMessage('second question')
+    const before = engine.messages.value
+
+    await expect(engine.rerun({ role: 'user', content: 'stale target' })).resolves.toBe(false)
+    await expect(engine.rerun(originalUser)).resolves.toBe(false)
+    await expect(engine.rerun(before[2]!)).resolves.toBe(true)
+
+    expect(engine.messages.value[2]).toBe(before[2])
+    expect(engine.messages.value.slice(3).map(({ role, content }) => ({ role, content }))).toEqual([
+      { role: 'assistant', content: 'new answer' },
+    ])
+    expect(lifecycle.slice(-2)).toEqual(['start:second question', 'finally:second question:completed'])
+    expect(engine.requestState.value).toBe('completed')
+  })
+
   it('uses the core vue adapter while keeping the original return shape', async () => {
     const engine = useMessage({
       initialMessages: [{ role: 'system', content: 'hello' }],

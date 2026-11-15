@@ -24,7 +24,14 @@ import {
 } from './messageIdentity'
 import { useChatStreamState } from './useChatStreamState'
 import { useChatAutoScroll } from './useChatAutoScroll'
-import type { ChatRequestView } from '../../types'
+import ChatBubbleActions from './ChatBubbleActions.vue'
+import { CHAT_ACTION_METADATA_KEY } from '../../runtime/useChatRuntimeFromConversation'
+import type {
+  ChatBubbleActionContext,
+  ChatBubbleMessageActionPayload,
+  ChatBubbleView,
+  ChatRequestView,
+} from '../../types'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
 import type {
   ResolvedChatBubbleOptions,
@@ -44,6 +51,7 @@ const props = defineProps<{
   centerWelcomeComposer: boolean
   conversationId?: string | null
   request?: ChatRequestView
+  bubbleActions?: ChatBubbleView['actions']
   anchorEnabled?: boolean
 }>()
 
@@ -51,6 +59,9 @@ const emit = defineEmits<{
   promptClick: [event: MouseEvent, item: PromptProps]
   bubbleStateChange: [payload: ChatBubbleStateChangePayload]
   bubbleEvent: [payload: ChatBubbleEventPayload]
+  editMessage: [payload: ChatBubbleMessageActionPayload]
+  regenerateMessage: [payload: ChatBubbleMessageActionPayload]
+  bubbleActionError: [payload: { actionId: string; messageId?: string; error: unknown }]
 }>()
 
 const fallbackAiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
@@ -92,6 +103,38 @@ const bubbleMessages = computed<ChatMessageItem[]>(() =>
     streamState: resolveStreamState(message, props.request, getMessageStreamState(message)),
   })),
 )
+const lastVisibleIndex = computed(() => {
+  const indexes = bubbleMessages.value
+    .map((message, index) => (message.role === 'system' ? -1 : index))
+    .filter((index) => index >= 0)
+  return indexes.at(-1) ?? -1
+})
+
+function getActionContext(group: BubbleMessageGroup, messageIndexes: number[]): ChatBubbleActionContext | undefined {
+  const indexedMessages = messageIndexes.map((index) => props.messages[index]).filter(Boolean)
+  const role = group.role
+  const candidates = indexedMessages.filter((message) => message.role === role)
+  const message = candidates.at(-1)
+  const messageIndex = message ? props.messages.indexOf(message) : -1
+  if (!message || messageIndex < 0) return
+  const actionMetadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as
+    { id?: string; userMessageId?: string } | undefined
+  const messageId =
+    message.role === 'assistant'
+      ? actionMetadata?.userMessageId
+      : (actionMetadata?.id ?? (typeof message.metadata?.id === 'string' ? message.metadata.id : message.id))
+  const capability = props.bubbleActions?.[actionMetadata?.id ?? messageId ?? message.renderKey ?? '']
+  return {
+    conversationId: props.conversationId,
+    messageId,
+    messageKey: message.renderKey ?? messageId ?? String(messageIndex),
+    message,
+    messages: indexedMessages,
+    isLatest: messageIndex === lastVisibleIndex.value,
+    turnState: capability?.turnState ?? 'unknown',
+    capabilities: { canEdit: capability?.canEdit ?? false, canRegenerate: capability?.canRegenerate ?? false },
+  }
+}
 const messageIndexes = computed(() =>
   props.anchorEnabled ? new Map(bubbleMessages.value.map((message, index) => [message, index])) : undefined,
 )
@@ -278,14 +321,42 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @state-change="handleStateChange"
           @bubble-event="handleBubbleEvent"
         >
+          <template #after="slotProps">
+            <slot name="bubble-after" v-bind="slotProps" />
+            <ChatBubbleActions
+              v-if="
+                props.options.actions && getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)
+              "
+              :context="getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)!"
+              :options="props.options.actions"
+              :role="slotProps.role ?? 'assistant'"
+              @edit="
+                (text, complete) =>
+                  emit('editMessage', {
+                    conversationId,
+                    messageId: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)?.messageId,
+                    message: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)!.message,
+                    text,
+                    complete,
+                  })
+              "
+              @regenerate="
+                emit('regenerateMessage', {
+                  conversationId,
+                  messageId: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)?.messageId,
+                  message: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)!.message,
+                })
+              "
+              @error="emit('bubbleActionError', $event)"
+            >
+              <template #action="actionProps"><slot name="bubble-action" v-bind="actionProps" /></template>
+            </ChatBubbleActions>
+          </template>
           <template v-if="$slots['bubble-prefix']" #prefix="slotProps">
             <slot name="bubble-prefix" v-bind="slotProps" />
           </template>
           <template v-if="$slots['bubble-suffix']" #suffix="slotProps">
             <slot name="bubble-suffix" v-bind="slotProps" />
-          </template>
-          <template v-if="$slots['bubble-after']" #after="slotProps">
-            <slot name="bubble-after" v-bind="slotProps" />
           </template>
           <template v-if="$slots['bubble-content-footer']" #content-footer="slotProps">
             <slot name="bubble-content-footer" v-bind="slotProps" />
@@ -295,6 +366,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     </slot>
   </div>
 </template>
+
+<style scoped>
+@media (hover: hover) {
+  .tr-chat-messages
+    :deep(
+      .tr-bubble__after:not(:hover):not(:focus-within)
+        .tr-chat-bubble-actions:not(.is-latest):not(.is-always):not(.is-open)
+    ) {
+    opacity: 0;
+  }
+}
+</style>
 
 <style scoped>
 .chat-panel-content--main {

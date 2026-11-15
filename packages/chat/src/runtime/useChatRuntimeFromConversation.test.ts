@@ -1,9 +1,10 @@
 import { computed, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
-import type { ChatRequestState } from '../types'
-import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
+import type { ChatMessageItem, ChatRequestState } from '../types'
+import { CHAT_ACTION_METADATA_KEY, useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
 import { useChatRuntimeAdapter } from '../composables/useChatRuntimeAdapter'
+import { CHAT_RUN_CONFIG_METADATA_KEY } from './runConfig'
 
 function createConversation(id: string, canStart = true) {
   return {
@@ -12,7 +13,7 @@ function createConversation(id: string, canStart = true) {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     engine: {
-      messages: ref([]),
+      messages: ref<ChatMessageItem[]>([]),
       requestState: ref<ChatRequestState>('idle'),
       processingState: ref<string | undefined>(),
       canStartTurn: ref(canStart),
@@ -57,6 +58,158 @@ function createHarness(initialId = 'a', canStart = true) {
 }
 
 describe('useChatRuntimeFromConversation', () => {
+  it('edits and regenerates only the latest recoverable plain-text turn and shares the send lock', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'original',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'model-a' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    let finishRerun!: (value: boolean) => void
+    const pendingRerun = new Promise<boolean>((resolve) => {
+      finishRerun = resolve
+    })
+    const kitRerun = vi.fn().mockReturnValueOnce(pendingRerun).mockResolvedValue(true)
+    ;(harness.api as unknown as { rerunMessage: typeof kitRerun }).rerunMessage = kitRerun
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    const edit = runtime.actions.editMessage!
+    const regenerate = runtime.actions.regenerateMessage!
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+
+    expect(runtime.actions.getMessageCapabilities?.(target)).toMatchObject({ canEdit: true, canRegenerate: true })
+    const pending = edit({ ...target, text: 'revised' })
+    await Promise.resolve()
+    await expect(regenerate(target)).resolves.toBe(false)
+    await expect(runtime.actions.send({ text: 'blocked while re-running' })).resolves.toBe(false)
+    expect(kitRerun).toHaveBeenCalledWith(
+      'a',
+      expect.objectContaining({ role: 'user', content: 'original' }),
+      expect.objectContaining({ content: 'revised' }),
+    )
+    finishRerun(true)
+    await expect(pending).resolves.toBe(true)
+
+    expect(
+      runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).toMatchObject({
+      canEdit: false,
+      canRegenerate: true,
+    })
+    await expect(regenerate({ conversationId: 'a', userMessageId: 'assistant-1' })).resolves.toBe(true)
+    expect(kitRerun).toHaveBeenLastCalledWith('a', expect.objectContaining({ content: 'original' }), undefined)
+  })
+
+  it('does not expose edit or regenerate for turns without recoverable config or with attachments', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem & { externalPayloads?: unknown[] } = {
+      role: 'user',
+      content: 'plain',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'user-1' } },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+
+    user.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-a' }
+    user.externalPayloads = [{ source: 'attachment' }]
+    expect(
+      runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+  })
+
+  it('rejects replay for unavailable models and configured tools without changing message state', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'plain',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'removed-model' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    const runtime = useChatRuntimeFromConversation({
+      conversation: harness.api,
+      composer: {
+        model: {
+          options: ref([{ id: 'current-model', label: 'Current' }]),
+          selectedId: ref('current-model'),
+          select: vi.fn(),
+        },
+      },
+    })
+
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+
+    user.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
+      modelId: 'current-model',
+      mcp: { serverIds: ['tools'], toolIds: { tools: ['search'] } },
+    }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+  })
+
+  it('keeps the original turn metadata when Kit rejects replay', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'plain',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'model-a' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    ;(harness.api as unknown as { rerunMessage: () => Promise<boolean> }).rerunMessage = vi.fn(async () => false)
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(
+      runtime.actions.regenerateMessage?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).resolves.toBe(false)
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+  })
+
   it('starts a new conversation only when a non-empty first message is sent', async () => {
     const harness = createHarness('existing')
     const runtime = useChatRuntimeFromConversation({ conversation: harness.api })

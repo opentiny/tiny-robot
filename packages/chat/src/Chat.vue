@@ -32,6 +32,7 @@ import type {
   LayoutFloatingState,
   ChatUISlots,
   ChatUIOptions,
+  ChatBubbleMessageActionPayload,
 } from './types'
 
 interface ChatUIActions {
@@ -75,6 +76,9 @@ const emit = defineEmits<{
   'floating-resize': [detail: LayoutFloatingResizeDetail]
   'floating-resize-end': [detail: LayoutFloatingResizeDetail]
   'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
+  'bubble-action-error': [payload: { actionId: string; messageId?: string; error: unknown }]
+  'edit-message': [payload: ChatBubbleMessageActionPayload]
+  'regenerate-message': [payload: ChatBubbleMessageActionPayload]
   'history-action': [payload: ChatHistoryActionPayload]
   'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'extension-action': [payload: ExtensionManagerActionEvent]
@@ -171,6 +175,40 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
 }
 
+function handleEditMessage(payload: ChatBubbleMessageActionPayload) {
+  emit('edit-message', payload)
+  if (!payload.conversationId || !payload.messageId || payload.text === undefined) {
+    payload.complete?.(false)
+    return
+  }
+  const result = props.runtime.actions.editMessage?.({
+    conversationId: payload.conversationId,
+    userMessageId: payload.messageId,
+    text: payload.text,
+  })
+  if (!result) {
+    payload.complete?.(false)
+    return
+  }
+  void Promise.resolve(result)
+    .then(payload.complete)
+    .catch((error) => {
+      payload.complete?.(false)
+      emit('runtime-action-error', { action: 'edit-message', payload, error })
+    })
+}
+
+function handleRegenerateMessage(payload: ChatBubbleMessageActionPayload) {
+  emit('regenerate-message', payload)
+  if (!payload.conversationId || !payload.messageId) return
+  const result = props.runtime.actions.regenerateMessage?.({
+    conversationId: payload.conversationId,
+    userMessageId: payload.messageId,
+  })
+  if (result)
+    void result.catch((error) => emit('runtime-action-error', { action: 'regenerate-message', payload, error }))
+}
+
 function handleSenderDragEnter(payload: SenderDragPayload) {
   emit('sender-drag-enter', payload)
 }
@@ -255,6 +293,9 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     @prompt-click="handlePromptClick"
     @bubble-state-change="handleBubbleStateChange"
     @bubble-event="handleBubbleEvent"
+    @edit-message="handleEditMessage"
+    @regenerate-message="handleRegenerateMessage"
+    @bubble-action-error="(payload) => emit('bubble-action-error', payload)"
     @sender-drag-enter="handleSenderDragEnter"
     @sender-drag-over="handleSenderDragOver"
     @sender-drag-leave="handleSenderDragLeave"

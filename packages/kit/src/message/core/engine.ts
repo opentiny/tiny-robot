@@ -1,8 +1,8 @@
-import { ChatCompletion, ChatCompletionChunk } from 'openai/resources'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
 import {
   BasePluginContext,
   ChatMessage,
+  ChatResponseChoice,
   CreateMessageEngineOptions,
   InternalMessageState,
   MessageEngine,
@@ -26,7 +26,7 @@ import {
 } from '../utils'
 import { runRequestBodyFinalizers } from './requestFinalizers'
 
-type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
+type ChatCompletionChoice = ChatResponseChoice
 
 type CommandRegistration = {
   handler: NonNullable<MessageEnginePlugin['commands']>[string]
@@ -540,12 +540,15 @@ export const createMessageEngine = (
       const choice = (chunk.choices || []).find((item) => item.index === 0) ?? chunk.choices?.[0]
 
       if (!choice) {
-        if (chunk.usage) {
+        if (chunk.usage && typeof chunk.usage === 'object' && Object.keys(chunk.usage).length > 0) {
           mutate('messages', () => {
             if (!assistantMessage.metadata) {
               assistantMessage.metadata = {}
             }
-            assistantMessage.metadata.usage = chunk.usage
+            assistantMessage.metadata.usage = {
+              ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
+              ...chunk.usage,
+            }
             assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
           })
         }
@@ -561,10 +564,16 @@ export const createMessageEngine = (
             assistantMessage.metadata = {}
           }
 
-          const { created, ...rest } = chunk
+          const { created, usage, ...rest } = chunk
           assistantMessage.metadata.createdAt = created
           assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
           Object.assign(assistantMessage.metadata, rest)
+          if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
+            assistantMessage.metadata.usage = {
+              ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
+              ...usage,
+            }
+          }
 
           // 在某些非标准 api 中，choice.message 和 choice.delta 属性可能同时存在，
           // 但其中一个属性为 null 或者空对象，这时需要优先使用另一个属性的数据
@@ -704,6 +713,35 @@ export const createMessageEngine = (
     await runTurn()
   }
 
+  async function rerun(target: ChatMessage, replacement?: ChatMessage): Promise<boolean> {
+    const state = getState()
+    if (!state.canStartTurn || runtime.currentTurn.length > 0) return false
+
+    const resolvedTarget = adapter.resolveMessage?.(target) ?? target
+    const targetIndex = adapter.getMessageIndex?.(resolvedTarget) ?? state.messages.indexOf(resolvedTarget)
+    if (targetIndex < 0 || resolvedTarget.role !== 'user') return false
+    const isLastUserMessage = !state.messages.slice(targetIndex + 1).some((message) => message.role === 'user')
+    if (!isLastUserMessage) return false
+
+    const nextTarget = replacement ? createMessage(replacement) : resolvedTarget
+    if (nextTarget.role !== 'user') return false
+
+    mutate(['messages', 'requestState'], (draft) => {
+      const currentIndex = adapter.getMessageIndex?.(resolvedTarget) ?? draft.messages.indexOf(resolvedTarget)
+      if (currentIndex < 0) return
+      if (replacement) draft.messages[currentIndex] = nextTarget
+      draft.messages.splice(currentIndex + 1)
+      draft.requestState = 'idle'
+      draft.processingState = undefined
+    })
+    runtime.currentTurn = [nextTarget]
+    runtime.turnId = null
+    runtime.customContext = {}
+
+    await runTurnLifecycle()
+    return true
+  }
+
   async function abort() {
     if (getState().requestState === 'paused') {
       // 暂停状态下插件命令可能仍在异步处理中。
@@ -753,6 +791,7 @@ export const createMessageEngine = (
     subscribe,
     sendMessage,
     send,
+    rerun,
     abort,
     dispatchCommand,
     setResponseProvider(provider) {
