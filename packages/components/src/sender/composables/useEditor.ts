@@ -15,6 +15,7 @@ import type { SenderEmits, UseEditorReturn } from '../index.type'
 import type { SenderPropsWithDefaults } from '../index.vue'
 import { countGraphemes } from '../utils/countGraphemes'
 import { ImeGuard } from '../extensions/ime'
+import { setEditorContent } from '../utils/setEditorContent'
 
 /**
  * 编辑器 Hook
@@ -65,6 +66,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
 
   const editor = useTiptapEditor({
     content: props.modelValue ?? props.defaultValue ?? '',
+    parseOptions: { preserveWhitespace: 'full' },
     extensions: buildExtensions(),
     autofocus: props.autofocus ? 'end' : false,
     editorProps: {
@@ -93,7 +95,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
               hasPendingModelValue.value = false
               const externalValue = props.modelValue ?? ''
               if (externalValue !== currentEditor.getText()) {
-                currentEditor.commands.setContent(externalValue, { emitUpdate: false })
+                setEditorContent(currentEditor, externalValue, false)
               }
             }, 0)
           }
@@ -144,7 +146,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       }
 
       if (editor.value && newValue !== editor.value.getText()) {
-        editor.value.commands.setContent(newValue ?? '', { emitUpdate: false })
+        setEditorContent(editor.value, newValue ?? '', false)
       }
     },
   )
