@@ -10,9 +10,9 @@ const chat = '@opentiny/tiny-robot-chat';
 const kit = '@opentiny/tiny-robot-kit';
 const robot = '@opentiny/tiny-robot';
 const svgs = '@opentiny/tiny-robot-svgs';
-const version = '1.0.0-rc.9';
-const chatTarball = 'file:./candidate/opentiny-tiny-robot-chat-1.0.0-rc.9.tgz';
-const kitTarball = 'file:./candidate/opentiny-tiny-robot-kit-1.0.0-rc.9.tgz';
+const version = '1.0.1';
+const chatTarball = 'file:./candidate/opentiny-tiny-robot-chat-1.0.1.tgz';
+const kitTarball = 'file:./candidate/opentiny-tiny-robot-kit-1.0.1.tgz';
 test('skill entrypoint links resolve to local resources', () => {
   const root = resolve('skills/trchat-angular-integration');
   const content = readFileSync(join(root, 'SKILL.md'), 'utf8');
@@ -45,11 +45,13 @@ test('advanced guidance is linked and keeps credentials outside browser configur
     .map(path => readFileSync(join('skills/trchat-angular-integration', path), 'utf8')).join('\n');
   assertSafeExamples(guidance);
 });
-test('advanced guidance uses the rc.9 unified model feature-value contract', () => {
+test('advanced guidance uses the 1.0.1 unified model feature-value contract', () => {
   const guidance = readFileSync('skills/trchat-angular-integration/references/advanced-capabilities.md', 'utf8');
   assert.match(guidance, /model-feature-value-change/);
   assert.match(guidance, /features[^\n]*switch\/select fields/);
   assert.doesNotMatch(guidance, /model-feature-change|model-reasoning-effort-change|featureBody|effortParam/);
+  assert.match(guidance, /SKILL_101/);
+  assert.doesNotMatch(guidance, /SKILL_RC9/);
 });
 function assertSafeExamples(guidance) {
   // Examples are intentionally stricter than prose: never demonstrate this key
@@ -75,9 +77,9 @@ test('Angular NgModule guidance opts the component out of standalone mode', () =
   const guidance = readFileSync('skills/trchat-angular-integration/references/angular-host-modes.md', 'utf8');
   assert.match(guidance, /NgModule[^\n]*standalone: false/);
 });
-test('skill distinguishes the rc.9 source baseline from the registry package without Web Components', () => {
+test('skill distinguishes the 1.0.1 source baseline from the registry package without Web Components', () => {
   const entry = readFileSync('skills/trchat-angular-integration/SKILL.md', 'utf8');
-  assert.match(entry, /published[^\n]*1\.0\.0-rc\.9[^\n]*does not include[^\n]*Web Component/i);
+  assert.match(entry, /published[^\n]*1\.0\.1[^\n]*does not include[^\n]*Web Component/i);
   assert.match(entry, /local[^\n]*\.tgz/i);
   assert.match(entry, /\.\/experimental/);
   assert.match(entry, /experimental\/web-component\.css/);
@@ -87,8 +89,8 @@ function fixture(t, pnpm = false) {
   const root = mkdtempSync(join(tmpdir(), 'trchat-consumer-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: chatTarball } }));
-  write(join(root, 'candidate/opentiny-tiny-robot-chat-1.0.0-rc.9.tgz'), 'candidate');
-  write(join(root, 'candidate/opentiny-tiny-robot-kit-1.0.0-rc.9.tgz'), 'candidate');
+  write(join(root, 'candidate/opentiny-tiny-robot-chat-1.0.1.tgz'), 'candidate');
+  write(join(root, 'candidate/opentiny-tiny-robot-kit-1.0.1.tgz'), 'candidate');
   if (pnpm) {
     write(join(root, 'pnpm-lock.yaml'), `lockfileVersion: '9.0'\nimporters:\n  .:\n    dependencies:\n      '${chat}':\n        specifier: ${chatTarball}\n      '${kit}':\n        specifier: ${kitTarball}\n`);
   } else {
@@ -110,9 +112,9 @@ function fixture(t, pnpm = false) {
 }
 function report(root, options = {}) { return verifyAngularConsumer({ projectRoot: root, ...options }); }
 function failing(result, pattern) { assert.equal(result.ok, false); assert.match(result.checks.filter(c => !c.ok).map(c => c.detail).join(' '), pattern); }
-test('accepts an npm-style rc.9 Web Component candidate consumer', t => { assert.equal(report(fixture(t)).ok, true); });
-test('accepts a pnpm-style rc.9 Web Component candidate consumer', t => { assert.equal(report(fixture(t, true)).ok, true); });
-test('accepts local rc.9 candidate tarball dependency declarations', t => {
+test('accepts an npm-style 1.0.1 Web Component candidate consumer', t => { assert.equal(report(fixture(t)).ok, true); });
+test('accepts a pnpm-style 1.0.1 Web Component candidate consumer', t => { assert.equal(report(fixture(t, true)).ok, true); });
+test('accepts local 1.0.1 candidate tarball dependency declarations', t => {
   const root = fixture(t);
   write(join(root, 'package.json'), JSON.stringify({ dependencies: {
     [chat]: chatTarball,
@@ -137,13 +139,13 @@ test('rejects a pnpm root specifier mismatch even when another lock section cont
   write(join(root, 'pnpm-lock.yaml'), `lockfileVersion: '9.0'\nimporters:\n  .:\n    dependencies:\n      '${chat}':\n        specifier: file:./candidate/other.tgz\npackages:\n  unrelated:\n    resolution: {tarball: ${chatTarball}}\n`);
   failing(report(root), /pnpm root importer/i);
 });
-test('rejects a bare registry rc.9 dependency even when stale candidate files are installed', t => {
+test('rejects a bare registry 1.0.1 dependency even when stale candidate files are installed', t => {
   const root = fixture(t);
   write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: version } }));
   failing(report(root), /local candidate \.tgz/i);
 });
 test('rejects a wrong chat or direct kit version', t => {
-  const root = fixture(t); write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: '^1.0.0-rc.9', [kit]: '1.0.0' } }));
+  const root = fixture(t); write(join(root, 'package.json'), JSON.stringify({ dependencies: { [chat]: '^1.0.1', [kit]: '1.0.0' } }));
   write(join(root, 'src/app.ts'), `import '${kit}';`);
   failing(report(root), /local candidate/i);
 });
@@ -166,7 +168,7 @@ test('requires the experimental CSS export', t => {
   const root = fixture(t); rmSync(join(root, 'node_modules', chat, 'style.css'));
   failing(report(root), /style.css/i);
 });
-test('rejects the published registry rc.9 manifest without Web Component exports', t => {
+test('rejects the published registry 1.0.1 manifest without Web Component exports', t => {
   const root = fixture(t);
   const path = join(root, 'node_modules', chat, 'package.json');
   const manifest = JSON.parse(readFileSync(path, 'utf8'));

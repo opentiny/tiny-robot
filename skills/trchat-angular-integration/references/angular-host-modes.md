@@ -1,6 +1,6 @@
 # Angular host modes
 
-Use Angular 20+ with the locally packed rc.9-based Web Component candidate. Declare its `.tgz` as a direct `file:` dependency; do not install the published registry `@opentiny/tiny-robot-chat@1.0.0-rc.9`, which lacks the experimental entrypoint. Before integration, confirm the installed candidate manifest version is `1.0.0-rc.9` and exports `./experimental` and `./experimental/web-component.css`. `CUSTOM_ELEMENTS_SCHEMA` belongs to the compilation scope of the template containing `<tr-chat>` or `<tr-chat-ui>`:
+Use Angular 20+ with the locally packed 1.0.1-based Web Component candidate. Declare its `.tgz` as a direct `file:` dependency; do not install the published registry `@opentiny/tiny-robot-chat@1.0.1`, which lacks the experimental entrypoint. Before integration, confirm the installed candidate manifest version is `1.0.1` and exports `./experimental` and `./experimental/web-component.css`. `CUSTOM_ELEMENTS_SCHEMA` belongs to the compilation scope of the template containing `<tr-chat>` or `<tr-chat-ui>`:
 
 - **Standalone:** add `schemas: [CUSTOM_ELEMENTS_SCHEMA]` to that standalone component's `@Component` metadata.
 - **NgModule:** add it to the `@NgModule` declaring the component whose template contains the element. Importing a module elsewhere does not apply its schema to a different compilation scope.

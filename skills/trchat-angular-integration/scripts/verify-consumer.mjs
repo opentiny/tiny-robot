@@ -9,7 +9,7 @@ const KIT = '@opentiny/tiny-robot-kit';
 const ROBOT = '@opentiny/tiny-robot';
 const SVGS = '@opentiny/tiny-robot-svgs';
 const EDGES = { [CHAT]: [ROBOT, KIT, SVGS], [ROBOT]: [KIT, SVGS], [KIT]: [], [SVGS]: [] };
-const VERSION = '1.0.0-rc.9';
+const VERSION = '1.0.1';
 const inside = (root, path) => { const rel = relative(root, path); return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel); };
 function files(dir, excluded = new Set()) {
   if (!existsSync(dir)) return [];
