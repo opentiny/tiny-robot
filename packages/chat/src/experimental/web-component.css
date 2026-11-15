@@ -1,0 +1,28 @@
+@import '../../../components/dist/style.css';
+
+:where(tr-chat, tr-chat-ui) {
+  display: block;
+}
+
+/*
+ * Light DOM keeps application theme variables available, but generic host
+ * reset rules must not supply missing control metrics inside the component.
+ * Consumers can put this stylesheet in a later cascade layer so these
+ * defaults win without !important while component-specific classes retain
+ * their normal specificity.
+ */
+:where(tr-chat, tr-chat-ui) button {
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+
+:where(tr-chat, tr-chat-ui) :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  font-size: revert;
+  font-weight: revert;
+  line-height: normal;
+}

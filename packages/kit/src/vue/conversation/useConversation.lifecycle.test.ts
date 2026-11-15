@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ChatMessage } from '../../types'
 import type { ConversationStorageStrategy } from '../../storage'
@@ -452,5 +453,166 @@ describe('useConversation lifecycle', () => {
     const active = await api.switchConversation('stored')
 
     expect(active?.engine.messages.value).toEqual([{ role: 'system', content: 'fallback context' }])
+  })
+
+  it('disposes engines and auto-save watchers without deleting persisted conversations', async () => {
+    let markRequestStarted!: () => void
+    const requestStarted = new Promise<void>((resolve) => {
+      markRequestStarted = resolve
+    })
+    let requestAborted = false
+    const blockingProvider: ResponseProvider = (_request, signal) =>
+      new Promise<ChatCompletion>((_resolve, reject) => {
+        markRequestStarted()
+        signal.addEventListener(
+          'abort',
+          () => {
+            requestAborted = true
+            reject(signal.reason)
+          },
+          { once: true },
+        )
+      })
+    const { storage, conversations, messages } = createMemoryStorage()
+    const deleteConversation = vi.spyOn(storage, 'deleteConversation')
+    const saveMessages = vi.spyOn(storage, 'saveMessages')
+    const api = useConversation({
+      storage,
+      autoSaveMessages: true,
+      autoSaveThrottle: 0,
+      useMessageOptions: { responseProvider: blockingProvider },
+    })
+    const created = api.createConversation({ id: 'kept', title: 'Keep me' })
+    const sending = api.sendMessage('pending').catch(() => undefined)
+    await requestStarted
+    await vi.waitFor(() => expect(messages.get('kept')).toBeDefined())
+
+    await api.dispose()
+    await sending
+    const saveCountAfterDispose = saveMessages.mock.calls.length
+    created.engine.messages.value.push({ role: 'user', content: 'after dispose' })
+    await Promise.resolve()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    expect(requestAborted).toBe(true)
+    expect(api.activeConversation.value).toBeNull()
+    expect(conversations.get('kept')).toMatchObject({ id: 'kept', title: 'Keep me' })
+    expect(messages.get('kept')).not.toContainEqual({ role: 'user', content: 'after dispose' })
+    expect(saveMessages).toHaveBeenCalledTimes(saveCountAfterDispose)
+    expect(deleteConversation).not.toHaveBeenCalled()
+  })
+
+  it('flushes the latest auto-saved messages before disposal completes', async () => {
+    const { storage, messages } = createMemoryStorage()
+    const api = useConversation({
+      storage,
+      autoSaveMessages: true,
+      useMessageOptions: { responseProvider },
+    })
+    const created = api.createConversation({ id: 'flush-before-dispose' })
+    await api.saveMessages()
+
+    created.engine.messages.value.push({ role: 'user', content: 'first save' })
+    await nextTick()
+    await api.saveMessages()
+    expect(messages.get('flush-before-dispose')).toEqual([{ role: 'user', content: 'first save' }])
+
+    created.engine.messages.value.push({ role: 'assistant', content: 'pending trailing save' })
+    await nextTick()
+    await api.dispose()
+
+    expect(messages.get('flush-before-dispose')).toEqual([
+      { role: 'user', content: 'first save' },
+      { role: 'assistant', content: 'pending trailing save' },
+    ])
+  })
+
+  it('waits for pending persistence and returns the same promise when disposed repeatedly', async () => {
+    let markSaveStarted!: () => void
+    const saveStarted = new Promise<void>((resolve) => {
+      markSaveStarted = resolve
+    })
+    let releaseSave!: () => void
+    const savePending = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const storage: ConversationStorageStrategy = {
+      loadConversations: () => [],
+      loadMessages: () => [],
+      saveConversation: () => undefined,
+      saveMessages: async () => {
+        markSaveStarted()
+        await savePending
+      },
+      deleteConversation: vi.fn(),
+    }
+    const api = useConversation({ storage, useMessageOptions: { responseProvider } })
+    api.createConversation({ id: 'pending-save' })
+    await saveStarted
+
+    const firstDispose = api.dispose()
+    const secondDispose = api.dispose()
+    let disposed = false
+    void firstDispose.then(() => {
+      disposed = true
+    })
+    await Promise.resolve()
+
+    expect(secondDispose).toBe(firstDispose)
+    expect(disposed).toBe(false)
+    expect(storage.deleteConversation).not.toHaveBeenCalled()
+
+    releaseSave()
+    await firstDispose
+    expect(disposed).toBe(true)
+  })
+
+  it('ignores a conversation list that finishes loading after disposal', async () => {
+    let resolveLoad!: (items: ConversationInfo[]) => void
+    const delayedLoad = new Promise<ConversationInfo[]>((resolve) => {
+      resolveLoad = resolve
+    })
+    const onLoad = vi.fn()
+    const api = useConversation({
+      storage: {
+        loadConversations: () => delayedLoad,
+        loadMessages: () => [],
+      },
+      useMessageOptions: { responseProvider },
+      onLoad,
+    })
+
+    await api.dispose()
+    resolveLoad([info('late')])
+    await delayedLoad
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(api.conversations.value).toEqual([])
+    expect(onLoad).not.toHaveBeenCalled()
+  })
+
+  it('does not activate or recreate an engine when message loading finishes after disposal', async () => {
+    let resolveMessages!: (items: ChatMessage[]) => void
+    const delayedMessages = new Promise<ChatMessage[]>((resolve) => {
+      resolveMessages = resolve
+    })
+    const api = useConversation({
+      storage: {
+        loadConversations: () => [info('stored')],
+        loadMessages: () => delayedMessages,
+      },
+      useMessageOptions: { responseProvider },
+    })
+    await vi.waitFor(() => expect(api.conversations.value).toHaveLength(1))
+
+    const switching = api.switchConversation('stored')
+    await Promise.resolve()
+    await api.dispose()
+    resolveMessages([{ role: 'user', content: 'late' }])
+
+    await expect(switching).resolves.toBeNull()
+    expect(api.activeConversationId.value).toBeNull()
+    expect(api.activeConversation.value).toBeNull()
   })
 })

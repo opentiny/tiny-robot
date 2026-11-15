@@ -49,6 +49,9 @@ jobs:
       - name: Build components
         run: pnpm build
 
+      - name: Verify chat package build output
+        run: pnpm test:chat-dist
+
       - name: Test npm and pnpm package installation
         run: pnpm test:package-install
 

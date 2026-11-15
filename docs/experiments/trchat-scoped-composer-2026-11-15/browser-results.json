@@ -1,0 +1,92 @@
+[
+  {
+    "mode": "standalone",
+    "result": "passed",
+    "propertyIdentity": true,
+    "observed": [
+      {
+        "kind": "runtime",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      },
+      {
+        "kind": "ui",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      }
+    ],
+    "errors": []
+  },
+  {
+    "mode": "ngmodule",
+    "result": "passed",
+    "propertyIdentity": true,
+    "observed": [
+      {
+        "kind": "runtime",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      },
+      {
+        "kind": "ui",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      }
+    ],
+    "errors": []
+  },
+  {
+    "mode": "ssr",
+    "result": "passed",
+    "propertyIdentity": true,
+    "observed": [
+      {
+        "kind": "runtime",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      },
+      {
+        "kind": "ui",
+        "draft": "Inserted  from DOM renderer\n\n + note",
+        "scope": "DOM-only",
+        "editorCount": 1,
+        "retired": "aborted=true,focus=false",
+        "detail": {
+          "sameEvent": true,
+          "canceled": true
+        }
+      }
+    ],
+    "errors": []
+  }
+]

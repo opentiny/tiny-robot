@@ -28,6 +28,7 @@ import { isImeKeyEvent } from '../extensions/ime'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
 import { setupSenderContentRegistration } from '../../shared/composables'
 import { useEditor } from './useEditor'
+import { setEditorContent } from '../utils/setEditorContent'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
 import { useAutoSize } from './useAutoSize'
@@ -277,7 +278,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   }
 
   const setContent = (content: string) => {
-    editor.value?.commands.setContent(content)
+    if (editor.value) setEditorContent(editor.value, content)
   }
 
   const getContent = () => {

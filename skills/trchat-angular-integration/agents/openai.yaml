@@ -1,0 +1,6 @@
+interface:
+  display_name: "TrChat Angular Integration"
+  short_description: "Integrate TrChat Web Components with Angular"
+  default_prompt: "Use $trchat-angular-integration to integrate TrChat into my Angular application."
+policy:
+  allow_implicit_invocation: true

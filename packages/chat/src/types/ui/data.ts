@@ -1,5 +1,10 @@
 import type { ChatConversationInfo, ChatIcon, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
-import type { ModelSelectorField, ModelSelectorFeatureValues, ModelSelectorProps } from '@opentiny/tiny-robot'
+import type {
+  Attachment,
+  ModelSelectorField,
+  ModelSelectorFeatureValues,
+  ModelSelectorProps,
+} from '@opentiny/tiny-robot'
 
 export interface ChatUIData {
   readonly conversation?: ChatConversationView
@@ -33,7 +38,10 @@ export interface ChatSenderView {
   readonly loading?: boolean
   readonly disabled?: boolean
   readonly submitDisabled?: boolean
+  readonly attachments?: readonly Attachment[]
 }
+
+export type ResolvedChatSenderView = Required<Omit<ChatSenderView, 'attachments'>> & Pick<ChatSenderView, 'attachments'>
 
 export interface ChatRequestView {
   readonly state: ChatRequestState

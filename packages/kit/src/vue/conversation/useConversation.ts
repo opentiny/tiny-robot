@@ -29,8 +29,16 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * complete out of order.
    */
   const persistenceQueues = new Map<string, Promise<void>>()
+  let disposed = false
+  let disposePromise: Promise<void> | undefined
 
-  const enqueuePersistence = (id: string, operation: () => Promise<void>): Promise<void> => {
+  const enqueuePersistence = (
+    id: string,
+    operation: () => Promise<void>,
+    options: { allowDisposed?: boolean } = {},
+  ): Promise<void> => {
+    if (disposed && !options.allowDisposed) return Promise.resolve()
+
     const previousOperation = persistenceQueues.get(id)
     const currentOperation = previousOperation ? previousOperation.catch(() => undefined).then(operation) : operation()
     persistenceQueues.set(id, currentOperation)
@@ -75,17 +83,25 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    *
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
-  const saveConversationMessages = (id: string, messages: ChatMessage[]): Promise<void> => {
-    return enqueuePersistence(id, async () => {
-      if (!storage?.saveMessages) return
+  const saveConversationMessages = (
+    id: string,
+    messages: ChatMessage[],
+    options: { allowDisposed?: boolean } = {},
+  ): Promise<void> => {
+    return enqueuePersistence(
+      id,
+      async () => {
+        if (!storage?.saveMessages) return
 
-      const conversation = conversations.value.find((item) => item.id === id)
-      if (!conversation) return
+        const conversation = conversations.value.find((item) => item.id === id)
+        if (!conversation) return
 
-      conversation.updatedAt = Date.now()
-      await storage.saveConversation?.(conversation)
-      await storage.saveMessages(id, messages)
-    })
+        conversation.updatedAt = Date.now()
+        await storage.saveConversation?.(conversation)
+        await storage.saveMessages(id, messages)
+      },
+      options,
+    )
   }
 
   const saveMessages = async (id?: string): Promise<void> => {
@@ -159,6 +175,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   if (storage?.loadConversations) {
     Promise.resolve(storage.loadConversations())
       .then((list) => {
+        if (disposed) return []
+
         // 存储为空时仍返回加载期间创建的内存会话
         if (!list?.length) {
           return conversations.value
@@ -188,9 +206,11 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
         return conversations.value
       })
       .then((loadedList) => {
+        if (disposed) return
         options.onLoad?.(loadedList)
       })
       .catch((error) => {
+        if (disposed) return
         console.error('[useConversation] loadConversations failed:', error)
       })
   }
@@ -199,7 +219,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Ensure an engine instance exists for the given conversation id.
    * If not, it will be created using stored messages (when storage is available).
    */
-  const ensureEngine = async (id: string, overrideOptions?: UseMessageOptions): Promise<UseMessageReturn> => {
+  const ensureEngine = async (
+    id: string,
+    overrideOptions?: UseMessageOptions,
+  ): Promise<UseMessageReturn | undefined> => {
+    if (disposed) return undefined
+
     const existing = workingEngines.get(id)
     if (existing) return existing
 
@@ -210,9 +235,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       try {
         initialMessages = await storage.loadMessages(id)
       } catch (error) {
+        if (disposed) return undefined
         console.error('[useConversation] loadMessages failed:', error)
       }
     }
+
+    if (disposed) return undefined
 
     const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
@@ -293,7 +321,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     if (!conversation) return null
 
     // Ensure active conversation has an engine (lazy creation from storage).
-    await ensureEngine(id)
+    const engine = await ensureEngine(id)
+    if (!engine || disposed) return null
 
     // Cleanup engines that are not active and not processing.
     // This helps to release memory for engines that are no longer in use.
@@ -387,6 +416,31 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     await activeConversation.value?.engine.abortRequest()
   }
 
+  const dispose = (): Promise<void> => {
+    if (disposePromise) return disposePromise
+
+    disposed = true
+    watchers.forEach((watcher) => watcher())
+    watchers.clear()
+
+    disposePromise = (async () => {
+      await Promise.allSettled([...workingEngines.values()].map((engine) => engine.abortRequest()))
+      if (options.autoSaveMessages) {
+        await Promise.allSettled(
+          [...workingEngines].map(([id, engine]) =>
+            saveConversationMessages(id, engine.messages.value, { allowDisposed: true }),
+          ),
+        )
+      }
+      await Promise.allSettled([...persistenceQueues.values()])
+      workingEngines.clear()
+      persistenceQueues.clear()
+      activeConversationId.value = null
+    })()
+
+    return disposePromise
+  }
+
   return {
     conversations,
     activeConversationId,
@@ -401,5 +455,6 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     sendMessage,
     abortActiveRequest,
+    dispose,
   }
 }

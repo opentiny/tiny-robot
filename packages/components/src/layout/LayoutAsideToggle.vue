@@ -9,7 +9,7 @@ defineOptions({
 
 const props = defineProps<LayoutAsideToggleProps>()
 
-const { isOpen, toggle } = useLayoutAsideContext(props.side)
+const { isOpen, drawerId, toggle } = useLayoutAsideContext(props.side)
 
 const slotProps = computed(() => ({
   isOpen: isOpen.value,
@@ -30,10 +30,20 @@ const fallbackText = computed(() => {
   const text = fallbackTexts[props.side]
   return isOpen.value ? text.expanded : text.collapsed
 })
+
+function handleClick(event: MouseEvent): void {
+  toggle(event.currentTarget as HTMLElement)
+}
 </script>
 
 <template>
-  <button class="tr-layout-aside-toggle" type="button" @click="toggle">
+  <button
+    class="tr-layout-aside-toggle"
+    type="button"
+    :aria-controls="drawerId"
+    :aria-expanded="isOpen"
+    @click="handleClick"
+  >
     <slot v-bind="slotProps">
       {{ fallbackText }}
     </slot>

@@ -1,25 +1,27 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
+import { TrAttachments, TrSender, UploadButton } from '@opentiny/tiny-robot'
+import type { Attachment, SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
 import ModelSelector from './ModelSelector.vue'
 import ChatToolbarButton from './ChatToolbarButton.vue'
+import ChatSenderRendererOutlet from '../renderers/ChatSenderRendererOutlet.vue'
 import type {
+  ChatRenderers,
   ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
   ChatRequestView,
-  ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
   SenderDragPayload,
+  ResolvedChatSenderView,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
-  sender: Required<ChatSenderView>
+  sender: ResolvedChatSenderView
   request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
@@ -28,12 +30,17 @@ const props = defineProps<{
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
   hasRegisteredExtensions?: boolean
+  renderers?: Readonly<ChatRenderers>
 }>()
 
 const emit = defineEmits<{
+  rendererError: [error: unknown]
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
+  attachmentsSelect: [files: File[]]
+  'update:attachments': [attachments: Attachment[]]
+  attachmentError: [error: Error]
   'update:value': [value: string]
   openMcpPanel: []
   openExtensionsPanel: []
@@ -127,7 +134,17 @@ function handleUpdateSenderValue(value: string) {
 }
 
 function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData'], extra?: SenderSubmitExtra) {
-  emit('submit', { text, structuredData, externalPayloads: extra?.externalPayloads })
+  const attachments = extra?.externalPayloads.find((payload) => payload.source === 'attachments')?.payload
+  emit('submit', {
+    text,
+    structuredData,
+    externalPayloads: extra?.externalPayloads,
+    attachments: Array.isArray(attachments) ? (attachments as Attachment[]) : undefined,
+  })
+}
+
+function handleAttachmentsUpdate(attachments: Attachment[]) {
+  emit('update:attachments', attachments)
 }
 
 function handleSelectModel(payload: { id: string | null }) {
@@ -174,7 +191,14 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     @drop.capture="handleSenderDrag($event, (payload) => emit('senderDrop', payload))"
     @paste.capture="emit('senderPaste', $event)"
   >
-    <template v-if="$slots['sender-header']" #header>
+    <template v-if="sender.attachments !== undefined || $slots['sender-header']" #header>
+      <TrAttachments
+        v-if="sender.attachments?.length"
+        :items="[...sender.attachments]"
+        variant="card"
+        wrap
+        @update:items="handleAttachmentsUpdate"
+      />
       <slot name="sender-header" />
     </template>
     <template v-if="$slots['input-prefix']" #input-prefix>
@@ -183,10 +207,28 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     <template v-if="$slots['sender-content']" #content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['sender-actions-inline']" #actions-inline="slotProps">
-      <slot name="sender-actions-inline" v-bind="getSenderSlotScope(slotProps)" />
+    <template
+      v-if="$slots['sender-actions-inline'] || props.renderers?.['sender-actions-inline']"
+      #actions-inline="slotProps"
+    >
+      <slot
+        v-if="$slots['sender-actions-inline']"
+        name="sender-actions-inline"
+        v-bind="getSenderSlotScope(slotProps)"
+      />
+      <ChatSenderRendererOutlet
+        v-else
+        :renderer="props.renderers!['sender-actions-inline']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
-    <template v-if="$slots['sender-footer'] || toolbarItems.length" #footer="slotProps">
+    <template
+      v-if="$slots['sender-footer'] || props.renderers?.['sender-footer'] || toolbarItems.length"
+      #footer="slotProps"
+    >
       <div v-if="toolbarItems.length" class="tr-chat-toolbar">
         <template v-for="item in toolbarItems" :key="item.id">
           <ChatToolbarButton
@@ -215,10 +257,40 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
           />
         </template>
       </div>
-      <slot name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
+      <slot v-if="$slots['sender-footer']" name="sender-footer" v-bind="getSenderSlotScope(slotProps)" />
+      <ChatSenderRendererOutlet
+        v-else-if="props.renderers?.['sender-footer']"
+        :renderer="props.renderers['sender-footer']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
-    <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
-      <slot name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
+    <template
+      v-if="
+        sender.attachments !== undefined || $slots['sender-footer-right'] || props.renderers?.['sender-footer-right']
+      "
+      #footer-right="slotProps"
+    >
+      <UploadButton
+        v-if="sender.attachments !== undefined"
+        accept="*"
+        multiple
+        tooltip="添加附件"
+        tooltip-placement="top"
+        @select="emit('attachmentsSelect', $event)"
+        @error="emit('attachmentError', $event)"
+      />
+      <slot v-if="$slots['sender-footer-right']" name="sender-footer-right" v-bind="getSenderSlotScope(slotProps)" />
+      <ChatSenderRendererOutlet
+        v-else-if="props.renderers?.['sender-footer-right']"
+        :renderer="props.renderers['sender-footer-right']!"
+        :scope="getSenderSlotScope(slotProps)"
+        :disabled="sender.disabled"
+        :focus-input="focusInput"
+        :on-error="(error) => emit('rendererError', error)"
+      />
     </template>
   </TrSender>
 </template>

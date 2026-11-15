@@ -45,6 +45,8 @@ const buttonStyle = computed(() => {
 
   return {}
 })
+
+const accessibleLabel = computed(() => (typeof props.tooltip === 'string' ? props.tooltip : undefined))
 </script>
 
 <template>
@@ -60,6 +62,7 @@ const buttonStyle = computed(() => {
       :class="['tr-action-button', { active: props.active }]"
       :style="buttonStyle"
       :disabled="props.disabled"
+      :aria-label="accessibleLabel"
       @focus.capture="(event: FocusEvent) => event.stopPropagation()"
     >
       <!-- 优先使用插槽，如果没有插槽则使用 icon prop -->
@@ -75,6 +78,7 @@ const buttonStyle = computed(() => {
     :class="['tr-action-button', { active: props.active }]"
     :style="buttonStyle"
     :disabled="props.disabled"
+    :aria-label="accessibleLabel"
   >
     <slot name="icon">
       <component :is="props.icon" />

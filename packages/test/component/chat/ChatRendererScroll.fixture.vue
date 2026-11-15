@@ -46,6 +46,7 @@ const options = computed(() => ({
         :prompts="false"
         :labels="resolved.labels"
         :is-empty="false"
+        :busy="false"
         :center-empty-state="false"
         :center-welcome-composer="false"
       />

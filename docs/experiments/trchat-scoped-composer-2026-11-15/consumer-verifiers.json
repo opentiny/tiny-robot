@@ -1,0 +1,152 @@
+{
+  "standalone": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "package manager",
+        "ok": true,
+        "detail": "Supported node_modules layout"
+      },
+      {
+        "name": "consumer manifest",
+        "ok": true,
+        "detail": "Consumer manifest read"
+      },
+      {
+        "name": "source imports",
+        "ok": true,
+        "detail": "No private monorepo source imports detected"
+      },
+      {
+        "name": "dependency versions",
+        "ok": true,
+        "detail": "Direct dependencies and lockfile use existing local candidate tarballs"
+      },
+      {
+        "name": "@opentiny/tiny-robot-chat installation",
+        "ok": true,
+        "detail": "@opentiny/tiny-robot-chat 1.0.1 resolved inside consumer node_modules"
+      },
+      {
+        "name": "OpenTiny dependency graph and Vue peers",
+        "ok": true,
+        "detail": "OpenTiny dependency graph and Vue peer ranges verified"
+      },
+      {
+        "name": "public exports",
+        "ok": true,
+        "detail": "Experimental browser entry and CSS exports resolve"
+      },
+      {
+        "name": "local environment file",
+        "ok": true,
+        "detail": "Not a Git project"
+      },
+      {
+        "name": "build output secret",
+        "ok": true,
+        "detail": "No test secret supplied"
+      }
+    ]
+  },
+  "ngmodule": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "package manager",
+        "ok": true,
+        "detail": "Supported node_modules layout"
+      },
+      {
+        "name": "consumer manifest",
+        "ok": true,
+        "detail": "Consumer manifest read"
+      },
+      {
+        "name": "source imports",
+        "ok": true,
+        "detail": "No private monorepo source imports detected"
+      },
+      {
+        "name": "dependency versions",
+        "ok": true,
+        "detail": "Direct dependencies and lockfile use existing local candidate tarballs"
+      },
+      {
+        "name": "@opentiny/tiny-robot-chat installation",
+        "ok": true,
+        "detail": "@opentiny/tiny-robot-chat 1.0.1 resolved inside consumer node_modules"
+      },
+      {
+        "name": "OpenTiny dependency graph and Vue peers",
+        "ok": true,
+        "detail": "OpenTiny dependency graph and Vue peer ranges verified"
+      },
+      {
+        "name": "public exports",
+        "ok": true,
+        "detail": "Experimental browser entry and CSS exports resolve"
+      },
+      {
+        "name": "local environment file",
+        "ok": true,
+        "detail": "Not a Git project"
+      },
+      {
+        "name": "build output secret",
+        "ok": true,
+        "detail": "No test secret supplied"
+      }
+    ]
+  },
+  "ssr": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "package manager",
+        "ok": true,
+        "detail": "Supported node_modules layout"
+      },
+      {
+        "name": "consumer manifest",
+        "ok": true,
+        "detail": "Consumer manifest read"
+      },
+      {
+        "name": "source imports",
+        "ok": true,
+        "detail": "No private monorepo source imports detected"
+      },
+      {
+        "name": "dependency versions",
+        "ok": true,
+        "detail": "Direct dependencies and lockfile use existing local candidate tarballs"
+      },
+      {
+        "name": "@opentiny/tiny-robot-chat installation",
+        "ok": true,
+        "detail": "@opentiny/tiny-robot-chat 1.0.1 resolved inside consumer node_modules"
+      },
+      {
+        "name": "OpenTiny dependency graph and Vue peers",
+        "ok": true,
+        "detail": "OpenTiny dependency graph and Vue peer ranges verified"
+      },
+      {
+        "name": "public exports",
+        "ok": true,
+        "detail": "Experimental browser entry and CSS exports resolve"
+      },
+      {
+        "name": "local environment file",
+        "ok": true,
+        "detail": "Not a Git project"
+      },
+      {
+        "name": "build output secret",
+        "ok": true,
+        "detail": "No test secret supplied"
+      }
+    ]
+  }
+}

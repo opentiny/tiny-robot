@@ -59,6 +59,7 @@ const disabledRendererOptions = {
         :welcome="false"
         :prompts="false"
         :labels="resolvedOptions.labels"
+        :busy="false"
         :is-empty="false"
         :center-empty-state="false"
         :center-welcome-composer="false"
@@ -73,6 +74,7 @@ const disabledRendererOptions = {
         :welcome="false"
         :prompts="false"
         :labels="resolvedOptions.labels"
+        :busy="false"
         :is-empty="false"
         :center-empty-state="false"
         :center-welcome-composer="false"
@@ -87,7 +89,38 @@ const disabledRendererOptions = {
         :welcome="false"
         :prompts="false"
         :labels="resolvedOptions.labels"
+        :busy="false"
         :is-empty="false"
+        :center-empty-state="false"
+        :center-welcome-composer="false"
+      />
+    </section>
+
+    <section data-testid="processing-chat-messages">
+      <ChatMessages
+        :messages="messages"
+        :scroll-target="null"
+        :options="resolvedOptions.bubble"
+        :welcome="false"
+        :prompts="false"
+        :labels="resolvedOptions.labels"
+        :busy="true"
+        :is-empty="false"
+        :center-empty-state="false"
+        :center-welcome-composer="false"
+      />
+    </section>
+
+    <section data-testid="empty-chat-messages">
+      <ChatMessages
+        :messages="[]"
+        :scroll-target="null"
+        :options="resolvedOptions.bubble"
+        :welcome="false"
+        :prompts="false"
+        :labels="resolvedOptions.labels"
+        :busy="false"
+        :is-empty="true"
         :center-empty-state="false"
         :center-welcome-composer="false"
       />

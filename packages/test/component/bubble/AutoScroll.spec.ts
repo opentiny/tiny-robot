@@ -24,15 +24,14 @@ test.describe('useAutoScroll', () => {
     await expectAtBottom(scroller)
   })
 
-  test('preserves the reading position after the user scrolls upward', async ({ mount }) => {
+  test('preserves the reading position after the user scrolls upward', async ({ mount, page }) => {
     const component = await mount(AutoScrollFixture)
     const scroller = component.getByTestId('observed-scroll')
 
     await expectAtBottom(scroller)
-    await scroller.evaluate((element) => {
-      element.scrollTop = element.scrollHeight - element.clientHeight - 100
-      element.dispatchEvent(new Event('scroll'))
-    })
+    // Real wheel input interrupts the mount scroll and delivers native scroll events in browser order.
+    await scroller.hover()
+    await page.mouse.wheel(0, -100)
     await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(200)
     const before = await scroller.evaluate((element) => element.scrollTop)
 

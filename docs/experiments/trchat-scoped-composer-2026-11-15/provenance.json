@@ -1,0 +1,234 @@
+{
+  "date": "2026-11-15",
+  "baseline": "9ae04e097ad723a376ce5402790375a2b0f5242e",
+  "candidate": "/private/tmp/trchat-scoped-2026-11-15-356279a18a",
+  "tarballs": [
+    {
+      "path": "/private/tmp/trchat-scoped-2026-11-15-356279a18a/opentiny-tiny-robot-1.0.1.tgz",
+      "sha256": "056231f11f2df425ebd4f5e4c9d35f33a79228390b131842a7dced8782686b55"
+    },
+    {
+      "path": "/private/tmp/trchat-scoped-2026-11-15-356279a18a/opentiny-tiny-robot-chat-1.0.1.tgz",
+      "sha256": "20b844b32cecce52dfc12cab175609326c91fe59575e01deaf737daa3c85f18d"
+    },
+    {
+      "path": "/private/tmp/trchat-scoped-2026-11-15-356279a18a/opentiny-tiny-robot-kit-1.0.1.tgz",
+      "sha256": "4bcdacef08ca42fa093b29f203ed4b97dffd6180ed6f57a4ccdb8e73185a5151"
+    },
+    {
+      "path": "/private/tmp/trchat-scoped-2026-11-15-356279a18a/opentiny-tiny-robot-svgs-1.0.1.tgz",
+      "sha256": "858c94d937a2414a53a4c37b9fc58db29f7fe2cd33ec63b15f3aad13ba711431"
+    }
+  ],
+  "repositoryBuild": [
+    {
+      "path": "packages/chat/dist/experimental.js",
+      "sha256": "356279a18a0c6a65eb5512a8b2b98fe235fcbc0e55391c3cf7aa05f41a2042de"
+    },
+    {
+      "path": "packages/components/dist/index.js",
+      "sha256": "d93a45bdf5cc30c75c4aef8fdb5a4be64efea56a75d267c64d78e9325f919c0f"
+    },
+    {
+      "path": "packages/chat/dist/experimental-node.js",
+      "sha256": "a66168f26b43c5ed0e79ca2c210fab45eeab329a282b85111ce6cc938cbadaf7"
+    }
+  ],
+  "consumers": [
+    {
+      "mode": "standalone",
+      "root": "/private/tmp/trchat-1.0.1-eval/standalone",
+      "lockfile": {
+        "path": "/private/tmp/trchat-1.0.1-eval/standalone/pnpm-lock.yaml",
+        "sha256": "031f6f27c4a65ea443a623948c251a6545103eaab8163b6ab7ab61f7b13e05ae"
+      },
+      "packages": [
+        {
+          "name": "@angular/core",
+          "version": "20.3.35",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@angular+core@20.3.35_@angular+compiler@20.3.35_rxjs@7.8.2_zone.js@0.15.1/node_modules/@angular/core/package.json"
+        },
+        {
+          "name": "@angular/cli",
+          "version": "20.3.42",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@angular+cli@20.3.42_@types+node@26.6.6_chokidar@4.0.3_supports-color@7.2.0/node_modules/@angular/cli/package.json"
+        },
+        {
+          "name": "typescript",
+          "version": "5.9.3",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json"
+        },
+        {
+          "name": "vue",
+          "version": "3.5.45",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/vue@3.5.45_typescript@5.9.3/node_modules/vue/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-chat",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_c34307b86203c036a007f59dcdd8d020/node_modules/@opentiny/tiny-robot/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-kit",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot-kit@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-r_2d199d15115200fbda64734a5177c464/node_modules/@opentiny/tiny-robot-kit/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-svgs",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot-svgs@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_c8b611440332ab7022a09023d54c6a4b/node_modules/@opentiny/tiny-robot-svgs/package.json"
+        }
+      ],
+      "installedBuilds": [
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/dist/experimental.js",
+          "sha256": "356279a18a0c6a65eb5512a8b2b98fe235fcbc0e55391c3cf7aa05f41a2042de"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_c34307b86203c036a007f59dcdd8d020/node_modules/@opentiny/tiny-robot/dist/index.js",
+          "sha256": "d93a45bdf5cc30c75c4aef8fdb5a4be64efea56a75d267c64d78e9325f919c0f"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/standalone/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/dist/experimental-node.js",
+          "sha256": "a66168f26b43c5ed0e79ca2c210fab45eeab329a282b85111ce6cc938cbadaf7"
+        }
+      ],
+      "matchesCurrentRepositoryBuild": true
+    },
+    {
+      "mode": "ngmodule",
+      "root": "/private/tmp/trchat-1.0.1-eval/ngmodule",
+      "lockfile": {
+        "path": "/private/tmp/trchat-1.0.1-eval/ngmodule/pnpm-lock.yaml",
+        "sha256": "640b54d76d5ea074c9fbed7a3626bf987a955b269b7e94712e88ba4fba051188"
+      },
+      "packages": [
+        {
+          "name": "@angular/core",
+          "version": "20.3.13",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@angular+core@20.3.13_@angular+compiler@20.3.13_rxjs@7.8.2_zone.js@0.15.1/node_modules/@angular/core/package.json"
+        },
+        {
+          "name": "@angular/cli",
+          "version": "20.3.11",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@angular+cli@20.3.11_@types+node@26.6.6_chokidar@4.0.3/node_modules/@angular/cli/package.json"
+        },
+        {
+          "name": "typescript",
+          "version": "5.9.3",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json"
+        },
+        {
+          "name": "vue",
+          "version": "3.5.24",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/vue@3.5.24_typescript@5.9.3/node_modules/vue/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-chat",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_70f4135bdc1538a3c1ad813528b52853/node_modules/@opentiny/tiny-robot-chat/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_927bed2490590eb43d2f7a60c6d40455/node_modules/@opentiny/tiny-robot/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-kit",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot-kit@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-r_cc1e1a9e5ac43533638a96ea7b362cd9/node_modules/@opentiny/tiny-robot-kit/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-svgs",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot-svgs@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_70215e86e63d9cc8587021de921dfd69/node_modules/@opentiny/tiny-robot-svgs/package.json"
+        }
+      ],
+      "installedBuilds": [
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_70f4135bdc1538a3c1ad813528b52853/node_modules/@opentiny/tiny-robot-chat/dist/experimental.js",
+          "sha256": "356279a18a0c6a65eb5512a8b2b98fe235fcbc0e55391c3cf7aa05f41a2042de"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_927bed2490590eb43d2f7a60c6d40455/node_modules/@opentiny/tiny-robot/dist/index.js",
+          "sha256": "d93a45bdf5cc30c75c4aef8fdb5a4be64efea56a75d267c64d78e9325f919c0f"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ngmodule/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_70f4135bdc1538a3c1ad813528b52853/node_modules/@opentiny/tiny-robot-chat/dist/experimental-node.js",
+          "sha256": "a66168f26b43c5ed0e79ca2c210fab45eeab329a282b85111ce6cc938cbadaf7"
+        }
+      ],
+      "matchesCurrentRepositoryBuild": true
+    },
+    {
+      "mode": "ssr",
+      "root": "/private/tmp/trchat-1.0.1-eval/ssr",
+      "lockfile": {
+        "path": "/private/tmp/trchat-1.0.1-eval/ssr/pnpm-lock.yaml",
+        "sha256": "bc92fa7f4d6d485a2424beeda7e5305e83ad6adf6570d136fcbc3a15ab114281"
+      },
+      "packages": [
+        {
+          "name": "@angular/core",
+          "version": "20.3.35",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@angular+core@20.3.35_@angular+compiler@20.3.35_rxjs@7.8.2_zone.js@0.15.1/node_modules/@angular/core/package.json"
+        },
+        {
+          "name": "@angular/cli",
+          "version": "20.3.42",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@angular+cli@20.3.42_@types+node@20.19.43_chokidar@4.0.3_supports-color@7.2.0/node_modules/@angular/cli/package.json"
+        },
+        {
+          "name": "typescript",
+          "version": "5.9.3",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json"
+        },
+        {
+          "name": "vue",
+          "version": "3.5.45",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/vue@3.5.45_typescript@5.9.3/node_modules/vue/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-chat",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_c34307b86203c036a007f59dcdd8d020/node_modules/@opentiny/tiny-robot/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-kit",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot-kit@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-r_2d199d15115200fbda64734a5177c464/node_modules/@opentiny/tiny-robot-kit/package.json"
+        },
+        {
+          "name": "@opentiny/tiny-robot-svgs",
+          "version": "1.0.1",
+          "manifest": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot-svgs@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_c8b611440332ab7022a09023d54c6a4b/node_modules/@opentiny/tiny-robot-svgs/package.json"
+        }
+      ],
+      "installedBuilds": [
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/dist/experimental.js",
+          "sha256": "356279a18a0c6a65eb5512a8b2b98fe235fcbc0e55391c3cf7aa05f41a2042de"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-robot_c34307b86203c036a007f59dcdd8d020/node_modules/@opentiny/tiny-robot/dist/index.js",
+          "sha256": "d93a45bdf5cc30c75c4aef8fdb5a4be64efea56a75d267c64d78e9325f919c0f"
+        },
+        {
+          "path": "/private/tmp/trchat-1.0.1-eval/ssr/node_modules/.pnpm/@opentiny+tiny-robot-chat@file+..+..+trchat-scoped-2026-11-15-356279a18a+opentiny-tiny-_6eebd0a7c8589f9a68b9350945984193/node_modules/@opentiny/tiny-robot-chat/dist/experimental-node.js",
+          "sha256": "a66168f26b43c5ed0e79ca2c210fab45eeab329a282b85111ce6cc938cbadaf7"
+        }
+      ],
+      "matchesCurrentRepositoryBuild": true
+    }
+  ]
+}

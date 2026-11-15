@@ -3,20 +3,22 @@ import { computed, shallowRef } from 'vue'
 import type { SenderSlotScope } from '@opentiny/tiny-robot'
 import ChatSender from './ChatSender.vue'
 import type {
+  Attachment,
   ChatModelFeatureValueChangePayload,
   ChatLabels,
+  ChatRenderers,
   ChatMcpView,
   ChatModelView,
   ChatRequestView,
   ChatSenderSlotProps,
-  ChatSenderView,
+  ResolvedChatSenderView,
   ChatSendPayload,
   SenderDragPayload,
 } from '../../types'
 import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
-  sender: Required<ChatSenderView>
+  sender: ResolvedChatSenderView
   request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
@@ -25,12 +27,17 @@ const props = defineProps<{
   modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
   hasRegisteredExtensions?: boolean
+  renderers?: Readonly<ChatRenderers>
 }>()
 
 const emit = defineEmits<{
+  rendererError: [error: unknown]
   submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
+  attachmentsSelect: [files: File[]]
+  'update:attachments': [attachments: Attachment[]]
+  attachmentError: [error: Error]
   'update:value': [value: string]
   openMcpPanel: []
   openExtensionsPanel: []
@@ -95,9 +102,14 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
         :model-options="props.modelOptions"
         :mcp="props.mcp"
         :has-registered-extensions="props.hasRegisteredExtensions"
+        :renderers="props.renderers"
+        @renderer-error="emit('rendererError', $event)"
         @submit="handleSubmit"
         @cancel="emit('cancel')"
         @clear="emit('clear')"
+        @attachments-select="emit('attachmentsSelect', $event)"
+        @update:attachments="emit('update:attachments', $event)"
+        @attachment-error="emit('attachmentError', $event)"
         @update:value="handleInputValue"
         @open-mcp-panel="emit('openMcpPanel')"
         @open-extensions-panel="emit('openExtensionsPanel')"

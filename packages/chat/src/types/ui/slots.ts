@@ -96,6 +96,7 @@ export interface ChatBubbleContentFooterSlotProps extends ChatBubbleSlotProps {
 }
 
 export interface ChatUISlots {
+  'header-notice'?: () => unknown
   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-brand'?: (props: ChatLeftAsideSlotProps) => unknown

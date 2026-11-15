@@ -4,6 +4,7 @@ import { useChatDraft } from './useChatDraft'
 import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
 import { canSetModelFieldValue } from '@opentiny/tiny-robot'
 import type {
+  Attachment,
   ChatMcpServerView,
   ChatMcpToolView,
   ChatMcpView,
@@ -20,6 +21,7 @@ export interface UseChatRuntimeAdapterOptions {
   runtime: MaybeRefOrGetter<ChatRuntime>
   title?: MaybeRefOrGetter<string | undefined>
   historyData?: MaybeRefOrGetter<ChatHistoryData | undefined>
+  attachments?: MaybeRefOrGetter<readonly Attachment[] | undefined>
   onActionError: (payload: ChatRuntimeActionErrorPayload) => void
 }
 
@@ -173,6 +175,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
           (active?.requestState === 'paused' && typeof runtime.value.actions.abort === 'function'),
         disabled: Boolean(runtime.value.composer.disabled?.value),
         submitDisabled: Boolean(runtime.value.composer.submitDisabled?.value),
+        attachments: toValue(options.attachments),
       },
       request: active
         ? {

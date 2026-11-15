@@ -1,5 +1,7 @@
 export type * from './data'
+export type * from './bubbleRenderers'
 export type * from './events'
 export type * from './options'
+export type * from './renderers'
 export type * from './slots'
 export { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './options'

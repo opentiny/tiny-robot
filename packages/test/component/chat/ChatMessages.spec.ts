@@ -27,3 +27,30 @@ test.describe('ChatMessages error renderer', () => {
     await expect(messages.getByTestId('custom-chat-error')).toHaveCount(0)
   })
 })
+
+test.describe('ChatMessages assistive technology contract', () => {
+  test('exposes completed messages as an idle polite log', async ({ mount }) => {
+    const component = await mount(ChatMessagesFixture)
+    const log = component.getByTestId('default-chat-messages').locator('.chat-panel-content--main')
+
+    await expect(log).toHaveAttribute('role', 'log')
+    await expect(log).toHaveAttribute('aria-live', 'polite')
+    await expect(log).toHaveAttribute('aria-relevant', 'additions text')
+    await expect(log).toHaveAttribute('aria-busy', 'false')
+  })
+
+  test('marks the message log busy while a response is streaming', async ({ mount }) => {
+    const component = await mount(ChatMessagesFixture)
+    const log = component.getByTestId('processing-chat-messages').locator('.chat-panel-content--main')
+
+    await expect(log).toHaveAttribute('aria-busy', 'true')
+  })
+
+  test('does not announce the welcome state as a message log', async ({ mount }) => {
+    const component = await mount(ChatMessagesFixture)
+    const empty = component.getByTestId('empty-chat-messages').locator('.chat-panel-content--main')
+
+    await expect(empty).not.toHaveAttribute('role', 'log')
+    await expect(empty).not.toHaveAttribute('aria-live', 'polite')
+  })
+})
