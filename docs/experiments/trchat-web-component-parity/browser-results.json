@@ -1,0 +1,242 @@
+[
+  {
+    "mode": "standalone",
+    "result": "passed",
+    "propertyIdentity": true,
+    "eventPayloads": [
+      {
+        "kind": "runtime",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      },
+      {
+        "kind": "ui",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      }
+    ],
+    "desktop": "1440x1000",
+    "mobile": "390x844",
+    "errors": []
+  },
+  {
+    "mode": "ngmodule",
+    "result": "passed",
+    "propertyIdentity": true,
+    "eventPayloads": [
+      {
+        "kind": "runtime",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      },
+      {
+        "kind": "ui",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      }
+    ],
+    "desktop": "1440x1000",
+    "mobile": "390x844",
+    "errors": []
+  },
+  {
+    "mode": "ssr",
+    "result": "passed",
+    "propertyIdentity": true,
+    "eventPayloads": [
+      {
+        "kind": "runtime",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      },
+      {
+        "kind": "ui",
+        "events": [
+          {
+            "name": "sender-drag-enter",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-over",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drag-leave",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-drop",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          },
+          {
+            "name": "sender-paste",
+            "identity": true,
+            "target": true,
+            "canceled": true
+          }
+        ]
+      }
+    ],
+    "desktop": "1440x1000",
+    "mobile": "390x844",
+    "errors": []
+  }
+]
