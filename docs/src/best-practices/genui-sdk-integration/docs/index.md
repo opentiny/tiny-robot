@@ -11,7 +11,7 @@ pageClass: demo-container-page-bg
 
 ## 效果预览
 
-完整体验动图（待补充）。
+![GenUI 订单查询表单接入完整流程](/genui-sdk-integration.gif)
 
 动图将展示以下完整流程：
 
