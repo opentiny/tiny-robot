@@ -73,10 +73,15 @@ function loadTar(bytes: Uint8Array, limit: number, context: SkillLoadContext) {
   let totalSize = 0
   let entryCount = 0
   let nextPath: string | undefined
-  while (offset + 512 <= bytes.length) {
+  let sawEndMarker = false
+  while (offset < bytes.length) {
     throwIfSkillLoadCancelled(context.signal)
     const header = bytes.subarray(offset, offset + 512)
-    if (header.every((byte) => byte === 0)) break
+    if (header.length === 512 && header.every((byte) => byte === 0)) {
+      sawEndMarker = true
+      break
+    }
+    if (header.length < 512) throw new Error('Invalid TAR archive: truncated header.')
     if (!isValidTarHeader(header)) throw new Error('Invalid TAR archive header or checksum.')
 
     const name = readTarString(header, 0, 100)
@@ -113,6 +118,7 @@ function loadTar(bytes: Uint8Array, limit: number, context: SkillLoadContext) {
 
     offset = dataOffset + paddedSize
   }
+  if (!sawEndMarker) throw new Error('Invalid TAR archive: end marker is missing.')
   return stripSingleRootDirectory(files)
 }
 

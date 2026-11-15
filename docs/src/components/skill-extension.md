@@ -75,7 +75,7 @@ description: 用于试用 Skill 导入。
 
 ### 导入压缩包
 
-`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz` 文件。归档可以直接包含 `SKILL.md`，也可以在唯一顶层目录中包含它；解包后按相对路径生成资源。ZIP 支持 Store 和 Deflate 压缩方法，TAR.GZ/TGZ 使用运行时 `DecompressionStream` 解压。默认解析上限为 10 MB，`max-upload-size` 同时限制上传文件大小和解包后文件总大小，并将归档条目数限制为 10,000。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
+`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz` 文件。归档可以直接包含 `SKILL.md`，也可以在唯一顶层目录中包含它；解包后按相对路径生成资源。ZIP 支持 Store 和 Deflate 压缩方法；TAR 支持 USTAR、PAX 和 GNU 长路径归档及普通文件/目录条目，并拒绝链接和设备文件。TAR.GZ/TGZ 使用运行时 `DecompressionStream` 解压。默认解析上限为 10 MB，`max-upload-size` 同时限制上传文件大小和解包后文件总大小，并将归档条目数限制为 10,000。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
 
 | 格式         | 常见用途                 | 当前支持              | 说明                                                        |
 | ------------ | ------------------------ | --------------------- | ----------------------------------------------------------- |

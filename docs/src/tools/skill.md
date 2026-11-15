@@ -300,7 +300,7 @@ async function importFromInput(input: HTMLInputElement) {
 }
 ```
 
-也可以通过 `source: 'archive'` 加载 ZIP、TAR、TAR.GZ 或 TGZ。kit 会移除包中的单一顶层目录，保留其余相对路径，并限制解包总大小（默认 10 MiB）和归档条目数（最多 10,000）。ZIP 支持 Store 和 Deflate；TAR 目前支持普通文件和目录，不解包链接或设备文件。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档不支持：
+也可以通过 `source: 'archive'` 加载 ZIP、TAR、TAR.GZ 或 TGZ。kit 会移除包中的单一顶层目录，保留其余相对路径，并限制解包总大小（默认 10 MiB）和归档条目数（最多 10,000）。ZIP 支持 Store 和 Deflate；TAR 支持 USTAR、PAX、GNU 长路径及普通文件/目录条目，不解包链接或设备文件。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档不支持：
 
 ```typescript
 const skill = await loadSkill({
