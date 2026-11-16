@@ -418,8 +418,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <style scoped>
 @media (hover: hover) {
-  .tr-chat-messages :deep(.tr-bubble:hover .tr-chat-bubble-actions:not(.is-processing)),
-  .tr-chat-messages :deep(.tr-bubble__after:focus-within .tr-chat-bubble-actions:not(.is-processing)) {
+  .tr-chat-messages :deep(.tr-bubble:hover .tr-chat-bubble-actions:not(.is-processing)) {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -427,7 +426,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 @media (hover: none), (pointer: coarse) {
-  .tr-chat-messages :deep(.tr-bubble[data-role='user'] .tr-chat-bubble-actions:not(.is-processing)) {
+  .tr-chat-messages :deep(.tr-bubble .tr-chat-bubble-actions:not(.is-processing)) {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;

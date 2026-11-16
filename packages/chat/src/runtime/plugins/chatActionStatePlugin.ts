@@ -15,6 +15,25 @@ export function createChatActionStatePlugin(): UseMessagePlugin {
       const metadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string; turnState?: string } | undefined
       if (metadata) metadata.turnState = 'processing'
     },
+    onCompletionChunk({ currentTurn, currentMessage, updateCurrentMessage }) {
+      if (currentMessage.role !== 'assistant') return
+      const user = [...currentTurn].reverse().find((message) => message.role === 'user')
+      const userMetadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
+      if (!userMetadata?.id) return
+      const existing = currentMessage.metadata?.[CHAT_ACTION_METADATA_KEY] as Record<string, unknown> | undefined
+      if (existing?.id && existing.userMessageId === userMetadata.id && existing.turnState === 'processing') return
+      updateCurrentMessage((message) => {
+        message.metadata = {
+          ...message.metadata,
+          [CHAT_ACTION_METADATA_KEY]: {
+            ...existing,
+            id: existing?.id ?? generateActionId(),
+            userMessageId: userMetadata.id,
+            turnState: 'processing',
+          },
+        }
+      })
+    },
     onFinally({ currentTurn, requestState }) {
       const user = [...currentTurn].reverse().find((message) => message.role === 'user')
       const userMetadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined

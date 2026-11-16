@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
@@ -64,6 +64,32 @@ describe('useMessage', () => {
     expect(engine.messages.value).toHaveLength(3)
     expect(engine.messages.value[1]).toMatchObject({ role: 'user', content: 'ping' })
     expect(engine.messages.value[2]).toMatchObject({ role: 'assistant', content: 'foobar', loading: undefined })
+  })
+
+  it('exposes updateCurrentMessage to Vue plugins and notifies message watchers', async () => {
+    const updateSnapshots: unknown[] = []
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('assistant reply'),
+      plugins: [
+        {
+          onCompletionChunk({ updateCurrentMessage }) {
+            updateCurrentMessage((message) => {
+              message.metadata = { ...message.metadata, pluginUpdated: true }
+            })
+          },
+        },
+      ],
+    })
+    watch(
+      () => engine.messages.value.at(-1)?.metadata?.pluginUpdated,
+      (value) => updateSnapshots.push(value),
+      { flush: 'sync' },
+    )
+
+    await engine.sendMessage('hello')
+
+    expect(engine.messages.value.at(-1)?.metadata?.pluginUpdated).toBe(true)
+    expect(updateSnapshots).toEqual([true])
   })
 
   it('keeps responseProvider as a writable ref', async () => {

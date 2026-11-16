@@ -41,7 +41,7 @@ describe('createProviderResponseProvider usage mapping', () => {
           output_tokens?: number
         }
         if (!value) return undefined
-        return { prompt_tokens: value.input_tokens, completion_tokens: value.output_tokens }
+        return { prompt_tokens: value.input_tokens, completion_tokens: value.output_tokens, total_tokens: undefined }
       }),
     )
     const result = await provider(

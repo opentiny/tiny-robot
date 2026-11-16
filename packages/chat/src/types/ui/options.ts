@@ -175,7 +175,6 @@ export type ChatBubbleActionItem =
       readonly id: string
       readonly label: string
       readonly icon?: ChatIcon
-      readonly active?: ChatActionCondition
       readonly onClick: (context: ChatBubbleActionContext) => void | Promise<void>
     })
   | (ChatBubbleActionPresentation & { readonly type: 'slot'; readonly id: string })

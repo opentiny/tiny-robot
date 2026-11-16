@@ -103,7 +103,7 @@ onMounted(() => {
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--tr-text-color-primary);
+  color: var(--tr-text-primary);
   font: inherit;
   line-height: 1.5;
   overflow-wrap: anywhere;

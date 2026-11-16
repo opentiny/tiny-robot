@@ -425,9 +425,25 @@ const ui: ChatUIOptions = {
 | `regenerate` | 重新生成与消息关联的助手回答。请求处于错误或中止状态时，按钮文案会显示为“重试”。 |
 | `info` | 显示消息已有的模型、结束原因、时间及输入／输出／总 Token；可通过 `info.items(context)` 自定义内容，没有有效信息项时不显示。 |
 
-`display` 支持 `'always'`、`'hover'` 或回调；默认使用 `'hover'`。上例通过当前 Runtime 的消息列表，让最新用户和助手消息的按钮常驻，历史消息悬停显示（触屏保留现有展示策略）。信息面板仅通过点击按钮展开，再次点击按钮、点击面板外部或按 Escape 关闭。使用 `visible`、`user` 和 `assistant` 可以按角色或消息上下文调整动作，函数配置会收到默认动作列表和 `ChatBubbleActionContext`。
+`display` 支持 `'always'`、`'hover'` 或回调；默认使用 `'hover'`。上例通过当前 Runtime 的消息列表，让最新用户和助手消息的按钮常驻，历史消息悬停或键盘聚焦时显示；触屏下所有消息的可用按钮常驻。信息面板仅通过点击按钮展开，再次点击按钮、点击面板外部或按 Escape 关闭。使用 `visible`、`user` 和 `assistant` 可以按角色或消息上下文调整动作，函数配置会收到默认动作列表和 `ChatBubbleActionContext`。
 
 `edit` 和 `regenerate` 是否显示由 `ChatBubbleActionContext.capabilities` 决定。默认 Kit Runtime 只允许重放最新的纯文本用户回合；有附件、工具调用、处理中会话、空闲会话，或原模型已不存在或被禁用时，对应动作会隐藏。外部 Runtime 若未提供 `getMessageCapabilities`，使用 `TrChatUI` 时应自行在 `data.bubble.actions` 中提供能力映射。
+
+编辑和重新生成沿用原回合的模型与配置，并执行发送禁用检查和 `beforeSend`；回调返回 `'reject'` 或 `'handled'` 时不执行默认重放，也不改动历史消息。
+
+`useChatRuntime` 已内置消息操作状态插件。使用 `useChatRuntimeFromConversation` 接入自建 Conversation 时，需要在创建 Conversation 时注册：
+
+```ts
+import { useConversation } from '@opentiny/tiny-robot-kit'
+import { createChatActionStatePlugin, useChatRuntimeFromConversation } from '@opentiny/tiny-robot-chat'
+
+const conversation = useConversation({
+  useMessageOptions: { responseProvider, plugins: [createChatActionStatePlugin()] },
+})
+const runtime = useChatRuntimeFromConversation({ conversation, composer: { model } })
+```
+
+其中 `responseProvider` 和 `model` 为应用已有的响应提供器和模型配置。
 
 #### 自定义气泡操作按钮
 
@@ -500,7 +516,7 @@ const ui: ChatUIOptions = {
 | `completion_tokens` | 输出 Token 数 |
 | `total_tokens` | 总 Token 数 |
 
-至少提供一个字段，值为非负整数，缺失字段省略。返回上述格式时无需配置 `mapUsage`。
+至少提供一个字段，值为非负安全整数；缺失或值为 `undefined` 的字段忽略。返回上述格式时无需配置 `mapUsage`。
 
 字段不同时，在 `modelProviders[].models[]` 中配置 `mapUsage`。以下将服务返回的 `input_tokens`、`output_tokens` 转换为标准字段：
 

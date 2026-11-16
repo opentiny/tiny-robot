@@ -4,6 +4,8 @@ import { createMessageEngine } from '../core/engine'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
 import type {
   ChatMessage,
+  ChatResponseChunk,
+  ChatTokenUsage,
   CreateMessageEngineOptions,
   PublicMessageState,
   RequestProcessingState,
@@ -19,6 +21,48 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('createMessageEngine', () => {
+  it.each(['content', 'usage-only', 'mixed'] as const)(
+    'preserves defined usage fields across %s chunks and accepts zero updates',
+    async (mode) => {
+      const usageSnapshots: ChatTokenUsage[] = [
+        { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
+        { prompt_tokens: undefined, completion_tokens: 2, total_tokens: undefined },
+        { prompt_tokens: 6, completion_tokens: undefined, total_tokens: undefined },
+        { prompt_tokens: undefined, completion_tokens: 0, total_tokens: undefined },
+        { prompt_tokens: undefined, completion_tokens: undefined, total_tokens: 6 },
+      ]
+      const engine = createTestMessageEngine({
+        plugins: silentDefaultPlugins,
+        responseProvider: async function* () {
+          for (const [index, usage] of usageSnapshots.entries()) {
+            yield {
+              id: 'usage-stream',
+              object: 'chat.completion.chunk',
+              created: 1,
+              model: 'test-model',
+              choices:
+                mode === 'usage-only' || (mode === 'mixed' && index % 2 === 1)
+                  ? []
+                  : [{ index: 0, delta: { content: 'part' }, finish_reason: null, logprobs: null }],
+              usage,
+            } satisfies ChatResponseChunk
+          }
+        },
+      })
+
+      await engine.sendMessage('question')
+
+      const assistant = engine.getState().messages.at(-1)!
+      expect(assistant.metadata?.usage).toEqual({ prompt_tokens: 6, completion_tokens: 0, total_tokens: 6 })
+      expect(assistant.content).toBe('part'.repeat(mode === 'content' ? 5 : mode === 'mixed' ? 3 : 0))
+      expect(usageSnapshots[1]).toEqual({
+        prompt_tokens: undefined,
+        completion_tokens: 2,
+        total_tokens: undefined,
+      })
+    },
+  )
+
   it('throws when adapter is initialized more than once', () => {
     const adapter = createNativeMessageAdapter()
 
@@ -72,6 +116,33 @@ describe('createMessageEngine', () => {
     expect(userMessage?.metadata?.updatedAt).toBeDefined()
     expect(assistantMessage?.metadata?.createdAt).toBeDefined()
     expect(assistantMessage?.metadata?.updatedAt).toBeDefined()
+  })
+
+  it('notifies message subscribers when a plugin updates the current message', async () => {
+    const updateSnapshots: unknown[] = []
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onCompletionChunk({ updateCurrentMessage }) {
+            updateCurrentMessage((message) => {
+              message.metadata = { ...message.metadata, pluginUpdated: true }
+            })
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('assistant reply'),
+    })
+    engine.subscribe('messages', ({ messages }) => {
+      const assistant = messages.at(-1)
+      if (assistant?.metadata?.pluginUpdated) {
+        updateSnapshots.push(assistant.metadata.pluginUpdated)
+      }
+    })
+
+    await engine.sendMessage('hello')
+
+    expect(updateSnapshots).toEqual([true])
   })
 
   it('notifies message and request state subscribers with snapshots of message updates and request state transitions during message processing', async () => {

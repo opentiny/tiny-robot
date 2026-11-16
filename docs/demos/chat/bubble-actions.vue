@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { onMounted, shallowRef } from 'vue'
-import { useConversation, type ResponseProvider, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
+import { useConversation, type ResponseProvider } from '@opentiny/tiny-robot-kit'
 import {
   TrChat,
+  createChatActionStatePlugin,
   useChatRuntimeFromConversation,
   type ChatModelRuntime,
   type ChatUIOptions,
 } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
-const actionMetadataKey = 'chat_action_metadata'
 const responseProvider: ResponseProvider = async (requestBody) => {
   const user = [...requestBody.messages].reverse().find((message) => message.role === 'user')
   const text = typeof user?.content === 'string' ? user.content : '这条消息'
@@ -29,33 +29,6 @@ const responseProvider: ResponseProvider = async (requestBody) => {
   } as never
 }
 
-const actionStatePlugin: UseMessagePlugin = {
-  name: 'chat-actions-demo-state',
-  onTurnStart({ currentTurn }) {
-    const user = [...currentTurn].reverse().find((message) => message.role === 'user')
-    const metadata = user?.metadata?.[actionMetadataKey] as { turnState?: string } | undefined
-    if (metadata) metadata.turnState = 'processing'
-  },
-  onFinally({ currentTurn, requestState }) {
-    const user = [...currentTurn].reverse().find((message) => message.role === 'user')
-    const userMetadata = user?.metadata?.[actionMetadataKey] as { id?: string } | undefined
-    if (!userMetadata?.id) return
-    const turnState = requestState === 'paused' ? 'paused' : requestState
-    for (const message of currentTurn) {
-      if (message.role !== 'assistant') continue
-      message.metadata = {
-        ...message.metadata,
-        [actionMetadataKey]: {
-          id: `${userMetadata.id}-assistant`,
-          userMessageId: userMetadata.id,
-          turnState,
-        },
-      }
-    }
-    userMetadata.turnState = turnState
-  },
-}
-
 const options = shallowRef([{ id: 'tiny-robot-demo', label: '本地演示模型' }])
 const selectedId = shallowRef<string | null>('tiny-robot-demo')
 const model: ChatModelRuntime = {
@@ -68,7 +41,7 @@ const model: ChatModelRuntime = {
 const conversation = useConversation({
   useMessageOptions: {
     responseProvider,
-    plugins: [actionStatePlugin],
+    plugins: [createChatActionStatePlugin()],
   },
 })
 const runtime = useChatRuntimeFromConversation({ conversation, composer: { model } })

@@ -190,6 +190,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
           currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
           choice: context.choice as CompletionChoice,
           chunk: context.chunk as ChatCompletion,
+          updateCurrentMessage: (recipe) => context.updateCurrentMessage((message) => recipe(message as ChatMessage)),
         })
     }
 

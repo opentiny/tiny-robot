@@ -150,6 +150,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const state = metadata?.turnState ?? linkedAssistantMetadata?.turnState ?? 'unknown'
       const canReplay = Boolean(
         userMessageId &&
+        !isSendingDisabled() &&
         linkedUserIndex === latestUserIndex &&
         plainText &&
         !hasAttachments &&
@@ -195,9 +196,15 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     submitDisabled,
   }
 
+  function isSendingDisabled() {
+    return Boolean(sourceComposer.disabled?.value || sourceComposer.submitDisabled?.value)
+  }
+
   function createBeforeSendContext(payload: ChatSendPayload, runConfig?: ChatRunConfig): ChatBeforeSendContext {
     const model = composer.model
-    const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
+    const selectedModel = model?.options.value.find(
+      (item) => item.id === (runConfig?.modelId ?? model.selectedId.value),
+    )
     const mcp = composer.mcp
 
     return {
@@ -262,6 +269,8 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   async function rerunMessage(target: { conversationId: string; userMessageId: string; text?: string }) {
     const active = activeConversation.value
     if (!active || active.id !== target.conversationId) return false
+    const targetEngine = activeKitConversation.value?.engine
+    const navigationRevision = conversationNavigationRevision.value
     const capabilities = getMessageCapabilities(target)
     if (target.text === undefined ? !capabilities.canRegenerate : !capabilities.canEdit) return false
     const targetMessage = active.messages.find((message) => {
@@ -277,31 +286,50 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
             return message.role === 'user' && metadata?.id === targetMetadata?.userMessageId
           })
     if (!userMessage || typeof userMessage.content !== 'string') return false
+    const originalText = userMessage.content
+    const text = (target.text ?? originalText).trim()
+    if (!text) return false
+    const runConfig = readRunConfigFromMessage(userMessage)
     const rerunTarget = userMessage as unknown as Parameters<UseConversationReturn['rerunMessage']>[1]
-    const replacement =
-      target.text === undefined
-        ? undefined
-        : ({
-            ...userMessage,
-            content: target.text,
-            role: 'user' as const,
-            metadata: {
-              ...userMessage.metadata,
-              updatedAt: Math.floor(Date.now() / 1000),
-              [CHAT_ACTION_METADATA_KEY]: { id: target.userMessageId, turnState: 'processing' },
-            },
-          } as unknown as Parameters<UseConversationReturn['rerunMessage']>[2])
     const key = getTargetKey(target.conversationId)
     if (occupiedTargets.value.has(key)) return false
     occupiedTargets.value = new Set(occupiedTargets.value).add(key)
     try {
+      const eligible = () => {
+        const capability = getMessageCapabilities(target)
+        return (
+          !isSendingDisabled() &&
+          Boolean(targetEngine?.canStartTurn.value) &&
+          (target.text === undefined ? capability.canRegenerate : capability.canEdit)
+        )
+      }
+      if (!eligible()) return false
+      const beforeSendResult = beforeSend ? await beforeSend(createBeforeSendContext({ text }, runConfig)) : undefined
+      if (beforeSendResult === 'reject') return false
+      if (beforeSendResult === 'handled') return true
       if (
         conversation.activeConversation.value?.id !== target.conversationId ||
-        conversation.activeConversation.value?.engine !== activeKitConversation.value?.engine
+        conversationNavigationRevision.value !== navigationRevision ||
+        conversation.activeConversation.value?.engine !== targetEngine ||
+        !targetEngine?.messages.value.includes(rerunTarget) ||
+        userMessage.content !== originalText ||
+        JSON.stringify(readRunConfigFromMessage(userMessage)) !== JSON.stringify(runConfig) ||
+        !eligible()
       )
         return false
-      const latestCapability = getMessageCapabilities(target)
-      if (target.text === undefined ? !latestCapability.canRegenerate : !latestCapability.canEdit) return false
+      const replacement =
+        target.text === undefined
+          ? undefined
+          : ({
+              ...userMessage,
+              content: text,
+              role: 'user' as const,
+              metadata: {
+                ...userMessage.metadata,
+                updatedAt: Math.floor(Date.now() / 1000),
+                [CHAT_ACTION_METADATA_KEY]: { id: target.userMessageId, turnState: 'processing' },
+              },
+            } as unknown as Parameters<UseConversationReturn['rerunMessage']>[2])
       return await conversation.rerunMessage(target.conversationId, rerunTarget, replacement)
     } finally {
       const next = new Set(occupiedTargets.value)
@@ -331,8 +359,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const model = composer.model
       const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
       return (
-        !composer.disabled?.value &&
-        !sourceComposer.submitDisabled?.value &&
+        !isSendingDisabled() &&
         (Boolean(send) ||
           (areEnabledMcpToolsReady(composer.mcp) &&
             (!model || Boolean(selectedModel && !selectedModel.disabled)) &&

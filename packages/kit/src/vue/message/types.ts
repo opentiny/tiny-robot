@@ -244,6 +244,7 @@ export interface UseMessagePlugin {
       currentMessage: ChatMessage
       choice?: CompletionChoice
       chunk: ChatCompletion
+      updateCurrentMessage: (recipe: (message: ChatMessage) => void) => void
     },
   ) => void
   onError?: (context: UseMessageErrorContext) => MaybePromise<void>

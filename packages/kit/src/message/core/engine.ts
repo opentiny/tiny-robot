@@ -540,14 +540,15 @@ export const createMessageEngine = (
       const choice = (chunk.choices || []).find((item) => item.index === 0) ?? chunk.choices?.[0]
 
       if (!choice) {
-        if (chunk.usage && typeof chunk.usage === 'object' && Object.keys(chunk.usage).length > 0) {
+        const usage = chunk.usage
+        if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
           mutate('messages', () => {
             if (!assistantMessage.metadata) {
               assistantMessage.metadata = {}
             }
             assistantMessage.metadata.usage = {
               ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
-              ...chunk.usage,
+              ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
             }
             assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
           })
@@ -571,7 +572,7 @@ export const createMessageEngine = (
           if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
             assistantMessage.metadata.usage = {
               ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
-              ...usage,
+              ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
             }
           }
 

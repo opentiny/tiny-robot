@@ -291,15 +291,16 @@ function setSlotOpen(id: string, open: boolean) {
   min-height: 32px;
   position: relative;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition:
-    opacity 0.2s ease,
-    visibility 0.2s ease;
+  transition: opacity 0.2s ease;
+}
+.tr-chat-bubble-actions.is-processing {
+  visibility: hidden;
 }
 .tr-chat-bubble-actions.is-latest:not(.is-processing),
 .tr-chat-bubble-actions.is-always:not(.is-processing),
-.tr-chat-bubble-actions.is-open:not(.is-processing) {
+.tr-chat-bubble-actions.is-open:not(.is-processing),
+.tr-chat-bubble-actions:focus-within:not(.is-processing) {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;

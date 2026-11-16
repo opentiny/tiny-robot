@@ -11,8 +11,8 @@ export function isChatTokenUsage(value: unknown): value is ChatTokenUsage {
   let hasValue = false
 
   for (const key of keys) {
-    if (!(key in usage)) continue
     const amount = usage[key]
+    if (amount === undefined) continue
     if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 0) return false
     hasValue = true
   }
