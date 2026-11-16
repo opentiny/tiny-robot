@@ -16,7 +16,7 @@ const responseProvider: ResponseProvider = async (requestBody) => {
   return {
     id: 'chat-actions-demo-response',
     object: 'chat.completion',
-    created: 0,
+    created: Math.floor(Date.now() / 1000),
     model: 'tiny-robot-demo',
     choices: [
       {
@@ -76,10 +76,13 @@ const ui: ChatUIOptions = {
   layout: { leftAside: false },
   bubble: {
     actions: {
-      display: 'always',
+      display: ({ message }) => {
+        const messages = runtime.activeConversation.value?.messages ?? []
+        const latest = messages.filter((item) => item.role === message.role).at(-1)
+        return message === latest ? 'always' : 'hover'
+      },
       user: ['copy', 'edit'],
-      assistant: ['copy', 'regenerate', 'usage'],
-      usage: { trigger: 'click' },
+      assistant: ['copy', 'regenerate', 'info'],
     },
   },
 }
@@ -94,7 +97,7 @@ onMounted(async () => {
 <template>
   <section class="bubble-actions-demo">
     <p class="bubble-actions-demo__tip">
-      这是本地确定性示例。可以复制、编辑用户消息、重新生成回答，并查看 Token 用量。
+      最新用户和助手消息的操作按钮常驻，历史消息悬停显示。支持复制、编辑、重新生成和查看消息信息。
     </p>
     <div class="bubble-actions-demo__chat">
       <TrChat :runtime="runtime" :ui="ui" />

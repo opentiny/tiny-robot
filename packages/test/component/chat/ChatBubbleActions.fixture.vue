@@ -28,13 +28,12 @@ const actions = computed(() => ({
   ...base.bubble,
   actions: {
     user: ['copy', 'edit'] as const,
-    assistant: ['copy', 'usage'] as const,
-    usage: { trigger: 'click' as const },
+    assistant: ['copy', 'info'] as const,
   },
 }))
-const hoverActions = {
+const infoActions = {
   ...actions.value,
-  actions: { user: false, assistant: ['usage'] as const, usage: { trigger: 'hover' as const } },
+  actions: { user: false as const, assistant: ['info'] as const },
 }
 const hiddenActions = { ...base.bubble, actions: false as const }
 </script>
@@ -69,11 +68,11 @@ const hiddenActions = { ...base.bubble, actions: false as const }
         :bubble-actions="{ 'user-1': { canEdit: true, canRegenerate: false, turnState: 'completed' } }"
       />
     </section>
-    <section data-testid="hover-usage">
+    <section data-testid="info-only">
       <ChatMessages
         :messages="messages.slice(1)"
         :scroll-target="null"
-        :options="hoverActions"
+        :options="infoActions"
         :welcome="false"
         :prompts="false"
         :labels="base.labels"

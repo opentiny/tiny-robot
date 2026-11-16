@@ -13,7 +13,6 @@ import type {
   ExtensionManagerTab,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo, ChatIcon, ChatMessageItem, ChatRequestState } from '../base'
-import type { ChatTokenUsage } from '@opentiny/tiny-robot-kit'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
@@ -143,7 +142,7 @@ export interface ChatBubbleOptions {
   readonly actions?: false | Readonly<ChatBubbleActionsOptions>
 }
 
-export type ChatBubbleActionId = 'copy' | 'edit' | 'regenerate' | 'usage'
+export type ChatBubbleActionId = 'copy' | 'edit' | 'regenerate' | 'info'
 export type ChatActionCondition = boolean | ((context: ChatBubbleActionContext) => boolean)
 export type ChatActionDisplay = 'always' | 'hover'
 
@@ -189,16 +188,25 @@ export type ChatBubbleRoleActions =
       context: ChatBubbleActionContext,
     ) => false | readonly ChatBubbleActionItem[])
 
+export interface ChatMessageInfoItem {
+  readonly id: string
+  readonly label: string
+  readonly value: string | number | null | undefined
+  readonly highlight?: boolean
+}
+
+export interface ChatMessageInfoOptions {
+  readonly title?: string
+  readonly items?: (context: ChatBubbleActionContext) => readonly ChatMessageInfoItem[]
+}
+
 export interface ChatBubbleActionsOptions {
   readonly visible?: ChatActionCondition
   readonly display?: ChatActionDisplay | ((context: ChatBubbleActionContext) => ChatActionDisplay)
   readonly user?: ChatBubbleRoleActions
   readonly assistant?: ChatBubbleRoleActions
   readonly copy?: { readonly getText?: (context: ChatBubbleActionContext) => string }
-  readonly usage?: {
-    readonly trigger?: 'click' | 'hover'
-    readonly resolve?: (context: ChatBubbleActionContext) => ChatTokenUsage | undefined
-  }
+  readonly info?: ChatMessageInfoOptions
 }
 
 export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'>

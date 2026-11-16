@@ -729,6 +729,9 @@ function renderEmptyStateComposer() {
             <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
               <slot name="bubble-content-footer" v-bind="slotProps" />
             </template>
+            <template v-if="$slots['bubble-action']" #bubble-action="slotProps">
+              <slot name="bubble-action" v-bind="slotProps" />
+            </template>
           </ChatMessages>
         </div>
         <TrAnchor
