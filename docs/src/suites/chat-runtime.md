@@ -305,14 +305,16 @@ const runtime = useChatRuntime({
 
 MCP 用于连接外部工具服务，让模型调用工具，例如查询项目资料。需要使用工具时，再配置此项。
 
-通过 `useChatRuntime` 的 `mcpServers` 数组配置工具服务。服务需支持 Streamable HTTP 连接方式，并能从浏览器访问；未配置时不连接工具服务。
+通过 `useChatRuntime` 的 `mcpServers` 数组配置工具服务。服务支持 Streamable HTTP 和 SSE 连接方式，并能从浏览器访问；未配置时不连接工具服务。传入 `mcpServers: []` 可以只启用 MCP 面板和运行时动态注册能力。
 
 | 字段        | 用途                                       | 必填 | 默认值或未配置行为        |
 | ----------- | ------------------------------------------ | ---- | ------------------------- |
 | `id`        | 服务唯一标识，不可重复                     | 是   | 无默认值                  |
 | `name`      | 界面中显示的服务名称                       | 是   | 无默认值                  |
 | `baseUrl`   | 工具服务地址，浏览器中也可使用同源相对地址 | 是   | 无默认值                  |
+| `type`      | 连接传输类型                               | 否   | `'streamableHttp'`        |
 | `installed` | 是否在初始化时加载工具并显示为已安装       | 否   | `false`，显示在可安装列表 |
+| `headers`   | 连接请求头                                 | 否   | 无                        |
 | `timeout`   | 连接和工具操作的超时时间，单位为毫秒       | 否   | `30_000`                  |
 
 例如，配置一个可安装的工具服务：
@@ -339,7 +341,7 @@ const runtime = useChatRuntime({
 
 > 已启用服务的工具仍在加载时，会暂时禁止发送消息。
 
-复用已有工具连接时，可使用自定义 `mcp`，与 `mcpServers` 二选一，字段见 [`useChatRuntime` 配置](#usechatruntime-配置)。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
+复用已有工具连接时，可使用自定义 `mcp`。`mcp` 和 `mcpServers` 可以同时配置：`mcpServers` 会先转换为内置 Adapter，再与自定义 Adapter 合并到同一个 MCP Runtime；动态注册由内置 Adapter 负责。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
 
 ## 高级用法
 
@@ -468,8 +470,8 @@ const adapter = useChatRuntimeAdapter({
 | `beforeSend`     | 发送前检查，支持异步                  | `ChatBeforeSend`                                                                                         | 否   | 不执行自定义检查                                                         |
 | `composer`       | 通过 Ref 配置输入和提交是否禁用       | `Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`                                              | 否   | `{}`，不额外禁用输入或提交                                               |
 | `modelProviders` | 配置模型选择和内置请求                | `readonly ChatProviderConfig[]`                                                                          | 否   | 不创建内置模型请求；需提供自定义 `responseProvider`                      |
-| `mcp`            | 提供已有 MCP 状态、工具列表和调用方法 | `UseChatRuntimeMcpAdapter`                                                                               | 否   | 不使用自定义 MCP；与 `mcpServers` 二选一                                 |
-| `mcpServers`     | 配置内置 MCP 服务连接                 | `ChatMcpServers`                                                                                         | 否   | 不创建内置工具连接；与 `mcp` 二选一                                      |
+| `mcp`            | 提供已有 MCP 状态、工具列表和调用方法 | `UseChatRuntimeMcpAdapter`                                                                               | 否   | 不使用自定义 MCP；可与 `mcpServers` 合并                                  |
+| `mcpServers`     | 配置内置 MCP 服务连接                 | `ChatMcpServers`                                                                                         | 否   | 不创建内置工具连接；可与 `mcp` 合并                                      |
 
 `modelProviders` 与自定义 `responseProvider` 二选一，配置限制见 [常见问题](#模型配置与自定义请求冲突)。
 
@@ -672,7 +674,7 @@ const history = useChatHistoryData({
 | `ChatRuntimeActions`  | `interface` | Runtime 的发送、取消和会话操作。                  |
 | `ChatComposerRuntime` | `interface` | 输入区禁用状态及模型、MCP 工具的状态与方法。      |
 | `ChatModelRuntime`    | `interface` | 模型列表、选择、功能开关和思考强度的状态与操作。 |
-| `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作。        |
+| `ChatMcpRuntime`      | `interface` | MCP 服务、工具的只读状态与安装、启用操作；内置 Runtime 另外提供可选的 `registerMcpServer(config)`。        |
 
 #### 会话、消息与发送
 
@@ -706,7 +708,7 @@ const history = useChatHistoryData({
 | `ChatProviderFeatureBody`  | `enabled?: Record<string, unknown>`；`disabled?: Record<string, unknown>`                                                                                                                                                                                                                                                                    |
 | `ChatBuiltInModelFeature`  | `'thinking' \| 'search'`                                                                                                                                                                                                                                                                                                                     |
 | `ChatIcon`                 | `ModelSelectorOption['icon']`                                                                                                                                                                                                                                                                                                                |
-| `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void`                                                                                                             |
+| `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`type?: 'sse' \| 'streamableHttp'`（默认 `'streamableHttp'`）；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void`                                                                                                             |
 | `ChatMcpServers`           | `readonly ChatMcpServerConfig[]`                                                                                                                                                                                                                                                                                                             |
 | `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。 |
 
@@ -722,6 +724,8 @@ const history = useChatHistoryData({
 
 内建 `mcpServers` 适配器会把所有 MCP 服务的初始 `enabled` 设为 `false`。`installed: true` 会在初始化时加载工具定义，但 MCP 服务启用前这些工具仍为禁用状态。
 
+`TrChat` 通过 MCP 表单提交动态服务时，内置 Runtime 会生成 Server ID、连接并发现工具；成功后服务默认启用。连接失败时服务仍保留为已安装但未启用状态，`error` 会显示在 MCP 面板中，重新启用或点击“重试”会再次加载工具。自定义 Runtime 若未提供 `registerMcpServer`，则继续由应用处理 `mcp-create-server`。
+
 #### 发送参数
 
 | 类型                            | 定义                                                                                                                                                                                                                                                                                                                                                                            |
@@ -732,7 +736,7 @@ const history = useChatHistoryData({
 | `ChatBeforeSendContext`         | `payload: ChatSendPayload`；`runConfig?: ChatRunConfig`；`model?: ChatModelOption`；`mcp?: { servers: readonly ChatMcpServerInfo[]; tools: ChatMcpToolState }`                                                                                                                                                                                                                  |
 | `ChatBeforeSendResult`          | `'continue' \| 'handled' \| 'reject'`                                                                                                                                                                                                                                                                                                                                           |
 | `ChatBeforeSend`                | `(context: ChatBeforeSendContext) => 'continue' \| 'handled' \| 'reject' \| Promise<'continue' \| 'handled' \| 'reject'>`                                                                                                                                                                                                                                                       |
-| `ChatRuntimeActionErrorPayload` | `action: 'send' \| 'abort' \| 'clear-active-conversation' \| 'create-conversation' \| 'switch-conversation' \| 'rename-conversation' \| 'delete-conversation' \| 'select-model' \| 'set-model-feature' \| 'set-model-reasoning-effort' \| 'add-mcp-server' \| 'remove-mcp-server' \| 'set-mcp-server-enabled' \| 'set-mcp-tool-enabled'`；`payload?: unknown`；`error: unknown` |
+| `ChatRuntimeActionErrorPayload` | `action: 'send' \| 'abort' \| 'clear-active-conversation' \| 'create-conversation' \| 'switch-conversation' \| 'rename-conversation' \| 'delete-conversation' \| 'select-model' \| 'set-model-feature' \| 'set-model-reasoning-effort' \| 'add-mcp-server' \| 'remove-mcp-server' \| 'set-mcp-server-enabled' \| 'set-mcp-tool-enabled' \| 'register-mcp-server'`；`payload?: unknown`；`error: unknown` |
 
 #### 函数配置类型
 

@@ -1,5 +1,5 @@
 import { useConversation, type UseConversationOptions, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatBeforeSend, ChatComposerRuntime, ChatMcpRuntime } from '../types'
+import type { ChatBeforeSend, ChatComposerRuntime } from '../types'
 import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
 import {
   createProviderModelRuntime,
@@ -10,16 +10,13 @@ import {
 } from './provider'
 import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
 import { errorStatePlugin } from './plugins/errorStatePlugin'
-import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from './plugins/mcpToolPlugin'
+import { createMcpToolPlugin } from './plugins/mcpToolPlugin'
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
+import { createCompositeMcpAdapter, type ChatMcpAdapter } from './mcp/compositeMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
 import { createDefaultChatTitle } from './defaults'
 
-export interface UseChatRuntimeMcpAdapter {
-  runtime: ChatMcpRuntime
-  listTools: ChatToolListTools
-  callTool: ChatToolCallTool
-}
+export type UseChatRuntimeMcpAdapter = ChatMcpAdapter
 
 export interface UseChatRuntimeOptions {
   conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & {
@@ -39,17 +36,21 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const userUseMessageOptions = conversationOptions.useMessageOptions
   const userResponseProvider = userUseMessageOptions?.responseProvider
 
-  if (options.mcp !== undefined && options.mcpServers !== undefined) {
-    throw new Error('useChatRuntime: mcp and mcpServers cannot be configured at the same time.')
-  }
-
   if (options.modelProviders?.length && userResponseProvider) {
     throw new Error('useChatRuntime: modelProviders and responseProvider cannot be configured at the same time.')
   }
 
   const providerModels = options.modelProviders ? resolveProviderModels(options.modelProviders) : []
   const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
-  const resolvedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : options.mcp
+  const hasMcp = options.mcp !== undefined || options.mcpServers !== undefined
+  const registryAdapter = hasMcp ? createDefaultMcpAdapter(options.mcpServers ?? []) : undefined
+  const mcpAdapters = [registryAdapter, options.mcp].filter(
+    (adapter): adapter is ChatMcpAdapter => adapter !== undefined,
+  )
+  const resolvedMcp =
+    mcpAdapters.length > 1
+      ? createCompositeMcpAdapter({ adapters: mcpAdapters, registrationAdapter: registryAdapter })
+      : mcpAdapters[0]
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [errorStatePlugin(), createRunConfigContextPlugin()]
 

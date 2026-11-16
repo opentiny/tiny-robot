@@ -83,6 +83,7 @@ export function createDefaultChatLabels(): ChatLabels {
     mcp: 'MCP',
     extensions: '扩展',
     mcpInstallServer: '安装',
+    mcpRetryServer: '重试',
     mcpRemoveServer: '卸载',
     thinkingFeature: '深度思考',
     searchFeature: '联网搜索',

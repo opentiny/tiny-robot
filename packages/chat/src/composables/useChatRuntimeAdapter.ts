@@ -1,5 +1,6 @@
 import { computed, nextTick, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
+import type { McpExtensionFormValue } from '@opentiny/tiny-robot'
 import { useChatDraft } from './useChatDraft'
 import type {
   ChatMcpServerView,
@@ -28,6 +29,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
   const pendingModelReasoningEffort = shallowRef(false)
+  const pendingMcpRegistration = shallowRef(false)
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
@@ -38,6 +40,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     () => {
       pendingModelSelecting.value = false
       pendingModelReasoningEffort.value = false
+      pendingMcpRegistration.value = false
       pendingModelFeatureIds.value = new Set()
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
@@ -302,6 +305,19 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       )
   }
 
+  async function registerMcpServer(config: McpExtensionFormValue): Promise<string | undefined> {
+    const actionRuntime = runtime.value
+    const mcp = actionRuntime.composer.mcp
+    if (!mcp?.registerMcpServer || pendingMcpRegistration.value) return undefined
+
+    pendingMcpRegistration.value = true
+    try {
+      return await runAction('register-mcp-server', { config }, () => mcp.registerMcpServer!(config))
+    } finally {
+      if (runtime.value === actionRuntime) pendingMcpRegistration.value = false
+    }
+  }
+
   async function removeMcpServer(id: string) {
     const mcp = runtime.value.composer.mcp
     if (mcp)
@@ -374,6 +390,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     setModelFeature,
     setModelReasoningEffort,
     addMcpServer,
+    registerMcpServer,
     removeMcpServer,
     setMcpServerEnabled,
     setMcpToolEnabled,

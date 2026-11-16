@@ -14,7 +14,7 @@ import {
 } from '@opentiny/tiny-robot'
 import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
 import type { ChatExtensionSlotProps, ChatLabels, ChatMcpView } from '../../types'
-import { createChatMcpManagerTab } from './chatMcpManager'
+import { createChatMcpManagerTab, getChatMcpServerDescription } from './chatMcpManager'
 
 const props = defineProps<{
   mcp?: ChatMcpView
@@ -121,6 +121,9 @@ function handleAction(event: ExtensionManagerActionEvent) {
         emit('updateServerEnabled', { id: server.id, enabled: event.action.checked })
       }
       break
+    case 'retry':
+      if (server.installed && server.error) emit('updateServerEnabled', { id: server.id, enabled: true })
+      break
   }
 }
 
@@ -214,7 +217,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
           v-else-if="selectedServer"
           :id="selectedServer.id"
           :name="selectedServer.name"
-          :description="selectedServer.description"
+          :description="getChatMcpServerDescription(selectedServer)"
           :tools="selectedTools"
           @tool-toggle="handleToolToggle"
         />

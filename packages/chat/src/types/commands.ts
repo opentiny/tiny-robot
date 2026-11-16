@@ -23,6 +23,7 @@ export interface ChatRuntimeActionErrorPayload {
     | 'remove-mcp-server'
     | 'set-mcp-server-enabled'
     | 'set-mcp-tool-enabled'
+    | 'register-mcp-server'
   readonly payload?: unknown
   readonly error: unknown
 }

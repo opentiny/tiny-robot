@@ -1,5 +1,13 @@
+import { computed } from 'vue'
 import { describe, expect, it } from 'vitest'
-import type { ChatMessage, ConversationInfo, ConversationStorageStrategy } from '@opentiny/tiny-robot-kit'
+import type {
+  ChatCompletion,
+  ChatMessage,
+  ConversationInfo,
+  ConversationStorageStrategy,
+} from '@opentiny/tiny-robot-kit'
+import type { ChatMcpRuntime } from '../types'
+import type { UseChatRuntimeMcpAdapter } from './useChatRuntime'
 import { errorStatePlugin } from './plugins/errorStatePlugin'
 import { useChatRuntime } from './useChatRuntime'
 
@@ -72,5 +80,62 @@ describe('useChatRuntime error state', () => {
     const activeConversation = runtime.activeConversation.value
     expect(activeConversation?.requestState).toBe('error')
     expect(activeConversation?.messages.at(-1)?.state?.error).toBeUndefined()
+  })
+})
+
+describe('useChatRuntime MCP composition', () => {
+  it('composes mcpServers and a custom mcp adapter into one runtime', () => {
+    const server: ChatMcpRuntime['servers']['value'][number] = {
+      id: 'custom-tools',
+      name: 'Custom Tools',
+      installed: true,
+      enabled: true,
+    }
+    const customMcp: UseChatRuntimeMcpAdapter = {
+      runtime: {
+        servers: computed(() => [server]),
+        tools: computed(() => ({ 'custom-tools': [{ id: 'echo', name: 'echo', enabled: true }] })),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async (_serverIds, selectedToolIds) =>
+        (selectedToolIds['custom-tools'] ?? []).map((id) => ({
+          serverId: 'custom-tools',
+          id,
+          name: `custom-tools__${id}`,
+          originalName: id,
+        })),
+      callTool: async () => 'ok',
+    }
+
+    const runtime = useChatRuntime({
+      mcpServers: [
+        {
+          id: 'project-tools',
+          name: 'Project Tools',
+          baseUrl: '/mcp',
+        },
+      ],
+      mcp: customMcp,
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'test',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              system_fingerprint: null,
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'custom-tools'])
+    expect(runtime.composer.mcp?.tools.value).toEqual({ 'custom-tools': [{ id: 'echo', name: 'echo', enabled: true }] })
   })
 })

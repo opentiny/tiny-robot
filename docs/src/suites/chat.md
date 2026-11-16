@@ -837,7 +837,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 | `runtime-action-error`                                              | `ChatRuntimeActionErrorPayload`                                                    | Runtime 操作失败；send 错误详情仍从所属消息读取。                       |
 | `history-action`                                                    | `ChatHistoryActionPayload`                                                         | 历史菜单操作；删除操作可调用 `preventDefault()` 阻止默认 Runtime 删除。 |
 | `prompt-click`                                                      | `ChatPromptClickPayload`                                                           | 点击提示项。                                                            |
-| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                                                       | 请求创建 MCP 服务；Runtime 不处理创建表单。                             |
+| `mcp-create-server`                                                 | `ChatMcpCreateServerPayload`                                                       | 表单校验通过后的 MCP 配置通知；使用 `useChatRuntime` 且 Runtime 支持注册时，先完成运行时注册，再附带 `serverId` 发出；否则保留原有应用接管行为。 |
 | `extension-action`                                                  | `ExtensionManagerActionEvent`                                                      | 自定义扩展页签中的操作被触发。                                          |
 | `extension-name-click`                                              | `ExtensionManagerNameClickEvent`                                                   | 点击自定义扩展页签中的条目名称。                                        |
 | `extension-tab-change`                                              | `ExtensionManagerTabChangeEvent`                                                   | 扩展管理器切换页签。                                                    |
@@ -998,7 +998,7 @@ Sender 的文件拖拽与粘贴事件会透传给应用，由应用处理文件�
 
 `ChatMcpServerView` 要求 `id`、`name`、`installed` 和 `enabled`；可选 `description`、`icon`、`category`、`loading`、`error` 与 `metadata`。`ChatMcpToolView` 要求 `id`、`name` 和 `enabled`，可选 `description` 与 `loading`。只有 `ui.mcp` 与 `ui.layout.rightAside` 都未设为 `false` 时，MCP 入口和内置面板才可见。
 
-内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP 服务按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source }`；`config` 是整理后的单个 MCP 服务连接配置，`source` 为 `'form'` 或 `'code'`。Chat 不保存自定义 MCP 服务，应用收到事件后负责保存并更新 `mcp.servers`。服务的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
+内置右栏使用 [ExtensionManager](../components/extension-manager) 将 MCP 服务按“已安装”和“可安装”分区；点击已安装项名称进入 [MCP 详情](../components/mcp-extension)切换工具，点击“自定义添加”进入 MCP 表单。表单验证通过后，`mcp-create-server` 发出 `{ config, source, serverId? }`；`config` 是整理后的单个 MCP 服务连接配置，`source` 为 `'form'` 或 `'code'`。使用 `useChatRuntime` 时，Runtime 会自动注册并发现工具；连接失败的服务仍保留在列表中并提供重试。应用仍负责保存配置、权限和服务端策略。没有注册能力的自定义 Runtime 继续由应用收到事件后接管连接。服务的 `loading` 状态会禁用其列表操作，工具的 `loading` 状态会禁用对应开关。
 
 #### `request`
 
@@ -1128,7 +1128,7 @@ const ui: ChatUIOptions = {
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
 | `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
-`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
+`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRetryServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
 #### `sender.toolbar` {#sender-toolbar}
 
@@ -1351,7 +1351,7 @@ const context = useChatRenderContext(props)
 | `ChatModelFeatureChangePayload`                          | `featureId: 'thinking' \| 'search'`；`enabled: boolean`                                                 |
 | `ChatModelReasoningEffortChangePayload`                  | `effort: string \| null`                                                                                |
 | `ChatMcpAddServerPayload` / `ChatMcpRemoveServerPayload` | `serverId: string`                                                                                      |
-| `ChatMcpCreateServerPayload`                             | `config: McpExtensionFormValue`；`source: McpExtensionFormMode`                                         |
+| `ChatMcpCreateServerPayload`                             | `config: McpExtensionFormValue`；`source: McpExtensionFormMode`；`serverId?: string`                    |
 | `ChatMcpServerEnabledChangePayload`                      | `serverId: string`；`enabled: boolean`                                                                  |
 | `ChatMcpToolEnabledChangePayload`                        | `serverId: string`；`toolId: string`；`enabled: boolean`                                                |
 | `ChatAsideOpenChangePayload`                             | `open: boolean`；`source: 'user' \| 'viewport'`                                                         |

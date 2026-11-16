@@ -146,8 +146,14 @@ function handleMcpAddServer(payload: ChatMcpAddServerPayload) {
   return adapter.addMcpServer(payload.serverId)
 }
 
-function handleMcpCreateServer(payload: ChatMcpCreateServerPayload) {
-  emit('mcp-create-server', payload)
+async function handleMcpCreateServer(payload: ChatMcpCreateServerPayload) {
+  if (!props.runtime.composer.mcp?.registerMcpServer) {
+    emit('mcp-create-server', payload)
+    return
+  }
+
+  const serverId = await adapter.registerMcpServer(payload.config)
+  if (serverId) emit('mcp-create-server', { ...payload, serverId })
 }
 
 function handleMcpRemoveServer(payload: ChatMcpRemoveServerPayload) {

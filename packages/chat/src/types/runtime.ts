@@ -7,7 +7,7 @@ import type {
   ChatRequestState,
 } from './base'
 import type { ChatSendPayload } from './commands'
-import type { ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
+import type { McpExtensionFormValue, ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -98,6 +98,7 @@ export type ChatMcpToolState = Readonly<Partial<Record<string, readonly ChatMcpT
 export interface ChatMcpRuntime {
   servers: ChatReadable<readonly ChatMcpServerInfo[]>
   tools: ChatReadable<ChatMcpToolState>
+  registerMcpServer?: (config: McpExtensionFormValue) => Promise<string>
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
