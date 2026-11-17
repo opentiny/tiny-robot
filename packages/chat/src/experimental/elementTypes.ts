@@ -10,6 +10,7 @@ import type {
   ChatRightAsidePanelId,
 } from '../types'
 import type { ElementEventMap } from './events'
+import type { ChatBubbleRenderers } from './elementBubbleRenderers'
 import type { ChatRenderers, ChatRendererError } from './elementRenderers'
 
 type RendererEvents = { 'renderer-error': CustomEvent<[ChatRendererError]> }
@@ -32,6 +33,7 @@ export interface TrChatElementMethods extends TrChatUIElementMethods {
 }
 
 export interface TrChatUIHTMLElement extends HTMLElement, ChatUIProps, TrChatUIElementMethods {
+  bubbleRenderers?: Readonly<ChatBubbleRenderers>
   renderers?: Readonly<ChatRenderers>
   addEventListener<K extends keyof TrChatUIElementEventMap>(
     type: K,
@@ -65,6 +67,7 @@ export interface TrChatUIHTMLElement extends HTMLElement, ChatUIProps, TrChatUIE
   ): void
 }
 export interface TrChatHTMLElement extends HTMLElement, TrChatElementMethods {
+  bubbleRenderers?: Readonly<ChatBubbleRenderers>
   renderers?: Readonly<ChatRenderers>
   runtime?: ChatRuntime
   ui?: Readonly<ChatUIOptions>

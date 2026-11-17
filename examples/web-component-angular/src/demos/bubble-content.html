@@ -1,0 +1,63 @@
+<ng-template #product let-scope>
+  <article class="demo-product-card" data-product-card>
+    <h3>{{ scope.content.title }}</h3>
+    <p>{{ scope.content.description }}</p>
+    <button type="button" (click)="select(scope)">
+      {{ scope.message.state?.selected ? '已加入清单' : '加入清单' }}
+    </button>
+  </article>
+</ng-template>
+<ng-template #quote let-scope><blockquote data-quote-card>{{ scope.content.text }}</blockquote></ng-template>
+<ng-template #fallback let-scope
+  ><p data-content-fallback>{{ scope.content.text ?? scope.content.title ?? scope.content.type }}</p></ng-template
+>
+<div class="demo-workspace demo-slot-workspace">
+  <aside class="demo-controls">
+    <section class="demo-card">
+      <label>产品名称<input [(ngModel)]="title" (ngModelChange)="updateData()" /></label>
+      <button type="button" (click)="append()">追加内容</button>
+      <button type="button" (click)="mounted=!mounted">{{ mounted ? '卸载元素' : '挂载元素' }}</button>
+    </section>
+    <section class="demo-card demo-slot-options">
+      <h2>正文配置</h2>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="productEnabled" (ngModelChange)="configure()" />product-card ·
+        产品正文</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="quoteEnabled" (ngModelChange)="configure()" />business-quote ·
+        引用正文</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="fallbackEnabled" (ngModelChange)="configure()" />自定义未匹配正文</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="split" (ngModelChange)="configure()" />按内容项拆分气泡</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="fail" (ngModelChange)="configure()" />模拟产品正文错误</label
+      >
+    </section>
+  </aside>
+  <section class="demo-preview">
+    <div class="demo-chat" data-testid="bubble-preview">
+      @if (mounted) {
+      <tr-chat-ui
+        data-bubble-demo
+        [data]="data"
+        [ui]="ui"
+        [bubbleRenderers]="renderers"
+        (bubble-event)="onEvent($event)"
+        (bubble-state-change)="onState($event)"
+        (renderer-error)="onError($event)"
+      ></tr-chat-ui>
+      }
+    </div>
+    <section class="demo-card demo-events">
+      <h2>正文事件</h2>
+      <output data-testid="bubble-event">{{ lastEvent }}</output>
+      <pre data-testid="bubble-state">{{ lastState }}</pre>
+      <p data-testid="bubble-error">{{ error }}</p>
+    </section>
+  </section>
+</div>

@@ -496,3 +496,31 @@ body {
   text-align: center;
   color: #64748b;
 }
+
+.demo-product-card {
+  min-width: 220px;
+  padding: 16px;
+  border: 1px solid #cbdcf6;
+  border-radius: 12px;
+  background: #f4f8ff;
+}
+.demo-product-card h3 {
+  margin: 0 0 8px;
+}
+.demo-product-card p {
+  margin: 0 0 12px;
+}
+.demo-product-card button {
+  padding: 6px 12px;
+  border: 1px solid #b8ccec;
+  border-radius: 8px;
+  background: white;
+  color: #24456e;
+  cursor: pointer;
+}
+.demo-events pre,
+.demo-events output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}

@@ -1,3 +1,4 @@
+import { BubbleContentDemo } from './demos/bubble-content'
 import { StrictMode, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { defineTrChatElements } from '@opentiny/tiny-robot-chat/experimental'
@@ -15,6 +16,7 @@ import { ScopedSlotsDemo } from './demos/scoped-slots'
 
 const shell = createDemoShell(document.getElementById('app')!, { host: 'React 19 / Vite' })
 const demos = {
+  'bubble-content': BubbleContentDemo,
   'scoped-slots': ScopedSlotsDemo,
   'ordinary-slots': OrdinarySlotsDemo,
   props: PropsDemo,

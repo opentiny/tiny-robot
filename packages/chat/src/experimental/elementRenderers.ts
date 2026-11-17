@@ -108,6 +108,6 @@ export const SCOPED_RENDERER_NAMES = [
 ] as const satisfies readonly (keyof ChatRenderers)[]
 
 export interface ChatRendererError {
-  readonly name: keyof ChatRenderers
+  readonly name: keyof ChatRenderers | 'bubble-content' | 'bubble-fallback-content'
   readonly error: unknown
 }

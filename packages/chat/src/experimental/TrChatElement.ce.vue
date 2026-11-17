@@ -2,6 +2,8 @@
 defineOptions({ inheritAttrs: false })
 import { computed, shallowRef } from 'vue'
 import ElementRenderer from './ElementScopedSlot'
+import { useElementBubbleContent } from './ElementBubbleContent'
+import type { ChatBubbleRenderers } from './elementBubbleRenderers'
 import { elementUIOptions, useElementRendererHost } from './elementRendererHost'
 import { SCOPED_RENDERER_NAMES, type ChatRenderers } from './elementRenderers'
 import Chat from '../Chat.vue'
@@ -35,6 +37,7 @@ useElementMethods(
 const emit = defineEmits([...elementEventNames(CHAT_EVENTS), 'renderer-error'])
 const props = withDefaults(
   defineProps<{
+    bubbleRenderers?: Readonly<ChatBubbleRenderers>
     renderers?: Readonly<ChatRenderers>
     title?: string
     runtime?: ChatRuntime
@@ -55,7 +58,11 @@ useExperimentalElementHost(
   () => emit('ready'),
   () => Boolean(props.runtime),
 )
-const componentUI = computed(() => elementUIOptions(props.ui))
+const bubbleUI = useElementBubbleContent(
+  () => props.bubbleRenderers,
+  (error) => emit('renderer-error', error),
+)
+const componentUI = computed(() => bubbleUI(elementUIOptions(props.ui)))
 const events = createElementEventListeners(CHAT_EVENTS, emit)
 const rendererNames = computed(() =>
   SCOPED_RENDERER_NAMES.filter((name) => typeof props.renderers?.[name] === 'function'),

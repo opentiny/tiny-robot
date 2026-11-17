@@ -1,3 +1,4 @@
+import { mountBubbleContentDemo } from './demos/bubble-content.js'
 import { defineTrChatElements } from '@opentiny/tiny-robot-chat/experimental'
 import '@opentiny/tiny-robot-chat/experimental/web-component.css'
 import '../../web-component-shared/style.css'
@@ -17,6 +18,7 @@ defineTrChatElements()
 const shell = createDemoShell(app, { host: '原生 JS / Vite' })
 /** @type {Record<string, (root: HTMLElement) => () => void>} */
 const demos = {
+  'bubble-content': mountBubbleContentDemo,
   'scoped-slots': mountScopedSlotsDemo,
   'ordinary-slots': mountOrdinarySlotsDemo,
   props: mountPropsDemo,

@@ -1,6 +1,6 @@
 import { defineComponent, h, shallowRef, watch, watchPostEffect, type PropType } from 'vue'
 import { useElementRendererOwner } from './elementRendererHost'
-import type { ChatRenderer, ChatRendererError, ChatRendererResult, ChatRenderers } from './elementRenderers'
+import type { ChatRenderer, ChatRendererError, ChatRendererResult } from './elementRenderers'
 
 export function nodesFor(result: ChatRendererResult): readonly Node[] {
   if (result === null) return []
@@ -17,7 +17,7 @@ export function nodesFor(result: ChatRendererResult): readonly Node[] {
 /** One invocation owns its DOM and signal until its context, callback or outlet changes. */
 export default defineComponent({
   props: {
-    name: { type: String as PropType<keyof ChatRenderers>, required: true },
+    name: { type: String as PropType<ChatRendererError['name']>, required: true },
     context: { type: Object as PropType<object>, required: true },
     renderer: { type: Function as PropType<ChatRenderer<never>>, required: true },
     sameContext: Function as PropType<(left: object, right: object) => boolean>,

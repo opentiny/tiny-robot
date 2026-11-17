@@ -44,6 +44,13 @@ export const DEMOS = [
     path: '/content/scoped-slots',
     description: '在宿主视图中读取会话、消息和输入区上下文，调用对应操作。',
   },
+  {
+    id: 'bubble-content',
+    group: '内容扩展',
+    title: 'Bubble 消息正文',
+    path: '/content/bubble-content',
+    description: '为结构化消息提供宿主正文，读取内容并交付业务事件与状态。',
+  },
 ]
 
 /** @param {string} hash @returns {Demo} */

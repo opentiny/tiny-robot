@@ -24,3 +24,9 @@ export type {
   ChatSenderContentRendererContext,
   ChatEmptyStateRendererContext,
 } from './elementRenderers'
+
+export type {
+  ChatBubbleRenderers,
+  ChatBubbleContentRendererContext,
+  ChatBubbleContentRendererMatch,
+} from './elementBubbleRenderers'

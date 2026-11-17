@@ -1,3 +1,4 @@
+import { BubbleContentDemoComponent } from './demos/bubble-content'
 import { Component, DestroyRef, inject, signal } from '@angular/core'
 import { bootstrapApplication } from '@angular/platform-browser'
 import { defineTrChatElements } from '@opentiny/tiny-robot-chat/experimental'
@@ -17,6 +18,7 @@ shell.outlet.append(document.createElement('app-root'))
   selector: 'app-root',
   standalone: true,
   imports: [
+    BubbleContentDemoComponent,
     OrdinarySlotsDemoComponent,
     ScopedSlotsDemoComponent,
     PropsDemoComponent,
@@ -25,6 +27,9 @@ shell.outlet.append(document.createElement('app-root'))
     MethodsDemoComponent,
   ],
   template: `@switch (active().id) {
+    @case ('bubble-content') {
+      <demo-bubble-content-page />
+    }
     @case ('scoped-slots') {
       <demo-scoped-slots-page />
     }
