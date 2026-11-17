@@ -1,4 +1,4 @@
-<div class="demo-workspace">
+<div class="demo-workspace demo-slot-workspace">
   <aside class="demo-controls">
     <section class="demo-card">
       <label
@@ -7,46 +7,69 @@
           <option value="ui">TrChatUI</option>
         </select></label
       >
-      <label>咨询主题<input [(ngModel)]="topic" /></label>
-      <label class="toggle"><input type="checkbox" [(ngModel)]="showContent" />显示 Slot 内容</label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="empty" />显示欢迎区</label>
+      <p class="demo-help">welcome-footer、prompts-footer 在欢迎区显示。</p>
       <div class="demo-buttons">
-        <button (click)="empty=!empty">切换空状态</button
-        ><button (click)="toggleMounted()">{{mounted ? '卸载元素' : '挂载元素'}}</button>
+        <button (click)="toggleMounted()">{{mounted ? '卸载元素' : '挂载元素'}}</button>
       </div>
+    </section>
+    <section class="demo-card demo-slot-options">
+      <h2>Slot 配置</h2>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="slots.welcome" />welcome-footer · 欢迎区页脚</label>
+      <label>welcome-footer 内容<input [(ngModel)]="welcomeText" /></label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="slots.prompts" />prompts-footer · 提示词页脚</label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="slots.header" />sender-header · 输入区顶部</label>
+      <label>咨询主题<input [(ngModel)]="topic" /></label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="slots.prefix" />input-prefix · 输入框前缀</label>
+      <label>input-prefix 标识<input [(ngModel)]="badge" /></label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="slots.footer" />sender-footer · 输入区底部</label>
+      <label>sender-footer 内容<input [(ngModel)]="footerText" /></label>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.footerRight" />sender-footer-right · 输入区右下角</label
+      >
+      <label>sender-footer-right 内容<input [(ngModel)]="footerRightText" /></label>
     </section>
   </aside>
   <section class="demo-preview">
     <div class="demo-chat" data-testid="slot-preview">
       @if (mounted) { @if (kind === 'chat') {
       <tr-chat data-slot-host [runtime]="runtime" [ui]="ui" [isEmpty]="empty">
-        @if (showContent) {
-        <div slot="welcome-footer"><p class="demo-welcome-footer">支持产品咨询、接入指导与问题排查。</p></div>
-        } @if (showContent) {
+        @if (slots.welcome) {
+        <div slot="welcome-footer"><p class="demo-welcome-footer">{{ welcomeText }}</p></div>
+        } @if (slots.prompts) {
         <div slot="prompts-footer">
           <div class="demo-prompts-footer"><button type="button" (click)="changePrompts()">换一组问题</button></div>
         </div>
-        } @if (showContent) {
+        } @if (slots.header) {
         <div slot="sender-header">
           <p class="demo-sender-note">正在咨询：<strong>{{ topic }}</strong></p>
         </div>
-        } @if (showContent) {
-        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>
+        } @if (slots.prefix) {
+        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">{{ badge }}</span></div>
+        } @if (slots.footer) {
+        <div slot="sender-footer"><small class="demo-sender-hint">{{ footerText }}</small></div>
+        } @if (slots.footerRight) {
+        <div slot="sender-footer-right"><small class="demo-sender-hint">{{ footerRightText }}</small></div>
         }
       </tr-chat>
       } @else {
       <tr-chat-ui data-slot-host [ui]="ui" [isEmpty]="empty">
-        @if (showContent) {
-        <div slot="welcome-footer"><p class="demo-welcome-footer">支持产品咨询、接入指导与问题排查。</p></div>
-        } @if (showContent) {
+        @if (slots.welcome) {
+        <div slot="welcome-footer"><p class="demo-welcome-footer">{{ welcomeText }}</p></div>
+        } @if (slots.prompts) {
         <div slot="prompts-footer">
           <div class="demo-prompts-footer"><button type="button" (click)="changePrompts()">换一组问题</button></div>
         </div>
-        } @if (showContent) {
+        } @if (slots.header) {
         <div slot="sender-header">
           <p class="demo-sender-note">正在咨询：<strong>{{ topic }}</strong></p>
         </div>
-        } @if (showContent) {
-        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>
+        } @if (slots.prefix) {
+        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">{{ badge }}</span></div>
+        } @if (slots.footer) {
+        <div slot="sender-footer"><small class="demo-sender-hint">{{ footerText }}</small></div>
+        } @if (slots.footerRight) {
+        <div slot="sender-footer-right"><small class="demo-sender-hint">{{ footerRightText }}</small></div>
         }
       </tr-chat-ui>
       } }

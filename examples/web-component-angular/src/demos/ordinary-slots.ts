@@ -14,7 +14,11 @@ import { createLocalRuntime } from '../runtime'
 export class OrdinarySlotsDemoComponent {
   kind = 'chat'
   topic = '产品接入'
-  showContent = true
+  slots = { welcome: false, prompts: false, header: true, prefix: false, footer: false, footerRight: false }
+  welcomeText = '支持产品咨询、接入指导与问题排查。'
+  badge = 'AI'
+  footerText = '请勿发送密码等敏感信息。'
+  footerRightText = 'Enter 发送'
   empty = true
   mounted = true
   promptGroup = 0

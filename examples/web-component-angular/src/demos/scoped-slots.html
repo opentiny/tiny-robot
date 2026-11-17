@@ -13,7 +13,7 @@
     type="button"
     class="demo-scoped-action"
     [disabled]="scope.disabled || scope.loading"
-    (click)="scope.insert('请详细说明')"
+    (click)="scope.insert(followup)"
   >
     插入追问
   </button>
@@ -29,12 +29,26 @@
 </ng-template>
 <ng-template #welcome let-scope>
   <section class="demo-scoped-welcome">
-    <h2>开始你的产品咨询</h2>
+    <h2>{{ welcomeTitle }}</h2>
     <p>描述问题，或使用输入区的快捷追问。</p>
     <div [chatComposer]="scope.composer"></div>
   </section>
 </ng-template>
-<div class="demo-workspace">
+<ng-template #status let-scope>
+  <small class="demo-message-status">{{ scope.role === 'assistant' ? '已回复' : '已发送' }}</small>
+</ng-template>
+<ng-template #source let-scope>
+  <small class="demo-message-source">{{ sourceText }} · 消息 {{ scope.messageIndexes.join(',') }}</small>
+</ng-template>
+<ng-template #before let-scope>
+  <p class="demo-composer-context">当前草稿：{{ scope.value || '尚未输入' }}</p>
+</ng-template>
+<ng-template #focus let-scope>
+  <button type="button" class="demo-scoped-action" [disabled]="scope.disabled" (click)="scope.focus()">
+    聚焦输入框
+  </button>
+</ng-template>
+<div class="demo-workspace demo-slot-workspace">
   <aside class="demo-controls">
     <section class="demo-card">
       <label
@@ -44,12 +58,54 @@
         </select></label
       >
       <label>会话标题<input [ngModel]="title" (ngModelChange)="changeTitle($event)" /></label>
-      <label class="toggle"><input type="checkbox" [(ngModel)]="custom" />显示自定义内容</label>
-      <label class="toggle"
-        ><input type="checkbox" [(ngModel)]="customInput" (ngModelChange)="updateRenderers()" />自定义输入框</label
-      >
       <label class="toggle"><input type="checkbox" [(ngModel)]="empty" />显示欢迎区</label>
+      <p class="demo-help">关闭欢迎区可查看消息 Slot。</p>
       <button type="button" (click)="toggleMounted()">{{ mounted ? '卸载元素' : '挂载元素' }}</button>
+    </section>
+    <section class="demo-card demo-slot-options">
+      <h2>Slot 配置</h2>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.header" (ngModelChange)="updateRenderers()" />layout-header ·
+        页头与会话操作</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.welcome" (ngModelChange)="updateRenderers()" />layout-empty-state ·
+        欢迎区与原生输入区</label
+      >
+      <label>layout-empty-state 标题<input [(ngModel)]="welcomeTitle" /></label>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.prefix" (ngModelChange)="updateRenderers()" />bubble-prefix ·
+        消息前缀</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.suffix" (ngModelChange)="updateRenderers()" />bubble-suffix ·
+        消息发送状态</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.source" (ngModelChange)="updateRenderers()" />bubble-content-footer ·
+        消息内容来源</label
+      >
+      <label>bubble-content-footer 来源<input [(ngModel)]="sourceText" /></label>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.before" (ngModelChange)="updateRenderers()" />composer-before ·
+        输入区上方草稿</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.input" (ngModelChange)="updateRenderers()" />sender-content ·
+        自定义输入框</label
+      >
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="slots.footer" (ngModelChange)="updateRenderers()" />sender-footer ·
+        输入区追问按钮</label
+      >
+      <label>sender-footer 追问内容<input [(ngModel)]="followup" /></label>
+      <label class="toggle"
+        ><input
+          type="checkbox"
+          [(ngModel)]="slots.footerRight"
+          (ngModelChange)="updateRenderers()"
+        />sender-footer-right · 输入区聚焦按钮</label
+      >
     </section>
   </aside>
   <section class="demo-preview">
@@ -61,7 +117,7 @@
         [title]="title"
         [ui]="ui"
         [isEmpty]="empty"
-        [renderers]="custom ? renderers : undefined"
+        [renderers]="renderers"
       ></tr-chat>
       } @else {
       <tr-chat-ui
@@ -69,7 +125,7 @@
         [data]="data"
         [ui]="ui"
         [isEmpty]="empty"
-        [renderers]="custom ? renderers : undefined"
+        [renderers]="renderers"
         (submit)="onSubmit($event)"
         (create-conversation)="onCreate($event)"
       ></tr-chat-ui>

@@ -113,6 +113,30 @@ body {
   accent-color: #2563eb;
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+}
+.demo-slot-options label.toggle {
+  overflow-wrap: anywhere;
+  align-items: flex-start;
+}
+.demo-slot-options label.toggle:not(:first-of-type) {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #e1e7f0;
+}
+.demo-message-status,
+.demo-message-source,
+.demo-sender-hint,
+.demo-composer-context {
+  color: #62718b;
+  font-size: 12px;
+}
+.demo-message-source {
+  display: block;
+  padding-top: 8px;
+}
+.demo-composer-context {
+  margin: 8px 0;
 }
 .demo-controls button {
   cursor: pointer;
@@ -309,6 +333,18 @@ body {
   grid-template-columns: 250px minmax(0, 1fr);
   align-items: start;
   gap: 20px;
+}
+@media (min-width: 1101px) {
+  .demo-slot-workspace {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+  .demo-slot-workspace .demo-preview {
+    position: sticky;
+    top: 0;
+  }
+  .demo-slot-workspace .demo-chat {
+    height: clamp(440px, calc(100dvh - 220px), 680px);
+  }
 }
 .demo-preview-bar .demo-status {
   font-size: 12px;

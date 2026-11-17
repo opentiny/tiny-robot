@@ -36,11 +36,11 @@ pnpm dev
 
 ## 普通 Slot
 
-`#/content/ordinary-slots` 使用 `tr-chat`、`tr-chat-ui` 的四个普通 Slot，分别提供欢迎说明、换题按钮、咨询主题和助手标识。
+`#/content/ordinary-slots` 使用 `tr-chat`、`tr-chat-ui` 的六个普通 Slot，分别提供欢迎说明、换题按钮、咨询主题、助手标识、输入区底部提示和右下角提示。
 
-[src/demos/ordinary-slots.tsx](src/demos/ordinary-slots.tsx)通过 DOM ref / layout effect 传入属性，JSX 在 `tr-chat`、`tr-chat-ui` 内声明四个具名 Slot，用页面状态管理主题文字、条件内容和换题按钮事件。开发模式还覆盖 StrictMode。
+[src/demos/ordinary-slots.tsx](src/demos/ordinary-slots.tsx)通过 DOM ref / layout effect 传入属性，JSX 在 `tr-chat`、`tr-chat-ui` 内逐个声明六个具名 Slot，用页面状态管理主题文字、条件内容和换题按钮事件。开发模式还覆盖 StrictMode。
 
-“显示 Slot 内容”动态添加或移除具名节点；移除后相应输入区布局也会收起。通用用法与边界见[普通 Slot 文档](../../docs/engineering/web-component/ordinary-slots.md)。
+每个开关标明 Slot 名称，可单独添加或移除对应内容，并修改说明、主题、标识和提示文字。初始只启用 `sender-header`；移除后相应输入区布局也会收起。通用用法与边界见[普通 Slot 文档](../../docs/engineering/web-component/ordinary-slots.md)。
 
 ## Scoped Slot
 
@@ -48,7 +48,7 @@ pnpm dev
 
 [src/demos/scoped-slots.tsx](src/demos/scoped-slots.tsx)直接写各位置的 JSX；`fromReact` 管理每次调用的 React root、输入订阅与卸载，开发模式覆盖 StrictMode。
 
-可修改会话标题、切换宿主输入框、撤销自定义内容和卸载重挂。输入状态通过订阅更新当前视图；清理随 Renderer 的 `signal` 结束。完整接口见[Scoped Slot](../../docs/engineering/web-component/scoped-slots.md)。
+九个开关分别控制页头、欢迎区、消息前缀、消息状态、消息来源、草稿预览、自定义输入框、追问按钮和聚焦按钮。初始只启用 `layout-header`；可修改会话标题、欢迎标题、消息来源和追问内容，并卸载重挂。输入状态通过订阅更新当前视图；清理随 Renderer 的 `signal` 结束。完整接口见[Scoped Slot](../../docs/engineering/web-component/scoped-slots.md)。
 
 ## 验证
 

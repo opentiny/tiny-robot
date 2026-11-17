@@ -89,7 +89,7 @@ this.renderers = {
 
 ## 5 运行示例
 
-[src/demos/scoped-slots.html](../src/demos/scoped-slots.html)直接声明页头、消息标记、Sender 追问按钮、宿主输入框和欢迎内容模板；[组件](../src/demos/scoped-slots.ts)逐项配置 `renderers`。页面支持切换 TrChat / TrChatUI、替换输入视图、撤销自定义内容与卸载重挂。
+[src/demos/scoped-slots.html](../src/demos/scoped-slots.html)直接声明页头、消息标记、Sender 追问按钮、宿主输入框和欢迎内容模板；[组件](../src/demos/scoped-slots.ts)逐项配置 `renderers`。页面的九个开关分别控制各 Slot，可设置欢迎标题、消息来源和追问内容，也可切换 TrChat / TrChatUI 与卸载重挂。
 
 ```sh
 pnpm test:wc --project=angular --grep 'Scoped Slot'

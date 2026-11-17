@@ -3,24 +3,35 @@ import { createLocalRuntime } from '../runtime.js'
 
 /** @param {HTMLElement} root */
 export function mountOrdinarySlotsDemo(root) {
-  root.innerHTML = `<div class="demo-workspace"><aside class="demo-controls"><section class="demo-card">
+  root.innerHTML = `<div class="demo-workspace demo-slot-workspace"><aside class="demo-controls"><section class="demo-card">
     <label>组件<select data-control="kind"><option value="chat">TrChat</option><option value="ui">TrChatUI</option></select></label>
-    <label>咨询主题<input value="产品接入"></label>
-    <label class="toggle"><input type="checkbox" data-control="visibility" checked>显示 Slot 内容</label>
-    <div class="demo-buttons"><button data-action="empty">切换空状态</button><button data-action="mount">卸载元素</button></div>
+    <label class="toggle"><input type="checkbox" data-control="empty" checked>显示欢迎区</label>
+    <p class="demo-help">welcome-footer、prompts-footer 在欢迎区显示。</p>
+    <button data-action="mount">卸载元素</button>
+    </section><section class="demo-card demo-slot-options"><h2>Slot 配置</h2>
+    <label class="toggle"><input type="checkbox" data-slot="welcome-footer" >welcome-footer · 欢迎区页脚</label>
+    <label>welcome-footer 内容<input data-setting="welcomeText" value="支持产品咨询、接入指导与问题排查。"></label>
+    <label class="toggle"><input type="checkbox" data-slot="prompts-footer" >prompts-footer · 提示词页脚</label>
+    <label class="toggle"><input type="checkbox" data-slot="sender-header" checked>sender-header · 输入区顶部</label>
+    <label>咨询主题<input data-setting="topic" value="产品接入" ></label>
+    <label class="toggle"><input type="checkbox" data-slot="input-prefix" >input-prefix · 输入框前缀</label>
+    <label>input-prefix 标识<input data-setting="badge" value="AI"></label>
+    <label class="toggle"><input type="checkbox" data-slot="sender-footer" >sender-footer · 输入区底部</label>
+    <label>sender-footer 内容<input data-setting="footerText" value="请勿发送密码等敏感信息。"></label>
+    <label class="toggle"><input type="checkbox" data-slot="sender-footer-right" >sender-footer-right · 输入区右下角</label>
+    <label>sender-footer-right 内容<input data-setting="footerRightText" value="Enter 发送"></label>
     </section></aside><section class="demo-preview"><div class="demo-chat" data-testid="slot-preview"></div></section></div>`
   const controller = new AbortController()
   const signal = controller.signal
   const preview = /** @type {HTMLElement} */ (root.querySelector('[data-testid=slot-preview]'))
-  const input = /** @type {HTMLInputElement} */ (root.querySelector('input:not([type=checkbox])'))
+  const input = /** @type {HTMLInputElement} */ (root.querySelector('[data-setting=topic]'))
   let owned = createLocalRuntime()
   /** @type {HTMLElement & Record<string, any> | undefined} */
   let element
   let projectionController = new AbortController()
-  let showContent = true
   let empty = true
   let promptGroup = 0
-  let updateTopic = () => {}
+  let updateContent = () => {}
   let updateVisibility = () => {}
   function uiOptions() {
     return { ...SLOT_UI, prompts: { items: PROMPT_GROUPS[promptGroup] } }
@@ -36,24 +47,43 @@ export function mountOrdinarySlotsDemo(root) {
       <div slot="welcome-footer"><p class="demo-welcome-footer">支持产品咨询、接入指导与问题排查。</p></div>
       <div slot="prompts-footer"><div class="demo-prompts-footer"><button type="button">换一组问题</button></div></div>
       <div slot="sender-header"><p class="demo-sender-note">正在咨询：<strong></strong></p></div>
-      <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>`
+      <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>
+      <div slot="sender-footer"><small class="demo-sender-hint"></small></div>
+      <div slot="sender-footer-right"><small class="demo-sender-hint"></small></div>`
     const welcome = /** @type {HTMLElement} */ (element.querySelector('[slot=welcome-footer]'))
     const prompts = /** @type {HTMLElement} */ (element.querySelector('[slot=prompts-footer]'))
     const sender = /** @type {HTMLElement} */ (element.querySelector('[slot=sender-header]'))
     const prefix = /** @type {HTMLElement} */ (element.querySelector('[slot=input-prefix]'))
+    const footer = /** @type {HTMLElement} */ (element.querySelector('[slot=sender-footer]'))
+    const footerRight = /** @type {HTMLElement} */ (element.querySelector('[slot=sender-footer-right]'))
     const promptsContent = /** @type {HTMLElement} */ (prompts.firstElementChild)
     const senderContent = /** @type {HTMLElement} */ (sender.firstElementChild)
-    updateTopic = () => {
+    updateContent = () => {
       senderContent.querySelector('strong')?.replaceChildren(input.value)
+      welcome.querySelector('p')?.replaceChildren(setting('welcomeText').value)
+      prefix.querySelector('span')?.replaceChildren(setting('badge').value)
+      footer.querySelector('small')?.replaceChildren(setting('footerText').value)
+      footerRight.querySelector('small')?.replaceChildren(setting('footerRightText').value)
     }
     updateVisibility = () => {
-      if (showContent) element?.append(welcome, prompts, sender, prefix)
-      else {
-        welcome.remove()
-        prompts.remove()
-        sender.remove()
-        prefix.remove()
-      }
+      if (toggle('welcome-footer').checked) {
+        if (!element?.contains(welcome)) element?.append(welcome)
+      } else welcome.remove()
+      if (toggle('prompts-footer').checked) {
+        if (!element?.contains(prompts)) element?.append(prompts)
+      } else prompts.remove()
+      if (toggle('sender-header').checked) {
+        if (!element?.contains(sender)) element?.append(sender)
+      } else sender.remove()
+      if (toggle('input-prefix').checked) {
+        if (!element?.contains(prefix)) element?.append(prefix)
+      } else prefix.remove()
+      if (toggle('sender-footer').checked) {
+        if (!element?.contains(footer)) element?.append(footer)
+      } else footer.remove()
+      if (toggle('sender-footer-right').checked) {
+        if (!element?.contains(footerRight)) element?.append(footerRight)
+      } else footerRight.remove()
     }
     projectionController = new AbortController()
     promptsContent.querySelector('button')?.addEventListener(
@@ -64,13 +94,13 @@ export function mountOrdinarySlotsDemo(root) {
       },
       { signal: projectionController.signal },
     )
-    updateTopic()
+    updateContent()
     updateVisibility()
     preview.append(element)
   }
   function unmount() {
     projectionController.abort()
-    updateTopic = () => {}
+    updateContent = () => {}
     updateVisibility = () => {}
     element?.remove()
     element = undefined
@@ -85,19 +115,30 @@ export function mountOrdinarySlotsDemo(root) {
     },
     { signal },
   )
-  input.addEventListener('input', () => updateTopic(), { signal })
-  root.querySelector('[data-control=visibility]')?.addEventListener(
+  /** @param {string} name */
+  function setting(name) {
+    return /** @type {HTMLInputElement} */ (root.querySelector(`[data-setting="${name}"]`))
+  }
+  /** @param {string} name */
+  function toggle(name) {
+    return /** @type {HTMLInputElement} */ (root.querySelector(`[data-slot="${name}"]`))
+  }
+  root
+    .querySelectorAll('[data-setting]')
+    .forEach((field) => field.addEventListener('input', () => updateContent(), { signal }))
+  root.querySelectorAll('[data-slot]').forEach((control) =>
+    control.addEventListener(
+      'change',
+      () => {
+        updateVisibility()
+      },
+      { signal },
+    ),
+  )
+  root.querySelector('[data-control=empty]')?.addEventListener(
     'change',
     (event) => {
-      showContent = /** @type {HTMLInputElement} */ (event.currentTarget).checked
-      updateVisibility()
-    },
-    { signal },
-  )
-  root.querySelector('[data-action=empty]')?.addEventListener(
-    'click',
-    () => {
-      empty = !empty
+      empty = /** @type {HTMLInputElement} */ (event.currentTarget).checked
       if (element) element.isEmpty = empty
     },
     { signal },

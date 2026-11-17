@@ -27,8 +27,20 @@ const inputRenderer = fromReact<ChatSenderContentRendererContext>(
 export function ScopedSlotsDemo() {
   const [kind, setKind] = useState('chat')
   const [title, setTitle] = useState('产品咨询')
-  const [custom, setCustom] = useState(true)
-  const [customInput, setCustomInput] = useState(false)
+  const [slots, setSlots] = useState({
+    header: true,
+    welcome: false,
+    prefix: false,
+    suffix: false,
+    source: false,
+    before: false,
+    input: false,
+    footer: false,
+    footerRight: false,
+  })
+  const [followup, setFollowup] = useState('请详细说明')
+  const [welcomeTitle, setWelcomeTitle] = useState('开始你的产品咨询')
+  const [sourceText, setSourceText] = useState('产品知识库')
   const [empty, setEmpty] = useState(true)
   const [mounted, setMounted] = useState(true)
   const [messages, setMessages] = useState<readonly { id: string; role: string; content: string }[]>(SCOPED_MESSAGES)
@@ -55,21 +67,55 @@ export function ScopedSlotsDemo() {
           {scope.role === 'assistant' ? '助手' : '用户'} · 消息 {scope.messageIndexes.join(',')}
         </small>
       )),
-      'sender-footer': fromReact<Scope<'sender-footer'>>((scope) => (
+      'bubble-suffix': fromReact<Scope<'bubble-suffix'>>((scope) => (
+        <small className="demo-message-status">{scope.role === 'assistant' ? '已回复' : '已发送'}</small>
+      )),
+      'composer-before': fromReact<Scope<'composer-before'>>((scope) => (
+        <p className="demo-composer-context">当前草稿：{scope.value || '尚未输入'}</p>
+      )),
+      'sender-footer-right': fromReact<Scope<'sender-footer-right'>>((scope) => (
+        <button
+          type="button"
+          className="demo-scoped-action"
+          disabled={scope.disabled}
+          onClick={() => void scope.focus()}
+        >
+          聚焦输入框
+        </button>
+      )),
+    }),
+    [],
+  )
+  const sourceRenderer = useMemo(
+    () =>
+      fromReact<Scope<'bubble-content-footer'>>((scope) => (
+        <small className="demo-message-source">
+          {sourceText} · 消息 {scope.messageIndexes.join(',')}
+        </small>
+      )),
+    [sourceText],
+  )
+  const footerRenderer = useMemo(
+    () =>
+      fromReact<Scope<'sender-footer'>>((scope) => (
         <button
           type="button"
           className="demo-scoped-action"
           disabled={scope.disabled || scope.loading}
-          onClick={() => scope.insert('请详细说明')}
+          onClick={() => scope.insert(followup)}
         >
           插入追问
         </button>
       )),
-      'layout-empty-state': fromReact<Scope<'layout-empty-state'>>((scope) => {
+    [followup],
+  )
+  const welcomeRenderer = useMemo(
+    () =>
+      fromReact<Scope<'layout-empty-state'>>((scope) => {
         const composer = scope.renderComposer()
         return (
           <section className="demo-scoped-welcome">
-            <h2>开始你的产品咨询</h2>
+            <h2>{welcomeTitle}</h2>
             <p>描述问题，或使用输入区的快捷追问。</p>
             <div
               ref={(node) => {
@@ -79,12 +125,21 @@ export function ScopedSlotsDemo() {
           </section>
         )
       }),
-    }),
-    [],
+    [welcomeTitle],
   )
   const renderers = useMemo<ChatRenderers>(
-    () => ({ ...baseRenderers, 'sender-content': customInput ? inputRenderer : undefined }),
-    [baseRenderers, customInput],
+    () => ({
+      'layout-header': slots.header ? baseRenderers['layout-header'] : undefined,
+      'layout-empty-state': slots.welcome ? welcomeRenderer : undefined,
+      'bubble-prefix': slots.prefix ? baseRenderers['bubble-prefix'] : undefined,
+      'bubble-suffix': slots.suffix ? baseRenderers['bubble-suffix'] : undefined,
+      'bubble-content-footer': slots.source ? sourceRenderer : undefined,
+      'composer-before': slots.before ? baseRenderers['composer-before'] : undefined,
+      'sender-content': slots.input ? inputRenderer : undefined,
+      'sender-footer': slots.footer ? footerRenderer : undefined,
+      'sender-footer-right': slots.footerRight ? baseRenderers['sender-footer-right'] : undefined,
+    }),
+    [baseRenderers, slots, sourceRenderer, footerRenderer, welcomeRenderer],
   )
 
   useLayoutEffect(() => {
@@ -124,15 +179,15 @@ export function ScopedSlotsDemo() {
   useLayoutEffect(() => {
     const element = kind === 'chat' ? chatRef.current : uiRef.current
     if (!element) return
-    element.renderers = custom ? renderers : undefined
+    element.renderers = renderers
     element.isEmpty = empty
-  }, [kind, mounted, custom, renderers, empty])
+  }, [kind, mounted, renderers, empty])
   useLayoutEffect(() => {
     if (kind === 'chat' && chatRef.current) chatRef.current.title = title
     if (kind === 'ui' && uiRef.current) uiRef.current.data = { conversation: { title }, bubble: { messages } }
   }, [kind, mounted, title, messages])
   return (
-    <div className="demo-workspace">
+    <div className="demo-workspace demo-slot-workspace">
       <aside className="demo-controls">
         <section className="demo-card">
           <label>
@@ -147,20 +202,100 @@ export function ScopedSlotsDemo() {
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="toggle">
-            <input type="checkbox" checked={custom} onChange={(event) => setCustom(event.target.checked)} />
-            显示自定义内容
-          </label>
-          <label className="toggle">
-            <input type="checkbox" checked={customInput} onChange={(event) => setCustomInput(event.target.checked)} />
-            自定义输入框
-          </label>
-          <label className="toggle">
             <input type="checkbox" checked={empty} onChange={(event) => setEmpty(event.target.checked)} />
             显示欢迎区
           </label>
+          <p className="demo-help">关闭欢迎区可查看消息 Slot。</p>
           <button type="button" onClick={() => setMounted(!mounted)}>
             {mounted ? '卸载元素' : '挂载元素'}
           </button>
+        </section>
+        <section className="demo-card demo-slot-options">
+          <h2>Slot 配置</h2>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.header}
+              onChange={(event) => setSlots({ ...slots, header: event.target.checked })}
+            />
+            layout-header · 页头与会话操作
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.welcome}
+              onChange={(event) => setSlots({ ...slots, welcome: event.target.checked })}
+            />
+            layout-empty-state · 欢迎区与原生输入区
+          </label>
+          <label>
+            layout-empty-state 标题
+            <input value={welcomeTitle} onChange={(event) => setWelcomeTitle(event.target.value)} />
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.prefix}
+              onChange={(event) => setSlots({ ...slots, prefix: event.target.checked })}
+            />
+            bubble-prefix · 消息前缀
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.suffix}
+              onChange={(event) => setSlots({ ...slots, suffix: event.target.checked })}
+            />
+            bubble-suffix · 消息发送状态
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.source}
+              onChange={(event) => setSlots({ ...slots, source: event.target.checked })}
+            />
+            bubble-content-footer · 消息内容来源
+          </label>
+          <label>
+            bubble-content-footer 来源
+            <input value={sourceText} onChange={(event) => setSourceText(event.target.value)} />
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.before}
+              onChange={(event) => setSlots({ ...slots, before: event.target.checked })}
+            />
+            composer-before · 输入区上方草稿
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.input}
+              onChange={(event) => setSlots({ ...slots, input: event.target.checked })}
+            />
+            sender-content · 自定义输入框
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.footer}
+              onChange={(event) => setSlots({ ...slots, footer: event.target.checked })}
+            />
+            sender-footer · 输入区追问按钮
+          </label>
+          <label>
+            sender-footer 追问内容
+            <input value={followup} onChange={(event) => setFollowup(event.target.value)} />
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={slots.footerRight}
+              onChange={(event) => setSlots({ ...slots, footerRight: event.target.checked })}
+            />
+            sender-footer-right · 输入区聚焦按钮
+          </label>
         </section>
       </aside>
       <section className="demo-preview">
