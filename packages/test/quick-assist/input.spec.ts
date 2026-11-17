@@ -1,11 +1,125 @@
 import { expect, test } from '@playwright/test'
 import type {} from './main'
 
+// Keep browser scrollbars enabled so rendering checks also catch duplicate native rails.
+test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
+
 for (const entry of ['index', 'umd']) {
   test.describe(`${entry} input`, () => {
     test.beforeEach(async ({ page }) => {
       await page.goto(`/quick-assist/${entry}.html`)
       await page.waitForFunction(() => !!window.qa)
+    })
+
+    test.describe('persistent scrollbar', () => {
+      for (const mode of ['light', 'dark']) {
+        test(`reserves a rail near the right border and retains it while idle in ${mode}`, async ({ page }, info) => {
+          await page.evaluate((mode) => {
+            document.documentElement.setAttribute('data-tr-color-mode', mode)
+            window.qa.activate({ text: '检查滚动条', anchor: document.querySelector('#term')!, open: 'popover' })
+          }, mode)
+          const input = page.locator('.tr-quick-assist__input')
+          const rail = page.locator('.tr-quick-assist__scrollbar')
+          const thumb = rail.locator('.tr-quick-assist__scrollbar-thumb')
+          await page.locator('.tr-quick-assist__popover').evaluate(async (element) => {
+            await Promise.all(element.getAnimations().map((animation) => animation.finished))
+          })
+          await input.fill('第一行\n第二行\n第三行')
+          await expect(thumb).toHaveCSS('height', '16px')
+          await expect(thumb).toHaveCSS('width', '4px')
+          await input.fill(
+            Array.from({ length: 20 }, (_, index) => `第${index + 1}行：用于验证文字和滚动条不会重叠`).join('\n'),
+          )
+          await expect(input).toHaveCSS('overflow-y', 'scroll')
+          const geometry = await input.evaluate((element) => {
+            const area = element as HTMLTextAreaElement
+            const rect = area.getBoundingClientRect()
+            const form = area.closest('.tr-quick-assist__composer')!
+            const composer = form.getBoundingClientRect()
+            const rail = form.querySelector('.tr-quick-assist__scrollbar')!.getBoundingClientRect()
+            const thumb = form.querySelector('.tr-quick-assist__scrollbar-thumb')!
+            const paddingRight = parseFloat(getComputedStyle(area).paddingRight)
+            return {
+              gutter: rail.width,
+              nativeGutter: area.offsetWidth - area.clientWidth,
+              thumbHeight: thumb.getBoundingClientRect().height,
+              thumbColor: getComputedStyle(thumb).backgroundColor,
+              rightInset: composer.right - rail.right,
+              textRailGap: rail.left - (rect.right - paddingRight),
+              overflowing: area.scrollHeight > area.clientHeight,
+              clip: { x: rail.x, y: rail.y, width: rail.width, height: rail.height },
+            }
+          })
+          expect(geometry.gutter).toBe(4)
+          expect(geometry.nativeGutter).toBe(0)
+          expect(geometry.thumbHeight).toBe(16)
+          expect(geometry.thumbColor).toBe(mode === 'light' ? 'rgb(219, 219, 219)' : 'rgb(128, 128, 128)')
+          expect(geometry.rightInset).toBe(4)
+          expect(geometry.textRailGap).toBe(4)
+          expect(geometry.overflowing).toBe(true)
+          await input.evaluate((element) => {
+            element.scrollTop = 0
+          })
+          await input.hover()
+          await page.mouse.wheel(0, 180)
+          await expect.poll(() => input.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+          await input.evaluate(
+            (element) =>
+              new Promise<void>((resolve) => {
+                let last = element.scrollTop
+                let stableFrames = 0
+                const settle = () => {
+                  const current = element.scrollTop
+                  stableFrames = current === last ? stableFrames + 1 : 0
+                  last = current
+                  if (stableFrames >= 8) resolve()
+                  else requestAnimationFrame(settle)
+                }
+                requestAnimationFrame(settle)
+              }),
+          )
+          await page.mouse.move(1, 1)
+          const scrolling = await page.screenshot({
+            path: info.outputPath('rail-after-scroll.png'),
+            clip: geometry.clip,
+            caret: 'hide',
+            animations: 'disabled',
+          })
+          // Intentionally wait past the OS overlay scrollbar's usual idle fade.
+          await page.waitForTimeout(3500)
+          const idle = await page.screenshot({
+            path: info.outputPath('rail-after-idle.png'),
+            clip: geometry.clip,
+            caret: 'hide',
+            animations: 'disabled',
+          })
+          expect(idle.equals(scrolling), 'the dedicated scrollbar rail must not fade after scrolling stops').toBe(true)
+          await page
+            .locator('.tr-quick-assist__popover')
+            .screenshot({ path: info.outputPath('idle-popover.png'), caret: 'hide' })
+          const maxScroll = await input.evaluate((element) => element.scrollHeight - element.clientHeight)
+          await rail.focus()
+          await rail.press('End')
+          await expect.poll(() => input.evaluate((element) => element.scrollTop)).toBe(maxScroll)
+          await expect(rail).toHaveAttribute('aria-valuenow', String(maxScroll))
+          await rail.press('Home')
+          await expect.poll(() => input.evaluate((element) => element.scrollTop)).toBe(0)
+          await rail.press('ArrowDown')
+          await expect.poll(() => input.evaluate((element) => element.scrollTop)).toBe(18)
+          await rail.press('Home')
+          const knob = await thumb.boundingBox()
+          const track = await rail.boundingBox()
+          await page.mouse.move(knob!.x + 2, knob!.y + 8)
+          await page.mouse.down()
+          await page.mouse.move(knob!.x + 2, track!.y + track!.height - 1, { steps: 8 })
+          await page.mouse.up()
+          await expect.poll(() => input.evaluate((element) => element.scrollTop)).toBe(maxScroll)
+          await input.fill('短文本')
+          await expect(page.locator('.tr-quick-assist__composer')).toHaveCSS('height', '40px')
+          await expect(input).toHaveCSS('overflow-y', 'hidden')
+          await expect(rail).toBeHidden()
+        })
+      }
     })
 
     test('input defaults to empty without losing selection context', async ({ page }) => {
@@ -80,7 +194,7 @@ for (const entry of ['index', 'umd']) {
           if (multiline) {
             const area = page.locator('.tr-quick-assist__input')
             await expect(area).toHaveCSS('height', '36px')
-            await expect(area).toHaveCSS('width', '288px')
+            await expect(area).toHaveCSS('width', '296px')
             await expect(area).toHaveCSS('font-size', '12px')
             await expect(area).toHaveCSS('line-height', '18px')
           }

@@ -158,7 +158,67 @@ try {
       )
     }
     await expect(demo.locator('html')).toHaveAttribute('data-theme', mode)
+    await expect(demo.locator('html')).toHaveAttribute('data-tr-color-mode', mode)
     await checkThemeContrast(demo.locator('body, article, [data-sensitive], button, .status'))
+
+    // Check the real HTML preview with the docs' copied shared styles present.
+    // A dark Vanilla root can still inherit light --tr-* tokens if the iframe's
+    // shared theme selector is not synchronized with its custom data-theme.
+    await paragraph.scrollIntoViewIfNeeded()
+    await paragraph.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    const trigger = demo.locator('.tr-quick-assist__trigger')
+    await expect(demo.locator('[data-tr-vanilla]')).toHaveAttribute('data-tr-vanilla-color-mode', mode)
+    await expect(trigger).toHaveCSS('border-color', mode === 'dark' ? 'rgba(0, 0, 0, 0)' : 'rgb(219, 219, 219)')
+    await trigger.hover()
+    await expect(trigger).toHaveCSS('color', mode === 'dark' ? 'rgb(179, 179, 179)' : 'rgb(89, 89, 89)')
+    await trigger.click()
+    const popover = demo.locator('.tr-quick-assist__popover')
+    const composer = demo.locator('.tr-quick-assist__composer')
+    const suggestion = demo.locator('.tr-quick-assist__suggestion').first()
+    const border = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgb(230, 230, 230)'
+    await expect(composer).toHaveCSS('border-color', border)
+    await expect(suggestion).toHaveCSS('border-color', border)
+    if (mode === 'dark') {
+      for (const surface of [popover, composer, suggestion, demo.locator('.tr-quick-assist__submit')]) {
+        await expect(surface).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+      }
+    }
+    const input = demo.locator('.tr-quick-assist__input')
+    const submit = demo.locator('.tr-quick-assist__submit')
+    await expect(submit).toBeDisabled()
+    await expect(submit.locator('.tr-quick-assist__icon--gray')).toBeVisible()
+    await expect(submit.locator('.tr-quick-assist__icon--gray')).toHaveCSS('opacity', mode === 'dark' ? '0.55' : '1')
+    await input.fill('核对发送图标')
+    await expect(submit).toBeEnabled()
+    const enabledIcon = submit.locator(
+      mode === 'dark' ? '.tr-quick-assist__icon--gray' : '.tr-quick-assist__icon--black',
+    )
+    await expect(enabledIcon).toBeVisible()
+    await expect(enabledIcon).toHaveCSS('opacity', '1')
+    await expect.poll(() => enabledIcon.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await input.fill('')
+    const normal = await suggestion.screenshot({ animations: 'disabled' })
+    await suggestion.hover()
+    await expect(suggestion).toHaveCSS('background-color', mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(245, 245, 245)')
+    await expect(suggestion).toHaveCSS('border-color', border)
+    const hovered = await suggestion.screenshot({ animations: 'disabled' })
+    expect(hovered.equals(normal), 'real HTML preview hover must visibly change its recommendation').toBe(false)
+    if (screenshotRoot) {
+      await popover.screenshot({
+        path: `${screenshotRoot}/html-preview-${mode}.png`,
+        animations: 'disabled',
+        caret: 'hide',
+      })
+    }
+    await demo.locator('.tr-quick-assist__input').press('Escape')
+    await paragraph.evaluate(() => window.getSelection().removeAllRanges())
     if (screenshotRoot && !standalone) {
       await page
         .locator('.qa-position-demo')
@@ -206,7 +266,9 @@ try {
     })
   }
   await expect(demo.locator('#event-status')).not.toContainText('失败')
-  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__popover button'))
+  // The send button renders fixed-color SVG images, not its CSS text color.
+  // Its decoded artwork and disabled opacity are checked above in each mode.
+  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__suggestion'))
   if (!standalone) {
     for (const selector of [
       '#qa-delay-text',
@@ -331,6 +393,7 @@ try {
     })
     await expect(page.locator('.tr-quick-assist__trigger'), '租户编号划词应显示入口').toBeVisible()
     await page.locator('.tr-quick-assist__trigger').click()
+    await page.locator('.tr-quick-assist__popover textarea').fill('tenant-demo-4812')
     await page.locator('.tr-quick-assist__popover textarea').press('Enter')
     await expect(page.locator('#qa-context-text').locator('..').locator('pre')).toContainText('[已脱敏]')
     const submittedContext = JSON.parse(
@@ -370,6 +433,7 @@ try {
         document.dispatchEvent(new Event('selectionchange'))
       })
       await page.locator('.tr-quick-assist__trigger').click()
+      await page.locator('.tr-quick-assist__popover textarea').fill('请解释选中的内容')
       await page.locator('.tr-quick-assist__popover textarea').press('Enter')
       await expect(chatDemo.locator('.tr-bubble')).toHaveCount((index + 1) * 2)
     }
@@ -415,7 +479,9 @@ try {
       selection.addRange(range)
       document.dispatchEvent(new Event('selectionchange'))
     })
-    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointerup')))
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeDisabled()
+    await expect(page.locator('.tr-quick-assist__selection-tooltip')).toBeVisible()
     await page.getByRole('button', { name: '停用划词' }).click()
     await expect(page.locator('.qa-feature-demo__status')).toHaveText('划词已停用，当前界面已关闭')
     await page.getByRole('button', { name: '启用划词' }).click()
@@ -481,7 +547,7 @@ try {
       await themeDemo.locator('.tr-quick-assist__trigger').click()
       await expect(themeDemo.locator('.tr-quick-assist__popover')).toHaveCSS(
         'background-color',
-        mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+        mode === 'dark' ? 'rgb(26, 26, 26)' : 'rgb(255, 255, 255)',
       )
       await checkThemeContrast(
         themeDemo.locator('body, #theme-text, #theme-status, .tr-quick-assist__input, .tr-quick-assist__suggestion'),

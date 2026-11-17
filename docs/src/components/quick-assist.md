@@ -854,25 +854,38 @@ TinyRobotVanilla.configureVanillaTheme({
 
 ## CSS 变量
 
-QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。部分默认值使用 TinyRobot 主题变量，未提供主题变量时使用 `var()` 中的回退值。
+QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。默认值随 Vanilla 主题变化；未继承 TinyRobot 主题变量时，使用组件自带的对应主题默认值。
 
-| 变量名                                                     | 说明                                   | 默认值                                                                            |
-| ---------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------- |
-| [`--tr-quick-assist-bg`](#example-theme)                   | 入口、输入浮层及按钮的基础背景色       | `var(--tr-container-bg-default, #fff)`                                            |
-| [`--tr-quick-assist-bg-subtle`](#example-theme)            | 入口悬停时背景色                       | `var(--tr-container-bg-default-2, #fafafa)`                                       |
-| [`--tr-quick-assist-text`](#example-theme)                 | 主要文字及发送按钮颜色                 | `var(--tr-text-primary, #191919)`                                                 |
-| [`--tr-quick-assist-muted`](#example-theme)                | 输入框占位文字及状态提示文字颜色       | `var(--tr-text-secondary, #595959)`                                               |
-| [`--tr-quick-assist-border`](#example-theme)               | 边框及滚动条颜色                       | `#e6e6e6`                                                                         |
-| [`--tr-quick-assist-border-hover`](#example-theme)         | 弹窗及按钮悬停时的边框颜色             | `color-mix(in srgb, var(--tr-quick-assist-bg) 65%, var(--tr-quick-assist-muted))` |
-| [`--tr-quick-assist-accent`](#example-theme)               | 发送按钮悬停及键盘聚焦时的强调色       | `var(--tr-text-primary, #191919)`                                                 |
-| [`--tr-quick-assist-icon-gradient-start`](#example-theme)  | 星光图标渐变起始色（左上）             | `#7d00ff`                                                                         |
-| [`--tr-quick-assist-icon-gradient-middle`](#example-theme) | 星光图标渐变中间色                     | `#b927ff`                                                                         |
-| [`--tr-quick-assist-icon-gradient-end`](#example-theme)    | 星光图标渐变结束色（右下）             | `#ff6bb5`                                                                         |
-| [`--tr-quick-assist-radius`](#example-theme)               | 输入浮层圆角                           | `16px`                                                                            |
-| [`--tr-quick-assist-pill-radius`](#example-theme)          | 入口及推荐问题按钮圆角                 | `var(--tr-radius-full, 9999px)`                                                   |
-| [`--tr-quick-assist-shadow`](#example-theme)               | 入口及输入浮层阴影                     | `0 2px 8px 0 rgba(0, 0, 0, 0.16)`                                                 |
-| [`--tr-quick-assist-z-index`](#example-theme)              | 组件层级                               | `var(--tr-z-index-popover, 1500)`                                                 |
-| `--tr-quick-assist-popover-width`                          | 输入浮层宽度，仍受视口宽度减 16px 限制 | `344px`                                                                           |
+| 变量名 | 说明 | 默认值（浅色 / 深色） |
+| --- | --- | --- |
+| [`--tr-quick-assist-bg`](#example-theme) | 入口背景色及浅色浮层基础背景色 | `#fff` / `#262626`，可继承 `--tr-container-bg-default` |
+| [`--tr-quick-assist-popover-bg`](#example-theme) | 输入浮层、输入框及发送按钮背景色 | `var(--tr-quick-assist-bg)` / `#1a1a1a` |
+| [`--tr-quick-assist-text`](#example-theme) | 主要文字颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
+| [`--tr-quick-assist-muted`](#example-theme) | 入口悬停文字、推荐问题、输入框占位文字及状态提示颜色 | `#595959` / `#b3b3b3`，可继承 `--tr-text-secondary` |
+| [`--tr-quick-assist-border`](#example-theme) | 输入框、推荐问题描边及滚动条颜色 | `#e6e6e6` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-border-color` |
+| [`--tr-quick-assist-trigger-border`](#example-theme) | 入口描边颜色，悬停时保持不变 | `#dbdbdb` / `transparent`，可继承 `--tr-assist-trigger-border-color` |
+| [`--tr-quick-assist-popover-border`](#example-theme) | 输入浮层外描边颜色，悬停时保持不变 | `var(--tr-quick-assist-border)` / `transparent` |
+| [`--tr-quick-assist-hover-bg`](#example-theme) | 推荐问题悬停背景色 | `#f5f5f5` / `#262626`，可继承 `--tr-assist-suggestion-bg-hover` |
+| [`--tr-quick-assist-suggestion-bg`](#example-theme) | 推荐问题默认背景色，与悬停背景区分 | `var(--tr-quick-assist-popover-bg)`，浅色 `#fff` / 深色 `#1a1a1a` |
+| [`--tr-quick-assist-glow-opacity`](#example-theme) | 输入框下沿四色渐变光晕的透明度，设为 `0` 可隐藏 | `0.16` / `0.3` |
+| [`--tr-quick-assist-scrollbar-thumb`](#example-theme) | 输入框溢出时持续可见的 4×16px 滚动条滑块颜色 | `#dbdbdb` / `#808080`（深色可继承 `--tr-text-disabled`） |
+| [`--tr-quick-assist-accent`](#example-theme) | 入口、发送按钮及推荐问题键盘聚焦时的轮廓颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
+| [`--tr-quick-assist-radius`](#example-theme) | 输入浮层圆角 | `16px` |
+| [`--tr-quick-assist-pill-radius`](#example-theme) | 入口及推荐问题按钮圆角 | `var(--tr-radius-full, 9999px)` |
+| [`--tr-quick-assist-shadow`](#example-theme) | 入口及输入浮层阴影 | `0 2px 8px 0 rgba(0, 0, 0, 0.16)` / `0 2px 8px 0 rgba(0, 0, 0, 0.48)` |
+| [`--tr-quick-assist-z-index`](#example-theme) | 组件层级 | `var(--tr-z-index-popover, 1500)` |
+| `--tr-quick-assist-popover-width` | 输入浮层宽度，仍受视口宽度减 16px 限制 | `344px` |
+
+AI 图标采用深浅主题对应的 SVG 资源；发送图标采用固定配色的 SVG，随主题和禁用状态切换，不受 `--tr-quick-assist-text` 或 `--tr-quick-assist-accent` 控制。旧版 `--tr-quick-assist-bg-subtle`、`--tr-quick-assist-border-hover` 和 `--tr-quick-assist-icon-gradient-*` 已不再生效。
+
+覆盖深色模式专用的浮层背景、外描边或光晕透明度时，使用匹配主题的选择器，并将业务样式放在组件样式之后：
+
+```css
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] {
+  --tr-quick-assist-popover-border: transparent;
+  --tr-quick-assist-glow-opacity: 0.4;
+}
+```
 
 例如，通过 `attrs.popover.class` 为浮层添加业务 class 后设置宽度：
 
