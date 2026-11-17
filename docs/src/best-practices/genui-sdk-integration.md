@@ -31,11 +31,11 @@ pageClass: demo-container-page-bg
 
 本例使用 `@opentiny/genui-sdk-core` 与 `@opentiny/tiny-schema-renderer` 组合。GenUI Core 和界面渲染分别接入，选择其他渲染器时，需要同步调整输出协议与校验规则。
 
-### 快速体验示例
+### 配置与体验
 
 此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。查看[完整示例项目][project]，准备 Node.js 22 LTS 和 pnpm 10，然后按以下步骤启动：
 
-1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/src/best-practices/genui-sdk-integration/project` 目录，运行 `pnpm install`。
+1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/examples/genui-sdk-integration` 目录，运行 `pnpm install`。
 2. 复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key：阿里云百炼使用 `VITE_ALIYUN_DASHSCOPE_KEY`，DeepSeek 使用 `VITE_DEEPSEEK_API_KEY`，然后运行 `pnpm dev`。
 
 模型配置位于 [`src/App.vue`][app] 的 `modelProviders`；请选择账号可用且服务端支持的模型名称。修改环境变量后需重启 Vite。
@@ -235,17 +235,17 @@ sender: {
 
 ## 参考文档
 
-- [CLI 接入](../../../guide/cli-integration.md)：创建项目和配置运行时版本。
-- [Chat 快速上手](../../../suites/quick-start.md)：了解基础接入流程。
-- [界面与交互配置](../../../suites/chat.md)：配置输入区按钮和消息渲染。
-- [数据与逻辑配置](../../../suites/chat-runtime.md)：配置模型服务、会话和消息发送。
+- [CLI 接入](../guide/cli-integration.md)：创建项目和配置运行时版本。
+- [Chat 快速上手](../suites/quick-start.md)：了解基础接入流程。
+- [界面与交互配置](../suites/chat.md)：配置输入区按钮和消息渲染。
+- [数据与逻辑配置](../suites/chat-runtime.md)：配置模型服务、会话和消息发送。
 - [GenUI SDK](https://github.com/opentiny/genui-sdk)。
 - [独立 Schema 渲染器](https://github.com/opentiny/tiny-schema-renderer)。
 
-[project]: https://github.com/SonyLeo/tiny-robot/tree/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project
-[app]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/App.vue
-[prompt]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/prompt.ts
-[schema]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/schema.ts
-[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/components/SchemaContent.vue
-[context]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/genui/context.ts
-[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/src/best-practices/genui-sdk-integration/project/src/schema-renderer.d.ts
+[project]: https://github.com/SonyLeo/tiny-robot/tree/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration
+[app]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/App.vue
+[prompt]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/prompt.ts
+[schema]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/schema.ts
+[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/components/SchemaContent.vue
+[context]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/context.ts
+[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/schema-renderer.d.ts

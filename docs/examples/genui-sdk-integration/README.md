@@ -14,4 +14,4 @@ pnpm dev
 
 打开页面后，在输入区启用“生成式 UI”，即可请求模型生成界面。
 
-[最佳实践文章](../docs/index.md)
+[最佳实践文章](../../src/best-practices/genui-sdk-integration.md)
