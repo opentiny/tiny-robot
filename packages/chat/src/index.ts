@@ -5,6 +5,8 @@ export type { ChatRenderContext } from './composables/useChatRenderContext'
 export { useChatRuntimeFromConversation } from './runtime/useChatRuntimeFromConversation'
 export { useChatRuntime } from './runtime/useChatRuntime'
 export { createCompositeMcpAdapter } from './runtime/mcp/compositeMcpAdapter'
+export { createWebMcpAdapter } from './runtime/mcp/createWebMcpAdapter'
+export { createWebMcpToolSource, normalizeWebMcpInputSchema, readWebMcpToolText } from './runtime/mcp/webmcpToolSource'
 export { ERROR_STATE_PLUGIN_NAME, errorStatePlugin } from './runtime/plugins/errorStatePlugin'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 export { useChatHistoryData, useChatHistoryItems } from './composables/useChatHistoryItems'
@@ -23,7 +25,12 @@ export type {
   KitRuntimeSendPayload,
   UseChatRuntimeFromConversationOptions,
 } from './runtime/useChatRuntimeFromConversation'
-export type { UseChatRuntimeMcpAdapter, UseChatRuntimeOptions } from './runtime/useChatRuntime'
+export type {
+  UseChatRuntimeMcp,
+  UseChatRuntimeMcpAdapter,
+  UseChatRuntimeMcpOptions,
+  UseChatRuntimeOptions,
+} from './runtime/useChatRuntime'
 export type {
   ChatMcpAdapter,
   CompositeMcpAdapter,
@@ -38,6 +45,14 @@ export type {
   UseChatHistoryItemsOptions,
 } from './composables/useChatHistoryItems'
 export type { ChatMcpServerConfig, ChatMcpServers, ChatMcpTransportType } from './runtime/mcp/types'
+export type {
+  CreateWebMcpAdapterOptions,
+  CreateWebMcpToolSourceOptions,
+  WebMcpContext,
+  WebMcpServerOptions,
+  WebMcpToolDescriptor,
+  WebMcpToolSource,
+} from './runtime/mcp/webmcpTypes'
 export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,

@@ -305,7 +305,7 @@ const runtime = useChatRuntime({
 
 MCP 用于连接外部工具服务，让模型调用工具，例如查询项目资料。需要使用工具时，再配置此项。
 
-通过 `useChatRuntime` 的 `mcpServers` 数组配置工具服务。服务支持 Streamable HTTP 和 SSE 连接方式，并能从浏览器访问；未配置时不连接工具服务。传入 `mcpServers: []` 可以只启用 MCP 面板和运行时动态注册能力。
+推荐通过 `useChatRuntime` 的统一 `mcp` 配置接入工具。服务支持 Streamable HTTP 和 SSE 连接方式，并能从浏览器访问；未配置时不连接工具服务。传入 `mcp: { servers: [] }` 可以只启用 MCP 面板和运行时动态注册能力。
 
 | 字段        | 用途                                       | 必填 | 默认值或未配置行为        |
 | ----------- | ------------------------------------------ | ---- | ------------------------- |
@@ -322,13 +322,15 @@ MCP 用于连接外部工具服务，让模型调用工具，例如查询项目�
 ```ts
 const runtime = useChatRuntime({
   modelProviders,
-  mcpServers: [
-    {
-      id: 'project-tools',
-      name: '项目工具',
-      baseUrl: 'https://your-service.example.com/mcp/project-tools',
-    },
-  ],
+  mcp: {
+    servers: [
+      {
+        id: 'project-tools',
+        name: '项目工具',
+        baseUrl: 'https://your-service.example.com/mcp/project-tools',
+      },
+    ],
+  },
 })
 ```
 
@@ -341,7 +343,62 @@ const runtime = useChatRuntime({
 
 > 已启用服务的工具仍在加载时，会暂时禁止发送消息。
 
-复用已有工具连接时，可使用自定义 `mcp`。`mcp` 和 `mcpServers` 可以同时配置：`mcpServers` 会先转换为内置 Adapter，再与自定义 Adapter 合并到同一个 MCP Runtime；动态注册由内置 Adapter 负责。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
+已有工具 Adapter 和外部 MCP Server 可以通过同一个 `mcp` 配置合并：
+
+```ts
+const runtime = useChatRuntime({
+  modelProviders,
+  mcp: {
+    servers: mcpServers,
+    adapters: [webmcpAdapter, builtinMcpAdapter],
+  },
+})
+```
+
+`mcp.servers` 会转换为内置 Adapter，`mcp.adapters` 用于已有的 WebMCP、业务或 SDK Adapter，最后合并到同一个 MCP Runtime。旧的 `mcp: adapter` 和顶层 `mcpServers` 写法已弃用但继续兼容，分别改用 `mcp.adapters: [adapter]` 和 `mcp.servers`；不能同时提供 `mcp.servers` 与顶层 `mcpServers`。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
+
+### 接入页面 WebMCP 工具
+
+如果页面通过 `document.modelContext` 提供 WebMCP 工具，可以使用 `createWebMcpAdapter` 将页面工具接入当前 Chat Runtime：
+
+```ts
+import { createWebMcpAdapter, useChatRuntime } from '@opentiny/tiny-robot-chat'
+
+const webmcp = createWebMcpAdapter({
+  getContext: () => document.modelContext,
+  server: {
+    id: 'page-webmcp',
+    name: '页面工具',
+    description: '当前页面提供的 WebMCP 工具',
+  },
+})
+
+const runtime = useChatRuntime({
+  modelProviders,
+  mcp: {
+    servers: mcpServers,
+    adapters: [webmcp],
+  },
+})
+```
+
+`createWebMcpAdapter` 会读取 `listTools` 或 `getTools`，将工具 Schema 归一化为模型可用的对象，并监听 `toolchange` 更新 MCP 面板。模型侧工具名使用 `${serverId}__${toolName}` 命名空间，实际调用时仍使用页面工具的原始名称。
+
+也可以传入实现了 `WebMcpToolSource` 的业务工具源，从而不直接依赖 `document.modelContext`：
+
+```ts
+const webmcp = createWebMcpAdapter({
+  source: {
+    listTools,
+    callTool,
+    subscribe: onToolsChanged,
+  },
+  id: 'custom-page-tools',
+  name: '自定义页面工具',
+})
+```
+
+页面工具的注册、权限控制、用户确认、业务副作用和持久化仍由应用负责。`removeServer` 只会将服务从当前 Chat 中移除，不会注销 `document.modelContext` 中的业务工具。WebMCP polyfill 和浏览器兼容初始化也不由 Chat Runtime 自动执行。
 
 ## 高级用法
 
@@ -457,6 +514,7 @@ const adapter = useChatRuntimeAdapter({
 | `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。           |
 | `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                  |
 | `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions)`                                             | 提供 `TrChatUI` 所需的数据、输入内容和操作方法，见[返回字段](#usechatruntimeadapter)。 |
+| `createWebMcpAdapter`            | `createWebMcpAdapter(options?: CreateWebMcpAdapterOptions): UseChatRuntimeMcpAdapter`                       | 将 WebMCP 工具源接入 TinyRobot Chat Runtime。                                         |
 | `useChatHistoryItems`            | `useChatHistoryItems(options: UseChatHistoryItemsOptions): Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 整理未分组的会话列表。                           |
 | `useChatHistoryData`             | `useChatHistoryData(options: UseChatHistoryDataOptions): Readonly<ShallowRef<ChatHistoryDisplayData>>`       | 整理未分组或已分组的会话列表。                   |
 | `errorStatePlugin`               | `errorStatePlugin(options?: ErrorStatePluginOptions): UseMessagePlugin`                                      | 把请求错误写入所属 assistant 消息。              |
@@ -470,8 +528,8 @@ const adapter = useChatRuntimeAdapter({
 | `beforeSend`     | 发送前检查，支持异步                  | `ChatBeforeSend`                                                                                         | 否   | 不执行自定义检查                                                         |
 | `composer`       | 通过 Ref 配置输入和提交是否禁用       | `Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`                                              | 否   | `{}`，不额外禁用输入或提交                                               |
 | `modelProviders` | 配置模型选择和内置请求                | `readonly ChatProviderConfig[]`                                                                          | 否   | 不创建内置模型请求；需提供自定义 `responseProvider`                      |
-| `mcp`            | 提供已有 MCP 状态、工具列表和调用方法 | `UseChatRuntimeMcpAdapter`                                                                               | 否   | 不使用自定义 MCP；可与 `mcpServers` 合并                                  |
-| `mcpServers`     | 配置内置 MCP 服务连接                 | `ChatMcpServers`                                                                                         | 否   | 不创建内置工具连接；可与 `mcp` 合并                                      |
+| `mcp`            | 统一配置静态 MCP Server 和已有 Adapter | `UseChatRuntimeMcp`                                                                                     | 否   | 不使用 MCP                                                              |
+| `mcpServers`     | 已弃用的旧版静态 MCP Server 配置入口   | `ChatMcpServers`                                                                                         | 否   | 兼容旧写法；改用 `mcp.servers`                                          |
 
 `modelProviders` 与自定义 `responseProvider` 二选一，配置限制见 [常见问题](#模型配置与自定义请求冲突)。
 
@@ -710,6 +768,8 @@ const history = useChatHistoryData({
 | `ChatIcon`                 | `ModelSelectorOption['icon']`                                                                                                                                                                                                                                                                                                                |
 | `ChatMcpServerConfig`      | `id: string`；`name: string`；`baseUrl: string`；`type?: 'sse' \| 'streamableHttp'`（默认 `'streamableHttp'`）；`installed?: boolean`（默认 `false`）；`description?: string`；`icon?: string`；`headers?: Record<string, string>`；`timeout?: number`；`validate?: (serverId: string) => void`                                                                                                             |
 | `ChatMcpServers`           | `readonly ChatMcpServerConfig[]`                                                                                                                                                                                                                                                                                                             |
+| `WebMcpToolDescriptor`     | `name: string`；`description?: string`；`inputSchema?: unknown`                                                                                                                                                                                                                                                                              |
+| `WebMcpToolSource`         | `listTools(): Promise<readonly WebMcpToolDescriptor[]>`；`callTool(name, args?): Promise<unknown>`；`subscribe?(listener): () => void`                                                                                                                                                                                                       |
 | `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。 |
 
 `UseChatRuntimeMcpAdapter` 的三个字段均为必填：
@@ -722,7 +782,7 @@ const history = useChatHistoryData({
 
 `listTools` 返回的每项包含 `serverId: string`、`id: string`、`name: string`、`originalName: string`，以及可选的 `description?: string`、`inputSchema?: Record<string, unknown>`。`name` 是提供给模型的工具名称，`originalName` 是服务中的原始名称。
 
-内建 `mcpServers` 适配器会把所有 MCP 服务的初始 `enabled` 设为 `false`。`installed: true` 会在初始化时加载工具定义，但 MCP 服务启用前这些工具仍为禁用状态。
+内建 `mcp.servers` 适配器会把所有 MCP 服务的初始 `enabled` 设为 `false`。`installed: true` 会在初始化时加载工具定义，但 MCP 服务启用前这些工具仍为禁用状态。旧版 `mcpServers` 入口使用相同的内置适配器。
 
 `TrChat` 通过 MCP 表单提交动态服务时，内置 Runtime 会生成 Server ID、连接并发现工具；成功后服务默认启用。连接失败时服务仍保留为已安装但未启用状态，`error` 会显示在 MCP 面板中，重新启用或点击“重试”会再次加载工具。自定义 Runtime 若未提供 `registerMcpServer`，则继续由应用处理 `mcp-create-server`。
 
@@ -742,7 +802,9 @@ const history = useChatHistoryData({
 
 | 类型                                    | 定义                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `UseChatRuntimeOptions`                 | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
+| `UseChatRuntimeOptions`                 | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseChatRuntimeMcp`；`mcpServers?: ChatMcpServers` |
+| `UseChatRuntimeMcp`                     | `UseChatRuntimeMcpAdapter \| UseChatRuntimeMcpOptions`；推荐使用统一 MCP 配置，直接传入单 Adapter 的写法已弃用。 |
+| `UseChatRuntimeMcpOptions`              | `servers?: ChatMcpServers`；`adapters?: readonly UseChatRuntimeMcpAdapter[]`；用于统一配置静态 Server 和已有 Adapter。 |
 | `UseChatRuntimeFromConversationOptions` | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: KitRuntimeSendPayload) => boolean \| void \| Promise<boolean \| void>`（仅严格返回 `false` 表示拒绝）；`composer?: ChatComposerRuntime` |
 | `KitRuntimeSendPayload` | `ChatSendPayload`，另有 `conversationId: string \| null` 和 `runConfig?: ChatRunConfig`。默认发送等待绑定会话的 `engine.send()` 完成后返回 `true`；直接调用 `runtime.actions.send` 时错误会 reject，Adapter 调用会发出 `runtime-action-error` 并按失败处理草稿。 |
 | `UseChatRuntimeAdapterOptions`          | `runtime: MaybeRefOrGetter<ChatRuntime>`；`title?: MaybeRefOrGetter<string \| undefined>`；`historyData?: MaybeRefOrGetter<ChatHistoryData \| undefined>`；`onActionError(payload)`                                                                                                                                                                                                                                      |
