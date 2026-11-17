@@ -6,6 +6,7 @@ import MultiLineLayout from './components/layouts/MultiLineLayout.vue'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   placeholder: '请输入内容...',
+  valueFormat: 'html',
   mode: 'single',
   size: 'normal',
   submitType: 'enter',

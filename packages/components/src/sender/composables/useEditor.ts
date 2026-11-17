@@ -63,8 +63,13 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
     return extensions
   }
 
+  const valueContent = (value: string) =>
+    props.valueFormat === 'text'
+      ? { type: 'doc', content: [{ type: 'paragraph', content: value ? [{ type: 'text', text: value }] : [] }] }
+      : value
+
   const editor = useTiptapEditor({
-    content: props.modelValue ?? props.defaultValue ?? '',
+    content: valueContent(props.modelValue ?? props.defaultValue ?? ''),
     extensions: buildExtensions(),
     autofocus: props.autofocus ? 'end' : false,
     editorProps: {
@@ -93,7 +98,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
               hasPendingModelValue.value = false
               const externalValue = props.modelValue ?? ''
               if (externalValue !== currentEditor.getText()) {
-                currentEditor.commands.setContent(externalValue, { emitUpdate: false })
+                currentEditor.commands.setContent(valueContent(externalValue), { emitUpdate: false })
               }
             }, 0)
           }
@@ -136,15 +141,16 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
 
   // 监听外部 modelValue 变化
   watch(
-    () => props.modelValue,
-    (newValue) => {
+    () => [props.modelValue, props.valueFormat] as const,
+    ([newValue, format], [, previousFormat]) => {
       if (isComposing.value || editor.value?.view.composing || pendingModelTimer !== undefined) {
         hasPendingModelValue.value = true
         return
       }
 
-      if (editor.value && newValue !== editor.value.getText()) {
-        editor.value.commands.setContent(newValue ?? '', { emitUpdate: false })
+      if (editor.value && (newValue !== editor.value.getText() || format !== previousFormat)) {
+        const value = newValue ?? (format !== previousFormat ? editor.value.getText() : '')
+        editor.value.commands.setContent(valueContent(value), { emitUpdate: false })
       }
     },
   )

@@ -41,6 +41,9 @@ export interface SenderProps {
    */
   modelValue?: string
 
+  /** modelValue/defaultValue 的解释方式；html 保留 HTML 兼容行为，text 按字面文本绑定。@default 'html' */
+  valueFormat?: 'html' | 'text'
+
   /**
    * 默认值
    *
