@@ -26,9 +26,11 @@ for (const entry of ['index', 'umd']) {
     })
 
     test('default 8000 boundary and immediate tooltip after pointer release', async ({ page }, testInfo) => {
-      // Keep the selection to one visual line even at the default boundary.
+      // Use nonzero glyph metrics on Linux as well as macOS; 0.05px can
+      // round to an empty anchor rectangle with the CI runner's fonts.
       await page.locator('#term').evaluate((el) => {
-        el.style.fontSize = '0.05px'
+        el.style.fontSize = '1px'
+        el.style.lineHeight = '2px'
         el.style.marginTop = '100px'
       })
       await selectText(page, '字'.repeat(8000))

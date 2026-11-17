@@ -1,7 +1,3 @@
-import aiLight from '../assets/ai-icon-light.svg?inline'
-import aiDark from '../assets/ai-icon-dark.svg?inline'
-import sendDark from '../assets/send-dark.svg?inline'
-import sendGray from '../assets/send-gray.svg?inline'
 import { DEFAULT_INPUT, DEFAULT_MESSAGES, DEFAULT_SELECTION } from '../defaults'
 import type {
   QuickAssistAttributeMap,
@@ -17,6 +13,7 @@ import type { QuickAssistSession } from '../core/types'
 import { positionElement } from '../positioning'
 import { bindVanillaTheme } from '../../theme/service'
 import { createInputScrollbar } from './scrollbar'
+import { makeAiIcon, makeSendIcon } from './icons'
 
 export interface QuickAssistUIOptions {
   root: Document
@@ -93,22 +90,11 @@ function setSafeAttributes(element: HTMLElement, attributes: QuickAssistAttribut
 
 let sparkleId = 0
 
-// Inline asset URLs keep both browser bundles self-contained and isolate the
-// SVG gradient/clip IDs when several QuickAssist instances share a document.
-function makeIcon(document: Document, url: string, variant: string): HTMLImageElement {
-  const image = document.createElement('img')
-  image.className = `tr-quick-assist__icon--${variant}`
-  image.src = url
-  image.alt = ''
-  image.draggable = false
-  return image
-}
-
 function makeSparkle(document: Document): HTMLSpanElement {
   const icon = document.createElement('span')
   icon.className = 'tr-quick-assist__sparkle'
   icon.setAttribute('aria-hidden', 'true')
-  icon.append(makeIcon(document, aiLight, 'light'), makeIcon(document, aiDark, 'dark'))
+  icon.append(makeAiIcon(document, 'light'), makeAiIcon(document, 'dark'))
   return icon
 }
 
@@ -116,7 +102,7 @@ function makeArrow(document: Document): HTMLSpanElement {
   const icon = document.createElement('span')
   icon.className = 'tr-quick-assist__send'
   icon.setAttribute('aria-hidden', 'true')
-  icon.append(makeIcon(document, sendDark, 'black'), makeIcon(document, sendGray, 'gray'))
+  icon.append(makeSendIcon(document, 'black'), makeSendIcon(document, 'gray'))
   return icon
 }
 

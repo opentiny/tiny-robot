@@ -121,11 +121,9 @@ for (const entry of ['index', 'umd']) {
         await expect
           .poll(() =>
             popover
-              .locator('img:visible')
+              .locator('svg:visible')
               .evaluateAll((images) =>
-                images.every(
-                  (image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
-                ),
+                images.every((icon) => (icon.querySelector('path') as SVGGraphicsElement).getBBox().width > 0),
               ),
           )
           .toBe(true)

@@ -202,7 +202,7 @@ try {
     )
     await expect(enabledIcon).toBeVisible()
     await expect(enabledIcon).toHaveCSS('opacity', '1')
-    await expect.poll(() => enabledIcon.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await expect.poll(() => enabledIcon.evaluate((icon) => icon.querySelector('path').getBBox().width > 0)).toBe(true)
     await input.fill('')
     const normal = await suggestion.screenshot({ animations: 'disabled' })
     await suggestion.hover()
@@ -266,8 +266,8 @@ try {
     })
   }
   await expect(demo.locator('#event-status')).not.toContainText('失败')
-  // The send button renders fixed-color SVG images, not its CSS text color.
-  // Its decoded artwork and disabled opacity are checked above in each mode.
+  // The send button renders fixed-color inline SVG, not its CSS text color.
+  // Its rendered geometry and disabled opacity are checked above in each mode.
   await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__suggestion'))
   if (!standalone) {
     for (const selector of [

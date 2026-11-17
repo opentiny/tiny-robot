@@ -108,8 +108,8 @@
   line-height: 1;
 }
 
-.tr-quick-assist__sparkle img,
-.tr-quick-assist__send img {
+.tr-quick-assist__sparkle svg,
+.tr-quick-assist__send svg {
   display: block;
   width: 100%;
   height: 100%;

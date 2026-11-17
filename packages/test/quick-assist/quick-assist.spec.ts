@@ -78,12 +78,13 @@ test.beforeEach(async ({ page }) => {
 
 test('button borders survive the component library global reset', async ({ page }) => {
   await select(page)
-  await expect(page.locator(trigger)).toHaveCSS('border', '1px solid rgb(230, 230, 230)')
+  await expect(page.locator(trigger)).toHaveCSS('border', '1px solid rgb(219, 219, 219)')
   await page.locator(trigger).click()
   const suggestion = page.locator('.tr-quick-assist__suggestion').first()
   await expect(suggestion).toHaveCSS('border', '1px solid rgb(230, 230, 230)')
   await suggestion.hover()
-  await expect(suggestion).toHaveCSS('border-color', 'color(srgb 0.772157 0.772157 0.772157)')
+  await expect(suggestion).toHaveCSS('border-color', 'rgb(230, 230, 230)')
+  await expect(suggestion).toHaveCSS('background-color', 'rgb(245, 245, 245)')
 })
 
 async function selectDirection(page: Page, selector: string, backward: boolean) {
