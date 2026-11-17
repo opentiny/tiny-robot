@@ -13,41 +13,11 @@ pageClass: demo-container-page-bg
 
 ![GenUI 订单查询表单接入完整流程](/genui-sdk-integration.gif)
 
-动图将展示以下完整流程：
-
-1. 使用真实模型进行普通文本对话。
-2. 点击输入区“生成式 UI”按钮，开启 GenUI。
-3. 请求生成订单查询表单，观察界面随回复逐步出现。
-4. 填写关键词、选择订单状态并提交，模型接收并确认查询条件。
-5. 关闭 GenUI，继续普通对话，已生成的历史卡片保留。
-
 本例完成“生成表单 → 填写提交 → 回传对话”的交互闭环。实际查询订单需要接入业务接口或工具。
 
 ## 接入方案
 
-### 下载并启动
-
-[查看完整示例项目][project]。准备 Node.js 22 LTS 和 pnpm 10，然后按以下步骤启动：
-
-1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/src/best-practices/genui-sdk-integration/project` 目录，运行 `pnpm install`。
-2. 复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key，再运行 `pnpm dev`。
-
-模型配置位于 [`src/App.vue`][app] 的 `modelProviders`；请选择账号可用且服务端支持的模型名称。修改环境变量后需重启 Vite。
-
-自定义模型接口可选配置 `VITE_QWEN_API_URL` 和 `VITE_DEEPSEEK_API_URL`；高德 MCP 地址可选配置 `VITE_AMAP_MCP_URL`。本文的表单生成与提交只需要模型服务。
-
-::: warning
-以 `VITE_` 为前缀的变量会暴露给浏览器代码。浏览器直连适用于服务端支持 CORS 的本地验证场景；生产环境应由后端保管密钥并转发模型请求。
-:::
-
-### 推荐体验步骤
-
-1. 在模型选择器中选择已配置的模型，发送一条普通消息，确认模型连接正常。
-2. 开启“生成式 UI”，发送：“生成一个订单查询表单，包含关键词、订单状态和提交按钮。订单状态支持全部、待处理和已完成。”
-3. 等待表单生成完成，填写关键词和订单状态并提交，观察模型如何处理下一轮消息。
-4. 关闭“生成式 UI”后再发送普通消息，确认新回复不生成界面，已生成的历史卡片仍保留。
-
-### 组件分工
+### 架构与流程
 
 完整示例由以下三个部分协作：
 
@@ -61,9 +31,26 @@ pageClass: demo-container-page-bg
 
 本例使用 `@opentiny/genui-sdk-core` 与 `@opentiny/tiny-schema-renderer` 组合。GenUI Core 和界面渲染分别接入，选择其他渲染器时，需要同步调整输出协议与校验规则。
 
+### 快速体验示例
+
+此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。查看[完整示例项目][project]，准备 Node.js 22 LTS 和 pnpm 10，然后按以下步骤启动：
+
+1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/src/best-practices/genui-sdk-integration/project` 目录，运行 `pnpm install`。
+2. 复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key：阿里云百炼使用 `VITE_ALIYUN_DASHSCOPE_KEY`，DeepSeek 使用 `VITE_DEEPSEEK_API_KEY`，然后运行 `pnpm dev`。
+
+模型配置位于 [`src/App.vue`][app] 的 `modelProviders`；请选择账号可用且服务端支持的模型名称。修改环境变量后需重启 Vite。
+
+自定义模型接口可选配置 `VITE_QWEN_API_URL` 和 `VITE_DEEPSEEK_API_URL`；高德 MCP 地址可选配置 `VITE_AMAP_MCP_URL`。本文的表单生成与提交只需要模型服务。
+
+::: warning
+以 `VITE_` 为前缀的变量会暴露给浏览器代码。浏览器直连适用于服务端支持 CORS 的本地验证场景；生产环境应由后端保管密钥并转发模型请求。
+:::
+
 ## 接入步骤
 
 以下步骤从基础 TrChat 项目开始，展示如何逐步接入 GenUI。
+
+以下均为关键代码片段；未展示的导入、样式和完整实现以[配套示例项目][project]为准。
 
 ::: info 版本基线
 本文步骤基于以下依赖版本：
@@ -106,7 +93,7 @@ pnpm add @opentiny/genui-sdk-core@1.4.0 @opentiny/tiny-schema-renderer@1.0.0-bet
 }
 ```
 
-在原有 `chatUi.bubble` 中注册内容解析和自定义渲染器。以下为核心配置片段，完整导入与类型见 [`src/App.vue`][app]：
+在 [`src/App.vue`][app] 的 `chatUi.bubble` 中注册内容解析和自定义渲染器。以下为核心配置片段：
 
 ```ts
 bubble: {
@@ -173,9 +160,11 @@ JSON 修复用于流式预览，完整内容仍需严格校验。回复是否启
 
 ### 4. 将表单提交接入下一轮对话
 
-模型负责生成静态表单，提交事件由宿主处理。[`SchemaContent.vue`][schema-content] 捕获原生 `submit` 事件，读取并校验 `keyword` 和 `status`，通过注入的 `queryContextKey` 发送条件；提交上下文定义在 [`src/genui/context.ts`][context]。
+模型负责生成静态表单，提交事件由宿主处理。[`src/components/SchemaContent.vue`][schema-content] 捕获原生 `submit` 事件，将 `keyword` 去除首尾空白并截断至 80 个字符，同时校验 `status` 是否为允许值，再通过注入的 `queryContextKey` 发送条件；提交上下文定义在 [`src/genui/context.ts`][context]。
 
-在 [`App.vue`][app] 中提供提交入口：
+在输入区启用“生成式 UI”，发送“生成一个订单查询表单，包含关键词、订单状态和提交按钮”的请求；表单生成完成后填写关键词、选择订单状态并点击“提交查询”。
+
+在 [`src/App.vue`][app] 中提供提交入口：
 
 ```ts
 provide(queryContextKey, {
@@ -192,7 +181,7 @@ provide(queryContextKey, {
 
 ### 5. 添加 GenUI 开关
 
-最后将输入区按钮与每轮请求关联。在原有 `useChatRuntime` 上注册插件，并保留模板的模型和 MCP 配置：
+最后在 [`src/App.vue`][app] 将输入区按钮与每轮请求关联。在原有 `useChatRuntime` 上注册插件，并保留模板的模型和 MCP 配置：
 
 ```ts
 import { shallowRef } from 'vue'
@@ -219,7 +208,7 @@ const runtime = useChatRuntime({
 
 提示词只补充到当前请求中。每轮固定状态，使工具续请求沿用同一能力设置；Bubble 根据消息自己的 `metadata.genuiEnabled` 判断是否解析和渲染 Schema，因此历史卡片保持原有展示。
 
-通过 `ui.sender.toolbar` 追加输入区按钮：
+仍在 `src/App.vue` 的 `chatUi` 配置中，通过 `ui.sender.toolbar` 追加输入区按钮：
 
 ```ts
 sender: {
@@ -243,8 +232,6 @@ sender: {
 该配置位于 `computed<ChatUIOptions>` 中，`busy` 根据当前会话是否正在生成计算。按钮默认关闭，生成期间禁止切换，`...defaults` 保留原有工具栏按钮；`active` 负责按钮高亮，插件和 Bubble 渲染判断共同控制实际能力。
 
 本例只支持文本、表单和表格等白名单内的静态 HTML Schema，不支持表达式、方法、事件或外部资源；未提交的表单值不持久化，真实业务查询需另行接入。
-
-示例已完成真实模型手动验证。完整动图将在发布前补充。
 
 ## 参考文档
 
