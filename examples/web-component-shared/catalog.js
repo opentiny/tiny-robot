@@ -37,6 +37,13 @@ export const DEMOS = [
     path: '/content/ordinary-slots',
     description: '在欢迎区、提示词列表和输入区使用自定义内容与交互。',
   },
+  {
+    id: 'scoped-slots',
+    group: '内容扩展',
+    title: 'Scoped Slot',
+    path: '/content/scoped-slots',
+    description: '在宿主视图中读取会话、消息和输入区上下文，调用对应操作。',
+  },
 ]
 
 /** @param {string} hash @returns {Demo} */

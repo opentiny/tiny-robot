@@ -404,3 +404,59 @@ body {
   font-size: 12px;
   line-height: 20px;
 }
+
+.demo-scoped-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.demo-scoped-header strong {
+  font-size: 18px;
+}
+.demo-message-meta {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.demo-scoped-action {
+  padding: 3px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #214574;
+  cursor: pointer;
+}
+.demo-scoped-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.demo-scoped-input {
+  display: block;
+  width: 100%;
+  min-height: 70px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.demo-scoped-welcome {
+  width: 100%;
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.demo-scoped-welcome h2 {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 28px;
+}
+.demo-scoped-welcome > p {
+  margin: 0 0 24px;
+  text-align: center;
+  color: #64748b;
+}

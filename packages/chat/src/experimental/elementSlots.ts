@@ -12,7 +12,14 @@ import {
   type VueElement,
 } from 'vue'
 
-const ORDINARY_SLOT_NAMES = ['welcome-footer', 'prompts-footer', 'sender-header', 'input-prefix'] as const
+const ORDINARY_SLOT_NAMES = [
+  'welcome-footer',
+  'prompts-footer',
+  'sender-header',
+  'input-prefix',
+  'sender-footer',
+  'sender-footer-right',
+] as const
 type OrdinarySlotName = (typeof ORDINARY_SLOT_NAMES)[number]
 const states = new WeakMap<HTMLElement, ElementSlots>()
 const slotsKey: InjectionKey<ElementSlots> = Symbol('element-slots')

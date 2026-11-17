@@ -20,7 +20,7 @@ pnpm dev
 
 ## 能力页面
 
-左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法、普通 Slot 五个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`、`#/content/ordinary-slots`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
+左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法、普通 Slot 和 Scoped Slot 六个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`、`#/content/ordinary-slots`、`#/content/scoped-slots`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
 
 ## 接入代码
 
@@ -42,6 +42,14 @@ pnpm dev
 [src/demos/ordinary-slots.ts](src/demos/ordinary-slots.ts)与[模板](src/demos/ordinary-slots.html)在 `tr-chat`、`tr-chat-ui` 内声明四个具名 Slot，用 Angular 属性、事件绑定和 `@if` 管理内容；Runtime 由页面创建和释放。
 
 “显示 Slot 内容”动态添加或移除具名节点；移除后相应输入区布局也会收起。通用用法与边界见[普通 Slot 文档](../../docs/engineering/web-component/ordinary-slots.md)。
+
+## Scoped Slot
+
+`#/content/scoped-slots` 使用 `renderers` 定制页头、消息标记、Sender 按钮、输入框和欢迎区，读取组件上下文并调用操作。
+
+[src/demos/scoped-slots.html](src/demos/scoped-slots.html)直接声明 Angular 模板；`fromTemplate` 负责创建、更新和销毁视图。接入步骤见[模板桥接](docs/scoped-slots.md)。
+
+可修改会话标题、切换宿主输入框、撤销自定义内容和卸载重挂。输入状态通过订阅更新当前视图；清理随 Renderer 的 `signal` 结束。完整接口见[Scoped Slot](../../docs/engineering/web-component/scoped-slots.md)。
 
 ## 验证
 

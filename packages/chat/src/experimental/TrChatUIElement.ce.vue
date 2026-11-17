@@ -1,6 +1,9 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
+import ElementRenderer from './ElementScopedSlot'
+import { elementUIOptions, useElementRendererHost } from './elementRendererHost'
+import { SCOPED_RENDERER_NAMES, type ChatRenderers } from './elementRenderers'
 import ChatUI from '../ChatUI.vue'
 import type { ChatUIProps } from '../types'
 import { useExperimentalElementHost } from './elementHost'
@@ -8,8 +11,12 @@ import { CHAT_UI_EVENTS } from './elementEvents'
 import { createElementEventListeners, elementEventNames } from './events'
 import { useElementMethods } from './elementMethods'
 import { ElementSlot, useOrdinaryElementSlots } from './elementSlots'
-const ordinarySlots = useOrdinaryElementSlots()
+const hostSlots = useOrdinaryElementSlots()
+const ordinarySlots = computed(() =>
+  hostSlots.value.filter((name) => !rendererNames.value.some((renderer) => renderer === name)),
+)
 import type { TrChatUIElementMethods } from './elementTypes'
+const rendererFocus = useElementRendererHost()
 const componentRef = shallowRef<TrChatUIElementMethods | null>(null)
 useElementMethods(
   () => componentRef.value,
@@ -22,18 +29,39 @@ useElementMethods(
     'toggleRightAside',
     'activateRightAsidePanel',
   ],
+  () => (rendererFocus.value ? { focusInput: rendererFocus.value.focus } : {}),
 )
-const emit = defineEmits(elementEventNames(CHAT_UI_EVENTS))
-const props = withDefaults(defineProps<ChatUIProps>(), { isEmpty: undefined, rightAsideOpen: undefined })
+const emit = defineEmits([...elementEventNames(CHAT_UI_EVENTS), 'renderer-error'])
+const props = withDefaults(defineProps<ChatUIProps & { renderers?: Readonly<ChatRenderers> }>(), {
+  isEmpty: undefined,
+  rightAsideOpen: undefined,
+})
 useExperimentalElementHost(
   props as unknown as Record<string, unknown>,
   ['isEmpty', 'rightAsideOpen', 'defaultRightAsideOpen'],
   () => emit('ready'),
 )
 const events = createElementEventListeners(CHAT_UI_EVENTS, emit)
+const rendererNames = computed(() =>
+  SCOPED_RENDERER_NAMES.filter((name) => typeof props.renderers?.[name] === 'function'),
+)
+const componentProps = computed(() => {
+  const value = { ...props }
+  delete value.renderers
+  value.ui = elementUIOptions(props.ui)
+  return value
+})
 </script>
 <template>
-  <ChatUI ref="componentRef" v-bind="props" v-on="events">
+  <ChatUI ref="componentRef" v-bind="componentProps" v-on="events">
+    <template v-for="name in rendererNames" :key="name" #[name]="context">
+      <ElementRenderer
+        :name="name"
+        :context="context"
+        :renderer="props.renderers![name]!"
+        @error="emit('renderer-error', $event)"
+      />
+    </template>
     <template v-for="name in ordinarySlots" :key="name" #[name]><ElementSlot :name="name" /></template>
   </ChatUI>
 </template>

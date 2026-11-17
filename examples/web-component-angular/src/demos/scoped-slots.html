@@ -1,0 +1,79 @@
+<ng-template #header let-scope>
+  <header class="demo-scoped-header">
+    <strong>{{ scope.title }}</strong><button type="button" (click)="createConversation(scope)">新建会话</button>
+  </header>
+</ng-template>
+<ng-template #message let-scope>
+  <small class="demo-message-meta"
+    >{{ scope.role === 'assistant' ? '助手' : '用户' }} · 消息 {{ scope.messageIndexes.join(',') }}</small
+  >
+</ng-template>
+<ng-template #actions let-scope>
+  <button
+    type="button"
+    class="demo-scoped-action"
+    [disabled]="scope.disabled || scope.loading"
+    (click)="scope.insert('请详细说明')"
+  >
+    插入追问
+  </button>
+</ng-template>
+<ng-template #input let-scope>
+  <textarea
+    aria-label="自定义输入框"
+    class="demo-scoped-input"
+    [value]="scope.value"
+    [disabled]="scope.disabled"
+    (input)="scope.setInputValue($any($event.target).value)"
+  ></textarea>
+</ng-template>
+<ng-template #welcome let-scope>
+  <section class="demo-scoped-welcome">
+    <h2>开始你的产品咨询</h2>
+    <p>描述问题，或使用输入区的快捷追问。</p>
+    <div [chatComposer]="scope.composer"></div>
+  </section>
+</ng-template>
+<div class="demo-workspace">
+  <aside class="demo-controls">
+    <section class="demo-card">
+      <label
+        >组件<select [ngModel]="kind" (ngModelChange)="changeKind($event)">
+          <option value="chat">TrChat</option>
+          <option value="ui">TrChatUI</option>
+        </select></label
+      >
+      <label>会话标题<input [ngModel]="title" (ngModelChange)="changeTitle($event)" /></label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="custom" />显示自定义内容</label>
+      <label class="toggle"
+        ><input type="checkbox" [(ngModel)]="customInput" (ngModelChange)="updateRenderers()" />自定义输入框</label
+      >
+      <label class="toggle"><input type="checkbox" [(ngModel)]="empty" />显示欢迎区</label>
+      <button type="button" (click)="toggleMounted()">{{ mounted ? '卸载元素' : '挂载元素' }}</button>
+    </section>
+  </aside>
+  <section class="demo-preview">
+    <div class="demo-chat" data-testid="scoped-preview">
+      @if (mounted) { @if (kind === 'chat') {
+      <tr-chat
+        data-scoped-host
+        [runtime]="runtime"
+        [title]="title"
+        [ui]="ui"
+        [isEmpty]="empty"
+        [renderers]="custom ? renderers : undefined"
+      ></tr-chat>
+      } @else {
+      <tr-chat-ui
+        data-scoped-host
+        [data]="data"
+        [ui]="ui"
+        [isEmpty]="empty"
+        [renderers]="custom ? renderers : undefined"
+        (submit)="onSubmit($event)"
+        (create-conversation)="onCreate($event)"
+      ></tr-chat-ui>
+      } }
+    </div>
+  </section>
+</div>

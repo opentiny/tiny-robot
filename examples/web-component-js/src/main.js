@@ -9,12 +9,15 @@ import { mountFloatingDemo } from './demos/floating.js'
 
 import { mountOrdinarySlotsDemo } from './demos/ordinary-slots.js'
 
+import { mountScopedSlotsDemo } from './demos/scoped-slots.js'
+
 const app = document.querySelector('#app')
 if (!(app instanceof HTMLElement)) throw new Error('缺少应用挂载点')
 defineTrChatElements()
 const shell = createDemoShell(app, { host: '原生 JS / Vite' })
 /** @type {Record<string, (root: HTMLElement) => () => void>} */
 const demos = {
+  'scoped-slots': mountScopedSlotsDemo,
   'ordinary-slots': mountOrdinarySlotsDemo,
   props: mountPropsDemo,
   runtime: mountRuntimeDemo,

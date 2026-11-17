@@ -12,3 +12,15 @@ export type {
   TrChatElementEventMap,
 } from './elementTypes'
 export type { ChatUIData, ChatUIOptions, ChatRuntime, ChatSendPayload } from '../types'
+
+export type {
+  ChatRendererLifecycle,
+  ChatRendererResult,
+  ChatRenderer,
+  ChatRenderers,
+  ChatRendererError,
+  ChatSenderRendererContext,
+  ChatSenderContentRendererState,
+  ChatSenderContentRendererContext,
+  ChatEmptyStateRendererContext,
+} from './elementRenderers'

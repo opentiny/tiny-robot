@@ -8,6 +8,7 @@ import { MethodsDemoComponent } from './demos/methods'
 import { FloatingDemoComponent } from './demos/floating'
 
 import { OrdinarySlotsDemoComponent } from './demos/ordinary-slots'
+import { ScopedSlotsDemoComponent } from './demos/scoped-slots'
 
 const shell = createDemoShell(document.getElementById('app')!, { host: 'Angular 20 / Angular CLI' })
 shell.outlet.append(document.createElement('app-root'))
@@ -17,12 +18,16 @@ shell.outlet.append(document.createElement('app-root'))
   standalone: true,
   imports: [
     OrdinarySlotsDemoComponent,
+    ScopedSlotsDemoComponent,
     PropsDemoComponent,
     RuntimeDemoComponent,
     FloatingDemoComponent,
     MethodsDemoComponent,
   ],
   template: `@switch (active().id) {
+    @case ('scoped-slots') {
+      <demo-scoped-slots-page />
+    }
     @case ('ordinary-slots') {
       <demo-ordinary-slots-page />
     }

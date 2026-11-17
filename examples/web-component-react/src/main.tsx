@@ -11,8 +11,11 @@ import { FloatingDemo } from './demos/floating'
 
 import { OrdinarySlotsDemo } from './demos/ordinary-slots'
 
+import { ScopedSlotsDemo } from './demos/scoped-slots'
+
 const shell = createDemoShell(document.getElementById('app')!, { host: 'React 19 / Vite' })
 const demos = {
+  'scoped-slots': ScopedSlotsDemo,
   'ordinary-slots': OrdinarySlotsDemo,
   props: PropsDemo,
   runtime: RuntimeDemo,

@@ -10,9 +10,12 @@ import type {
   ChatRightAsidePanelId,
 } from '../types'
 import type { ElementEventMap } from './events'
+import type { ChatRenderers, ChatRendererError } from './elementRenderers'
 
-export type TrChatUIElementEventMap = ElementEventMap<ChatUIEmits> & { ready: CustomEvent<[]> }
-export type TrChatElementEventMap = ElementEventMap<ChatEmits> & { ready: CustomEvent<[]> }
+type RendererEvents = { 'renderer-error': CustomEvent<[ChatRendererError]> }
+
+export type TrChatUIElementEventMap = ElementEventMap<ChatUIEmits> & RendererEvents & { ready: CustomEvent<[]> }
+export type TrChatElementEventMap = ElementEventMap<ChatEmits> & RendererEvents & { ready: CustomEvent<[]> }
 
 /** Public methods of the inner TrChatUI, available while the element is ready. */
 export interface TrChatUIElementMethods {
@@ -29,6 +32,7 @@ export interface TrChatElementMethods extends TrChatUIElementMethods {
 }
 
 export interface TrChatUIHTMLElement extends HTMLElement, ChatUIProps, TrChatUIElementMethods {
+  renderers?: Readonly<ChatRenderers>
   addEventListener<K extends keyof TrChatUIElementEventMap>(
     type: K,
     listener: (this: TrChatUIHTMLElement, event: TrChatUIElementEventMap[K]) => unknown,
@@ -61,6 +65,7 @@ export interface TrChatUIHTMLElement extends HTMLElement, ChatUIProps, TrChatUIE
   ): void
 }
 export interface TrChatHTMLElement extends HTMLElement, TrChatElementMethods {
+  renderers?: Readonly<ChatRenderers>
   runtime?: ChatRuntime
   ui?: Readonly<ChatUIOptions>
   floatingState?: LayoutFloatingState

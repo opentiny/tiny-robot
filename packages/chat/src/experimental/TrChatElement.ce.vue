@@ -1,6 +1,9 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
+import ElementRenderer from './ElementScopedSlot'
+import { elementUIOptions, useElementRendererHost } from './elementRendererHost'
+import { SCOPED_RENDERER_NAMES, type ChatRenderers } from './elementRenderers'
 import Chat from '../Chat.vue'
 import type { ChatRuntime, ChatUIOptions, ChatHistoryData, LayoutFloatingState } from '../types'
 import { useExperimentalElementHost } from './elementHost'
@@ -8,8 +11,12 @@ import { CHAT_EVENTS } from './elementEvents'
 import { createElementEventListeners, elementEventNames } from './events'
 import { useElementMethods } from './elementMethods'
 import { ElementSlot, useOrdinaryElementSlots } from './elementSlots'
-const ordinarySlots = useOrdinaryElementSlots()
+const hostSlots = useOrdinaryElementSlots()
+const ordinarySlots = computed(() =>
+  hostSlots.value.filter((name) => !rendererNames.value.some((renderer) => renderer === name)),
+)
 import type { TrChatElementMethods } from './elementTypes'
+const rendererFocus = useElementRendererHost(() => props.runtime)
 const componentRef = shallowRef<TrChatElementMethods | null>(null)
 useElementMethods(
   () => componentRef.value,
@@ -23,10 +30,12 @@ useElementMethods(
     'toggleRightAside',
     'activateRightAsidePanel',
   ],
+  () => (rendererFocus.value ? { focusInput: rendererFocus.value.focus } : {}),
 )
-const emit = defineEmits(elementEventNames(CHAT_EVENTS))
+const emit = defineEmits([...elementEventNames(CHAT_EVENTS), 'renderer-error'])
 const props = withDefaults(
   defineProps<{
+    renderers?: Readonly<ChatRenderers>
     title?: string
     runtime?: ChatRuntime
     ui?: Readonly<ChatUIOptions>
@@ -46,14 +55,18 @@ useExperimentalElementHost(
   () => emit('ready'),
   () => Boolean(props.runtime),
 )
+const componentUI = computed(() => elementUIOptions(props.ui))
 const events = createElementEventListeners(CHAT_EVENTS, emit)
+const rendererNames = computed(() =>
+  SCOPED_RENDERER_NAMES.filter((name) => typeof props.renderers?.[name] === 'function'),
+)
 </script>
 <template>
   <Chat
     ref="componentRef"
     v-if="props.runtime"
     :runtime="props.runtime"
-    :ui="props.ui"
+    :ui="componentUI"
     :floating-state="props.floatingState"
     :history-data="props.historyData"
     :is-empty="props.isEmpty"
@@ -64,6 +77,14 @@ const events = createElementEventListeners(CHAT_EVENTS, emit)
     :default-active-right-aside-panel-id="props.defaultActiveRightAsidePanelId"
     v-on="events"
   >
+    <template v-for="name in rendererNames" :key="name" #[name]="context">
+      <ElementRenderer
+        :name="name"
+        :context="context"
+        :renderer="props.renderers![name]!"
+        @error="emit('renderer-error', $event)"
+      />
+    </template>
     <template v-for="name in ordinarySlots" :key="name" #[name]><ElementSlot :name="name" /></template>
   </Chat>
 </template>

@@ -19,6 +19,7 @@
 | 浮窗状态     | `#/basic/floating`         | 位置、尺寸、拖动事件与状态回写               |
 | 公开方法     | `#/basic/methods`          | 设置和清空草稿、聚焦、通过元素发送并读取结果 |
 | 普通 Slot    | `#/content/ordinary-slots` | 欢迎说明、提示词换题、咨询主题和助手标识     |
+| Scoped Slot  | `#/content/scoped-slots`   | 会话上下文、消息索引、Sender 操作与宿主输入  |
 
 例如，React 的 Runtime 示例地址为 `http://127.0.0.1:4329/#/basic/runtime`。地址支持刷新、收藏和浏览器前进后退；未识别的路径回到属性与事件页。切换能力会销毁旧页面、释放本页的监听与 Runtime，再创建新页面；重新进入时使用初始状态。浏览器历史缓存暂存页面时保留当前视图，恢复后可继续聊天和导航。
 
@@ -66,6 +67,7 @@ pnpm test:wc
 | ------------------------------------ | ----------------------------------------------- |
 | `pnpm test:wc --project=react`       | 只构建、启动和测试 React 示例                   |
 | `pnpm test:wc --project=react --dev` | 验证 React 开发模式下的 StrictMode 初始化与清理 |
+| `pnpm test:wc --grep 'Scoped Slot'`  | 在三个宿主上运行 Scoped Slot 交互验收           |
 | `pnpm test:wc --grep '普通 Slot'`    | 在三个宿主上运行普通 Slot 交互验收              |
 | `pnpm test:wc --grep '浮窗'`         | 在三个宿主上只运行浮窗用例                      |
 | `pnpm test:wc-scripts`               | 验证候选标识和安装校验脚本                      |
@@ -83,7 +85,7 @@ pnpm test:wc
 
 [web-component-shared](web-component-shared/README.md) 提供能力目录、布局、导航和地址处理。三个宿主各自实现 `src/demos/` 下的能力页，处理状态、DOM 属性、事件和视图生命周期。示例在卸载时中止本地 Runtime 请求并停止自己创建的 Vue effect scope；这不代表 SDK 已提供整体 Runtime dispose 契约。
 
-基础兼容回归对照直接转换与适配组件，验证已可用的属性、原事件和公开方法；三个宿主的公开方法页覆盖真实包的输入、聚焦与发送。普通 Slot 页使用 `tr-chat`、`tr-chat-ui`，验证四个具名区域的内容、绑定、事件、条件子视图、空状态切换和卸载重挂。Scoped Slot、Renderer、流式回复、错误取消、会话切换和完整 Runtime 资源释放仍需各自验收。
+基础兼容回归对照直接转换与适配组件，验证已可用的属性、原事件和公开方法；三个宿主的公开方法页覆盖真实包的输入、聚焦与发送。普通 Slot 页使用 `tr-chat`、`tr-chat-ui`，验证四个具名区域的内容、绑定、事件、条件子视图、空状态切换和卸载重挂。Scoped Slot 页验证三端宿主视图、会话与消息上下文、Sender 操作、输入订阅和卸载清理。流式回复、错误取消、会话切换和完整 Runtime 资源释放仍需各自验收。
 
 ## 增加能力演示
 
