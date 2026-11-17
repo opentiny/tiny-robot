@@ -28,55 +28,67 @@ export function verifyInstalled(project, candidate) {
   }
 }
 
+function writeIfChanged(file, content) {
+  if (!fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== content) fs.writeFileSync(file, content)
+}
+
+export function installCandidate(project, candidate) {
+  const packageFile = path.join(project, 'package.json')
+  const manifest = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+  const overrides = { vue: '3.5.41' }
+  for (const pkg of candidate.packages) {
+    const spec = 'file:' + path.relative(project, path.join(candidate.directory, pkg.tarball)).split(path.sep).join('/')
+    manifest.dependencies[pkg.name] = spec
+    overrides[pkg.name] = spec
+  }
+  const content = JSON.stringify(manifest, null, 2) + '\n'
+  const workspace =
+    'packages:\n  - .\noverrides:\n' +
+    Object.entries(overrides)
+      .map(([name, value]) => `  '${name}': '${value}'`)
+      .join('\n') +
+    '\nonlyBuiltDependencies:\n  - esbuild\n'
+  writeIfChanged(packageFile, content)
+  writeIfChanged(path.join(project, 'pnpm-workspace.yaml'), workspace)
+  const key = digest(content + workspace)
+  const stamp = path.join(project, 'node_modules/.wc-candidate')
+  let installed = false
+  try {
+    installed = fs.readFileSync(stamp, 'utf8') === key
+    if (installed) verifyInstalled(project, candidate)
+  } catch {
+    installed = false
+  }
+  if (!installed) {
+    run('pnpm', ['install', '--no-frozen-lockfile'], project)
+    verifyInstalled(project, candidate)
+    fs.writeFileSync(stamp, key)
+  }
+  const publicDirectory = path.join(project, 'public')
+  fs.mkdirSync(publicDirectory, { recursive: true })
+  const marker = path.join(publicDirectory, 'candidate.json')
+  const prepared =
+    JSON.stringify(
+      {
+        id: candidate.id,
+        packages: candidate.packages.map(({ name, version, sha256 }) => ({ name, version, sha256 })),
+      },
+      null,
+      2,
+    ) + '\n'
+  // Publish only verified installations; a rename keeps readers from seeing partial JSON.
+  if (!fs.existsSync(marker) || fs.readFileSync(marker, 'utf8') !== prepared) {
+    const temporary = `${marker}.${process.pid}.tmp`
+    fs.writeFileSync(temporary, prepared)
+    fs.renameSync(temporary, marker)
+  }
+}
+
 export function prepareExamples(selected = hosts, { build = true } = {}) {
   if (build) run('pnpm', ['build:components'])
   const candidate = packCandidate(root)
   for (const host of selected) {
-    const project = path.join(root, host.directory)
-    const packageFile = path.join(project, 'package.json')
-    const manifest = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
-    const overrides = { vue: '3.5.41' }
-    for (const pkg of candidate.packages) {
-      const spec =
-        'file:' + path.relative(project, path.join(candidate.directory, pkg.tarball)).split(path.sep).join('/')
-      manifest.dependencies[pkg.name] = spec
-      overrides[pkg.name] = spec
-    }
-    const content = JSON.stringify(manifest, null, 2) + '\n'
-    const workspace =
-      'packages:\n  - .\noverrides:\n' +
-      Object.entries(overrides)
-        .map(([name, value]) => `  '${name}': '${value}'`)
-        .join('\n') +
-      '\nonlyBuiltDependencies:\n  - esbuild\n'
-    fs.writeFileSync(packageFile, content)
-    fs.writeFileSync(path.join(project, 'pnpm-workspace.yaml'), workspace)
-    const key = digest(content + workspace)
-    const stamp = path.join(project, 'node_modules/.wc-candidate')
-    let installed = false
-    try {
-      installed = fs.readFileSync(stamp, 'utf8') === key
-      if (installed) verifyInstalled(project, candidate)
-    } catch {
-      installed = false
-    }
-    if (!installed) {
-      run('pnpm', ['install', '--no-frozen-lockfile'], project)
-      verifyInstalled(project, candidate)
-      fs.writeFileSync(stamp, key)
-    }
-    fs.mkdirSync(path.join(project, 'public'), { recursive: true })
-    fs.writeFileSync(
-      path.join(project, 'public/candidate.json'),
-      JSON.stringify(
-        {
-          id: candidate.id,
-          packages: candidate.packages.map(({ name, version, sha256 }) => ({ name, version, sha256 })),
-        },
-        null,
-        2,
-      ) + '\n',
-    )
+    installCandidate(path.join(root, host.directory), candidate)
     console.log(`[${host.id}] 候选包 ${candidate.id} 已校验`)
   }
   return candidate

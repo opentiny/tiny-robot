@@ -16,11 +16,11 @@ pnpm prepare:wc-examples --project=angular
 pnpm dev
 ```
 
-打开 http://127.0.0.1:4328 。也可以在仓库根目录运行 `pnpm dev:wc-examples --project=angular` 完成以上步骤。
+打开 http://127.0.0.1:4328 。也可以在仓库根目录运行 `pnpm dev:wc-examples --project=angular` 完成以上步骤；此启动方式会在新候选包安装校验完成后自动刷新开发服务和页面。
 
 ## 能力页面
 
-左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法四个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
+左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法、普通 Slot 五个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`、`#/content/ordinary-slots`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
 
 ## 接入代码
 
@@ -34,6 +34,14 @@ pnpm dev
 - [共享展示框架](../web-component-shared/README.md)：布局、导航、能力目录、地址处理和共享数据。
 
 布局模式切换会重新创建聊天组件，以保持浮窗从创建起受控；当前对话会清空。事件面板显示 DOM 事件名和参数数组，例如 `ready []`、`floating-state-update [{...}]`。
+
+## 普通 Slot
+
+`#/content/ordinary-slots` 使用 `tr-chat`、`tr-chat-ui` 的四个普通 Slot，分别提供欢迎说明、换题按钮、咨询主题和助手标识。
+
+[src/demos/ordinary-slots.ts](src/demos/ordinary-slots.ts)与[模板](src/demos/ordinary-slots.html)在 `tr-chat`、`tr-chat-ui` 内声明四个具名 Slot，用 Angular 属性、事件绑定和 `@if` 管理内容；Runtime 由页面创建和释放。
+
+“显示 Slot 内容”动态添加或移除具名节点；移除后相应输入区布局也会收起。通用用法与边界见[普通 Slot 文档](../../docs/engineering/web-component/ordinary-slots.md)。
 
 ## 验证
 

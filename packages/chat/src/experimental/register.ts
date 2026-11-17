@@ -1,4 +1,5 @@
 import { defineCustomElement } from 'vue'
+import { withOrdinaryElementSlots } from './elementSlots'
 import TrChatElementComponent from './TrChatElement.ce.vue'
 import TrChatUIElementComponent from './TrChatUIElement.ce.vue'
 import type {
@@ -8,13 +9,17 @@ import type {
   TrChatUIHTMLElement,
 } from './elementTypes'
 
-export const TrChatElement = defineCustomElement(TrChatElementComponent, {
-  shadowRoot: false,
-}) as unknown as TrChatElementConstructor<TrChatHTMLElement>
+export const TrChatElement = withOrdinaryElementSlots(
+  defineCustomElement(TrChatElementComponent, {
+    shadowRoot: false,
+  }),
+) as unknown as TrChatElementConstructor<TrChatHTMLElement>
 
-export const TrChatUIElement = defineCustomElement(TrChatUIElementComponent, {
-  shadowRoot: false,
-}) as unknown as TrChatElementConstructor<TrChatUIHTMLElement>
+export const TrChatUIElement = withOrdinaryElementSlots(
+  defineCustomElement(TrChatUIElementComponent, {
+    shadowRoot: false,
+  }),
+) as unknown as TrChatElementConstructor<TrChatUIHTMLElement>
 
 const defaultConstructors: Required<TrChatElementConstructors> = {
   chat: TrChatElement,

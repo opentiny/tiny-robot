@@ -7,6 +7,8 @@ import { useExperimentalElementHost } from './elementHost'
 import { CHAT_UI_EVENTS } from './elementEvents'
 import { createElementEventListeners, elementEventNames } from './events'
 import { useElementMethods } from './elementMethods'
+import { ElementSlot, useOrdinaryElementSlots } from './elementSlots'
+const ordinarySlots = useOrdinaryElementSlots()
 import type { TrChatUIElementMethods } from './elementTypes'
 const componentRef = shallowRef<TrChatUIElementMethods | null>(null)
 useElementMethods(
@@ -31,5 +33,7 @@ useExperimentalElementHost(
 const events = createElementEventListeners(CHAT_UI_EVENTS, emit)
 </script>
 <template>
-  <ChatUI ref="componentRef" v-bind="props" v-on="events" />
+  <ChatUI ref="componentRef" v-bind="props" v-on="events">
+    <template v-for="name in ordinarySlots" :key="name" #[name]><ElementSlot :name="name" /></template>
+  </ChatUI>
 </template>

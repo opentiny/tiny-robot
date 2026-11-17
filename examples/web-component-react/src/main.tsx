@@ -9,8 +9,16 @@ import { RuntimeDemo } from './demos/runtime'
 import { MethodsDemo } from './demos/methods'
 import { FloatingDemo } from './demos/floating'
 
+import { OrdinarySlotsDemo } from './demos/ordinary-slots'
+
 const shell = createDemoShell(document.getElementById('app')!, { host: 'React 19 / Vite' })
-const demos = { props: PropsDemo, runtime: RuntimeDemo, floating: FloatingDemo, methods: MethodsDemo }
+const demos = {
+  'ordinary-slots': OrdinarySlotsDemo,
+  props: PropsDemo,
+  runtime: RuntimeDemo,
+  floating: FloatingDemo,
+  methods: MethodsDemo,
+}
 function App() {
   const demo = useSyncExternalStore(shell.subscribe, shell.getCurrentDemo)
   const Page = demos[demo.id as keyof typeof demos]

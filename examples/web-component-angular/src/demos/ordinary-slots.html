@@ -1,0 +1,55 @@
+<div class="demo-workspace">
+  <aside class="demo-controls">
+    <section class="demo-card">
+      <label
+        >组件<select [ngModel]="kind" (ngModelChange)="changeKind($event)">
+          <option value="chat">TrChat</option>
+          <option value="ui">TrChatUI</option>
+        </select></label
+      >
+      <label>咨询主题<input [(ngModel)]="topic" /></label>
+      <label class="toggle"><input type="checkbox" [(ngModel)]="showContent" />显示 Slot 内容</label>
+      <div class="demo-buttons">
+        <button (click)="empty=!empty">切换空状态</button
+        ><button (click)="toggleMounted()">{{mounted ? '卸载元素' : '挂载元素'}}</button>
+      </div>
+    </section>
+  </aside>
+  <section class="demo-preview">
+    <div class="demo-chat" data-testid="slot-preview">
+      @if (mounted) { @if (kind === 'chat') {
+      <tr-chat data-slot-host [runtime]="runtime" [ui]="ui" [isEmpty]="empty">
+        @if (showContent) {
+        <div slot="welcome-footer"><p class="demo-welcome-footer">支持产品咨询、接入指导与问题排查。</p></div>
+        } @if (showContent) {
+        <div slot="prompts-footer">
+          <div class="demo-prompts-footer"><button type="button" (click)="changePrompts()">换一组问题</button></div>
+        </div>
+        } @if (showContent) {
+        <div slot="sender-header">
+          <p class="demo-sender-note">正在咨询：<strong>{{ topic }}</strong></p>
+        </div>
+        } @if (showContent) {
+        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>
+        }
+      </tr-chat>
+      } @else {
+      <tr-chat-ui data-slot-host [ui]="ui" [isEmpty]="empty">
+        @if (showContent) {
+        <div slot="welcome-footer"><p class="demo-welcome-footer">支持产品咨询、接入指导与问题排查。</p></div>
+        } @if (showContent) {
+        <div slot="prompts-footer">
+          <div class="demo-prompts-footer"><button type="button" (click)="changePrompts()">换一组问题</button></div>
+        </div>
+        } @if (showContent) {
+        <div slot="sender-header">
+          <p class="demo-sender-note">正在咨询：<strong>{{ topic }}</strong></p>
+        </div>
+        } @if (showContent) {
+        <div slot="input-prefix"><span class="demo-input-badge" aria-label="助手">AI</span></div>
+        }
+      </tr-chat-ui>
+      } }
+    </div>
+  </section>
+</div>

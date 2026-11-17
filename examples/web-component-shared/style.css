@@ -352,3 +352,55 @@ body {
   margin-bottom: 8px;
   color: #2563eb;
 }
+
+.demo-chat [data-slot-host] {
+  display: block;
+  height: 100%;
+  --tr-layout-height: 100%;
+}
+.demo-welcome-footer {
+  margin: 14px 0 0;
+  color: #62718b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.demo-prompts-footer {
+  margin-top: 12px;
+  text-align: right;
+}
+.demo-prompts-footer button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.demo-prompts-footer button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+.demo-sender-note {
+  margin: 0;
+  padding: 4px 0;
+  color: #62718b;
+  font-size: 12px;
+  line-height: 20px;
+}
+.demo-sender-note strong {
+  color: #24456e;
+  font-weight: 600;
+}
+.demo-input-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #eaf1ff;
+  color: #2554a8;
+  font-size: 12px;
+  line-height: 20px;
+}

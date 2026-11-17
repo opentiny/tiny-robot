@@ -14,6 +14,8 @@ const props = withDefaults(
     defaultOpen?: boolean
     floating?: boolean
     delayed?: boolean
+    ordinarySlot?: boolean
+    ordinarySlotName?: string
   }>(),
   { kind: 'chat', controlled: false, defaultOpen: false, floating: false, delayed: false },
 )
@@ -143,6 +145,12 @@ onMounted(() => {
     'history-action',
   ])
     element.addEventListener(name, listener)
+  if (props.ordinarySlot) {
+    const content = document.createElement('div')
+    content.slot = props.ordinarySlotName ?? 'sender-header'
+    content.textContent = '宿主输入区提示'
+    element.append(content)
+  }
   mountPoint.value!.append(element)
 })
 onBeforeUnmount(() => {

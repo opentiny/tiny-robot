@@ -1,7 +1,7 @@
 import path from 'node:path'
-import { spawn } from 'node:child_process'
 import { root, selectHosts } from './projects.mjs'
 import { prepareExamples, run } from './prepare.mjs'
+import { startDevelopmentServers } from './dev.mjs'
 
 const mode = process.argv[2]
 const args = process.argv.slice(3)
@@ -28,30 +28,14 @@ if (mode === 'test') {
     },
   )
 } else if (mode === 'dev') {
-  const children = selected.map((host) =>
-    spawn('pnpm', ['dev'], {
-      cwd: path.join(root, host.directory),
-      stdio: 'inherit',
-      detached: process.platform !== 'win32',
-    }),
-  )
-  let stopping = false
-  const stop = (code) => {
-    if (stopping) return
-    stopping = true
-    for (const child of children) {
-      try {
-        if (process.platform === 'win32') child.kill('SIGTERM')
-        else process.kill(-child.pid, 'SIGTERM')
-      } catch {}
-    }
-    process.exitCode = code
+  const servers = startDevelopmentServers(selected)
+  const stop = () => {
+    void servers.close()
   }
-  children.forEach((child) => {
-    child.on('error', () => stop(1))
-    child.on('exit', (code) => stop(code ?? 1))
-  })
-  process.on('SIGINT', () => stop(0))
-  process.on('SIGTERM', () => stop(0))
+  process.once('SIGINT', stop)
+  process.once('SIGTERM', stop)
   console.log(selected.map((host) => `${host.label}: http://127.0.0.1:${host.devPort}`).join('\n'))
+  process.exitCode = await servers.closed
+  process.removeListener('SIGINT', stop)
+  process.removeListener('SIGTERM', stop)
 } else throw new Error('模式必须为 test 或 dev')

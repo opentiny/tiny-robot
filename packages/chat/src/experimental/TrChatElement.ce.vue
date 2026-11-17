@@ -7,6 +7,8 @@ import { useExperimentalElementHost } from './elementHost'
 import { CHAT_EVENTS } from './elementEvents'
 import { createElementEventListeners, elementEventNames } from './events'
 import { useElementMethods } from './elementMethods'
+import { ElementSlot, useOrdinaryElementSlots } from './elementSlots'
+const ordinarySlots = useOrdinaryElementSlots()
 import type { TrChatElementMethods } from './elementTypes'
 const componentRef = shallowRef<TrChatElementMethods | null>(null)
 useElementMethods(
@@ -61,5 +63,7 @@ const events = createElementEventListeners(CHAT_EVENTS, emit)
     :active-right-aside-panel-id="props.activeRightAsidePanelId"
     :default-active-right-aside-panel-id="props.defaultActiveRightAsidePanelId"
     v-on="events"
-  />
+  >
+    <template v-for="name in ordinarySlots" :key="name" #[name]><ElementSlot :name="name" /></template>
+  </Chat>
 </template>

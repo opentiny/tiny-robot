@@ -30,6 +30,13 @@ export const DEMOS = [
     path: '/basic/methods',
     description: '等待元素就绪后调用输入、聚焦和发送方法，读取实际返回结果。',
   },
+  {
+    id: 'ordinary-slots',
+    group: '内容扩展',
+    title: '普通 Slot',
+    path: '/content/ordinary-slots',
+    description: '在欢迎区、提示词列表和输入区使用自定义内容与交互。',
+  },
 ]
 
 /** @param {string} hash @returns {Demo} */
