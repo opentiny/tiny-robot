@@ -134,7 +134,7 @@ export function useAutoScroll(
   const contentElement = () => (contentRef ? unrefElement(contentRef) : null)
   const automaticScrollingEnabled = () => toValue(enabled)
 
-  const { y, isScrolling, arrivedState } = useScroll(targetElement, { throttle: scrollThrottle })
+  const { y, isScrolling, arrivedState, measure } = useScroll(targetElement, { throttle: scrollThrottle })
 
   /** 判断是否接近底部 */
   const isNearBottom = (el: HTMLElement) => {
@@ -156,12 +156,14 @@ export function useAutoScroll(
     await nextTick()
     if (revision !== scrollRevision || el !== toValue(targetElement)) return
     el.scrollTo({ top: el.scrollHeight, behavior })
+    if (behavior !== 'smooth') measure()
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
       const stopWatch = useOnceFallingEdge(isScrolling, () => {
         stopWatches.delete(stopWatch)
         if (!isFollowing.value) return
         el.scrollTo({ top: el.scrollHeight, behavior: 'auto' })
+        measure()
       })
       stopWatches.add(stopWatch)
     }

@@ -433,6 +433,7 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
     el.scrollTop -= 200
   })
   await settle(second)
+  await expect.poll(() => distance(second)).toBe(200)
   await resize(component.locator('.context-probe'))
   await settle(second)
   const before = await second.evaluate((el) => el.scrollTop)
