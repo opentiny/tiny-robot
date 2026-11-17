@@ -26,11 +26,13 @@
     "README*"
   ],
   "scripts": {
-    "build": "pnpm type-check && vite build",
+    "build": "pnpm type-check && pnpm build:stable && pnpm build:experimental",
     "dev": "vite --host 0.0.0.0",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "build:stable": "vite build",
+    "build:experimental": "vite build --config vite.experimental.config.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
@@ -50,5 +52,17 @@
     "vite-plugin-dts": "^4.5.4",
     "vue": "^3.3.11",
     "vue-tsc": "^2.2.8"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental.d.ts",
+      "import": "./dist/experimental.js"
+    },
+    "./experimental/web-component.css": "./dist/web-component.css",
+    "./dist/*": "./dist/*"
   }
 }

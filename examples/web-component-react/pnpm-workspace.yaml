@@ -1,0 +1,10 @@
+packages:
+  - .
+overrides:
+  'vue': '3.5.41'
+  '@opentiny/tiny-robot': 'file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-1.0.1.tgz'
+  '@opentiny/tiny-robot-kit': 'file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-kit-1.0.1.tgz'
+  '@opentiny/tiny-robot-svgs': 'file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-svgs-1.0.1.tgz'
+  '@opentiny/tiny-robot-chat': 'file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-chat-1.0.1.tgz'
+onlyBuiltDependencies:
+  - esbuild

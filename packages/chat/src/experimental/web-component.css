@@ -1,0 +1,4 @@
+@import '../../../components/dist/style.css';
+:where(tr-chat, tr-chat-ui) {
+  display: block;
+}

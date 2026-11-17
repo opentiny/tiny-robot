@@ -54,6 +54,28 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm -F tiny-robot-test test:ct
 
+      - name: Run Web Component Host Tests
+        if: ${{ !cancelled() }}
+        run: pnpm test:wc
+
+      - name: Run React StrictMode Development Tests
+        if: ${{ !cancelled() }}
+        run: pnpm test:wc --project=react --dev --skip-build
+
+      - name: Upload Web Component Host Report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: web-component-report-${{ github.sha }}
+          path: |
+            .artifacts/web-component/report/
+            .artifacts/web-component/results.json
+            .artifacts/web-component/test-results/
+            .artifacts/web-component/development/
+            .artifacts/web-component/candidates/*/provenance.json
+          include-hidden-files: true
+          retention-days: 13
+
       - name: Upload Playwright Test Report
         uses: actions/upload-artifact@v6
         if: always()

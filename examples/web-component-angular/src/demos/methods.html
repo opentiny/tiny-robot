@@ -1,0 +1,17 @@
+<div class="demo-workspace">
+  <aside class="demo-controls" aria-label="公开方法控制">
+    <section class="demo-card">
+      <h2>调用元素方法</h2>
+      <label>方法输入<input [(ngModel)]="text" /></label>
+      <div class="demo-buttons">
+        <button [disabled]="!chat" (click)="run('set')">设置输入</button
+        ><button [disabled]="!chat" (click)="run('clear')">清空输入</button
+        ><button [disabled]="!chat" (click)="run('focus')">聚焦输入</button
+        ><button [disabled]="!chat" (click)="run('send')">调用 send</button>
+      </div>
+      <p class="demo-help">等待元素就绪后操作。send 使用组件的草稿管理与 Runtime，返回发送是否被接受。</p>
+      <output data-testid="method-result" role="status">{{result}}</output>
+    </section>
+  </aside>
+  <demo-chat (elementReady)="chat=$event" />
+</div>

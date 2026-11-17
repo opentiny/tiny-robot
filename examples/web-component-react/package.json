@@ -1,0 +1,31 @@
+{
+  "name": "web-component-react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --strictPort --port 4329",
+    "type-check": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "3.5.41",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@opentiny/tiny-robot": "file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-1.0.1.tgz",
+    "@opentiny/tiny-robot-kit": "file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-kit-1.0.1.tgz",
+    "@opentiny/tiny-robot-svgs": "file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-svgs-1.0.1.tgz",
+    "@opentiny/tiny-robot-chat": "file:../../.artifacts/web-component/candidates/158c678449cd8ea5/opentiny-tiny-robot-chat-1.0.1.tgz"
+  },
+  "devDependencies": {
+    "vite": "8.3.8",
+    "typescript": "5.9.3",
+    "@vitejs/plugin-react": "6.3.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  },
+  "packageManager": "pnpm@10.34.5"
+}

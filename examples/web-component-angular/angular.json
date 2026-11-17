@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "projects": {
+    "web-component-angular": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "node_modules/@opentiny/tiny-robot-chat/dist/web-component.css",
+              "../web-component-shared/style.css"
+            ],
+            "loader": {
+              ".jpg": "file"
+            },
+            "define": {
+              "__VUE_OPTIONS_API__": "true",
+              "__VUE_PROD_DEVTOOLS__": "false",
+              "__VUE_PROD_HYDRATION_MISMATCH_DETAILS__": "false"
+            }
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "development": {
+              "buildTarget": "web-component-angular:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}

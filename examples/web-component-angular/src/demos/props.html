@@ -1,0 +1,18 @@
+<div class="demo-workspace">
+  <aside class="demo-controls" aria-label="属性配置">
+    <section class="demo-card">
+      <h2>属性绑定</h2>
+      <form (ngSubmit)="form.valid && title.set(draftTitle)" #form="ngForm">
+        <label>标题<input name="title" [(ngModel)]="draftTitle" required /></label
+        ><button class="primary">应用标题</button>
+      </form>
+      <label class="toggle"
+        ><input type="checkbox" [ngModel]="header()" (ngModelChange)="header.set($event)" />显示页头</label
+      ><label class="toggle"
+        ><input type="checkbox" [ngModel]="empty()" (ngModelChange)="empty.set($event)" />强制空状态</label
+      >
+      <small>标题为字符串，ui 为普通对象，isEmpty 为布尔值。输入框使用本地回复，无需密钥。</small>
+    </section>
+  </aside>
+  <demo-chat [title]="title()" [ui]="ui()" [isEmpty]="empty() ? true : undefined" />
+</div>

@@ -1,0 +1,21 @@
+import { expect, test } from '../support/test'
+
+test('公开方法页保留输入、焦点与发送结果', async ({ page }) => {
+  await page.goto('/#/basic/methods')
+  await expect(page.getByTestId('demo-title')).toHaveText('公开方法')
+  await expect(page.getByTestId('ready-state')).toHaveText('已就绪')
+  const editor = page.locator('tr-chat [contenteditable=true]')
+  await page.getByLabel('方法输入', { exact: true }).fill('方法写入的草稿')
+  await page.getByRole('button', { name: '设置输入', exact: true }).click()
+  await expect(editor).toHaveText('方法写入的草稿')
+  await page.getByRole('button', { name: '清空输入', exact: true }).click()
+  await expect(editor).toHaveText('')
+  await page.getByRole('button', { name: '聚焦输入', exact: true }).click()
+  await expect(page.getByTestId('method-result')).toHaveText('聚焦结果：true')
+  await expect(editor).toBeFocused()
+  await page.getByLabel('方法输入', { exact: true }).fill('通过元素方法发送')
+  await page.getByRole('button', { name: '调用 send', exact: true }).click()
+  await expect(page.getByTestId('method-result')).toHaveText('发送结果：true')
+  await expect(page.locator('tr-chat').getByText('通过元素方法发送', { exact: true })).toBeVisible()
+  await expect(page.locator('tr-chat').getByText('你好，我是本地演示助手。', { exact: true })).toBeVisible()
+})

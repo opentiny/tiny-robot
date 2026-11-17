@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.angular/
+out-tsc/
+public/candidate.json

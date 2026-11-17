@@ -1,5 +1,5 @@
 import type { ChatConversationInfo } from '../base'
-import type { ChatSendPayload } from '../commands'
+import type { ChatSendPayload, ChatRuntimeActionErrorPayload } from '../commands'
 import type { ChatRightAsidePanelId } from './options'
 import type {
   LayoutFloatingDragDetail,
@@ -131,6 +131,35 @@ export interface ChatUIEmits {
   'extension-action': [payload: ExtensionManagerActionEvent]
   'extension-name-click': [payload: ExtensionManagerNameClickEvent]
   'extension-tab-change': [payload: ExtensionManagerTabChangeEvent]
+  'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
+  'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
+  'update:right-aside-open': [value: boolean]
+  'update:active-right-aside-panel-id': [value: ChatRightAsidePanelId | undefined]
+}
+
+export interface ChatEmits {
+  'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
+  'update:floating-state': [value: LayoutFloatingState]
+  'floating-drag-start': [detail: LayoutFloatingDragDetail]
+  'floating-drag': [detail: LayoutFloatingDragDetail]
+  'floating-drag-end': [detail: LayoutFloatingDragDetail]
+  'floating-resize-start': [detail: LayoutFloatingResizeDetail]
+  'floating-resize': [detail: LayoutFloatingResizeDetail]
+  'floating-resize-end': [detail: LayoutFloatingResizeDetail]
+  'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
+  'history-action': [payload: ChatHistoryActionPayload]
+  'mcp-create-server': [payload: ChatMcpCreateServerPayload]
+  'extension-action': [payload: ExtensionManagerActionEvent]
+  'extension-name-click': [payload: ExtensionManagerNameClickEvent]
+  'extension-tab-change': [payload: ExtensionManagerTabChangeEvent]
+  'prompt-click': [payload: ChatPromptClickPayload]
+  'bubble-state-change': [payload: ChatBubbleStateChangePayload]
+  'bubble-event': [payload: ChatBubbleEventPayload]
+  'sender-drag-enter': [payload: SenderDragPayload]
+  'sender-drag-over': [payload: SenderDragPayload]
+  'sender-drag-leave': [payload: SenderDragPayload]
+  'sender-drop': [payload: SenderDragPayload]
+  'sender-paste': [event: ClipboardEvent]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'update:right-aside-open': [value: boolean]

@@ -1,0 +1,15 @@
+<div class="demo-workspace">
+  <aside class="demo-controls" aria-label="Runtime 控制">
+    <section class="demo-card">
+      <h2>生命周期</h2>
+      <div class="demo-buttons">
+        <button (click)="mount(false)">延后接入</button
+        ><button (click)="enabled.set(true)" [disabled]="!mounted() || enabled()">接入 Runtime</button
+        ><button (click)="mounted.set(false)" [disabled]="!mounted()">卸载组件</button
+        ><button (click)="mount(true)">重新挂载</button>
+      </div>
+      <p class="demo-help">延后接入会创建一个尚未绑定 Runtime 的元素。重新挂载创建独立的 Runtime。</p>
+    </section>
+  </aside>
+  @for (key of [generation()]; track key) { <demo-chat [mounted]="mounted()" [enabled]="enabled()" /> }
+</div>
