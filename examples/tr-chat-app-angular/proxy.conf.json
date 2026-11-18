@@ -1,0 +1,10 @@
+{
+  "/modelcontextprotocol-mcp": {
+    "target": "https://modelcontextprotocol.io/mcp",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/modelcontextprotocol-mcp": ""
+    }
+  }
+}

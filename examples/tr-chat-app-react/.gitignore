@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.angular/
+out-tsc/
+vendor/
+.env
+.env.*
+!.env.example
+public/candidate.json
+src/environments/env.generated.ts

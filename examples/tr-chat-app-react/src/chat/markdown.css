@@ -1,0 +1,198 @@
+.assistant-markdown,
+.reply-actions {
+  --app-accent: var(--tr-color-primary, #3b64d9);
+  --app-soft: var(--tr-container-bg-default-2, #f2f5ff);
+  --app-line: var(--tr-border-color-default, #e3e8f1);
+  --app-muted: var(--tr-text-secondary, #69768c);
+  --app-code-bg: #192235;
+  --app-code-text: #e2e9f6;
+}
+.assistant-markdown {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--tr-text-primary, #25324a);
+  font-size: 15px;
+  line-height: 1.85;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+.assistant-markdown > :first-child {
+  margin-top: 0;
+}
+.assistant-markdown > :last-child {
+  margin-bottom: 0;
+}
+.assistant-markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+  line-height: 1.45;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  margin: 1.4em 0 0.65em;
+}
+.assistant-markdown h1 {
+  font-size: 1.6em;
+}
+.assistant-markdown h2 {
+  font-size: 1.25em;
+}
+.assistant-markdown :is(h3, h4, h5, h6) {
+  font-size: 1.05em;
+}
+.assistant-markdown p {
+  margin: 0.8em 0;
+}
+.assistant-markdown strong {
+  font-weight: 650;
+}
+.assistant-markdown a {
+  color: var(--app-accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--app-accent) 35%, transparent);
+  text-underline-offset: 4px;
+}
+.assistant-markdown a:hover {
+  text-decoration-color: currentColor;
+}
+.assistant-markdown :is(ul, ol) {
+  margin: 0.8em 0;
+  padding-inline-start: 1.6em;
+}
+.assistant-markdown li {
+  margin: 0.3em 0;
+  padding-inline-start: 0.3em;
+}
+.assistant-markdown li::marker {
+  color: var(--app-accent);
+  font-weight: 600;
+}
+.assistant-markdown blockquote {
+  margin: 1.2em 0;
+  padding: 0.65em 1em;
+  border-inline-start: 3px solid var(--app-accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--app-soft);
+  color: var(--app-muted);
+}
+.assistant-markdown blockquote p {
+  margin: 0;
+}
+.assistant-markdown :not(pre) > code {
+  padding: 0.15em 0.4em;
+  border: 1px solid var(--app-line);
+  border-radius: 5px;
+  background: var(--app-soft);
+  color: var(--app-accent);
+  font-size: 0.88em;
+}
+.assistant-markdown :is(code, pre) {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  letter-spacing: 0;
+}
+.assistant-markdown .markdown-code {
+  margin: 1.2em 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--app-code-bg);
+  color: var(--app-code-text);
+  border: 1px solid #859ac629;
+}
+.assistant-markdown .markdown-code-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid #ffffff12;
+  color: #afbdd6;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.assistant-markdown pre {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.8;
+  tab-size: 2;
+}
+.assistant-markdown .markdown-table {
+  margin: 1.2em 0;
+  overflow-x: auto;
+  border: 1px solid var(--app-line);
+  border-radius: 10px;
+}
+.assistant-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93em;
+}
+.assistant-markdown :is(th, td) {
+  padding: 10px 16px;
+  text-align: start;
+}
+.assistant-markdown th {
+  background: var(--app-soft);
+  font-weight: 600;
+}
+.assistant-markdown tr + tr td,
+.assistant-markdown tbody tr:first-child td {
+  border-top: 1px solid var(--app-line);
+}
+.assistant-markdown hr {
+  border: 0;
+  border-top: 1px solid var(--app-line);
+  margin: 1.5em 0;
+}
+.assistant-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.reply-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+.reply-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-muted);
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background 150ms,
+    color 150ms;
+}
+.reply-copy svg {
+  width: 14px;
+  height: 14px;
+}
+.reply-copy:hover {
+  background: var(--app-soft);
+  color: var(--app-accent);
+}
+.reply-copy:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.reply-copy:focus-visible,
+.assistant-markdown :is(a, pre, .markdown-table):focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 520px) {
+  .assistant-markdown {
+    font-size: 14px;
+  }
+  .assistant-markdown h1 {
+    font-size: 1.4em;
+  }
+  .assistant-markdown :is(th, td) {
+    padding: 8px 12px;
+  }
+}

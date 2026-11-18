@@ -1,0 +1,6 @@
+packages:
+  - .
+overrides:
+  'vue': '3.5.41'
+onlyBuiltDependencies:
+  - esbuild

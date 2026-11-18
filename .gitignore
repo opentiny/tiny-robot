@@ -50,3 +50,6 @@ cui.config.js
 
 # 独立 Web Component 示例固定工具链与间接依赖
 !examples/web-component-*/pnpm-lock.yaml
+
+# 独立 AI 应用固定依赖
+!examples/tr-chat-app-*/pnpm-lock.yaml

@@ -1,0 +1,153 @@
+<section class="floating-assistant-host" [hidden]="!open()" aria-label="AI 助手">
+  <tr-chat
+    id="floating-chat"
+    [runtime]="runtime"
+    [ui]="chatUI()"
+    [floatingState]="floatingState"
+    [renderers]="renderers"
+    [bubbleRenderers]="bubbleRenderers"
+    (floating-state-update)="updateFloatingState($event)"
+  />
+</section>
+<button
+  #launcher
+  type="button"
+  class="assistant-launcher"
+  [hidden]="open()"
+  aria-label="打开 AI 助手"
+  aria-controls="floating-chat"
+  [attr.aria-expanded]="open()"
+  (click)="open.set(true)"
+>
+  <img src="/assistant.svg" alt="" />
+</button>
+
+<ng-template #windowHeader let-scope>
+  <header class="assistant-window-header" [attr.data-fullscreen]="fullscreen()">
+    <strong>TinyRobot</strong>
+    <div class="assistant-window-actions">
+      <button
+        type="button"
+        class="assistant-icon-button"
+        aria-label="新建会话"
+        title="新建会话"
+        (click)="scope.createConversation(); historyOpen.set(false)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+      <button
+        type="button"
+        class="assistant-icon-button assistant-history-trigger"
+        aria-label="历史会话"
+        title="历史会话"
+        [attr.aria-expanded]="historyOpen()"
+        aria-controls="assistant-history"
+        (click)="toggleHistory()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2 6M4 5v6h6M12 8v5l3 2" /></svg>
+      </button>
+      <button
+        type="button"
+        class="assistant-icon-button assistant-mode-toggle"
+        [attr.aria-label]="fullscreen() ? '切换为悬浮窗口' : '切换为全屏模式'"
+        [title]="fullscreen() ? '切换为悬浮窗口' : '切换为全屏模式'"
+        (click)="toggleMode()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          @if (fullscreen()) {
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <path d="M11 11h9v9h-9z" />
+          } @else {
+            <path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5" />
+          }
+        </svg>
+      </button>
+      <button type="button" class="assistant-icon-button" aria-label="关闭 AI 助手" title="关闭" (click)="close()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
+      </button>
+    </div>
+  </header>
+</ng-template>
+<ng-template #replyActions let-scope>
+  <div class="reply-actions">
+    <button
+      #copyButton
+      type="button"
+      class="reply-copy"
+      aria-label="复制回复"
+      (click)="copyReply(replyText(scope), copyButton)"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <rect x="8" y="8" width="12" height="12" rx="3" />
+        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+      </svg>
+      <span class="copy-label" aria-live="polite">复制</span>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #historyPanel>
+  @if (open() && historyOpen()) {
+    @if (headerScope; as scope) {
+      <section
+        id="assistant-history"
+        class="assistant-history"
+        [style.left.px]="historyPosition().left"
+        [style.top.px]="historyPosition().top"
+        [style.width.px]="historyPosition().width"
+        [style.max-height.px]="historyPosition().maxHeight"
+        [style.z-index]="historyPosition().zIndex"
+        role="dialog"
+        aria-label="历史会话"
+      >
+        <div class="assistant-history-head">
+          <h2>历史会话</h2>
+          <button type="button" class="assistant-icon-button" aria-label="关闭历史会话" (click)="closeHistory()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
+          </button>
+        </div>
+        <input
+          #search
+          type="search"
+          aria-label="搜索历史会话"
+          placeholder="搜索会话"
+          [value]="query"
+          (input)="query = search.value"
+        />
+        @if (historyError) {
+          <p role="alert">{{ historyError }}</p>
+        }
+        <ul>
+          @for (item of historyItems(scope); track item.id) {
+            <li [attr.data-active]="scope.conversation.activeId === item.id">
+              @if (editingId === item.id) {
+                <form (submit)="$event.preventDefault(); historyAction('rename', item.id)">
+                  <input
+                    #title
+                    aria-label="会话标题"
+                    [value]="editTitle"
+                    (input)="editTitle = title.value"
+                    (keydown.escape)="$event.stopPropagation(); editingId = undefined"
+                  />
+                  <button type="submit" [disabled]="!editTitle.trim()">保存标题</button
+                  ><button type="button" (click)="editingId = undefined">取消</button>
+                </form>
+              } @else {
+                <button type="button" class="assistant-history-title" (click)="historyAction('switch', item.id)">
+                  {{ item.title || '未命名会话' }}
+                </button>
+                <div class="assistant-history-item-actions">
+                  <button type="button" (click)="startRename(item.id, item.title || '')">重命名</button
+                  ><button type="button" (click)="historyAction('delete', item.id)">删除</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+        @if (!historyItems(scope).length) {
+          <p class="assistant-history-empty">{{ query.trim() ? '未找到匹配的会话' : '暂无历史会话' }}</p>
+        }
+      </section>
+    }
+  }
+</ng-template>
