@@ -85,6 +85,8 @@ jobs:
       - name: Build VitePress
         run: pnpm build:docs --nocomponents
         env:
+          DOCS_SOURCE_REPOSITORY: ${{ github.repository }}
+          DOCS_SOURCE_REF: ${{ github.ref_name }}
           VITEPRESS_BASE: /tiny-robot/${{ inputs.tag }}/
           PLAYGROUND_BASE: /tiny-robot/${{ inputs.tag }}/playground
 

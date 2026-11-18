@@ -1,9 +1,12 @@
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
-import { defineConfig } from 'vitepress'
+import { defineConfigWithTheme, type DefaultTheme } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
 import { themeConfig } from './themeConfig'
+import { resolveSourceLinks } from './source-links'
+
+type DocsThemeConfig = DefaultTheme.Config & { sourceLinks: ReturnType<typeof resolveSourceLinks> }
 
 const devAlias = {
   '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
@@ -18,7 +21,7 @@ const prodAlias = {
 }
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default defineConfigWithTheme<DocsThemeConfig>({
   title: 'TinyRobot',
   description: 'TinyRobot',
   srcDir: 'src',
@@ -77,6 +80,7 @@ export default defineConfig({
     logo: '/logo-mini.svg',
     siteTitle: 'TinyRobot',
     ...themeConfig,
+    sourceLinks: resolveSourceLinks(),
     search: {
       provider: 'local',
     },
