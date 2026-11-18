@@ -128,6 +128,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   let activeSession: QuickAssistSession | null = null
   let restoreElement: HTMLElement | null = null
   let state: UIState = { suggestions: [], loading: false, error: false, submittingDisabled: false }
+  let renderGeneration = 0
   let destroyed = false
   let releaseLayout: (() => void) | undefined
   let syncInput: (() => void) | undefined
@@ -168,6 +169,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
   }
 
   const renderSuggestions = (): void => {
+    const generation = ++renderGeneration
     if (!suggestionList || !status) return
     suggestionList.replaceChildren()
     status.replaceChildren()
@@ -205,7 +207,13 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
         if (activeSession) options.onCallbackError?.(activeSession.id, error)
       }
       // A host callback may close or replace the list, including within the same session.
-      if (!suggestionList || suggestionList !== renderingList || activeSession !== renderingSession) return
+      if (
+        !suggestionList ||
+        suggestionList !== renderingList ||
+        activeSession !== renderingSession ||
+        generation !== renderGeneration
+      )
+        return
       button.addEventListener('click', () => {
         if (activeSession) activeSession.inputValue = input?.value ?? activeSession.inputValue
         onSuggestionClick?.(suggestion)

@@ -352,23 +352,27 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       },
       onClose: () => closeSession('escape'),
     })
+    const isCurrentPopover = (): boolean => isCurrent(candidate) && ui.contains(popover)
     if (hadTrigger) emit({ type: 'trigger_click', sessionId: candidate.id })
-    if (!isCurrent(candidate) || !ui.contains(popover)) return
+    if (!isCurrentPopover()) return
     emit({ type: 'popover_show', sessionId: candidate.id })
-    if (!isCurrent(candidate) || !ui.contains(popover)) return
+    if (!isCurrentPopover()) return
     // Use the same selection/line anchor and placement rules as the trigger.
     // Anchoring to the removed trigger adds its height and a second offset.
-    const positionPopover = (): void => reposition(popover, candidate)
+    const positionPopover = (): void => {
+      if (isCurrentPopover()) reposition(popover, candidate)
+    }
     positionPopover()
+    if (!isCurrentPopover()) return
     if (snapshot) {
       anchorCleanup = observeAnchor({
         element: popover,
         snapshot,
         onChange: () => {
-          if (isCurrent(candidate)) positionPopover()
+          if (isCurrentPopover()) positionPopover()
         },
         onInvalid: () => {
-          if (isCurrent(candidate)) closeSession('anchor-invalid')
+          if (isCurrentPopover()) closeSession('anchor-invalid')
         },
       })
     }
@@ -393,48 +397,54 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
         : recommendationModule
     const hasProvider = !!provider
     ui.update({ loading: hasProvider, submittingDisabled: true })
+    if (!isCurrentPopover()) return
     positionPopover()
+    if (!isCurrentPopover()) return
     void Promise.resolve(
       contextModule.build(candidate.external ?? (snapshot as SelectionSnapshot), candidate.controller.signal),
     )
       .then((context) => {
-        if (!isCurrent(candidate)) return
+        if (!isCurrentPopover()) return
         candidate.context = context
         let base: Suggestion[]
         try {
           base = recommendations.resolveBase(copyContext(context))
         } catch (error) {
+          if (!isCurrentPopover()) return
           ui.update({ loading: false, submittingDisabled: false, error: true })
           positionPopover()
-          emitError(candidate.id, 'suggestions', error)
+          if (isCurrentPopover()) emitError(candidate.id, 'suggestions', error)
           return
         }
+        if (!isCurrentPopover()) return
         candidate.suggestions = base
         ui.update({ suggestions: base, loading: hasProvider, submittingDisabled: false, error: false })
+        if (!isCurrentPopover()) return
         positionPopover()
-        if (!hasProvider) return
+        if (!hasProvider || !isCurrentPopover()) return
         const asyncSuggestions = recommendations.resolveAsync?.(copyContext(context), candidate.controller.signal)
         if (!asyncSuggestions) return
         return Promise.resolve(asyncSuggestions)
           .then((incoming) => {
-            if (!isCurrent(candidate)) return
+            if (!isCurrentPopover()) return
             const merged = recommendations.merge(base, incoming, copyContext(context))
+            if (!isCurrentPopover()) return
             candidate.suggestions = merged
             ui.update({ suggestions: merged, loading: false, submittingDisabled: false, error: false })
             positionPopover()
           })
           .catch((error) => {
-            if (!isCurrent(candidate)) return
+            if (!isCurrentPopover()) return
             ui.update({ suggestions: base, loading: false, submittingDisabled: false, error: true })
             positionPopover()
-            emitError(candidate.id, 'suggestions', error)
+            if (isCurrentPopover()) emitError(candidate.id, 'suggestions', error)
           })
       })
       .catch((error) => {
-        if (!isCurrent(candidate)) return
+        if (!isCurrentPopover()) return
         ui.update({ loading: false, submittingDisabled: true, error: true })
         positionPopover()
-        emitError(candidate.id, stageOf(error), error)
+        if (isCurrentPopover()) emitError(candidate.id, stageOf(error), error)
       })
   }
 
