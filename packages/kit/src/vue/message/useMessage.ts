@@ -1,4 +1,4 @@
-import { ref, toRaw, watch } from 'vue'
+import { isReactive, isReadonly, ref, toRaw, watch } from 'vue'
 import { createVueMessageAdapter } from '../../message/adapters'
 import { createMessageEngine } from '../../message/core'
 import {
@@ -7,7 +7,6 @@ import {
   BeforeRequestContext as CoreBeforeRequestContext,
   ChatMessage as CoreChatMessage,
   ChatResponseChunk,
-  CompletionChunkContext as CoreCompletionChunkContext,
   MessageEngineInitContext as CoreMessageEngineInitContext,
   ResponseProvider as CoreResponseProvider,
   CreateMessageEngineOptions,
@@ -38,6 +37,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const adapter = createVueMessageAdapter()
 
   const resolveReactiveMessage = (message: ChatMessage) => {
+    if (isReactive(message) && !isReadonly(message)) return message
     return (adapter.messages.value.find(
       (item) => item === message || toRaw(item) === message || toRaw(item) === toRaw(message),
     ) ?? message) as ChatMessage
@@ -184,7 +184,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     }
 
     if (onCompletionChunk) {
-      corePlugin.onCompletionChunk = (context: CoreCompletionChunkContext) =>
+      corePlugin.onCompletionChunk = (context) =>
         onCompletionChunk({
           ...createVueBaseContext(context),
           currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),

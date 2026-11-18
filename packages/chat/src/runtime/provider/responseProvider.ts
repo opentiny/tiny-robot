@@ -4,6 +4,20 @@ import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './requestPlugin'
 import type { ChatResolvedProviderModel } from './types'
 import { isChatTokenUsage } from '../usage'
 
+const usageKeys = ['prompt_tokens', 'completion_tokens', 'total_tokens'] as const
+
+function normalizeMappedUsage(mapped: unknown) {
+  if (!mapped || typeof mapped !== 'object' || Array.isArray(mapped)) return undefined
+  const counters = mapped as Record<string, unknown>
+  const usage = Object.fromEntries(
+    usageKeys.flatMap((key) => {
+      const value = counters[key]
+      return value === undefined ? [] : [[key, value]]
+    }),
+  )
+  return isChatTokenUsage(usage) ? usage : undefined
+}
+
 export function createProviderResponseProvider(
   resolveModel: (modelId: string) => ChatResolvedProviderModel | undefined,
 ): ResponseProvider {
@@ -47,7 +61,14 @@ export function createProviderResponseProvider(
           ...providerRequestBody,
           model: currentModel.id,
           stream: true,
-          ...(currentModel.includeUsage ? { stream_options: { include_usage: true } } : {}),
+          ...(currentModel.includeUsage
+            ? {
+                stream_options: {
+                  ...(providerRequestBody.stream_options as Record<string, unknown> | undefined),
+                  include_usage: true,
+                },
+              }
+            : {}),
         }),
         signal: requestSignal,
       })
@@ -68,10 +89,12 @@ export function createProviderResponseProvider(
             const chunk = rawChunk as unknown as Record<string, unknown>
             const { usage, ...rest } = chunk
             try {
-              const mapped = currentModel.mapUsage(usage, { modelId: currentModel.id, chunk: rawChunk })
+              const mapped = normalizeMappedUsage(
+                currentModel.mapUsage(usage, { modelId: currentModel.id, chunk: rawChunk }),
+              )
               yield {
                 ...rest,
-                ...(isChatTokenUsage(mapped) ? { usage: mapped } : {}),
+                ...(mapped ? { usage: mapped } : {}),
               } as typeof rawChunk
             } catch (error) {
               console.warn(`[ChatProvider] Failed to map usage for model "${currentModel.id}".`, error)

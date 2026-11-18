@@ -173,7 +173,7 @@ describe('createMessageEngine', () => {
     expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeUndefined()
   })
 
-  it('publishes the stream end time before completion notifications and hooks without plugin overhead', async () => {
+  it('publishes the stream end time only after end hooks succeed without including plugin overhead', async () => {
     let now = 1_800_000_000_000
     vi.spyOn(Date, 'now').mockImplementation(() => now)
     const observed: unknown[] = []
@@ -203,7 +203,7 @@ describe('createMessageEngine', () => {
 
     await engine.sendMessage('question')
 
-    expect(observed).toEqual([1_800_000_000, 1_800_000_000, 1_800_000_000])
+    expect(observed).toEqual([undefined, undefined, 1_800_000_000])
     expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBe(1_800_000_000)
     expect(now).toBe(1_800_000_120_000)
   })

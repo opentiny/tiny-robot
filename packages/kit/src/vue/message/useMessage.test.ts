@@ -12,7 +12,13 @@ import { useMessage } from './useMessage'
 describe('useMessage', () => {
   it('reruns the latest user message in place and starts a fresh turn lifecycle', async () => {
     const lifecycle: string[] = []
-    const responseProvider = mockResponseProvider('new answer')
+    const responseProvider = vi.fn(
+      mockSequentialResponseProvider([
+        { content: 'first answer' },
+        { content: 'second answer' },
+        { content: 'new answer' },
+      ]),
+    )
     const engine = useMessage({
       responseProvider,
       plugins: [
@@ -31,18 +37,139 @@ describe('useMessage', () => {
     await engine.sendMessage('first question')
     const originalUser = engine.messages.value[0]!
     await engine.sendMessage('second question')
-    const before = engine.messages.value
+    const before = [...engine.messages.value]
 
     await expect(engine.rerun({ role: 'user', content: 'stale target' })).resolves.toBe(false)
     await expect(engine.rerun(originalUser)).resolves.toBe(false)
     await expect(engine.rerun(before[2]!)).resolves.toBe(true)
 
+    expect(responseProvider).toHaveBeenCalledTimes(3)
     expect(engine.messages.value[2]).toBe(before[2])
     expect(engine.messages.value.slice(3).map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: 'new answer' },
     ])
     expect(lifecycle.slice(-2)).toEqual(['start:second question', 'finally:second question:completed'])
     expect(engine.requestState.value).toBe('completed')
+  })
+
+  it('reserves replay before synchronous transcript observers can send', async () => {
+    const provider = vi.fn(mockResponseProvider('answer'))
+    const engine = useMessage({ responseProvider: provider })
+    await engine.sendMessage('question')
+    let pending: Promise<void> | undefined
+    const stop = watch(
+      () => engine.messages.value.length,
+      (length) => {
+        if (length === 1) pending = engine.sendMessage('interleaved')
+      },
+      { flush: 'sync' },
+    )
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    await pending
+    stop()
+    expect(provider).toHaveBeenCalledTimes(2)
+    expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'answer'])
+  })
+
+  it('ignores a delayed after-request append after another hook fails', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('answer'),
+      plugins: [
+        {
+          async onAfterRequest() {
+            throw new Error('hook failed')
+          },
+        },
+        {
+          async onAfterRequest({ appendMessage, requestNext }) {
+            await gate
+            appendMessage({ role: 'tool', content: 'stale result' })
+            requestNext()
+          },
+        },
+      ],
+    })
+    await expect(engine.sendMessage('question')).rejects.toThrow('hook failed')
+    const snapshot = JSON.stringify(engine.messages.value)
+    release()
+    await gate
+    await Promise.resolve()
+    expect(JSON.stringify(engine.messages.value)).toBe(snapshot)
+  })
+
+  it('does not publish completion time when end hooks fail', async () => {
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('answer'),
+      plugins: [
+        {
+          onTurnEnd() {
+            throw new Error('end failed')
+          },
+        },
+      ],
+    })
+    await expect(engine.sendMessage('question')).rejects.toThrow('end failed')
+    expect(engine.requestState.value).toBe('error')
+    expect(engine.messages.value.at(-1)?.metadata?.completedAt).toBeUndefined()
+  })
+
+  it.each([true, false])('merges usage and notifies plugins with a choice: %s', async (withChoice) => {
+    const onChunk = vi.fn()
+    const engine = useMessage({
+      responseProvider: async () => ({
+        id: 'usage',
+        object: 'chat.completion',
+        created: 1,
+        model: 'test',
+        system_fingerprint: null,
+        choices: withChoice
+          ? [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'answer' },
+                delta: undefined,
+                logprobs: null,
+                finish_reason: 'stop',
+              },
+            ]
+          : [],
+        usage: { prompt_tokens: 0, completion_tokens: 2, total_tokens: 2 },
+      }),
+      onCompletionChunk({ currentMessage }) {
+        currentMessage.content = 'custom'
+      },
+      plugins: [{ onCompletionChunk: onChunk }],
+    })
+    await engine.sendMessage('question')
+    expect(engine.messages.value.at(-1)?.metadata?.usage).toEqual({
+      prompt_tokens: 0,
+      completion_tokens: 2,
+      total_tokens: 2,
+    })
+    expect(onChunk).toHaveBeenCalledOnce()
+    if (withChoice) expect(engine.messages.value.at(-1)?.content).toBe('custom')
+    else expect(onChunk.mock.calls[0]![0].choice).toBeUndefined()
+  })
+
+  it('replays the real user turn after automatic continuation', async () => {
+    const provider = vi.fn(
+      mockSequentialResponseProvider([
+        { content: 'partial', finish_reason: 'length' },
+        { content: 'continued' },
+        { content: 'regenerated' },
+      ]),
+    )
+    const engine = useMessage({ responseProvider: provider })
+    await engine.sendMessage('question')
+    expect(engine.messages.value).toHaveLength(4)
+    await expect(engine.rerun(engine.messages.value[2]!)).resolves.toBe(false)
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    expect(provider).toHaveBeenCalledTimes(3)
+    expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'regenerated'])
   })
 
   it('uses the core vue adapter while keeping the original return shape', async () => {
@@ -68,15 +195,16 @@ describe('useMessage', () => {
 
   it('exposes updateCurrentMessage to Vue plugins and notifies message watchers', async () => {
     const updateSnapshots: unknown[] = []
+    const onChunk = vi.fn<NonNullable<UseMessagePlugin['onCompletionChunk']>>(({ updateCurrentMessage }) => {
+      updateCurrentMessage((message) => {
+        message.metadata = { ...message.metadata, pluginUpdated: true }
+      })
+    })
     const engine = useMessage({
       responseProvider: mockResponseProvider('assistant reply'),
       plugins: [
         {
-          onCompletionChunk({ updateCurrentMessage }) {
-            updateCurrentMessage((message) => {
-              message.metadata = { ...message.metadata, pluginUpdated: true }
-            })
-          },
+          onCompletionChunk: onChunk,
         },
       ],
     })
@@ -88,6 +216,9 @@ describe('useMessage', () => {
 
     await engine.sendMessage('hello')
 
+    const context = onChunk.mock.calls[0]![0]
+    expect(context.currentTurn[0]).toBe(engine.messages.value[0])
+    expect(context.currentMessage).toBe(engine.messages.value[1])
     expect(engine.messages.value.at(-1)?.metadata?.pluginUpdated).toBe(true)
     expect(updateSnapshots).toEqual([true])
   })

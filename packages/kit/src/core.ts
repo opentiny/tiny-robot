@@ -5,3 +5,5 @@ export * from './message/types'
 export * from './message/usage'
 export { combineDeltaData, normalizeToAsyncGenerator } from './message/utils'
 export * from './skills'
+
+export { isAutoContinuationMessage } from './message/continuation'

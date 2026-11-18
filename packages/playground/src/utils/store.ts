@@ -24,7 +24,12 @@ export const generateStore = (options: GenerateStoreOptions) => {
 
   if (files && files.length > 0) {
     for (const file of files) {
-      store.addFile(file instanceof File ? file : new File(file.filename, file.code))
+      // Package CSS is loaded by src/index.css; browser import maps only resolve JavaScript.
+      const code = file.code.replace(
+        /^\s*import\s+['"]@opentiny\/tiny-robot(?:-chat)?\/dist\/style\.css['"];?\s*$/gm,
+        '',
+      )
+      store.addFile(new File(file.filename, code))
     }
     store.setActive(files[0].filename)
   }

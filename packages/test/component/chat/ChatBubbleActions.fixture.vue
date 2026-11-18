@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import ChatMessages from '../../../chat/src/ui/messages/ChatMessages.vue'
 import { resolveChatUIOptions } from '../../../chat/src/ui/resolveOptions'
 import type { ChatMessageItem } from '../../../chat/src/types'
@@ -26,6 +26,25 @@ const userMessages: ChatMessageItem[] = [messages.value[0]!]
 const base = resolveChatUIOptions(undefined)
 const actions = computed(() => ({
   ...base.bubble,
+  bubbleProvider: {
+    contentRendererMatches: [
+      {
+        find: (message: ChatMessageItem) => message.role === 'user',
+        renderer: () => h('span', 'Custom display'),
+        priority: Number.NEGATIVE_INFINITY,
+      },
+    ],
+  },
+  bubbleList: {
+    ...base.bubble.bubbleList,
+    contentResolver: (message: ChatMessageItem) =>
+      message.role === 'user'
+        ? [
+            { type: 'text', text: 'Original' },
+            { type: 'text', text: ' question' },
+          ]
+        : message.content,
+  },
   actions: {
     user: ['copy', 'edit'] as const,
     assistant: ['copy', 'info'] as const,
@@ -35,7 +54,7 @@ const infoActions = {
   ...actions.value,
   actions: { user: false as const, assistant: ['info'] as const },
 }
-const hiddenActions = { ...base.bubble, actions: false as const }
+const hiddenActions = base.bubble
 </script>
 
 <template>

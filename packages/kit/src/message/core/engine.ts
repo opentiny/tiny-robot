@@ -1,4 +1,5 @@
 import { lengthPlugin, thinkingPlugin } from '../plugins'
+import { isAutoContinuationMessage } from '../continuation'
 import {
   BasePluginContext,
   ChatMessage,
@@ -167,11 +168,11 @@ export const createMessageEngine = (
   const appendMessages = (...messages: ChatMessage[]) => {
     const createdMessages = messages.map((message) => createMessage(message))
 
+    runtime.currentTurn.push(...createdMessages)
+
     mutate('messages', (draft) => {
       draft.messages.push(...createdMessages)
     })
-
-    runtime.currentTurn.push(...createdMessages)
 
     return createdMessages
   }
@@ -281,18 +282,18 @@ export const createMessageEngine = (
       return
     }
 
-    if (assistantMessage?.role === 'assistant' && completedAt !== undefined) {
+    setRequestState('completed')
+    const context = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+      await plugin.onTurnEnd?.(context)
+    }
+
+    if (!abortSignal.aborted && assistantMessage?.role === 'assistant' && completedAt !== undefined) {
       mutate('messages', () => {
         assistantMessage.loading = undefined
         assistantMessage.metadata ??= {}
         assistantMessage.metadata.completedAt = completedAt
       })
-    }
-
-    setRequestState('completed')
-    const context = getBaseContext(abortSignal)
-    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-      await plugin.onTurnEnd?.(context)
     }
   }
 
@@ -350,7 +351,9 @@ export const createMessageEngine = (
 
       const context = getBaseContext(ac.signal)
       const appendMessage = (message: ChatMessage | ChatMessage[]) => {
-        appendMessages(...(Array.isArray(message) ? message : [message]))
+        if (runtime.abortController === ac && !ac.signal.aborted) {
+          appendMessages(...(Array.isArray(message) ? message : [message]))
+        }
       }
 
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
@@ -469,10 +472,11 @@ export const createMessageEngine = (
       }
 
       const appendMessage = (message: ChatMessage | ChatMessage[]) => {
-        appendMessages(...(Array.isArray(message) ? message : [message]))
+        if (!ac.signal.aborted) appendMessages(...(Array.isArray(message) ? message : [message]))
       }
 
       const requestNext = () => {
+        if (ac.signal.aborted) return
         shouldRequest = true
       }
 
@@ -558,42 +562,31 @@ export const createMessageEngine = (
 
       const choice = (chunk.choices || []).find((item) => item.index === 0) ?? chunk.choices?.[0]
 
-      if (!choice) {
-        const usage = chunk.usage
-        if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
-          mutate('messages', () => {
-            if (!assistantMessage.metadata) {
-              assistantMessage.metadata = {}
-            }
-            assistantMessage.metadata.usage = {
-              ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
-              ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
-            }
-            assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-          })
-        }
-        continue
+      const usage = chunk.usage
+      if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
+        mutate('messages', () => {
+          assistantMessage.metadata ??= {}
+          assistantMessage.metadata.usage = {
+            ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
+            ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
+          }
+          assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
+        })
       }
-
-      lastChoice = choice
+      if (choice) lastChoice = choice
 
       const runDefault = () => {
+        if (!choice) return
         mutate('messages', () => {
           // Ensure metadata exists
           if (!assistantMessage.metadata) {
             assistantMessage.metadata = {}
           }
 
-          const { created, usage, ...rest } = chunk
+          const { created, usage: _usage, ...rest } = chunk
           assistantMessage.metadata.createdAt = created
           assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
           Object.assign(assistantMessage.metadata, rest)
-          if (usage && typeof usage === 'object' && Object.keys(usage).length > 0) {
-            assistantMessage.metadata.usage = {
-              ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
-              ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
-            }
-          }
 
           // 在某些非标准 api 中，choice.message 和 choice.delta 属性可能同时存在，
           // 但其中一个属性为 null 或者空对象，这时需要优先使用另一个属性的数据
@@ -619,7 +612,7 @@ export const createMessageEngine = (
         })
       }
 
-      if (onCompletionChunk) {
+      if (choice && onCompletionChunk) {
         const currentContext = getBaseContext(abortSignal)
         onCompletionChunk(
           {
@@ -660,36 +653,40 @@ export const createMessageEngine = (
     options?: { setAssistantMessage?: (message: ChatMessage, completedAt?: number) => void },
   ) {
     let shouldRequest = false
+    let active = true
 
     const baseContext = getBaseContext(abortSignal)
 
-    const tasks = plugins
-      .filter((plugin) => !isPluginDisabled(plugin, baseContext))
-      .map((plugin) => {
-        if (!plugin.onAfterRequest) {
-          return null
-        }
+    try {
+      const tasks = plugins
+        .filter((plugin) => !isPluginDisabled(plugin, baseContext))
+        .map(async (plugin) => {
+          if (!plugin.onAfterRequest) return
+          const appendMessage = (message: ChatMessage | ChatMessage[]) => {
+            if (active && !abortSignal.aborted && runtime.abortController?.signal === abortSignal) {
+              appendMessages(...(Array.isArray(message) ? message : [message]))
+            }
+          }
 
-        const appendMessage = (message: ChatMessage | ChatMessage[]) => {
-          appendMessages(...(Array.isArray(message) ? message : [message]))
-        }
+          const requestNext = () => {
+            if (!active || abortSignal.aborted || runtime.abortController?.signal !== abortSignal) return
+            shouldRequest = true
+          }
 
-        const requestNext = () => {
-          shouldRequest = true
-        }
-
-        return plugin.onAfterRequest({
-          ...baseContext,
-          currentMessage,
-          lastChoice,
-          appendMessage,
-          requestNext,
+          await plugin.onAfterRequest({
+            ...baseContext,
+            currentMessage,
+            lastChoice,
+            appendMessage,
+            requestNext,
+          })
         })
-      })
-      .filter((task): task is Promise<void> => task !== null)
 
-    // 并行执行所有 onAfterRequest 钩子
-    await makeAbortable(Promise.all(tasks), abortSignal)
+      // 并行执行所有 onAfterRequest 钩子
+      await makeAbortable(Promise.all(tasks), abortSignal)
+    } finally {
+      active = false
+    }
 
     if (shouldRequest && getState().requestState !== 'paused' && !abortSignal.aborted) {
       await executeRequest(responseProvider, abortSignal, options)
@@ -707,7 +704,7 @@ export const createMessageEngine = (
       return
     }
 
-    if (!getState().canStartTurn) {
+    if (!getState().canStartTurn || runtime.currentTurn.length > 0 || runtime.abortController) {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -724,7 +721,7 @@ export const createMessageEngine = (
 
   async function send(...msgs: ChatMessage[]) {
     // Validate current state - only allow sending when not processing
-    if (!getState().canStartTurn) {
+    if (!getState().canStartTurn || runtime.currentTurn.length > 0 || runtime.abortController) {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -736,28 +733,30 @@ export const createMessageEngine = (
 
   async function rerun(target: ChatMessage, replacement?: ChatMessage): Promise<boolean> {
     const state = getState()
-    if (!state.canStartTurn || runtime.currentTurn.length > 0) return false
+    if (!state.canStartTurn || runtime.currentTurn.length > 0 || runtime.abortController) return false
 
     const resolvedTarget = adapter.resolveMessage?.(target) ?? target
     const targetIndex = adapter.getMessageIndex?.(resolvedTarget) ?? state.messages.indexOf(resolvedTarget)
-    if (targetIndex < 0 || resolvedTarget.role !== 'user') return false
-    const isLastUserMessage = !state.messages.slice(targetIndex + 1).some((message) => message.role === 'user')
+    if (targetIndex < 0 || resolvedTarget.role !== 'user' || isAutoContinuationMessage(resolvedTarget)) return false
+    const isLastUserMessage = !state.messages
+      .slice(targetIndex + 1)
+      .some((message) => message.role === 'user' && !isAutoContinuationMessage(message))
     if (!isLastUserMessage) return false
 
     const nextTarget = replacement ? createMessage(replacement) : resolvedTarget
-    if (nextTarget.role !== 'user') return false
+    if (nextTarget.role !== 'user' || isAutoContinuationMessage(nextTarget)) return false
 
-    mutate(['messages', 'requestState'], (draft) => {
+    // Reserve the turn before synchronous observers can react to transcript changes.
+    runtime.currentTurn = [nextTarget]
+    runtime.turnId = null
+    runtime.customContext = {}
+    setRequestState('processing', 'requesting')
+    mutate('messages', (draft) => {
       const currentIndex = adapter.getMessageIndex?.(resolvedTarget) ?? draft.messages.indexOf(resolvedTarget)
       if (currentIndex < 0) return
       if (replacement) draft.messages[currentIndex] = nextTarget
       draft.messages.splice(currentIndex + 1)
-      draft.requestState = 'idle'
-      draft.processingState = undefined
     })
-    runtime.currentTurn = [nextTarget]
-    runtime.turnId = null
-    runtime.customContext = {}
 
     await runTurnLifecycle()
     return true

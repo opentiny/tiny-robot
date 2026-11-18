@@ -39,6 +39,12 @@ const model: ChatModelRuntime = {
   },
 }
 const conversation = useConversation({
+  storage: {
+    loadConversations: () => [],
+    loadMessages: () => [],
+    saveConversation: () => {},
+    saveMessages: () => {},
+  },
   useMessageOptions: {
     responseProvider,
     plugins: [createChatActionStatePlugin()],

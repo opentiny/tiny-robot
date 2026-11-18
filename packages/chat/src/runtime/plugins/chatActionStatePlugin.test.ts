@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { useConversation, type ChatCompletion, type ResponseProvider } from '@opentiny/tiny-robot-kit'
+import { useConversation, useMessage, type ChatCompletion, type ResponseProvider } from '@opentiny/tiny-robot-kit'
 import { createChatActionStatePlugin } from './chatActionStatePlugin'
 import { CHAT_ACTION_METADATA_KEY, useChatRuntimeFromConversation } from '../useChatRuntimeFromConversation'
 import { CHAT_RUN_CONFIG_METADATA_KEY } from '../runConfig'
@@ -85,6 +85,10 @@ describe('chat action state plugin with an external conversation', () => {
         outcome === 'error' ? expect(pending).rejects.toThrow('provider failed') : expect(pending).resolves.toBe(true)
       await firstChunk
       const active = conversation.activeConversation.value!
+      const seededHistory = active.engine.messages.value.slice(0, 2).map((message) => ({
+        content: message.content,
+        metadata: JSON.stringify(message.metadata),
+      }))
       const user = active.engine.messages.value.at(-2)!
       const assistant = active.engine.messages.value.at(-1)!
       const action = assistant.metadata?.[CHAT_ACTION_METADATA_KEY] as {
@@ -115,7 +119,39 @@ describe('chat action state plugin with an external conversation', () => {
       }
       expect(assistant.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ id: action.id, turnState: outcome })
       expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: outcome })
+      expect(
+        active.engine.messages.value.slice(0, 2).map((message) => ({
+          content: message.content,
+          metadata: JSON.stringify(message.metadata),
+        })),
+      ).toEqual(seededHistory)
       expect(runtime.actions.getMessageCapabilities!(target)).toMatchObject({ canRegenerate: true, turnState: outcome })
     },
   )
+
+  it('marks a paused turn aborted when it is cancelled after pausing', async () => {
+    const engine = useMessage({
+      responseProvider: async function* () {
+        yield completion('waiting')
+      },
+      plugins: [
+        createChatActionStatePlugin(),
+        { onAfterRequest: async ({ setRequestState }) => setRequestState('processing', 'pausing') },
+      ],
+    })
+    await engine.send({
+      role: 'user',
+      content: 'question',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'user-1' } },
+    })
+    expect(engine.requestState.value).toBe('paused')
+    for (const message of engine.messages.value) {
+      expect(message.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'paused' })
+    }
+    await engine.abortRequest()
+    expect(engine.requestState.value).toBe('aborted')
+    for (const message of engine.messages.value) {
+      expect(message.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'aborted' })
+    }
+  })
 })

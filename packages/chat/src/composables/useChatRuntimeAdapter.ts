@@ -1,3 +1,4 @@
+import { getMessageActionId, getMessageActionTarget } from '../runtime/messageActionIdentity'
 import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
@@ -24,17 +25,15 @@ function buildBubbleActions(
 ): Record<string, ChatBubbleActionCapabilityView> {
   const actions: Record<string, ChatBubbleActionCapabilityView> = {}
   for (const message of messages) {
-    const metadata = message.metadata?.chat_action_metadata as { id?: string; userMessageId?: string } | undefined
-    const id = metadata?.id ?? (typeof message.metadata?.id === 'string' ? message.metadata.id : undefined)
+    const id = getMessageActionId(message)
     if (!id) continue
-    const userMessageId = message.role === 'user' ? (metadata?.id ?? id) : metadata?.userMessageId
+    const userMessageId = getMessageActionTarget(message)
     if (!userMessageId || !runtime.actions.getMessageCapabilities) continue
     const capability = runtime.actions.getMessageCapabilities({
       conversationId: runtime.activeConversation.value?.id ?? '',
       userMessageId,
     })
-    actions[id] = capability
-    actions[userMessageId] = capability
+    actions[id] = { ...capability, canEdit: message.role === 'user' && capability.canEdit }
   }
   return actions
 }

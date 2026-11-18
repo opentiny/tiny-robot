@@ -3,6 +3,7 @@ import ChatBubbleActionsFixture from './ChatBubbleActions.fixture.vue'
 import ChatBubbleActionsFloatingFixture from './ChatBubbleActionsFloating.fixture.vue'
 import ChatMessageInfoFixture from './ChatMessageInfo.fixture.vue'
 import ChatBubbleActionSlotFixture from './ChatBubbleActionSlot.fixture.vue'
+import ChatMessageEditFixture from './ChatMessageEdit.fixture.vue'
 
 for (const standalone of [true, false]) {
   test(`${standalone ? 'TrChatUI' : 'TrChat'} forwards bubble action slot context, disabled and open state`, async ({
@@ -21,17 +22,91 @@ for (const standalone of [true, false]) {
   })
 }
 
+test('an open slot keeps historical hover actions visible after focus and pointer leave', async ({ mount }) => {
+  const component = await mount(ChatBubbleActionSlotFixture, { props: { standalone: true, historical: true } })
+  const actions = component.locator('.tr-chat-bubble-actions:not(.is-latest)')
+  await expect(actions).toHaveCSS('opacity', '0')
+  await component.getByText('Answer', { exact: true }).hover()
+  await component.getByRole('button', { name: 'View source' }).click()
+  await component.getByRole('button', { name: 'Outside actions' }).click()
+  await expect(actions).toHaveCSS('opacity', '1')
+  await component.getByRole('button', { name: 'Close source' }).click()
+  await component.getByRole('button', { name: 'Outside actions' }).click()
+  await expect(actions).toHaveCSS('opacity', '0')
+})
+
 test('bubble actions are opt-in and edit cancel leaves the original message unchanged', async ({ mount }) => {
   const component = await mount(ChatBubbleActionsFixture)
-  const editButton = component.getByTestId('user-actions').getByRole('button', { name: '编辑', exact: true })
+  await expect(component.getByTestId('actions-hidden').locator('.tr-chat-bubble-actions')).toHaveCount(0)
+  const section = component.getByTestId('user-actions')
+  await expect(section.getByText('Custom display')).toHaveCount(2)
+  const editButton = section.getByRole('button', { name: '编辑', exact: true })
   await expect(editButton).toHaveCount(1)
   await editButton.click()
-  const editor = component.getByTestId('user-actions').getByRole('textbox', { name: '编辑消息' })
+  const editors = component.getByTestId('user-actions').getByRole('textbox', { name: '编辑消息' })
+  await expect(editors).toHaveCount(1)
+  const editor = editors
+  await expect(section.getByText('Custom display')).toHaveCount(0)
   await expect(editor).toHaveValue('Original question')
   await editor.fill('Changed draft')
   await component.getByTestId('user-actions').getByRole('button', { name: '取消' }).click()
   await expect(component.getByTestId('original-message')).toHaveText('Original question')
   await expect(component.getByTestId('user-actions').getByRole('textbox', { name: '编辑消息' })).toHaveCount(0)
+})
+
+for (const rejectEdit of [false, true]) {
+  test(`Runtime ${rejectEdit ? 'rejection' : 'synchronous error'} leaves the edit draft usable`, async ({ mount }) => {
+    const component = await mount(ChatMessageEditFixture, { props: { rejectEdit } })
+    await component.getByRole('button', { name: '编辑', exact: true }).click()
+    const editor = component.getByRole('textbox', { name: '编辑消息' })
+    await editor.fill('Draft')
+    const save = component.getByRole('button', { name: '保存', exact: true })
+    await save.click()
+    await expect(component.getByTestId('runtime-error')).toHaveText('edit-message:Error: Edit failed')
+    await expect(component.getByTestId('edit')).toHaveText('u1:Draft')
+    await expect(component.getByRole('button', { name: 'Accept edit' })).toHaveCount(0)
+    await expect(editor).toHaveValue('Draft')
+    await expect(save).toBeEnabled()
+    await component.getByRole('button', { name: '取消', exact: true }).click()
+    await expect(editor).toHaveCount(0)
+    await expect(component.getByText('Original question')).toBeVisible()
+    if (!rejectEdit) {
+      await component.getByRole('button', { name: '重新生成', exact: true }).click()
+      await expect(component.getByTestId('regenerate')).toHaveText('a1')
+      await expect(component.getByTestId('runtime-error')).toHaveText('regenerate-message:Error: Regenerate failed')
+    }
+  })
+}
+
+test('controlled edit ignores IME shortcuts and a late save acknowledgment from a previous session', async ({
+  mount,
+}) => {
+  const component = await mount(ChatMessageEditFixture, { props: { controlled: true } })
+  const edit = component.getByRole('button', { name: '编辑', exact: true })
+  const editor = component.getByRole('textbox', { name: '编辑消息' })
+  await edit.click()
+  await editor.fill('First edit')
+  await editor.dispatchEvent('keydown', { key: 'Escape', isComposing: true })
+  await editor.dispatchEvent('keydown', { key: 'Enter', ctrlKey: true, isComposing: true })
+  await expect(editor).toHaveValue('First edit')
+  await expect(component.getByTestId('edit')).toHaveText(':')
+  await editor.press('Control+Enter')
+  await expect(component.getByTestId('edit')).toHaveText('u1:First edit')
+  await expect(editor).toBeDisabled()
+
+  await component.update({ props: { conversationId: 'second' } })
+  await expect(editor).toHaveCount(0)
+  await component.update({ props: { conversationId: 'first' } })
+  await edit.click()
+  await editor.fill('Second edit')
+  const accept = component.getByRole('button', { name: 'Accept edit' })
+  await accept.click()
+  await expect(editor).toHaveValue('Second edit')
+  await expect(editor).toBeEnabled()
+  await component.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(component.getByTestId('edit')).toHaveText('u1:Second edit')
+  await accept.click()
+  await expect(editor).toHaveCount(0)
 })
 
 test('assistant info action opens the normalized token information', async ({ mount, page }) => {
@@ -50,7 +125,9 @@ test('assistant info action opens the normalized token information', async ({ mo
   await expect(dialog).toHaveCount(0)
   await infoButton.click()
   await expect(dialog).toBeVisible()
-  await infoButton.press('Escape')
+  await expect(dialog).toBeFocused()
+  await dialog.press('Escape')
+  await expect(infoButton).toBeFocused()
   await expect(dialog).toHaveCount(0)
 })
 
@@ -204,6 +281,21 @@ test('custom info works without tokens and closes on editing or a different mess
   await trigger.click()
   await expect(dialog).toBeVisible()
   await component.update({ props: { messageKey: 'other-message' } })
+  await expect(dialog).toHaveCount(0)
+})
+
+test('hiding the info action closes its panel without reopening when restored', async ({ mount, page }) => {
+  const message = { role: 'assistant', content: 'Answer', metadata: { model: 'model-a' } }
+  const component = await mount(ChatMessageInfoFixture, { props: { message } })
+  const trigger = component.getByRole('button', { name: '对话信息', exact: true })
+  const dialog = page.getByRole('dialog', { name: '对话信息', exact: true })
+  await trigger.click()
+  await expect(dialog).toBeVisible()
+  await component.update({ props: { hideInfo: true } })
+  await expect(trigger).toHaveCount(0)
+  await expect(dialog).toHaveCount(0)
+  await component.update({ props: { hideInfo: false } })
+  await expect(trigger).toBeVisible()
   await expect(dialog).toHaveCount(0)
 })
 

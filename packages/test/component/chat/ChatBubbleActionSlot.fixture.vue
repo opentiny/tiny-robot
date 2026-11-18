@@ -4,7 +4,7 @@ import TrChat from '../../../chat/src/Chat.vue'
 import TrChatUI from '../../../chat/src/ChatUI.vue'
 import type { ChatBubbleActionSlotProps, ChatRuntime, ChatUIData, ChatUIOptions } from '../../../chat/src/types'
 
-const props = defineProps<{ standalone?: boolean; disabled?: boolean }>()
+const props = defineProps<{ standalone?: boolean; disabled?: boolean; historical?: boolean }>()
 const open = shallowRef(false)
 const source = shallowRef('')
 function toggleSource({ context, setOpen }: ChatBubbleActionSlotProps) {
@@ -12,7 +12,10 @@ function toggleSource({ context, setOpen }: ChatBubbleActionSlotProps) {
   setOpen(open.value)
   source.value = String(context.message.metadata?.source)
 }
-const messages = [{ role: 'assistant', content: 'Answer', metadata: { source: 'Guide' } }]
+const messages = [
+  { role: 'assistant', content: 'Answer', metadata: { source: 'Guide' } },
+  ...(props.historical ? [{ role: 'user', content: 'Next question' }] : []),
+]
 const data: ChatUIData = { bubble: { messages } }
 const runtime: ChatRuntime = {
   conversations: shallowRef([]),
@@ -32,7 +35,7 @@ const ui = computed<ChatUIOptions>(() => ({
   sender: false,
   bubble: {
     actions: {
-      display: 'always',
+      display: props.historical ? 'hover' : 'always',
       assistant: [{ type: 'slot', id: 'source', disabled: props.disabled }],
     },
   },
@@ -40,12 +43,15 @@ const ui = computed<ChatUIOptions>(() => ({
 </script>
 
 <template>
-  <component :is="standalone ? TrChatUI : TrChat" v-bind="standalone ? { data } : { runtime }" :ui="ui">
-    <template #bubble-action="scope">
-      <button v-if="scope.item.id === 'source'" type="button" :disabled="scope.disabled" @click="toggleSource(scope)">
-        {{ open ? 'Close source' : 'View source' }}
-      </button>
-      <p v-if="open" role="status">{{ source }}</p>
-    </template>
-  </component>
+  <main>
+    <component :is="standalone ? TrChatUI : TrChat" v-bind="standalone ? { data } : { runtime }" :ui="ui">
+      <template #bubble-action="scope">
+        <button v-if="scope.item.id === 'source'" type="button" :disabled="scope.disabled" @click="toggleSource(scope)">
+          {{ open ? 'Close source' : 'View source' }}
+        </button>
+        <p v-if="open" role="status">{{ source }}</p>
+      </template>
+    </component>
+    <button v-if="historical" type="button">Outside actions</button>
+  </main>
 </template>

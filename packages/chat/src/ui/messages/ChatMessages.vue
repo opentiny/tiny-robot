@@ -27,7 +27,7 @@ import { useChatStreamState } from './useChatStreamState'
 import { useChatAutoScroll } from './useChatAutoScroll'
 import ChatBubbleActions from './ChatBubbleActions.vue'
 import ChatMessageEditInput from './ChatMessageEditInput.vue'
-import { CHAT_ACTION_METADATA_KEY } from '../../runtime/useChatRuntimeFromConversation'
+import { getMessageActionId, getMessageActionTarget } from '../../runtime/messageActionIdentity'
 import type {
   ChatBubbleActionContext,
   ChatBubbleMessageActionPayload,
@@ -69,6 +69,7 @@ const emit = defineEmits<{
 const fallbackAiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
 const fallbackUserAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
 const editingMessageKey = shallowRef<string | null>(null)
+const editSession = shallowRef(0)
 watch(
   () => props.conversationId,
   () => {
@@ -114,7 +115,7 @@ const bubbleMessages = computed<ChatMessageItem[]>(() =>
 )
 const lastVisibleIndex = computed(() => {
   const indexes = bubbleMessages.value
-    .map((message, index) => (message.role === 'system' ? -1 : index))
+    .map((message, index) => (bubbleListProps.value.roleConfigs?.[message.role ?? '']?.hidden ? -1 : index))
     .filter((index) => index >= 0)
   return indexes.at(-1) ?? -1
 })
@@ -122,18 +123,12 @@ const lastVisibleIndex = computed(() => {
 function getActionContext(group: BubbleMessageGroup, messageIndexes: number[]): ChatBubbleActionContext | undefined {
   const indexedMessages = messageIndexes.map((index) => props.messages[index]).filter(Boolean)
   const role = group.role
-  const candidates = indexedMessages.filter((message) => message.role === role)
-  const message = candidates.at(-1)
-  const messageIndex = message ? props.messages.indexOf(message) : -1
+  const messageIndex = [...messageIndexes].reverse().find((index) => props.messages[index]?.role === role) ?? -1
+  const message = props.messages[messageIndex]
   if (!message || messageIndex < 0) return
   const bubbleMessage = bubbleMessages.value[messageIndex]
-  const actionMetadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as
-    { id?: string; userMessageId?: string } | undefined
-  const messageId =
-    message.role === 'assistant'
-      ? actionMetadata?.userMessageId
-      : (actionMetadata?.id ?? (typeof message.metadata?.id === 'string' ? message.metadata.id : message.id))
-  const capability = props.bubbleActions?.[actionMetadata?.id ?? messageId ?? message.renderKey ?? '']
+  const messageId = getMessageActionTarget(message)
+  const capability = props.bubbleActions?.[getMessageActionId(message) ?? message.renderKey ?? '']
   return {
     conversationId: props.conversationId,
     messageId,
@@ -142,7 +137,10 @@ function getActionContext(group: BubbleMessageGroup, messageIndexes: number[]): 
     messages: indexedMessages,
     isLatest: messageIndex === lastVisibleIndex.value,
     turnState: capability?.turnState ?? 'unknown',
-    capabilities: { canEdit: capability?.canEdit ?? false, canRegenerate: capability?.canRegenerate ?? false },
+    capabilities: {
+      canEdit: Boolean(messageId && capability?.canEdit),
+      canRegenerate: capability?.canRegenerate ?? false,
+    },
   }
 }
 const messageIndexes = computed(() =>
@@ -207,8 +205,13 @@ const contentAttributes: BubbleContentAttributesResolver = (message, content, co
           'data-anchor-id': boxAttributes?.['data-anchor-id'] ?? item.renderKey,
         }
       : {}),
-    key: (attributes?.key as string | number | symbol | undefined) ?? JSON.stringify([item.renderKey, contentIndex]),
+    key: isEditing(item)
+      ? JSON.stringify([item.renderKey, editSession.value])
+      : ((attributes?.key as string | number | symbol | undefined) ?? JSON.stringify([item.renderKey, contentIndex])),
   })
+}
+function isEditing(message: BubbleMessage) {
+  return message.role === 'user' && (message as ChatMessageItem).renderKey === editingMessageKey.value
 }
 const contentRendererMatches = computed<BubbleContentRendererMatch[]>(() => [
   {
@@ -217,10 +220,13 @@ const contentRendererMatches = computed<BubbleContentRendererMatch[]>(() => [
       (message as ChatMessageItem).renderKey === editingMessageKey.value &&
       content.type === 'text',
     renderer: ChatMessageEditInput,
-    priority: -2,
+    priority: Number.NEGATIVE_INFINITY,
     attributes: { 'data-box-type': 'edit-input' },
   },
-  ...(props.options.bubbleProvider?.contentRendererMatches ?? []),
+  ...(props.options.bubbleProvider?.contentRendererMatches ?? []).map((match) => ({
+    ...match,
+    find: (...args: Parameters<BubbleContentRendererMatch['find']>) => !isEditing(args[0]) && match.find(...args),
+  })),
 ])
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
@@ -250,6 +256,12 @@ const bubbleListProps = computed<BubbleListViewProps>(() => {
 
   return {
     ...bubbleList,
+    contentResolver: (message: BubbleMessage) =>
+      isEditing(message)
+        ? message.content
+        : bubbleList.contentResolver
+          ? bubbleList.contentResolver(message)
+          : message.content,
     roleConfigs,
     autoScroll: false,
   }
@@ -289,8 +301,8 @@ function handleStateChange(payload: ChatBubbleStateChangePayload) {
   }
   if (payload.key === 'chat-edit:save' && sourceMessage && messageKey) {
     const edit = payload.value as { text?: unknown; complete?: (accepted: boolean) => void } | undefined
-    const metadata = sourceMessage.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
-    const messageId = metadata?.id ?? sourceMessage.metadata?.id ?? sourceMessage.id
+    const messageId = getMessageActionId(sourceMessage)
+    const session = editSession.value
     if (!messageId) {
       edit?.complete?.(false)
       return
@@ -302,7 +314,8 @@ function handleStateChange(payload: ChatBubbleStateChangePayload) {
       text: String(edit?.text ?? ''),
       complete: (accepted) => {
         edit?.complete?.(accepted)
-        if (accepted && editingMessageKey.value === messageKey) editingMessageKey.value = null
+        if (accepted && editSession.value === session && editingMessageKey.value === messageKey)
+          editingMessageKey.value = null
       },
     })
     return
@@ -311,7 +324,10 @@ function handleStateChange(payload: ChatBubbleStateChangePayload) {
 }
 
 function handleEditStart(context: ChatBubbleActionContext) {
-  if (context.capabilities.canEdit) editingMessageKey.value = context.messageKey
+  if (context.capabilities.canEdit) {
+    editSession.value++
+    editingMessageKey.value = context.messageKey
+  }
 }
 
 function handleBubbleEvent(payload: ChatBubbleEventPayload) {
@@ -377,29 +393,33 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         >
           <template #after="slotProps">
             <slot name="bubble-after" v-bind="slotProps" />
-            <template
-              v-for="context in [getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)]"
-              :key="context?.messageKey"
-            >
-              <ChatBubbleActions
-                v-if="context && props.options.actions"
-                :context="context"
-                :options="props.options.actions"
-                :role="slotProps.role ?? 'assistant'"
-                :editing="editingMessageKey === context.messageKey"
-                :stream-state="(slotProps.messages.at(-1) as ChatMessageItem)?.streamState"
-                @edit-start="handleEditStart"
-                @regenerate="
-                  emit('regenerateMessage', {
-                    conversationId,
-                    messageId: context.messageId,
-                    message: context.message,
-                  })
-                "
-                @error="emit('bubbleActionError', $event)"
+            <template v-if="props.options.actions">
+              <template
+                v-for="context in [getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)]"
+                :key="context?.messageKey"
               >
-                <template #action="actionProps"><slot name="bubble-action" v-bind="actionProps" /></template>
-              </ChatBubbleActions>
+                <ChatBubbleActions
+                  v-if="context && props.options.actions"
+                  :context="context"
+                  :options="props.options.actions"
+                  :role="slotProps.role ?? 'assistant'"
+                  :editing="editingMessageKey === context.messageKey"
+                  :stream-state="
+                    resolveStreamState(context.message, props.request, getMessageStreamState(context.message))
+                  "
+                  @edit-start="handleEditStart"
+                  @regenerate="
+                    emit('regenerateMessage', {
+                      conversationId,
+                      messageId: context.messageId,
+                      message: context.message,
+                    })
+                  "
+                  @error="emit('bubbleActionError', $event)"
+                >
+                  <template #action="actionProps"><slot name="bubble-action" v-bind="actionProps" /></template>
+                </ChatBubbleActions>
+              </template>
             </template>
           </template>
           <template v-if="$slots['bubble-prefix']" #prefix="slotProps">

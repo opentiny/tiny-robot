@@ -35,6 +35,7 @@ function cancel() {
 }
 
 function handleKeydown(event: KeyboardEvent) {
+  if (event.isComposing) return
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
     event.preventDefault()
     save()

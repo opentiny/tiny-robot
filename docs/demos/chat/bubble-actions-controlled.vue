@@ -38,6 +38,7 @@ const data = computed<ChatUIData>(() => ({
 }))
 
 const ui: ChatUIOptions = {
+  sender: false,
   layout: { leftAside: false, rightAside: false },
   bubble: {
     actions: {

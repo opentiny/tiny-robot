@@ -8,6 +8,7 @@ const props = defineProps<{
   mode?: 'custom' | 'empty' | 'nulls' | 'throw'
   messageKey?: string
   editing?: boolean
+  hideInfo?: boolean
 }>()
 const context = computed<ChatBubbleActionContext>(() => ({
   conversationId: 'info-conversation',
@@ -20,7 +21,7 @@ const context = computed<ChatBubbleActionContext>(() => ({
 }))
 const options = computed<ChatBubbleActionsOptions>(() => ({
   display: 'always',
-  assistant: ['copy', 'info'],
+  assistant: ['copy', { type: 'builtin', id: 'info', visible: !props.hideInfo }],
   info: props.mode
     ? {
         title: '对话信息',

@@ -268,7 +268,7 @@ export interface MessageEnginePlugin {
    * 数据块处理钩子，在接收到每个响应数据块时触发。
    * 无论是流式响应（多个增量数据块）还是非流式响应（单个完整数据块），都会触发此钩子。
    */
-  onCompletionChunk?: (context: CompletionChunkContext) => void
+  onCompletionChunk?: (context: Omit<CompletionChunkContext, 'choice'> & { choice?: ChatResponseChoice }) => void
   onError?: (context: MessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**

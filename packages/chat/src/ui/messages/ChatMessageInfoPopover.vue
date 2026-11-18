@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, shallowRef, watch } from 'vue'
+import { computed, inject, nextTick, shallowRef, watch } from 'vue'
 import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom'
 import type { Placement } from '@floating-ui/dom'
 import { onClickOutside } from '@vueuse/core'
@@ -65,7 +65,12 @@ watch(
       })
       if (!active) return
       Object.assign(floating.style, { left: `${x}px`, top: `${y}px` })
+      const firstPosition = !positioned.value
       positioned.value = true
+      if (firstPosition) {
+        await nextTick()
+        if (active) floating.focus({ preventScroll: true })
+      }
     })
     onCleanup(() => {
       active = false
@@ -74,6 +79,10 @@ watch(
   },
   { flush: 'post' },
 )
+function closeWithKeyboard() {
+  emit('close')
+  props.trigger.focus({ preventScroll: true })
+}
 </script>
 
 <template>
@@ -83,8 +92,9 @@ watch(
       class="tr-chat-message-info"
       :class="{ 'is-positioned': positioned }"
       role="dialog"
+      tabindex="-1"
       :aria-label="title"
-      @keydown.esc="emit('close')"
+      @keydown.esc.stop.prevent="closeWithKeyboard"
     >
       <strong class="tr-chat-message-info__title">{{ title }}</strong>
       <dl class="tr-chat-message-info__details">

@@ -1,4 +1,6 @@
 import { computed, shallowRef, watch } from 'vue'
+import { isAutoContinuationMessage } from '@opentiny/tiny-robot-kit'
+import { CHAT_ACTION_METADATA_KEY, getMessageActionId } from './messageActionIdentity'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
@@ -37,7 +39,7 @@ export interface UseChatRuntimeFromConversationOptions {
   composer?: UseKitChatComposerOptions
 }
 
-export const CHAT_ACTION_METADATA_KEY = 'chat_action_metadata'
+export { CHAT_ACTION_METADATA_KEY } from './messageActionIdentity'
 function generateActionId() {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -103,7 +105,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     const messages = active.messages
     let latestUserIndex = -1
     messages.forEach((message, index) => {
-      if (message.role === 'user') latestUserIndex = index
+      if (message.role === 'user' && !isAutoContinuationMessage(message)) latestUserIndex = index
     })
     const result: Record<
       string,
@@ -115,7 +117,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const metadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as
         { id?: string; userMessageId?: string } | undefined
       if (message.role === 'user') {
-        const id = metadata?.id ?? (typeof message.metadata?.id === 'string' ? message.metadata.id : undefined)
+        const id = getMessageActionId(message)
         if (id) usersById.set(id, index)
       } else if (message.role === 'assistant' && metadata?.userMessageId) {
         const indexes = assistantsByUserId.get(metadata.userMessageId) ?? []
@@ -126,7 +128,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     for (const [index, message] of messages.entries()) {
       const metadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as
         { id?: string; userMessageId?: string; turnState?: ChatConversation['requestState'] } | undefined
-      const id = metadata?.id ?? message.metadata?.id
+      const id = getMessageActionId(message)
       if (typeof id !== 'string') continue
       const userMessageId = message.role === 'user' ? id : metadata?.userMessageId
       const linkedUserIndex = userMessageId ? (usersById.get(userMessageId) ?? -1) : -1
@@ -137,16 +139,13 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const linkedAssistantMetadata = linkedAssistant?.metadata?.[CHAT_ACTION_METADATA_KEY] as
         { turnState?: ChatConversation['requestState'] } | undefined
       const plainText = typeof messages[linkedUserIndex]?.content === 'string'
-      const hasAttachments = Boolean(
-        (messages[linkedUserIndex] as { externalPayloads?: unknown } | undefined)?.externalPayloads,
+      const attachments = (messages[linkedUserIndex] as { externalPayloads?: unknown } | undefined)?.externalPayloads
+      const hasAttachments = Array.isArray(attachments) ? attachments.length > 0 : Boolean(attachments)
+      const turnEnd = messages.findIndex(
+        (item, i) => i > linkedUserIndex && item.role === 'user' && !isAutoContinuationMessage(item),
       )
-      const hasTools = Boolean(
-        linkedAssistant?.tool_calls?.length ||
-        ((messages[linkedUserIndex]?.metadata?.[CHAT_RUN_CONFIG_METADATA_KEY] as ChatRunConfig | undefined)?.mcp &&
-          Object.values(
-            (messages[linkedUserIndex]?.metadata?.[CHAT_RUN_CONFIG_METADATA_KEY] as ChatRunConfig).mcp?.toolIds ?? {},
-          ).some((ids) => ids.length)),
-      )
+      const turnMessages = messages.slice(linkedUserIndex + 1, turnEnd < 0 ? undefined : turnEnd)
+      const hasTools = turnMessages.some((item) => item.role === 'tool' || Boolean(item.tool_calls?.length))
       const state = metadata?.turnState ?? linkedAssistantMetadata?.turnState ?? 'unknown'
       const canReplay = Boolean(
         userMessageId &&
@@ -273,19 +272,22 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     const navigationRevision = conversationNavigationRevision.value
     const capabilities = getMessageCapabilities(target)
     if (target.text === undefined ? !capabilities.canRegenerate : !capabilities.canEdit) return false
-    const targetMessage = active.messages.find((message) => {
-      const metadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
-      return metadata?.id === target.userMessageId
-    })
+    const targetMessage = active.messages.find((message) => getMessageActionId(message) === target.userMessageId)
+    if (!targetMessage) return false
     const targetMetadata = targetMessage?.metadata?.[CHAT_ACTION_METADATA_KEY] as { userMessageId?: string } | undefined
     const userMessage =
       targetMessage?.role === 'user'
         ? targetMessage
         : active.messages.find((message) => {
-            const metadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
-            return message.role === 'user' && metadata?.id === targetMetadata?.userMessageId
+            return (
+              message.role === 'user' &&
+              Boolean(targetMetadata?.userMessageId) &&
+              getMessageActionId(message) === targetMetadata?.userMessageId
+            )
           })
     if (!userMessage || typeof userMessage.content !== 'string') return false
+    const originalSuffix = active.messages.slice(active.messages.indexOf(userMessage) + 1)
+    const suffixSnapshot = JSON.stringify(originalSuffix)
     const originalText = userMessage.content
     const text = (target.text ?? originalText).trim()
     if (!text) return false
@@ -313,6 +315,12 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
         conversation.activeConversation.value?.engine !== targetEngine ||
         !targetEngine?.messages.value.includes(rerunTarget) ||
         userMessage.content !== originalText ||
+        !originalSuffix.every(
+          (message, index) =>
+            targetEngine.messages.value[targetEngine.messages.value.indexOf(rerunTarget) + 1 + index] === message,
+        ) ||
+        JSON.stringify(targetEngine.messages.value.slice(targetEngine.messages.value.indexOf(rerunTarget) + 1)) !==
+          suffixSnapshot ||
         JSON.stringify(readRunConfigFromMessage(userMessage)) !== JSON.stringify(runConfig) ||
         !eligible()
       )
@@ -327,7 +335,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
               metadata: {
                 ...userMessage.metadata,
                 updatedAt: Math.floor(Date.now() / 1000),
-                [CHAT_ACTION_METADATA_KEY]: { id: target.userMessageId, turnState: 'processing' },
+                [CHAT_ACTION_METADATA_KEY]: { id: getMessageActionId(userMessage), turnState: 'processing' },
               },
             } as unknown as Parameters<UseConversationReturn['rerunMessage']>[2])
       return await conversation.rerunMessage(target.conversationId, rerunTarget, replacement)

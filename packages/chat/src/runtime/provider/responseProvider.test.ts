@@ -51,8 +51,34 @@ describe('createProviderResponseProvider usage mapping', () => {
     const chunks = []
     for await (const chunk of result as AsyncIterable<Record<string, unknown>>) chunks.push(chunk)
 
-    expect(chunks[0]).toMatchObject({ choices: [{ delta: { content: 'hello' } }] })
-    expect(chunks[1]).toMatchObject({ choices: [], usage: { prompt_tokens: 4, completion_tokens: 2 } })
+    expect(chunks[0]).toEqual({ choices: [{ delta: { content: 'hello' } }] })
+    expect(chunks[1]).toEqual({ choices: [], usage: { prompt_tokens: 4, completion_tokens: 2 } })
+  })
+
+  it('preserves stream options and normalizes getter-based counters', async () => {
+    const fetchMock = vi.fn(async () => responseFor([{ choices: [], usage: {} }]))
+    vi.stubGlobal('fetch', fetchMock)
+    const promptTokens = vi.fn().mockReturnValueOnce(0).mockReturnValue(-1)
+    class Counters {
+      get prompt_tokens() {
+        return promptTokens()
+      }
+      get total_tokens() {
+        return 4
+      }
+    }
+    const provider = createProviderResponseProvider(() => ({ ...model(() => new Counters()), includeUsage: true }))
+    const result = await provider(
+      { [CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]: 'model-a', messages: [], stream_options: { custom: true } },
+      new AbortController().signal,
+    )
+    const chunks = []
+    for await (const chunk of result as AsyncIterable<unknown>) chunks.push(chunk)
+    expect(chunks).toEqual([{ choices: [], usage: { prompt_tokens: 0, total_tokens: 4 } }])
+    expect(promptTokens).toHaveBeenCalledOnce()
+    expect(
+      JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string).stream_options,
+    ).toEqual({ custom: true, include_usage: true })
   })
 
   it('removes invalid or throwing mapped usage without dropping content', async () => {

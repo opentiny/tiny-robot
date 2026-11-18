@@ -97,6 +97,59 @@ function createReplayHarness(beforeSend?: ChatBeforeSend) {
 }
 
 describe('useChatRuntimeFromConversation', () => {
+  it.each([null, 1, 'invalid', {}])('rejects malformed tool IDs without throwing: %j', (toolIds) => {
+    const { engine, runtime } = createReplayHarness()
+    engine.messages.value[0].metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
+      modelId: 'model-a',
+      mcp: { serverIds: ['server'], toolIds: { server: toolIds } },
+    }
+    expect(runtime.actions.getMessageCapabilities!({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+  })
+
+  it('allows empty attachments and rejects tools anywhere in the answer', () => {
+    const { engine, runtime } = createReplayHarness()
+    ;(engine.messages.value[0] as ChatMessageItem & { externalPayloads?: unknown[] }).externalPayloads = []
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+    expect(runtime.actions.getMessageCapabilities!(target).canEdit).toBe(true)
+    engine.messages.value.push({
+      role: 'assistant',
+      content: '',
+      tool_calls: [{ id: 'call', type: 'function', function: { name: 'search', arguments: '{}' } }],
+    })
+    expect(runtime.actions.getMessageCapabilities!(target).canEdit).toBe(false)
+    engine.messages.value.splice(2, 1, { role: 'tool', content: 'result' })
+    expect(runtime.actions.getMessageCapabilities!(target).canRegenerate).toBe(false)
+  })
+
+  it.each(['metadata', 'message'] as const)(
+    'uses the same fallback %s ID for capability and replay',
+    async (source) => {
+      const { engine, runtime, rerun } = createReplayHarness()
+      const user = engine.messages.value[0]
+      delete user.metadata![CHAT_ACTION_METADATA_KEY]
+      if (source === 'metadata') user.metadata!.id = 'user-1'
+      else {
+        user.metadata!.id = 42
+        user.id = 'user-1'
+      }
+      engine.messages.value.unshift({ role: 'user', content: 'older', metadata: { id: 'older' } })
+      await expect(
+        runtime.actions.editMessage!({ conversationId: 'a', userMessageId: 'user-1', text: 'edited' }),
+      ).resolves.toBe(true)
+      expect(rerun).toHaveBeenCalledWith('a', user, expect.objectContaining({ content: 'edited' }))
+    },
+  )
+
+  it('does not give assistant entries edit capability through the adapter', () => {
+    const { runtime } = createReplayHarness()
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
+    expect(adapter.data.value.bubble?.actions?.['user-1']?.canEdit).toBe(true)
+    expect(adapter.data.value.bubble?.actions?.['assistant-1']).toMatchObject({ canEdit: false, canRegenerate: true })
+  })
+
   it.each(['reject', 'handled'] as const)(
     'preserves history when beforeSend returns %s during replay',
     async (result) => {
@@ -149,7 +202,7 @@ describe('useChatRuntimeFromConversation', () => {
     expect(harness.rerun).not.toHaveBeenCalled()
   })
 
-  it.each(['navigation', 'disabled', 'engine', 'message', 'config', 'model'] as const)(
+  it.each(['navigation', 'disabled', 'engine', 'message', 'config', 'model', 'answer', 'answer-content'] as const)(
     'rejects replay if %s changes while beforeSend is pending',
     async (change) => {
       let finish!: (value: 'continue') => void
@@ -169,6 +222,8 @@ describe('useChatRuntimeFromConversation', () => {
       } else if (change === 'disabled') harness.disabled.value = true
       else if (change === 'engine') harness.items.get('a')!.engine = createConversation('a').engine
       else if (change === 'message') harness.engine.messages.value = []
+      else if (change === 'answer') harness.engine.messages.value[1] = { ...harness.engine.messages.value[1] }
+      else if (change === 'answer-content') harness.engine.messages.value[1].content = 'new answer'
       else if (change === 'config')
         harness.engine.messages.value[0].metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-b' }
       else harness.modelOptions.value = [{ id: 'model-b', label: 'Selected' }]
@@ -264,8 +319,12 @@ describe('useChatRuntimeFromConversation', () => {
       canRegenerate: false,
     })
 
-    user.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-a' }
-    user.externalPayloads = [{ source: 'attachment' }]
+    const reactiveUser = harness.items.get('a')!.engine.messages.value[0]
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-a' }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })?.canEdit).toBe(
+      true,
+    )
+    ;(reactiveUser as ChatMessageItem & { externalPayloads?: unknown[] }).externalPayloads = [{ source: 'attachment' }]
     expect(
       runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
     ).toMatchObject({
@@ -308,7 +367,12 @@ describe('useChatRuntimeFromConversation', () => {
     })
     expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
 
-    user.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
+    const reactiveUser = harness.items.get('a')!.engine.messages.value[0]
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'current-model' }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })?.canEdit).toBe(
+      true,
+    )
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
       modelId: 'current-model',
       mcp: { serverIds: ['tools'], toolIds: { tools: ['search'] } },
     }

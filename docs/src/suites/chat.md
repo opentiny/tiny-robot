@@ -432,6 +432,8 @@ const ui: ChatUIOptions = {
 
 `edit` 和 `regenerate` 是否显示由 `ChatBubbleActionContext.capabilities` 决定。默认 Kit Runtime 只允许重放最新的纯文本用户回合；有附件、工具调用、处理中会话、空闲会话，或原模型已不存在或被禁用时，对应动作会隐藏。外部 Runtime 若未提供 `getMessageCapabilities`，使用 `TrChatUI` 时应自行在 `data.bubble.actions` 中提供能力映射。
 
+能力映射的键使用消息自身 ID，按 `metadata.chat_action_metadata.id`、字符串 `metadata.id`、`message.id` 的顺序解析。助手的重新生成事件优先用 `metadata.chat_action_metadata.userMessageId` 指向原用户消息；未配置关联时，受控 UI 返回助手自身 ID，由接入方解析目标。编辑入口和保存事件使用同一个用户消息 ID。`TrChat` 的 `edit-message` 是通知事件，保存结果由 Runtime 决定；`TrChatUI` 的受控接入方需要调用事件中的 `complete(accepted)` 确认结果。
+
 编辑和重新生成沿用原回合的模型与配置，并执行发送禁用检查和 `beforeSend`；回调返回 `'reject'` 或 `'handled'` 时不执行默认重放，也不改动历史消息。
 
 `useChatRuntime` 已内置消息操作状态插件。使用 `useChatRuntimeFromConversation` 接入自建 Conversation 时，需要在创建 Conversation 时注册：
@@ -554,7 +556,9 @@ const runtime = useChatRuntime({
 
 替换地址、模型 `id` 和源字段即可。`includeUsage: true` 向支持的服务请求用量；不同模型可分别配置 `mapUsage`。没有用量时返回 `undefined`；数据在其他位置时，可通过第二个参数 `{ chunk }` 读取完整响应分片。
 
-转换结果保存到 `message.metadata.usage`，启用 `assistant: ['info']` 即可使用默认信息面板。需要调整名称、顺序或格式时，再配置 [`info.items`](#自定义消息信息)。
+转换结果按字段合并到 `message.metadata.usage`，未提供的字段保留之前的值，`undefined` 不会覆盖已有计数。运行时不会重新计算 `total_tokens`；如果输入或输出计数发生变化，映射函数需同时提供一致的总数，或始终省略总数。usage 合并独立于全局 `onCompletionChunk` 的内容处理，只有 usage 的分片也会通知插件，其 `choice` 为 `undefined`。
+
+启用 `assistant: ['info']` 即可使用默认信息面板。需要调整名称、顺序或格式时，再配置 [`info.items`](#自定义消息信息)。
 
 #### 在 TrChatUI 中接入消息操作
 

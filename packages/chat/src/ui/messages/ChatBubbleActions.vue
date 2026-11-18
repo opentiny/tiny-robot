@@ -143,8 +143,15 @@ const infoItems = computed<readonly ChatMessageInfoItem[]>(() => {
   }
 })
 
-watch([() => props.editing, () => infoItems.value.length], ([editing, count]) => {
-  if (editing || !count) infoOpen.value = false
+const infoEligible = computed(
+  () =>
+    !props.editing &&
+    condition(props.options.visible) &&
+    !(props.role === 'assistant' && props.context.turnState === 'processing') &&
+    items.value.some((item) => actionId(item) === 'info' && visible(item) && !disabled(item)),
+)
+watch(infoEligible, (eligible) => {
+  if (!eligible) infoOpen.value = false
 })
 
 watch(
@@ -290,14 +297,7 @@ function setSlotOpen(id: string, open: boolean) {
     </template>
   </div>
   <ChatMessageInfoPopover
-    v-if="
-      infoOpen &&
-      infoItems.length &&
-      infoTrigger &&
-      !editing &&
-      condition(options.visible) &&
-      !(role === 'assistant' && context.turnState === 'processing')
-    "
+    v-if="infoOpen && infoEligible && infoTrigger"
     :title="options.info?.title ?? '对话信息'"
     :items="infoItems"
     :trigger="infoTrigger"

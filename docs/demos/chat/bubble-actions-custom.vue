@@ -84,14 +84,14 @@ const ui: ChatUIOptions = {
   border-radius: 6px;
   padding: 6px 8px;
   background: transparent;
-  color: var(--tr-color-primary);
+  color: var(--tr-text-primary);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
 }
 
 .custom-actions-demo__source:hover:not(:disabled) {
-  background: var(--tr-color-primary-light);
+  background: var(--tr-container-bg-hover);
 }
 
 .custom-actions-demo__source:disabled {

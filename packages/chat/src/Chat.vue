@@ -175,38 +175,37 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
 }
 
-function handleEditMessage(payload: ChatBubbleMessageActionPayload) {
-  emit('edit-message', payload)
-  if (!payload.conversationId || !payload.messageId || payload.text === undefined) {
-    payload.complete?.(false)
-    return
+async function handleEditMessage(payload: ChatBubbleMessageActionPayload) {
+  const { complete, ...notification } = payload
+  emit('edit-message', notification)
+  let accepted = false
+  try {
+    if (payload.conversationId && payload.messageId && payload.text !== undefined) {
+      accepted =
+        (await props.runtime.actions.editMessage?.({
+          conversationId: payload.conversationId,
+          userMessageId: payload.messageId,
+          text: payload.text,
+        })) === true
+    }
+  } catch (error) {
+    emit('runtime-action-error', { action: 'edit-message', payload: notification, error })
+  } finally {
+    complete?.(accepted)
   }
-  const result = props.runtime.actions.editMessage?.({
-    conversationId: payload.conversationId,
-    userMessageId: payload.messageId,
-    text: payload.text,
-  })
-  if (!result) {
-    payload.complete?.(false)
-    return
-  }
-  void Promise.resolve(result)
-    .then(payload.complete)
-    .catch((error) => {
-      payload.complete?.(false)
-      emit('runtime-action-error', { action: 'edit-message', payload, error })
-    })
 }
 
-function handleRegenerateMessage(payload: ChatBubbleMessageActionPayload) {
+async function handleRegenerateMessage(payload: ChatBubbleMessageActionPayload) {
   emit('regenerate-message', payload)
   if (!payload.conversationId || !payload.messageId) return
-  const result = props.runtime.actions.regenerateMessage?.({
-    conversationId: payload.conversationId,
-    userMessageId: payload.messageId,
-  })
-  if (result)
-    void result.catch((error) => emit('runtime-action-error', { action: 'regenerate-message', payload, error }))
+  try {
+    await props.runtime.actions.regenerateMessage?.({
+      conversationId: payload.conversationId,
+      userMessageId: payload.messageId,
+    })
+  } catch (error) {
+    emit('runtime-action-error', { action: 'regenerate-message', payload, error })
+  }
 }
 
 function handleSenderDragEnter(payload: SenderDragPayload) {

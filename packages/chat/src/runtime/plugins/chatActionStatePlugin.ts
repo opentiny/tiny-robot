@@ -1,3 +1,4 @@
+import { isAutoContinuationMessage } from '@opentiny/tiny-robot-kit'
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import { CHAT_ACTION_METADATA_KEY } from '../useChatRuntimeFromConversation'
 
@@ -11,13 +12,17 @@ export function createChatActionStatePlugin(): UseMessagePlugin {
   return {
     name: 'chat-action-state',
     onTurnStart({ currentTurn }) {
-      const user = [...currentTurn].reverse().find((message) => message.role === 'user')
+      const user = [...currentTurn]
+        .reverse()
+        .find((message) => message.role === 'user' && !isAutoContinuationMessage(message))
       const metadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string; turnState?: string } | undefined
       if (metadata) metadata.turnState = 'processing'
     },
     onCompletionChunk({ currentTurn, currentMessage, updateCurrentMessage }) {
       if (currentMessage.role !== 'assistant') return
-      const user = [...currentTurn].reverse().find((message) => message.role === 'user')
+      const user = [...currentTurn]
+        .reverse()
+        .find((message) => message.role === 'user' && !isAutoContinuationMessage(message))
       const userMetadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
       if (!userMetadata?.id) return
       const existing = currentMessage.metadata?.[CHAT_ACTION_METADATA_KEY] as Record<string, unknown> | undefined
@@ -35,7 +40,9 @@ export function createChatActionStatePlugin(): UseMessagePlugin {
       })
     },
     onFinally({ currentTurn, requestState }) {
-      const user = [...currentTurn].reverse().find((message) => message.role === 'user')
+      const user = [...currentTurn]
+        .reverse()
+        .find((message) => message.role === 'user' && !isAutoContinuationMessage(message))
       const userMetadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
       if (!userMetadata?.id) return
       const turnState = requestState === 'paused' ? 'paused' : requestState
@@ -54,6 +61,29 @@ export function createChatActionStatePlugin(): UseMessagePlugin {
       }
       const currentUserMetadata = user!.metadata![CHAT_ACTION_METADATA_KEY] as Record<string, unknown>
       currentUserMetadata.turnState = turnState
+    },
+    onTurnAbort({ currentTurn, requestState }) {
+      if (requestState !== 'paused') return
+      const user = [...currentTurn]
+        .reverse()
+        .find((message) => message.role === 'user' && !isAutoContinuationMessage(message))
+      const userMetadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string } | undefined
+      if (!userMetadata?.id) return
+      for (const message of currentTurn) {
+        if (message.role !== 'assistant') continue
+        const existing = message.metadata?.[CHAT_ACTION_METADATA_KEY] as Record<string, unknown> | undefined
+        message.metadata = {
+          ...message.metadata,
+          [CHAT_ACTION_METADATA_KEY]: {
+            ...existing,
+            id: existing?.id ?? generateActionId(),
+            userMessageId: userMetadata.id,
+            turnState: 'aborted',
+          },
+        }
+      }
+      const currentUserMetadata = user!.metadata![CHAT_ACTION_METADATA_KEY] as Record<string, unknown>
+      currentUserMetadata.turnState = 'aborted'
     },
   }
 }
