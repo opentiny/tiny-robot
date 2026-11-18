@@ -78,6 +78,21 @@ test.describe('Sender keyboard shortcuts', () => {
     await expect(component.getByTestId('submit-count')).toHaveText('0')
   })
 
+  test('KEY-07 preserves a mid-text caret when Enter switches to multiple mode', async ({ mount }) => {
+    const component = await mount(SenderCoreFixture, { props: { submitType: 'ctrlEnter' } })
+    const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+    await editor.pressSequentially('abcd')
+    await component.getByTestId('set-mid-selection').click()
+    await editor.press('Enter')
+
+    await expect(editor.locator('p')).toHaveCount(2)
+    await expect(editor.locator('p').nth(0)).toHaveText('ab')
+    await expect(editor.locator('p').nth(1)).toHaveText('cd')
+    await expect(component.getByTestId('model-value')).toHaveText('ab\n\ncd')
+    await expect(component.getByTestId('submit-count')).toHaveText('0')
+  })
+
   test('KEY-08 submitType ctrlEnter does not submit with Shift+Enter', async ({ mount }) => {
     const component = await mount(SenderCoreFixture, { props: { submitType: 'ctrlEnter' } })
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

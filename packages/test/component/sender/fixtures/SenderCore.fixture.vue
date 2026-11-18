@@ -78,6 +78,13 @@ const setContentAndSubmit = () => {
   senderRef.value?.submit()
 }
 
+const setMidSelection = () => {
+  const currentEditor = senderRef.value?.editor?.value ?? senderRef.value?.editor
+  if (!currentEditor) return
+  currentEditor.commands.setTextSelection(3)
+  currentEditor.view.focus()
+}
+
 const toggleSubmitDisabled = () => {
   currentDefaultActions.value = {
     ...currentDefaultActions.value,
@@ -141,6 +148,7 @@ const callMethod = (name: 'focus' | 'blur' | 'clear' | 'submit' | 'cancel' | 'se
       <button data-testid="set-content-and-submit" type="button" @click="setContentAndSubmit">
         set content and submit
       </button>
+      <button data-testid="set-mid-selection" type="button" @click="setMidSelection">set mid selection</button>
       <button data-testid="call-get-content" type="button" @click="callMethod('getContent')">getContent</button>
       <button data-testid="call-focus" type="button" @click="callMethod('focus')">focus</button>
       <button data-testid="call-blur" type="button" @click="callMethod('blur')">blur</button>

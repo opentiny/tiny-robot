@@ -82,6 +82,7 @@ export function useModeSwitch(
     const restoreEditorFocus = Boolean(
       editor.value?.isFocused || (activeElement && editorRef.value?.contains(activeElement)),
     )
+    const selectionBeforeModeSwitch = editor.value?.state.selection
 
     isAutoSwitching.value = true
     currentMode.value = mode
@@ -97,9 +98,14 @@ export function useModeSwitch(
 
         if (restoreEditorFocus && focusWasNotMovedOutside) {
           const currentEditor = editor.value
-          const endSelection = Selection.atEnd(currentEditor.state.doc)
-          if (!currentEditor.state.selection.eq(endSelection)) {
-            currentEditor.view.dispatch(currentEditor.state.tr.setSelection(endSelection))
+          const selection =
+            selectionBeforeModeSwitch &&
+            selectionBeforeModeSwitch.$from.doc === currentEditor.state.doc &&
+            selectionBeforeModeSwitch.$to.doc === currentEditor.state.doc
+              ? selectionBeforeModeSwitch
+              : Selection.atEnd(currentEditor.state.doc)
+          if (!currentEditor.state.selection.eq(selection)) {
+            currentEditor.view.dispatch(currentEditor.state.tr.setSelection(selection))
           }
 
           // Tiptap focuses synchronously on mobile before its animation-frame
