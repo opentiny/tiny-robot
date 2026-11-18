@@ -12,7 +12,9 @@
             "outputPath": "dist",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -26,11 +28,6 @@
             ],
             "loader": {
               ".jpg": "file"
-            },
-            "define": {
-              "__VUE_OPTIONS_API__": "true",
-              "__VUE_PROD_DEVTOOLS__": "false",
-              "__VUE_PROD_HYDRATION_MISMATCH_DETAILS__": "false"
             }
           },
           "configurations": {

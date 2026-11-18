@@ -14,6 +14,7 @@ import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } fr
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
 import { createDefaultChatTitle } from './defaults'
+import { getCurrentScope, onScopeDispose } from 'vue'
 
 export interface UseChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
@@ -34,6 +35,17 @@ export interface UseChatRuntimeOptions {
 }
 
 export function useChatRuntime(options: UseChatRuntimeOptions) {
+  const owned = createChatRuntimeResources(options)
+  if (getCurrentScope())
+    onScopeDispose(() => {
+      void owned.dispose().catch((error) => console.error('Runtime disposal failed:', error))
+    })
+  return owned.runtime
+}
+
+/** Internal resource owner used by both Vue and framework-independent entry points. */
+export function createChatRuntimeResources(options: UseChatRuntimeOptions) {
+  const lifetime = new AbortController()
   const conversationOptions: NonNullable<UseChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
   const userUseMessageOptions = conversationOptions.useMessageOptions
@@ -49,7 +61,11 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
 
   const providerModels = options.modelProviders ? resolveProviderModels(options.modelProviders) : []
   const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
-  const resolvedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : options.mcp
+  if (!providerRuntime && !userResponseProvider) {
+    throw new Error('useChatRuntime requires conversation.useMessageOptions.responseProvider or modelProviders.')
+  }
+  const ownedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : undefined
+  const resolvedMcp = ownedMcp ?? options.mcp
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [
     errorStatePlugin(),
@@ -76,13 +92,20 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
     throw new Error('useChatRuntime requires conversation.useMessageOptions.responseProvider or modelProviders.')
   }
 
-  const conversation = useConversation({
-    autoSaveMessages: true,
-    ...conversationOptions,
-    useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
-  })
+  let conversation: ReturnType<typeof useConversation>
+  try {
+    conversation = useConversation({
+      autoSaveMessages: true,
+      ...conversationOptions,
+      useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
+    })
+  } catch (error) {
+    void ownedMcp?.dispose().catch((disposeError) => console.error('MCP disposal failed:', disposeError))
+    throw error
+  }
 
-  return useChatRuntimeFromConversation({
+  const runtime = useChatRuntimeFromConversation({
+    signal: lifetime.signal,
     conversation,
     titleGenerator: resolveTitle,
     beforeSend: options.beforeSend,
@@ -92,4 +115,17 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
       mcp: resolvedMcp?.runtime,
     },
   })
+  let closing: Promise<void> | undefined
+  return {
+    runtime,
+    dispose() {
+      if (closing) return closing
+      lifetime.abort()
+      closing = Promise.allSettled([conversation.dispose(), ownedMcp?.dispose()]).then((results) => {
+        const failures = results.flatMap((result) => (result.status === 'rejected' ? [result.reason] : []))
+        if (failures.length) throw Object.assign(new Error('Runtime disposal failed.'), { errors: failures })
+      })
+      return closing
+    },
+  }
 }

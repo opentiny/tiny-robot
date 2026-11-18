@@ -28,6 +28,8 @@ export interface KitRuntimeSendPayload extends ChatSendPayload {
 }
 
 export interface UseChatRuntimeFromConversationOptions {
+  /** Cancels pending pre-send work when the owning Runtime is released. */
+  signal?: AbortSignal
   conversation: UseConversationReturn
   titleGenerator?: TitleGenerator
   beforeSend?: ChatBeforeSend
@@ -178,6 +180,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const model = composer.model
       const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
       return (
+        !options.signal?.aborted &&
         !composer.disabled?.value &&
         !sourceComposer.submitDisabled?.value &&
         (Boolean(send) ||
@@ -209,6 +212,8 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       const beforeSendResult = beforeSend
         ? await beforeSend(createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig))
         : undefined
+
+      if (options.signal?.aborted) return false
 
       if (beforeSendResult === 'reject') {
         return false

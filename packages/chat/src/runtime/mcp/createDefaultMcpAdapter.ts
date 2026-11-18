@@ -21,14 +21,19 @@ interface DiscoveryTask {
   task: Promise<readonly ToolSnapshot[]>
 }
 
-function withTimeout<T>(task: Promise<T>, timeout: number, operation: string) {
+function withTimeout<T>(task: Promise<T>, timeout: number, operation: string, signal: AbortSignal) {
   let timer: ReturnType<typeof setTimeout> | undefined
+  let onAbort = () => {}
   const timeoutTask = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`MCP ${operation} timed out after ${timeout}ms.`)), timeout)
+    onAbort = () => reject(new Error('MCP adapter has been disposed.'))
+    signal.addEventListener('abort', onAbort, { once: true })
+    if (signal.aborted) onAbort()
   })
 
   return Promise.race([task, timeoutTask]).finally(() => {
     if (timer !== undefined) clearTimeout(timer)
+    signal.removeEventListener('abort', onAbort)
   })
 }
 
@@ -64,6 +69,12 @@ function resolveServerUrl(serverId: string, baseUrl: string): URL {
 }
 
 export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
+  const lifetime = new AbortController()
+  let closing: Promise<void> | undefined
+  const clients = new Map<Client, StreamableHTTPClientTransport>()
+  const assertActive = () => {
+    if (lifetime.signal.aborted) throw new Error('MCP adapter has been disposed.')
+  }
   const configById = new Map<string, ChatMcpServerConfig>()
   for (const config of serverConfigs) {
     if (configById.has(config.id)) throw new Error(`Duplicate MCP server id: ${config.id}`)
@@ -87,6 +98,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   const generations = new Map<string, number>()
 
   function getServer(serverId: string) {
+    assertActive()
     const server = serverStates.value.find((item) => item.id === serverId)
     if (!server) throw new Error(`Unknown MCP server: ${serverId}`)
     return server
@@ -113,6 +125,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   }
 
   async function withClient<T>(serverId: string, task: (client: Client) => Promise<T>) {
+    assertActive()
     const config = configById.get(serverId)
     if (!config) throw new Error(`Unknown MCP server: ${serverId}`)
     config.validate?.(serverId)
@@ -121,16 +134,20 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
       requestInit: { headers: config.headers },
     })
     const timeout = config.timeout ?? DEFAULT_TIMEOUT
+    clients.set(client, transport)
 
     try {
-      await withTimeout(client.connect(transport), timeout, 'connect')
-      return await withTimeout(task(client), timeout, 'request')
+      await withTimeout(client.connect(transport), timeout, 'connect', lifetime.signal)
+      assertActive()
+      return await withTimeout(task(client), timeout, 'request', lifetime.signal)
     } finally {
       await client.close().catch(() => undefined)
+      clients.delete(client)
     }
   }
 
   async function discover(serverId: string, refresh = false) {
+    assertActive()
     const cached = definitions.get(serverId)
     if (!refresh && cached) return cached
     const generation = generations.get(serverId) ?? 0
@@ -217,6 +234,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
         return
       }
       await loadTools(serverId)
+      assertActive()
       setServerToolsEnabled(serverId, true)
     },
     removeServer(serverId) {
@@ -238,6 +256,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
           return
         }
         await loadTools(serverId)
+        assertActive()
         setServerToolsEnabled(serverId, true)
       } else {
         setServerToolsEnabled(serverId, false)
@@ -269,12 +288,14 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   }
 
   const listTools: ChatToolListTools = async (serverIds, selectedToolIds) => {
+    assertActive()
     const result: ToolSnapshot[] = []
     for (const serverId of serverIds) {
       if (!Object.prototype.hasOwnProperty.call(selectedToolIds, serverId)) {
         throw new Error(`MCP tool selection is missing for this turn: ${serverId}`)
       }
       const serverDefinitions = definitions.get(serverId) ?? (await discover(serverId))
+      assertActive()
       const selectedIds = selectedToolIds[serverId]
       if (selectedIds.length === 0) continue
       const selected = serverDefinitions.filter((tool) => selectedIds.includes(tool.id))
@@ -288,5 +309,29 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   const callTool: ChatToolCallTool = (serverId, originalName, args) =>
     withClient(serverId, (client) => client.callTool({ name: originalName, arguments: args }))
 
-  return { runtime, listTools, callTool }
+  function dispose(): Promise<void> {
+    if (closing) return closing
+    lifetime.abort()
+    for (const server of serverStates.value) {
+      generations.set(server.id, (generations.get(server.id) ?? 0) + 1)
+      server.loading = undefined
+      server.enabled = false
+    }
+    const pending = [...loadTasks.values(), ...[...discoveryTasks.values()].map((item) => item.task)]
+    closing = Promise.allSettled([
+      ...pending,
+      ...[...clients].map(async ([client, transport]) => {
+        await transport.close()
+        await client.close()
+      }),
+    ]).then(() => {
+      clients.clear()
+      definitions.clear()
+      discoveryTasks.clear()
+      loadTasks.clear()
+      tools.value = {}
+    })
+    return closing
+  }
+  return { runtime, listTools, callTool, dispose }
 }

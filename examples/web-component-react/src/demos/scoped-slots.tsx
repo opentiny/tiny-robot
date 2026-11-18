@@ -173,7 +173,7 @@ export function ScopedSlotsDemo() {
     return () => {
       element.removeEventListener('submit', onSubmit)
       element.removeEventListener('create-conversation', onCreate)
-      owned?.release()
+      owned?.dispose()
     }
   }, [kind, mounted])
   useLayoutEffect(() => {

@@ -44,7 +44,7 @@ export function createChatPreview(root, onFloatingState) {
       chat.remove()
     }
     chat = undefined
-    owned?.release()
+    owned?.dispose()
     owned = undefined
     status.textContent = '已卸载'
     container.innerHTML = '<p class="demo-empty">组件已卸载，可重新挂载。</p>'

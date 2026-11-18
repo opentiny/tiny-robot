@@ -90,7 +90,7 @@ export class ScopedSlotsDemoComponent {
       }),
     )
     this.updateRuntime()
-    inject(DestroyRef).onDestroy(() => this.owned?.release())
+    inject(DestroyRef).onDestroy(() => this.owned?.dispose())
   }
   updateRenderers() {
     this.renderers = {
@@ -143,7 +143,7 @@ export class ScopedSlotsDemoComponent {
     this.empty = false
   }
   private updateRuntime() {
-    this.owned?.release()
+    this.owned?.dispose()
     this.owned = undefined
     this.runtime = undefined
     if (this.mounted && this.kind === 'chat') {

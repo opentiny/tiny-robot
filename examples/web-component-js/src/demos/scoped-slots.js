@@ -213,7 +213,7 @@ export function mountScopedSlotsDemo(root) {
     disposeSettings()
     element?.remove()
     element = undefined
-    owned?.release()
+    owned?.dispose()
     owned = undefined
     updateRenderers = () => {}
   }

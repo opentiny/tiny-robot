@@ -19,7 +19,10 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "**/browserRuntimeFlags.*",
+    "./dist/index.js",
+    "./dist/experimental.js"
   ],
   "files": [
     "dist",
@@ -41,9 +44,6 @@
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@vueuse/core": "^13.9.0"
   },
-  "peerDependencies": {
-    "vue": "^3.3.11"
-  },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.2",
     "typescript": "^5.2.2",
@@ -64,5 +64,8 @@
     },
     "./experimental/web-component.css": "./dist/web-component.css",
     "./dist/*": "./dist/*"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.11"
   }
 }

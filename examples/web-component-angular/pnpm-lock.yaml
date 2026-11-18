@@ -6,10 +6,10 @@ settings:
 
 overrides:
   vue: 3.5.41
-  '@opentiny/tiny-robot': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz
-  '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz
-  '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz
-  '@opentiny/tiny-robot-chat': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz
+  '@opentiny/tiny-robot': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz
+  '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz
+  '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz
+  '@opentiny/tiny-robot-chat': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz
 
 importers:
 
@@ -31,26 +31,23 @@ importers:
         specifier: 20.3.35
         version: 20.3.35(@angular/common@20.3.35(@angular/core@20.3.35(@angular/compiler@20.3.35)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.35(@angular/compiler@20.3.35)(rxjs@7.8.2)(zone.js@0.15.1))
       '@opentiny/tiny-robot':
-        specifier: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz
-        version: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))
+        specifier: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz
+        version: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))
       '@opentiny/tiny-robot-chat':
-        specifier: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz
-        version: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))(zod@4.6.6)
+        specifier: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz
+        version: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))(zod@4.6.6)
       '@opentiny/tiny-robot-kit':
-        specifier: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz
-        version: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+        specifier: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz
+        version: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
       '@opentiny/tiny-robot-svgs':
-        specifier: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz
-        version: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+        specifier: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz
+        version: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
       tslib:
         specifier: 2.8.1
         version: 2.8.1
-      vue:
-        specifier: 3.5.41
-        version: 3.5.41(typescript@5.9.3)
       zone.js:
         specifier: 0.15.1
         version: 0.15.1
@@ -921,26 +918,26 @@ packages:
   '@opentiny/fluent-editor@3.25.12':
     resolution: {integrity: sha512-bEjt1AaiH2kkaSmL0tt67AJlXXVlhkl76DLH8FdoobgWE0NLgWtngmZerWlX+Mr/5/pw4ue733eaxP34IIvo1g==}
 
-  '@opentiny/tiny-robot-chat@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz':
-    resolution: {integrity: sha512-cnWUjYEYxvX4enwj3MFmwafFORqYoSjveeStiiZABttUc+t4PMKGgX7Z8ho1EPwMxaEP+GGUB1zpgzLScxrvNg==, tarball: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz}
+  '@opentiny/tiny-robot-chat@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz':
+    resolution: {integrity: sha512-mmK7WzyF+1KKQmH8rsET6BakRMfn4lRl0wAH9XyiBLDRSnZXUir1On1k5GaKVLZiqtxnxqlHj+DBipPf3uAeGg==, tarball: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz}
     version: 1.0.1
     peerDependencies:
       vue: 3.5.41
 
-  '@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz':
-    resolution: {integrity: sha512-fwv+g0SNhwVwmERNN4Aar8LUMzbabdnu+IozL3TRWKpk0doW8USkisdnuohzPHtelUoban3ZANQLEY904bIQCw==, tarball: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz}
+  '@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz':
+    resolution: {integrity: sha512-KPrufyqp/gdE3NVW2CSP4W1pHvN0xjaiqf+47s4XB0hxEYk88qOXXI/UOdiZejeHMhVeM+C/cQxYQ5g48uutuw==, tarball: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz}
     version: 1.0.1
     peerDependencies:
       vue: 3.5.41
 
-  '@opentiny/tiny-robot-svgs@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz':
-    resolution: {integrity: sha512-08dgKXPx3thNp/z5JDvpleqaZjZhej1D0Ta3layAZ/ULq6uUNyk/vPH9mpNyDwO+qZGBCdV76fqpJmkYUUG8PQ==, tarball: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz}
+  '@opentiny/tiny-robot-svgs@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz':
+    resolution: {integrity: sha512-08dgKXPx3thNp/z5JDvpleqaZjZhej1D0Ta3layAZ/ULq6uUNyk/vPH9mpNyDwO+qZGBCdV76fqpJmkYUUG8PQ==, tarball: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz}
     version: 1.0.1
     peerDependencies:
       vue: 3.5.41
 
-  '@opentiny/tiny-robot@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz':
-    resolution: {integrity: sha512-kgZUczIVXYk5wYzWBlIlzyDzWuzl+WoF4Q5XmCT+9x3TeTfgUaXq04uFQ7Pk3EhoAcbRT3vTz25PqYf7a4faMw==, tarball: file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz}
+  '@opentiny/tiny-robot@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz':
+    resolution: {integrity: sha512-j7MRr+uT0MHrjXIlmqwqsK9HgH1HDoW6IIFjKIRDHts+j7DZuj+Lzyx/1uXvu+Do30I63mfzuzqcQmRTreWt7w==, tarball: file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz}
     version: 1.0.1
     peerDependencies:
       '@opentiny/tiny-robot-kit': ^1.0.1
@@ -4206,12 +4203,12 @@ snapshots:
       lodash-es: 4.18.1
       quill: 2.0.3
 
-  '@opentiny/tiny-robot-chat@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-chat-1.0.1.tgz(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))(zod@4.6.6)':
+  '@opentiny/tiny-robot-chat@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-chat-1.0.1.tgz(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))(zod@4.6.6)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.6.6)
-      '@opentiny/tiny-robot': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))
-      '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
-      '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+      '@opentiny/tiny-robot': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))
+      '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+      '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
       '@vueuse/core': 13.9.0(vue@3.5.41(typescript@5.9.3))
       vue: 3.5.41(typescript@5.9.3)
     transitivePeerDependencies:
@@ -4221,21 +4218,21 @@ snapshots:
       - supports-color
       - zod
 
-  '@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))':
+  '@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))':
     dependencies:
       idb: 8.0.4
       vue: 3.5.41(typescript@5.9.3)
       yaml: 2.9.1
 
-  '@opentiny/tiny-robot-svgs@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))':
+  '@opentiny/tiny-robot-svgs@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))':
     dependencies:
       vue: 3.5.41(typescript@5.9.3)
 
-  '@opentiny/tiny-robot@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))':
+  '@opentiny/tiny-robot@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-1.0.1.tgz(@opentiny/tiny-robot-kit@file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3)))(dompurify@3.4.18)(markdown-it@14.3.3)(vue@3.5.41(typescript@5.9.3))':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
-      '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/da0f7ef742bb1c2e/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+      '@opentiny/tiny-robot-kit': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-kit-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
+      '@opentiny/tiny-robot-svgs': file:../../.artifacts/web-component/candidates/c4b31e8c02b6bc4b/opentiny-tiny-robot-svgs-1.0.1.tgz(vue@3.5.41(typescript@5.9.3))
       '@opentiny/vue': 3.32.0
       '@tiptap/core': 3.17.1(@tiptap/pm@3.17.1)
       '@tiptap/extension-character-count': 3.17.1(@tiptap/extensions@3.17.1(@tiptap/core@3.17.1(@tiptap/pm@3.17.1))(@tiptap/pm@3.17.1))

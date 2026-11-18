@@ -48,8 +48,9 @@ export function useThrottleFn<T extends FunctionArgs>(
   trailing = false,
   leading = true,
   rejectOnCancel = false,
-): PromisifyFn<T> {
-  return createFilterWrapper(throttleFilter(ms, trailing, leading, rejectOnCancel), fn)
+): PromisifyFn<T> & { cancel(): void } {
+  const filter = throttleFilter(ms, trailing, leading, rejectOnCancel)
+  return Object.assign(createFilterWrapper(filter, fn), { cancel: filter.cancel })
 }
 
 function createFilterWrapper<T extends AnyFn>(filter: EventFilter, fn: T) {
@@ -91,8 +92,8 @@ export function throttleFilter(
   trailing?: boolean,
   leading?: boolean,
   rejectOnCancel?: boolean,
-): EventFilter
-export function throttleFilter(options: ThrottleFilterOptions): EventFilter
+): EventFilter & { cancel(): void }
+export function throttleFilter(options: ThrottleFilterOptions): EventFilter & { cancel(): void }
 export function throttleFilter(...args: any[]) {
   let lastExec = 0
   let timer: TimerHandle
@@ -152,5 +153,5 @@ export function throttleFilter(...args: any[]) {
     return lastValue
   }
 
-  return filter
+  return Object.assign(filter, { cancel: clear })
 }

@@ -38,7 +38,7 @@ function ChatHost({ title, ui, floatingState, isEmpty, enabled, onEvent, element
       chat.removeEventListener('floating-state-update', listener)
       chat.runtime = undefined
       owned.current = null
-      local.release()
+      local.dispose()
     }
   }, [onEvent, ref])
   useLayoutEffect(() => {

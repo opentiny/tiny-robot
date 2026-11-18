@@ -53,6 +53,8 @@ export interface UseConversationOptions {
 }
 
 export interface UseConversationReturn {
+  /** Release owned requests and persistence resources, preserving stored history. */
+  dispose?: () => Promise<void>
   conversations: Ref<ConversationInfo[]>
   activeConversationId: Ref<string | null>
   activeConversation: ComputedRef<Conversation | null>

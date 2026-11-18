@@ -24,7 +24,7 @@ import {
   BasePluginContext as VueBasePluginContext,
 } from './types'
 
-export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
+const createVueMessage = (options: UseMessageOptions, lifetime?: AbortSignal): UseMessageReturn => {
   const {
     initialMessages = [],
     requestMessageFields = [],
@@ -35,6 +35,18 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   } = options
 
   const adapter = createVueMessageAdapter()
+  const mutate = adapter.mutate
+  adapter.mutate = (...args) => {
+    if (!lifetime?.aborted) mutate(...args)
+  }
+  lifetime?.addEventListener(
+    'abort',
+    () => {
+      // Cancelled hooks can retain mutable message references; detach the final public snapshot.
+      adapter.messages.value = adapter.getState().messages
+    },
+    { once: true },
+  )
 
   const resolveReactiveMessage = (message: ChatMessage) => {
     return (adapter.messages.value.find(
@@ -257,3 +269,9 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn
 }
+
+export const useMessage = (options: UseMessageOptions): UseMessageReturn => createVueMessage(options)
+
+/** Internal owner signal seals writes only after the conversation has completed disposal. */
+export const useOwnedMessage = (options: UseMessageOptions, lifetime: AbortSignal): UseMessageReturn =>
+  createVueMessage(options, lifetime)

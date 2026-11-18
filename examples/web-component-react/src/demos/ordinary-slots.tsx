@@ -28,7 +28,9 @@ export function OrdinarySlotsDemo() {
     if (!mounted || kind !== 'chat') return
     const owned = createLocalRuntime()
     chatRef.current!.runtime = owned.runtime
-    return () => owned.release()
+    return () => {
+      void owned.dispose()
+    }
   }, [kind, mounted])
   useLayoutEffect(() => {
     const element = kind === 'chat' ? chatRef.current : uiRef.current

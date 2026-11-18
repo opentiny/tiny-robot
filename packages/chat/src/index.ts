@@ -1,9 +1,13 @@
+import './runtime/browserRuntimeFlags'
+
 export { default as TrChat } from './Chat.vue'
 export { default as TrChatUI } from './ChatUI.vue'
 export { useChatRenderContext } from './composables/useChatRenderContext'
 export type { ChatRenderContext } from './composables/useChatRenderContext'
 export { useChatRuntimeFromConversation } from './runtime/useChatRuntimeFromConversation'
 export { useChatRuntime } from './runtime/useChatRuntime'
+export { createChatRuntime } from './runtime/createChatRuntime'
+export type { ChatRuntimeHandle } from './runtime/createChatRuntime'
 export { ERROR_STATE_PLUGIN_NAME, errorStatePlugin } from './runtime/plugins/errorStatePlugin'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 export { useChatHistoryData, useChatHistoryItems } from './composables/useChatHistoryItems'

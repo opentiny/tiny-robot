@@ -104,7 +104,7 @@ export function mountOrdinarySlotsDemo(root) {
     updateVisibility = () => {}
     element?.remove()
     element = undefined
-    owned.release()
+    owned.dispose()
   }
   root.querySelector('[data-control=kind]')?.addEventListener(
     'change',

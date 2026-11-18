@@ -29,7 +29,7 @@ pnpm dev
 - [src/main.js](src/main.js)：创建展示框架，按能力目录选择挂载函数，切页前清理旧页面。
 - [src/chat-preview.js](src/chat-preview.js)：原生 DOM 属性赋值、事件监听与 Runtime 清理。
 - [src/demos/](src/demos/)：六个独立能力页，返回各自的清理函数。
-- [src/runtime.js](src/runtime.js)：从稳定入口创建本地 Runtime，卸载时中止请求并停止本示例创建的 effect scope。
+- [src/runtime.js](src/runtime.js)：通过 `createChatRuntime()` 创建本地 Runtime，卸载时调用 `dispose()` 统一释放。
 - [共享展示框架](../web-component-shared/README.md)：布局、导航、能力目录、地址处理和共享数据。
 
 布局模式切换会重新创建聊天组件，以保持浮窗从创建起受控；当前对话会清空。事件面板显示 DOM 事件名和参数数组，例如 `ready []`、`floating-state-update [{...}]`。

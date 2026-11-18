@@ -1,12 +1,36 @@
-import { computed, ref, watch, WatchStopHandle } from 'vue'
+import { computed, effectScope, onScopeDispose, ref, watch, WatchStopHandle, type EffectScope } from 'vue'
 import { localStorageStrategyFactory } from '../../storage/factories'
 import { ChatMessage } from '../../types'
 import { UseMessageOptions, UseMessagePlugin, UseMessageReturn } from '../message/types'
-import { useMessage } from '../message/useMessage'
+import { useOwnedMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 import { useThrottleFn } from './useThrottleFn'
 
-export const useConversation = (options: UseConversationOptions): UseConversationReturn => {
+export const useConversation = (
+  options: UseConversationOptions,
+): UseConversationReturn & { dispose(): Promise<void> } => {
+  let disposed = false
+  let closing: Promise<void> | undefined
+  const assertActive = () => {
+    if (disposed) throw new Error('Conversation has been disposed.')
+  }
+  const engineScopes = new Map<string, EffectScope>()
+  const pendingTurns = new Set<Promise<unknown>>()
+  const activeTurns = new Map<string, number>()
+  const trackTurn = <T>(id: string, operation: () => Promise<T>): Promise<T> => {
+    assertActive()
+    const pending = operation()
+    activeTurns.set(id, (activeTurns.get(id) ?? 0) + 1)
+    pendingTurns.add(pending)
+    const done = () => {
+      pendingTurns.delete(pending)
+      const remaining = (activeTurns.get(id) ?? 1) - 1
+      if (remaining) activeTurns.set(id, remaining)
+      else activeTurns.delete(id)
+    }
+    void pending.then(done, done)
+    return pending
+  }
   // 如果没有提供存储策略，使用默认的 LocalStorage 策略
   const storage = options.storage || localStorageStrategyFactory()
   /**
@@ -89,6 +113,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   }
 
   const saveMessages = async (id?: string): Promise<void> => {
+    assertActive()
     if (!storage?.saveMessages) return
     const conversationId = id || activeConversationId.value
 
@@ -116,7 +141,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     const throttleTime = options.autoSaveThrottle ?? 1000
     const throttledSave = useThrottleFn(
       () => {
-        saveMessages(id)
+        void saveMessages(id).catch((error) => console.error('[useConversation] save messages failed:', error))
       },
       throttleTime,
       true, // trailing: 在节流周期结束时执行
@@ -127,6 +152,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     const stopMessageWatcher = watch(engine.messages, throttledSave, { deep: true })
     watchers.set(id, () => {
       stopMessageWatcher()
+      throttledSave.cancel()
     })
   }
 
@@ -147,10 +173,31 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       onTurnPause: (context) => saveConversationMessages(id, context.getState().messages),
     }
 
-    return useMessage({
-      ...messageOptions,
-      plugins: options.autoSaveMessages ? [pausePersistencePlugin, ...plugins] : plugins,
-    })
+    const scope = effectScope(true)
+    const lifetime = new AbortController()
+    try {
+      const engine = scope.run(() => {
+        onScopeDispose(() => lifetime.abort())
+        return useOwnedMessage(
+          {
+            ...messageOptions,
+            plugins: options.autoSaveMessages ? [pausePersistencePlugin, ...plugins] : plugins,
+          },
+          lifetime.signal,
+        )
+      })!
+      engineScopes.get(id)?.stop()
+      engineScopes.set(id, scope)
+      return {
+        ...engine,
+        send: (...args) => trackTurn(id, () => engine.send(...args)),
+        sendMessage: (...args) => trackTurn(id, () => engine.sendMessage(...args)),
+        dispatchCommand: (...args) => trackTurn(id, () => engine.dispatchCommand(...args)),
+      }
+    } catch (error) {
+      scope.stop()
+      throw error
+    }
   }
 
   /**
@@ -159,6 +206,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   if (storage?.loadConversations) {
     Promise.resolve(storage.loadConversations())
       .then((list) => {
+        if (disposed) return
         // 存储为空时仍返回加载期间创建的内存会话
         if (!list?.length) {
           return conversations.value
@@ -188,7 +236,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
         return conversations.value
       })
       .then((loadedList) => {
-        options.onLoad?.(loadedList)
+        if (!disposed && loadedList) options.onLoad?.(loadedList)
       })
       .catch((error) => {
         console.error('[useConversation] loadConversations failed:', error)
@@ -200,6 +248,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * If not, it will be created using stored messages (when storage is available).
    */
   const ensureEngine = async (id: string, overrideOptions?: UseMessageOptions): Promise<UseMessageReturn> => {
+    assertActive()
     const existing = workingEngines.get(id)
     if (existing) return existing
 
@@ -214,6 +263,9 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       }
     }
 
+    assertActive()
+    const loadedEngine = workingEngines.get(id)
+    if (loadedEngine) return loadedEngine
     const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
       ...overrideOptions,
@@ -239,6 +291,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     metadata?: Record<string, unknown>
     useMessageOptions?: Partial<UseMessageOptions>
   }): Conversation => {
+    assertActive()
     const { id = generateId(), title, metadata, useMessageOptions } = params || {}
 
     const now = Date.now()
@@ -268,14 +321,19 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     return activeConversation.value!
   }
 
-  const clearInactiveEngines = (options?: { excludeId?: string }) => {
-    const { excludeId } = options || {}
+  const clearInactiveEngines = (cleanupOptions?: { excludeId?: string }) => {
+    const { excludeId } = cleanupOptions || {}
 
     workingEngines.forEach((engine, key) => {
       if (excludeId && key === excludeId) return
 
-      if (engine.canStartTurn.value) {
+      if (engine.canStartTurn.value && !activeTurns.has(key)) {
+        // Preserve the latest auto-saved state before cancelling its trailing timer.
+        if (options.autoSaveMessages)
+          void saveMessages(key).catch((error) => console.error('[useConversation] save messages failed:', error))
         stopAutoSave(key)
+        engineScopes.get(key)?.stop()
+        engineScopes.delete(key)
         workingEngines.delete(key)
       }
     })
@@ -285,6 +343,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Switch active conversation by id.
    */
   const switchConversation = async (id: string): Promise<Conversation | null> => {
+    assertActive()
     if (!id) return null
 
     if (activeConversationId.value === id) return activeConversation.value
@@ -294,6 +353,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     // Ensure active conversation has an engine (lazy creation from storage).
     await ensureEngine(id)
+    assertActive()
 
     // Cleanup engines that are not active and not processing.
     // This helps to release memory for engines that are no longer in use.
@@ -308,15 +368,19 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Close a conversation and optionally fall back to another one.
    */
   const deleteConversation = async (id: string) => {
+    assertActive()
     const idx = conversations.value.findIndex((c) => c.id === id)
     if (idx === -1) return
 
     // Abort running request when closing this conversation.
     const engine = workingEngines.get(id)
     await engine?.abortRequest()
+    assertActive()
 
     // Stop auto-save watcher before removing engine
     stopAutoSave(id)
+    engineScopes.get(id)?.stop()
+    engineScopes.delete(id)
     workingEngines.delete(id)
 
     conversations.value.splice(idx, 1)
@@ -341,12 +405,19 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Clear all conversations and their messages.
    */
   const clear = () => {
+    assertActive()
     const ids = conversations.value.map((c) => c.id)
     ids.forEach((id) => {
       storage?.deleteConversation?.(id)
     })
-    workingEngines.forEach((engine) => {
-      engine.abortRequest()
+    workingEngines.forEach((engine, id) => {
+      const scope = engineScopes.get(id)
+      void engine
+        .abortRequest()
+        .finally(() => scope?.stop())
+        .catch((error) => {
+          console.error('[useConversation] abort failed:', error)
+        })
     })
     watchers.forEach((watcher) => {
       watcher()
@@ -354,6 +425,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     conversations.value = []
     workingEngines.clear()
     watchers.clear()
+    engineScopes.clear()
     activeConversationId.value = null
   }
 
@@ -361,6 +433,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Update conversation title and persist it via storage.
    */
   const updateConversationTitle = (id: string, title?: string) => {
+    assertActive()
     const info = conversations.value.find((c) => c.id === id)
     if (!info) return
 
@@ -376,7 +449,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   /**
    * Convenience method: send message to active conversation.
    */
-  const sendMessage = (content: string): Promise<void> => {
+  const sendMessage = async (content: string): Promise<void> => {
+    assertActive()
     return activeConversation.value?.engine.sendMessage(content) ?? Promise.resolve()
   }
 
@@ -387,7 +461,45 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     await activeConversation.value?.engine.abortRequest()
   }
 
+  const dispose = (): Promise<void> => {
+    if (closing) return closing
+    disposed = true
+    watchers.forEach((stop) => stop())
+    watchers.clear()
+    const engines = [...workingEngines]
+    closing = Promise.resolve().then(async () => {
+      const failures: unknown[] = []
+      try {
+        const stopped = await Promise.allSettled(engines.map(([, engine]) => engine.abortRequest()))
+        stopped.forEach((result) => {
+          if (result.status === 'rejected') failures.push(result.reason)
+        })
+        // A turn can still be running asynchronous plugin hooks after its request state changes.
+        await Promise.allSettled([...pendingTurns])
+        engineScopes.forEach((scope) => scope.stop())
+        if (options.autoSaveMessages) {
+          const saved = await Promise.allSettled(
+            engines.map(([id, engine]) => saveConversationMessages(id, engine.messages.value)),
+          )
+          saved.forEach((result) => {
+            if (result.status === 'rejected') failures.push(result.reason)
+          })
+        }
+        const pending = await Promise.allSettled([...persistenceQueues.values()])
+        pending.forEach((result) => {
+          if (result.status === 'rejected') failures.push(result.reason)
+        })
+      } finally {
+        engineScopes.forEach((scope) => scope.stop())
+        engineScopes.clear()
+      }
+      if (failures.length) throw Object.assign(new Error('Conversation disposal failed.'), { errors: failures })
+    })
+    return closing
+  }
+
   return {
+    dispose,
     conversations,
     activeConversationId,
     activeConversation,

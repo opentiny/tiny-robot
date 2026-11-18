@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
@@ -10,6 +10,28 @@ import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
 
 describe('useMessage', () => {
+  it('can finish aborting an existing request after its Vue scope stops', async () => {
+    let signal: AbortSignal | undefined
+    const scope = effectScope()
+    const message = scope.run(() =>
+      useMessage({
+        responseProvider: (_body, abortSignal) =>
+          new Promise<never>((_resolve, reject) => {
+            signal = abortSignal
+            abortSignal.addEventListener('abort', () => reject(new DOMException('Stopped', 'AbortError')), {
+              once: true,
+            })
+          }),
+      }),
+    )!
+    const sending = message.sendMessage('问题').catch(() => {})
+    await vi.waitFor(() => expect(signal).toBeDefined())
+    scope.stop()
+    await message.abortRequest()
+    await sending
+    expect(signal?.aborted).toBe(true)
+    expect(message.requestState.value).toBe('aborted')
+  })
   it('uses the core vue adapter while keeping the original return shape', async () => {
     const engine = useMessage({
       initialMessages: [{ role: 'system', content: 'hello' }],

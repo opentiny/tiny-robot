@@ -1,3 +1,4 @@
+import '../runtime/browserRuntimeFlags'
 import './web-component.css'
 export { defineTrChatElements, TrChatElement, TrChatUIElement } from './register'
 export { whenTrChatReady } from './readiness'

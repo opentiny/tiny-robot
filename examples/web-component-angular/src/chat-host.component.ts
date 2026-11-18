@@ -27,6 +27,6 @@ export class ChatHostComponent {
   readonly elementEvent = output<Event>()
   readonly owned = createLocalRuntime()
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.owned.release())
+    inject(DestroyRef).onDestroy(() => this.owned.dispose())
   }
 }
