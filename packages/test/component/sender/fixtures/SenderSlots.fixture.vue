@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, unref } from 'vue'
+import { ref } from 'vue'
 import { EditorContent as TiptapEditorContent } from '@tiptap/vue-3'
 import Sender from '../../../../components/src/sender/index.vue'
 import type { InputMode } from '../../../../components/src/sender/index.type'
@@ -29,7 +29,7 @@ const record = (valueToRecord: string) => {
       </template>
       <template #content="{ editor }">
         <div class="content-slot" data-testid="content-slot">
-          <TiptapEditorContent v-if="unref(editor)" :editor="unref(editor)" />
+          <TiptapEditorContent v-if="editor" :editor="editor" />
         </div>
       </template>
       <template #actions-inline="{ insert, append, replace, focus, blur, disabled, loading, hasContent }">

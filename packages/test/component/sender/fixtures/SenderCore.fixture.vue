@@ -45,6 +45,7 @@ const currentLoading = ref(props.loading)
 const currentDefaultActions = ref<DefaultActions | undefined>(props.defaultActions)
 const externalValue = ref('外部更新')
 const replacementDefaultValue = ref('后续默认值')
+const synchronousContent = ref('')
 const eventCounts = ref({ update: 0, input: 0, submit: 0, focus: 0, blur: 0, clear: 0, cancel: 0 })
 const lastSubmit = ref('[]')
 const lastAction = ref('')
@@ -70,6 +71,11 @@ const updateDefaultValue = () => {
 
 const setExternalValue = () => {
   currentValue.value = externalValue.value
+}
+
+const setContentAndSubmit = () => {
+  senderRef.value?.setContent(synchronousContent.value)
+  senderRef.value?.submit()
 }
 
 const toggleSubmitDisabled = () => {
@@ -131,6 +137,10 @@ const callMethod = (name: 'focus' | 'blur' | 'clear' | 'submit' | 'cancel' | 'se
         toggle submit disabled
       </button>
       <button data-testid="call-set-content" type="button" @click="callMethod('setContent')">setContent</button>
+      <input data-testid="synchronous-content" v-model="synchronousContent" />
+      <button data-testid="set-content-and-submit" type="button" @click="setContentAndSubmit">
+        set content and submit
+      </button>
       <button data-testid="call-get-content" type="button" @click="callMethod('getContent')">getContent</button>
       <button data-testid="call-focus" type="button" @click="callMethod('focus')">focus</button>
       <button data-testid="call-blur" type="button" @click="callMethod('blur')">blur</button>

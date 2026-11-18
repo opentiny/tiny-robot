@@ -102,6 +102,22 @@ test.describe('Sender core public contract', () => {
     await expect(editor).toHaveText('plain')
   })
 
+  for (const scenario of [
+    { name: 'empty to valid', initial: '', content: 'a', count: '1', payload: '["a",null]' },
+    { name: 'valid to over limit', initial: 'a', content: 'long', count: '0', payload: '[]' },
+    { name: 'valid to empty', initial: 'a', content: '', count: '0', payload: '[]' },
+  ]) {
+    test(`synchronous setContent and submit validates ${scenario.name}`, async ({ mount }) => {
+      const component = await mount(SenderCoreFixture, { props: { maxLength: 2, modelValue: scenario.initial } })
+      await expect(component.getByTestId('sender-root').locator('.ProseMirror')).toHaveText(scenario.initial)
+
+      await component.getByTestId('synchronous-content').fill(scenario.content)
+      await component.getByTestId('set-content-and-submit').click()
+      await expect(component.getByTestId('submit-count')).toHaveText(scenario.count)
+      await expect(component.getByTestId('last-submit')).toHaveText(scenario.payload)
+    })
+  }
+
   test('CORE-10 exposes setContent and getContent', async ({ mount }) => {
     const component = await mount(SenderCoreFixture)
 

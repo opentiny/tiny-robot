@@ -48,7 +48,9 @@ test.describe('Sender editor behavior', () => {
     await editor.click()
     await dispatchPaste(editor, 'first\nsecond')
     await expect(editor).toHaveText('first second')
-    await expect(component.getByTestId('model-value')).toHaveText('first second')
+    await expect
+      .poll(() => component.getByTestId('model-value').evaluate((element) => element.textContent))
+      .toBe('first second')
   })
 
   test('EDITOR-05 preserves pasted line breaks in multiple mode', async ({ mount }) => {
@@ -57,7 +59,9 @@ test.describe('Sender editor behavior', () => {
 
     await editor.click()
     await dispatchPaste(editor, 'first\r\nsecond')
-    await expect(component.getByTestId('model-value')).toHaveText('first\nsecond')
+    await expect
+      .poll(() => component.getByTestId('model-value').evaluate((element) => element.textContent))
+      .toBe('first\nsecond')
   })
 
   test('EDITOR-06 prefers clipboard text/plain when HTML is also present', async ({ mount }) => {

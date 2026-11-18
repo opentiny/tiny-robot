@@ -19,7 +19,7 @@ test.describe('Sender public slots', () => {
     await expect(slot.locator('.ProseMirror')).toHaveText('slot content')
   })
 
-  test('SLOT-03 renders actions-inline only in single mode', async ({ mount }) => {
+  test('SLOT-03 renders actions-inline with scoped state in single mode', async ({ mount }) => {
     const component = await mount(SenderSlotsFixture, { props: { mode: 'single' } })
 
     await expect(component.getByTestId('actions-inline-slot')).toBeVisible()
@@ -33,7 +33,10 @@ test.describe('Sender public slots', () => {
 
     await expect(component.getByTestId('header-slot')).toBeVisible()
     await expect(component.getByTestId('prefix-slot')).toBeVisible()
-    await expect(component.getByTestId('content-slot').locator('.ProseMirror')).toBeVisible()
+    const editor = component.getByTestId('content-slot').locator('.ProseMirror')
+    await expect(editor).toBeVisible()
+    await editor.pressSequentially('multiple slot content')
+    await expect(editor).toHaveText('multiple slot content')
     await expect(component.getByTestId('actions-inline-slot')).toBeVisible()
   })
 
@@ -42,6 +45,22 @@ test.describe('Sender public slots', () => {
 
     await expect(component.getByTestId('footer-slot')).toBeVisible()
     await expect(component.getByTestId('footer-scope-state')).toHaveText('false|false|false')
+    const editor = component.getByTestId('content-slot').locator('.ProseMirror')
+
+    await component.getByTestId('footer-insert').click()
+    await expect.poll(() => editor.textContent()).toBe('footer-insert ')
+    await expect(component.getByTestId('footer-scope-state')).toHaveText('false|false|true')
+    await expect(component.getByTestId('scope-state')).toHaveText('false|false|true')
+    await component.getByTestId('insert-action').click()
+    await expect.poll(() => editor.textContent()).toBe('footer-insert inserted ')
+    await component.getByTestId('footer-append').click()
+    await expect.poll(() => editor.textContent()).toBe('footer-insert inserted footer-append')
+    await component.getByTestId('footer-replace').click()
+    await expect(editor).toHaveText('footer-replace')
+    await component.getByTestId('footer-focus').click()
+    await expect(editor).toBeFocused()
+    await component.getByTestId('footer-blur').dispatchEvent('click')
+    await expect(editor).not.toBeFocused()
   })
 
   test('SLOT-06 renders footer-right in the public multiple layout', async ({ mount }) => {
@@ -66,7 +85,7 @@ test.describe('Sender public slots', () => {
     await expect(editor).toHaveText('replaced')
     await component.getByTestId('focus-action').click()
     await expect(editor).toBeFocused()
-    await component.getByTestId('blur-action').click()
+    await component.getByTestId('blur-action').dispatchEvent('click')
     await expect(editor).not.toBeFocused()
   })
 })

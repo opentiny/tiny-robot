@@ -250,11 +250,11 @@ Sender 提供了多个插槽位置，方便扩展功能。`header` 和 `prefix` 
 - **`footer-right`** - 底部右侧区域，可添加操作按钮
 
 :::tip 插槽作用域
-`actions-inline`、`footer` 和 `footer-right` 使用相同的 `SenderSlotScope`：`editor`、`insert`、`append`、`replace`、`focus`、`blur`、`disabled`、`loading`、`hasContent`。这些插槽提供的操作和状态可用于实现自定义功能按钮。
+`actions-inline`、`footer` 和 `footer-right` 使用相同的 `SenderSlotScope`：`editor`、`insert`、`append`、`replace`、`focus`、`blur`、`disabled`、`loading`、`hasContent`。`insert(text)` 会在当前光标位置插入文本、补一个尾随空格并聚焦编辑器；`append(text)` 会在末尾追加文本且不补空格。
 
 `header` 内容为空时不显示顶部留白和分隔线。条件显示时，请在插槽声明或直接子节点上使用 `v-if`；使用 `v-show` 或仅在子组件内部隐藏内容仍可能占位。
 
-`content` 插槽提供 `editor`；`insert(text)` 在当前光标位置插入文本并补一个空格，然后聚焦编辑器。
+`content` 插槽只提供 `editor`。在多行模式下，`editor` 是 `Editor | undefined`，与单行模式的插槽契约一致；若此前使用 `editor.value`，请改为直接使用 `editor`。
 :::
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
@@ -490,15 +490,15 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 #### Sender Slots
 
-| 插槽名           | 用途                                 | 作用域参数            |
-| ---------------- | ------------------------------------ | --------------------- |
-| `header`         | 在输入区域上方添加内容               | —                     |
-| `prefix`         | 在编辑器左侧添加内容                 | —                     |
-| `input-prefix`    | 多行模式首行前置插槽                   | —                     |
-| `content`        | 完全替换默认编辑器内容               | `{ editor: Editor \| undefined }` |
-| `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`      |
-| `footer`         | 在多行模式底部左侧添加内容           | `SenderSlotScope`      |
-| `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | `SenderSlotScope`      |
+| 插槽名           | 用途                                             | 作用域参数                        |
+| ---------------- | ------------------------------------------------ | --------------------------------- |
+| `header`         | 在输入区域上方添加内容                           | —                                 |
+| `prefix`         | 在编辑器左侧添加内容                             | —                                 |
+| `input-prefix`   | 多行模式首行前置插槽                             | —                                 |
+| `content`        | 完全替换默认编辑器内容                           | `{ editor: Editor \| undefined }` |
+| `actions-inline` | 在默认操作按钮前添加内容，多行模式下移至底部右侧 | `SenderSlotScope`                 |
+| `footer`         | 在多行模式底部左侧添加内容                       | `SenderSlotScope`                 |
+| `footer-right`   | 在多行模式底部默认操作按钮前添加内容             | `SenderSlotScope`                 |
 
 #### ActionButton Slots
 

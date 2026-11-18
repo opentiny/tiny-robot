@@ -63,10 +63,14 @@ export function useModeSwitch(
   const setMode = (mode: InputMode) => {
     if (currentMode.value === mode) return
 
-    const activeElement =
-      editor.value?.view.dom.getRootNode() instanceof ShadowRoot
-        ? (editor.value.view.dom.getRootNode() as ShadowRoot).activeElement
-        : editor.value?.view.dom.ownerDocument.activeElement
+    const getActiveElement = () => {
+      const dom = editor.value?.view.dom
+      if (!dom) return null
+      const root = dom.getRootNode()
+      return root instanceof ShadowRoot ? root.activeElement : dom.ownerDocument.activeElement
+    }
+
+    const activeElement = getActiveElement()
     const restoreEditorFocus = Boolean(
       editor.value?.isFocused || (activeElement && editorRef.value?.contains(activeElement)),
     )
@@ -77,9 +81,7 @@ export function useModeSwitch(
     nextTick(() => {
       if (disposed) return
       if (editor.value && !editor.value.isDestroyed) {
-        const root = editor.value.view.dom.getRootNode()
-        const currentActiveElement =
-          root instanceof ShadowRoot ? root.activeElement : editor.value.view.dom.ownerDocument.activeElement
+        const currentActiveElement = getActiveElement()
         const focusWasNotMovedOutside =
           !currentActiveElement ||
           currentActiveElement === editor.value.view.dom.ownerDocument.body ||

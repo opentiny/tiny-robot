@@ -69,7 +69,9 @@ test.describe('Sender action children', () => {
     await expect(component.getByTestId('voice-events')).toHaveText('["start","end"]')
   })
 
-  test('CHILD-07 inserts final speech text by default and honors autoInsert=false', async ({ mount }) => {
+  test('CHILD-07 inserts final speech text by default and honors autoInsert=false on a new recording', async ({
+    mount,
+  }) => {
     const component = await mount(SenderActionsFixture)
     const button = voiceButton(component)
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')
@@ -77,13 +79,18 @@ test.describe('Sender action children', () => {
     await button.click()
     await component.getByTestId('emit-voice-final').click()
     await expect(editor).toHaveText('语音结果 ')
+    await button.click()
+    await expect(component.getByTestId('voice-events')).toHaveText('["start","final:语音结果","end"]')
     await component.getByTestId('toggle-auto-insert').click()
     await editor.press('ControlOrMeta+A')
     await editor.press('Backspace')
     await button.click()
+    await expect(component.getByTestId('voice-events')).toHaveText('["start","final:语音结果","end","start"]')
     await component.getByTestId('emit-voice-final').click()
     await expect(editor).toHaveText('')
-    await expect(component.getByTestId('voice-events')).toContainText('final:语音结果')
+    await expect(component.getByTestId('voice-events')).toHaveText(
+      '["start","final:语音结果","end","start","final:语音结果"]',
+    )
   })
 
   test('CHILD-08 honors speech interception and unload cleanup', async ({ mount }) => {
