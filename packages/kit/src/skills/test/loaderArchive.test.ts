@@ -1,6 +1,7 @@
 import { deflateRawSync, gzipSync } from 'node:zlib'
-import { describe, expect, it } from 'vitest'
-import { loadSkill } from '../loader'
+import { readFile } from 'node:fs/promises'
+import { describe, expect, it, vi } from 'vitest'
+import { loadSkill, loadSkillWithDetails } from '../loader'
 
 const createZip = (entries: Record<string, string>, method: 0 | 8 = 8) => {
   const localParts: Uint8Array[] = []
@@ -78,7 +79,6 @@ const createTar = (entries: Record<string, string>) => {
   for (const [path, content] of Object.entries(entries)) {
     const data = encoder.encode(content)
     const header = new Uint8Array(512)
-    const view = new DataView(header.buffer)
     const write = (offset: number, length: number, value: string) =>
       header.set(encoder.encode(value).subarray(0, length), offset)
     const octal = (offset: number, length: number, value: number) =>
@@ -111,6 +111,134 @@ const createTar = (entries: Record<string, string>) => {
 }
 
 describe('archive skill loader', () => {
+  it('rejects ZIP symbolic links before loading resources', async () => {
+    const bytes = new Uint8Array(await createZip({ 'SKILL.md': skillMd }).arrayBuffer())
+    const view = new DataView(bytes.buffer)
+    const centralOffset = view.getUint32(bytes.length - 6, true)
+    view.setUint32(centralOffset + 38, 0xa1ff0000, true)
+    await expect(loadSkill({ source: 'archive', file: new File([bytes], 'skill.zip') })).rejects.toThrow(
+      'symbolic links',
+    )
+  })
+
+  it('stops reading when actual decompressed output exceeds the limit', async () => {
+    const cancel = vi.fn()
+    const pull = vi.fn((controller: ReadableStreamDefaultController<Uint8Array>) => {
+      controller.enqueue(new Uint8Array(skillMd.length + 1))
+    })
+    const stream = new ReadableStream<Uint8Array>({ pull, cancel }, { highWaterMark: 0 })
+    const pipe = vi.spyOn(ReadableStream.prototype, 'pipeThrough').mockReturnValue(stream)
+    try {
+      await expect(
+        loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }), maxUncompressedSize: skillMd.length }),
+      ).rejects.toThrow('limit')
+      expect(cancel).toHaveBeenCalledOnce()
+      expect(pull).toHaveBeenCalledOnce()
+    } finally {
+      pipe.mockRestore()
+    }
+  })
+
+  it.each(['maxArchiveSize', 'maxUncompressedSize', 'maxFileCount'] as const)(
+    'rejects invalid %s values',
+    async (option) => {
+      for (const value of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+        await expect(
+          loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }), [option]: value }),
+        ).rejects.toThrow('non-negative safe integer')
+      }
+    },
+  )
+  it.each([
+    'root-stored.zip',
+    'root-deflate.zip',
+    'wrapped-stored.zip',
+    'wrapped-deflate.zip',
+    'root.tar',
+    'root.tar.gz',
+  ])('loads independently generated archive %s with directories and exact resource content', async (name) => {
+    const bytes = await readFile(new URL(`./fixtures/archives/${name}`, import.meta.url))
+    const { skill, warnings } = await loadSkillWithDetails({ source: 'archive', file: new File([bytes], name) })
+    expect(skill.name).toBe('archive-skill')
+    expect(warnings).toEqual([])
+    expect(skill.resources).toHaveLength(3)
+    const guide = skill.resources?.find((resource) => resource.path === 'references/说明.md')
+    await expect(guide?.readText?.()).resolves.toBe('# 使用说明')
+    const icon = skill.resources?.find((resource) => resource.path === 'assets/icon.bin')
+    await expect(icon?.readBinary?.()).resolves.toEqual(new Uint8Array([0, 128, 255, 1]))
+    expect(skill.resources?.some((resource) => resource.path === '.hidden.txt')).toBe(true)
+  })
+
+  it.each(['zip', 'tgz'])('cancels the underlying %s decompression reader while a read is pending', async (format) => {
+    const file =
+      format === 'zip'
+        ? createZip({ 'SKILL.md': skillMd })
+        : new File([gzipSync(createTar({ 'SKILL.md': skillMd }))], 'skill.tgz')
+    let started!: () => void
+    const reading = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    const cancel = vi.fn()
+    const stream = new ReadableStream<Uint8Array>(
+      {
+        pull() {
+          started()
+        },
+        cancel,
+      },
+      { highWaterMark: 0 },
+    )
+    const pipe = vi.spyOn(ReadableStream.prototype, 'pipeThrough').mockReturnValue(stream)
+    try {
+      const job = loadSkill({ source: 'archive', file })
+      const rejected = expect(job).rejects.toMatchObject({ name: 'SkillLoadCancelledError' })
+      await reading
+      job.cancel()
+      await rejected
+      expect(cancel).toHaveBeenCalledOnce()
+    } finally {
+      pipe.mockRestore()
+    }
+  })
+
+  it.each(['../SKILL.md', '/SKILL.md', 'C:/SKILL.md', 'bad\0/SKILL.md'])(
+    'rejects unsafe archive path %s',
+    async (path) => {
+      await expect(loadSkill({ source: 'archive', file: createZip({ [path]: skillMd }) })).rejects.toThrow(
+        'Invalid path',
+      )
+    },
+  )
+
+  it('normalizes dot segments and rejects colliding resource paths', async () => {
+    await expect(
+      loadSkill({
+        source: 'archive',
+        file: createZip({ 'SKILL.md': skillMd, 'refs/./a.txt': 'a', 'refs/a.txt': 'b' }),
+      }),
+    ).rejects.toThrow('Duplicate path')
+  })
+
+  it('rejects an unrelated empty directory beside the wrapper', async () => {
+    await expect(
+      loadSkill({ source: 'archive', file: createZip({ 'package/SKILL.md': skillMd, 'unrelated/': '' }) }),
+    ).rejects.toThrow('Invalid skill archive structure')
+  })
+
+  it('rejects a corrupt stored payload by its actual CRC', async () => {
+    const bytes = new Uint8Array(await createZip({ 'SKILL.md': skillMd }, 0).arrayBuffer())
+    bytes[38] ^= 1
+    await expect(loadSkill({ source: 'archive', file: new File([bytes], 'skill.zip') })).rejects.toThrow(
+      'Invalid checksum for ZIP entry',
+    )
+  })
+
+  it('rejects a truncated archive', async () => {
+    const bytes = await createZip({ 'SKILL.md': skillMd }).arrayBuffer()
+    await expect(loadSkill({ source: 'archive', file: new File([bytes.slice(0, -8)], 'skill.zip') })).rejects.toThrow(
+      'Invalid ZIP',
+    )
+  })
   it.each([0, 8] as const)('loads ZIP compression method %i and strips one package root', async (method) => {
     const skill = await loadSkill({
       source: 'archive',
@@ -141,6 +269,135 @@ describe('archive skill loader', () => {
     await expect(
       loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }), maxUncompressedSize: 2 }),
     ).rejects.toThrow('expands beyond')
+  })
+
+  it('applies archive and file-count limits independently', async () => {
+    const archive = createZip({ 'SKILL.md': skillMd, 'refs/a.md': 'A', 'refs/b.md': 'B' })
+    await expect(loadSkill({ source: 'archive', file: archive, maxArchiveSize: archive.size })).resolves.toBeTruthy()
+    await expect(loadSkill({ source: 'archive', file: archive, maxArchiveSize: archive.size - 1 })).rejects.toThrow(
+      'file is too large',
+    )
+    await expect(loadSkill({ source: 'archive', file: archive, maxFileCount: 3 })).resolves.toBeTruthy()
+    await expect(loadSkill({ source: 'archive', file: archive, maxFileCount: 2 })).rejects.toThrow('more than 2 files')
+  })
+
+  it('accepts exact uncompressed size and file-count boundaries', async () => {
+    const contents = { 'SKILL.md': skillMd, 'refs/a.md': 'A' }
+    const archive = createZip(contents)
+    const exactSize = Object.values(contents).reduce(
+      (size, value) => size + new TextEncoder().encode(value).byteLength,
+      0,
+    )
+    await expect(
+      loadSkill({ source: 'archive', file: archive, maxUncompressedSize: exactSize, maxFileCount: 2 }),
+    ).resolves.toBeTruthy()
+  })
+
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid archive limits: %s',
+    async (limit) => {
+      await expect(
+        loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }), maxArchiveSize: limit }),
+      ).rejects.toThrow('maxArchiveSize must be a non-negative safe integer')
+    },
+  )
+
+  it('rejects oversized files before reading their contents', async () => {
+    const archive = createZip({ 'SKILL.md': skillMd })
+    let readAttempted = false
+    const unreadyFile = Object.create(Object.getPrototypeOf(archive), {
+      name: { value: 'skill.zip' },
+      size: { value: archive.size },
+      arrayBuffer: {
+        value: () => {
+          readAttempted = true
+          return archive.arrayBuffer()
+        },
+      },
+    }) as File
+    await expect(loadSkill({ source: 'archive', file: unreadyFile, maxArchiveSize: 0 })).rejects.toThrow(
+      'file is too large',
+    )
+    expect(readAttempted).toBe(false)
+  })
+
+  it('filters system metadata before charging size and file-count limits', async () => {
+    const skill = await loadSkill({
+      source: 'archive',
+      file: createZip({ 'SKILL.md': skillMd, '.DS_Store': 'ignored', '__MACOSX/junk': 'ignored', '.keep': 'kept' }),
+      maxFileCount: 2,
+      maxUncompressedSize: new TextEncoder().encode(skillMd).length + 4,
+    })
+    expect(skill.resources?.map((resource) => resource.path)).toEqual(['.keep'])
+  })
+
+  it('returns the same skill content as an equivalent browser file list', async () => {
+    const archive = await loadSkillWithDetails({
+      source: 'archive',
+      file: createZip({
+        'package/SKILL.md': skillMd,
+        'package/references/guide.md': '# Guide',
+        'package/assets/raw.bin': 'binary-data',
+        'package/__MACOSX/._guide': 'ignored',
+      }),
+    })
+    const browser = await loadSkillWithDetails({
+      source: 'browser',
+      fileList: [
+        new File([skillMd], 'SKILL.md'),
+        Object.assign(new File(['# Guide'], 'guide.md'), { webkitRelativePath: 'package/references/guide.md' }),
+        Object.assign(new File([new TextEncoder().encode('binary-data')], 'raw.bin'), {
+          webkitRelativePath: 'package/assets/raw.bin',
+        }),
+      ],
+    })
+    const summarize = (skill: typeof archive.skill) => ({
+      name: skill.name,
+      description: skill.description,
+      instructions: skill.instructions,
+      resources: skill.resources?.map((resource) => ({
+        path: resource.path,
+        kind: resource.kind,
+        text: resource.text,
+        binary: resource.binary ? Array.from(resource.binary) : undefined,
+      })),
+    })
+    expect(summarize(archive.skill)).toEqual(summarize(browser.skill))
+    expect(archive.warnings).toEqual(browser.warnings)
+  })
+
+  it('cancels archive entry loading through the returned load job', async () => {
+    const job = loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }) })
+    job.cancel()
+    await expect(job).rejects.toMatchObject({ name: 'SkillLoadCancelledError' })
+  })
+
+  it('requires root SKILL.md or one single wrapper directory', async () => {
+    const wrapped = await loadSkill({ source: 'archive', file: createZip({ '套件/SKILL.md': skillMd }) })
+    expect(wrapped.name).toBe('archive-skill')
+    await expect(
+      loadSkill({ source: 'archive', file: createZip({ 'a/SKILL.md': skillMd, 'b/x': 'x' }) }),
+    ).rejects.toThrow('Invalid skill archive structure')
+    await expect(loadSkill({ source: 'archive', file: createZip({ 'a/b/SKILL.md': skillMd }) })).rejects.toThrow(
+      'Invalid skill archive structure',
+    )
+  })
+
+  it('rejects duplicate paths and explicitly rejects ZIP64 sentinels', async () => {
+    const duplicated = createZip({ 'SKILL.md': skillMd, 'refs/abc': 'x' })
+    const duplicateBytes = new Uint8Array(await duplicated.arrayBuffer())
+    const duplicateView = new DataView(duplicateBytes.buffer)
+    const centralOffset = duplicateView.getUint32(duplicateBytes.length - 6, true)
+    const firstNameLength = duplicateView.getUint16(centralOffset + 28, true)
+    const secondCentralOffset = centralOffset + 46 + firstNameLength
+    duplicateBytes.set(new TextEncoder().encode('SKILL.md'), secondCentralOffset + 46)
+    await expect(loadSkill({ source: 'archive', file: new File([duplicateBytes], 'skill.zip') })).rejects.toThrow(
+      'Duplicate path',
+    )
+
+    const zip64 = new Uint8Array(await createZip({ 'SKILL.md': skillMd }).arrayBuffer())
+    new DataView(zip64.buffer).setUint32(zip64.length - 6, 0xffffffff, true)
+    await expect(loadSkill({ source: 'archive', file: new File([zip64], 'skill.zip') })).rejects.toThrow('ZIP64')
   })
 
   it('rejects non-ZIP archive extensions', async () => {

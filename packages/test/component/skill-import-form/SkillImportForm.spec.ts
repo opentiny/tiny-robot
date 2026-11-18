@@ -5,6 +5,7 @@ import SkillImportFormFixture from './SkillImportForm.fixture.vue'
 
 const validSkillDirectory = path.join(import.meta.dirname, 'fixtures/valid-skill')
 const missingEntryDirectory = path.join(import.meta.dirname, 'fixtures/missing-skill')
+const archiveFixtureDirectory = path.join(import.meta.dirname, '../../../kit/src/skills/test/fixtures/archives')
 const githubUrl = 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo'
 const githubDownloadUrl = 'https://raw.githubusercontent.com/opentiny/tiny-robot/main/skills/demo/SKILL.md'
 
@@ -199,6 +200,43 @@ const dropDirectoryWhenReleased = async (dropzone: Locator, name: string) => {
 }
 
 test.describe('SkillImportForm', () => {
+  for (const name of ['root-deflate.zip', 'wrapped-deflate.zip']) {
+    test(`imports ${name} through the default Kit resolver`, async ({ mount }) => {
+      const component = await mount(SkillImportFormFixture)
+      await component.getByTestId('show-archive').click()
+      await component.getByTestId('use-default-resolver').click()
+      await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, name))
+      await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+      await component.getByRole('button', { name: '确定' }).click()
+      const output = component.getByTestId('submit-output')
+      await expect(output).toContainText('"name":"archive-skill"')
+      const definition = JSON.parse((await output.textContent())!)
+      expect(definition.instructions).toBe('# Archive skill')
+      expect(definition.resources).toHaveLength(3)
+      expect(definition.resources).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'references/说明.md', text: '# 使用说明' }),
+          expect.objectContaining({ path: 'assets/icon.bin', binary: { 0: 0, 1: 128, 2: 255, 3: 1 } }),
+        ]),
+      )
+      await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+    })
+  }
+
+  test('reports a damaged ZIP from the default Kit resolver without submitting', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'damaged.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from('damaged archive'),
+    })
+    await expect(component.getByRole('alert')).toContainText('Invalid ZIP archive')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+  })
+
   test('uses the injected resolver and emits the resolved SkillDefinition', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
 

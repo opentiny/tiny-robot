@@ -88,8 +88,12 @@ export type BrowserSkillLoadOptions = SkillLoadBaseOptions &
 export type ArchiveSkillLoadOptions = SkillLoadBaseOptions & {
   source: 'archive'
   file: File
+  /** Maximum compressed archive input size. Defaults to maxUncompressedSize + 10 MiB. */
+  maxArchiveSize?: number
   /** Maximum total uncompressed file size. Defaults to 10 MiB. */
   maxUncompressedSize?: number
+  /** Maximum number of non-directory, non-metadata files. Defaults to 10,000. */
+  maxFileCount?: number
 }
 
 export type FsSkillLoadOptions = SkillLoadBaseOptions & {
