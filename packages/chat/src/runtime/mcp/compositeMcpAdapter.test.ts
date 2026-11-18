@@ -77,6 +77,40 @@ describe('createCompositeMcpAdapter', () => {
     expect(adapter.runtime.servers.value).toEqual([])
   })
 
+  it('refreshes before attaching an adapter and keeps the composite unchanged on duplicate ids', async () => {
+    let servers: ChatMcpRuntime['servers']['value'] = []
+    const candidate: ChatMcpAdapter = {
+      runtime: {
+        servers: computed(() => servers),
+        tools: computed(() => ({})),
+        addServer: vi.fn(),
+        removeServer: vi.fn(),
+        setServerEnabled: vi.fn(),
+        setToolEnabled: vi.fn(),
+      },
+      listTools: async () => [],
+      callTool: async () => 'ok',
+      refresh: async () => {
+        servers = [{ id: 'existing', name: 'Existing', installed: true, enabled: true }]
+      },
+    }
+    const adapter = createCompositeMcpAdapter({
+      adapters: [createAdapter('existing', 'one', 'one')],
+    })
+
+    await expect(adapter.addAdapter(candidate)).rejects.toThrow('Duplicate MCP server id: existing')
+    expect(adapter.runtime.servers.value.map((server) => server.id)).toEqual(['existing'])
+  })
+
+  it('keeps the composite unchanged when an adapter refresh fails', async () => {
+    const candidate = createAdapter('remote-tools', 'search', 'remote')
+    candidate.refresh = vi.fn().mockRejectedValue(new Error('offline'))
+    const adapter = createCompositeMcpAdapter()
+
+    await expect(adapter.addAdapter(candidate)).rejects.toThrow('offline')
+    expect(adapter.runtime.servers.value).toEqual([])
+  })
+
   it('拒绝添加重复 Server ID 的 Adapter', async () => {
     const adapter = createCompositeMcpAdapter({ adapters: [createAdapter('remote-tools', 'one', 'one')] })
 
@@ -95,5 +129,10 @@ describe('createCompositeMcpAdapter', () => {
       adapter.runtime.registerMcpServer?.({ name: 'Dynamic', type: 'streamableHttp', url: 'https://mcp.example.com' }),
     ).resolves.toBe('dynamic-server')
     expect(registerMcpServer).toHaveBeenCalledOnce()
+
+    await adapter.removeAdapter('registry')
+    await expect(
+      adapter.runtime.registerMcpServer?.({ name: 'Detached', type: 'streamableHttp', url: 'https://mcp.example.com' }),
+    ).rejects.toThrow('MCP registration adapter is no longer attached')
   })
 })

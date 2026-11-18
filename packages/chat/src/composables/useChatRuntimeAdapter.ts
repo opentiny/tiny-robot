@@ -149,6 +149,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       : undefined
     const mcpView: ChatMcpView | undefined = mcp
       ? {
+          registering: pendingMcpRegistration.value,
           servers: mcp.servers.value.map((server): ChatMcpServerView => ({
             ...server,
             icon: typeof server.icon === 'string' ? server.icon : undefined,
@@ -308,7 +309,12 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   async function registerMcpServer(config: McpExtensionFormValue): Promise<string | undefined> {
     const actionRuntime = runtime.value
     const mcp = actionRuntime.composer.mcp
-    if (!mcp?.registerMcpServer || pendingMcpRegistration.value) return undefined
+    if (!mcp?.registerMcpServer) return undefined
+    if (pendingMcpRegistration.value) {
+      const error = new Error('MCP server registration is already in progress.')
+      options.onActionError({ action: 'register-mcp-server', payload: { config }, error })
+      return undefined
+    }
 
     pendingMcpRegistration.value = true
     try {
@@ -329,7 +335,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   async function setMcpServerEnabled(id: string, enabled: boolean) {
     const mcp = runtime.value.composer.mcp
     const server = mcp?.servers.value.find((item) => item.id === id)
-    if (mcp && server && server.enabled !== enabled) {
+    if (mcp && server && (server.enabled !== enabled || (enabled && server.error))) {
       await withPending(pendingMcpServerIds, id, () =>
         runAction('set-mcp-server-enabled', { serverId: id, enabled }, () => mcp.setServerEnabled(id, enabled)),
       )

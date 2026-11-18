@@ -79,10 +79,9 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const mcpAdapters = [registryAdapter, ...customMcpAdapters].filter(
     (adapter): adapter is ChatMcpAdapter => adapter !== undefined,
   )
+  const registrationAdapter = customMcpAdapters.find((adapter) => adapter.registerMcpServer) ?? registryAdapter
   const resolvedMcp =
-    mcpAdapters.length > 1
-      ? createCompositeMcpAdapter({ adapters: mcpAdapters, registrationAdapter: registryAdapter })
-      : mcpAdapters[0]
+    mcpAdapters.length > 1 ? createCompositeMcpAdapter({ adapters: mcpAdapters, registrationAdapter }) : mcpAdapters[0]
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [errorStatePlugin(), createRunConfigContextPlugin()]
 

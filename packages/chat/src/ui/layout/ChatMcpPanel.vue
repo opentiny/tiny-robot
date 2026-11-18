@@ -84,6 +84,7 @@ watch(
 )
 
 function openAddForm() {
+  if (props.mcp?.registering) return
   formValue.value = { name: '', type: 'sse', url: '' }
   view.value = 'add'
 }
@@ -148,6 +149,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
   <div class="chat-mcp-panel">
     <slot v-if="extensionOverlayOpen" name="extension-overlay" :active-tab-id="activeTabId" />
     <template v-else-if="view === 'list'">
+      <p v-if="props.mcp?.registering" class="chat-mcp-panel__status" role="status">正在添加 MCP 服务…</p>
       <div class="chat-mcp-panel__manager">
         <TrExtensionManager
           v-model:active-tab="activeTabId"
@@ -164,6 +166,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
               v-if="activeTabId === CHAT_MCP_TAB_ID"
               type="button"
               class="chat-mcp-panel__action chat-mcp-panel__add"
+              :disabled="Boolean(props.mcp?.registering)"
               @click="openAddForm"
             >
               <IconPlus class="chat-mcp-panel__action-icon" aria-hidden="true" />
@@ -253,6 +256,12 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
   --tr-extension-card-grid-card-min-width: 240px;
 
   width: 100%;
+}
+
+.chat-mcp-panel__status {
+  margin: 0;
+  color: var(--tr-text-secondary);
+  font-size: 13px;
 }
 
 .chat-mcp-panel__manager :deep(.extension-manager__header-actions) {

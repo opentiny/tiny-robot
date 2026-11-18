@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type {
   ChatCompletion,
   ChatMessage,
@@ -138,6 +138,39 @@ describe('useChatRuntime MCP composition', () => {
 
     expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'custom-tools'])
     expect(runtime.composer.mcp?.tools.value).toEqual({ 'custom-tools': [{ id: 'echo', name: 'echo', enabled: true }] })
+  })
+
+  it('routes dynamic registration to a direct adapter that provides the hook', async () => {
+    const registerMcpServer = vi.fn().mockResolvedValue('custom-server')
+    const customMcp: UseChatRuntimeMcpAdapter = {
+      runtime: {
+        servers: computed(() => [{ id: 'custom-tools', name: 'Custom Tools', installed: true, enabled: true }]),
+        tools: computed(() => ({ 'custom-tools': [] })),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async () => [],
+      callTool: async () => 'ok',
+      registerMcpServer,
+    }
+    const runtime = useChatRuntime({
+      mcp: customMcp,
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: { responseProvider: async () => ({}) as ChatCompletion },
+      },
+    })
+
+    await expect(
+      runtime.composer.mcp?.registerMcpServer?.({
+        name: 'Dynamic',
+        type: 'streamableHttp',
+        url: 'https://mcp.example.com',
+      }),
+    ).resolves.toBe('custom-server')
+    expect(registerMcpServer).toHaveBeenCalledOnce()
   })
 
   it('composes a WebMCP adapter with external mcpServers', () => {

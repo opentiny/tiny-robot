@@ -64,7 +64,15 @@ function collectTools(adapters: readonly ChatMcpAdapter[]): ChatMcpToolState {
 
 export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOptions = {}): CompositeMcpAdapter {
   const adapters = shallowRef<ChatMcpAdapter[]>([...(options.adapters ?? [])])
-  const registrationAdapter = options.registrationAdapter
+  let registrationAdapter = options.registrationAdapter
+
+  async function registerMcpServer(config: McpExtensionFormValue) {
+    const adapter = registrationAdapter
+    if (!adapter || !adapters.value.includes(adapter) || !adapter.registerMcpServer) {
+      throw new Error('MCP registration adapter is no longer attached')
+    }
+    return adapter.registerMcpServer(config)
+  }
 
   const runtime: ChatMcpRuntime = {
     servers: computed(() => collectServers(adapters.value)),
@@ -84,7 +92,7 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
   }
 
   if (registrationAdapter?.registerMcpServer) {
-    runtime.registerMcpServer = (config) => registrationAdapter.registerMcpServer!(config)
+    runtime.registerMcpServer = registerMcpServer
   }
 
   const listTools: ChatToolListTools = async (serverIds, selectedToolIds) => {
@@ -117,7 +125,17 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     getAdapterForServer(adapters.value, serverId).callTool(serverId, toolName, args)
 
   async function addAdapter(adapter: ChatMcpAdapter) {
+    if (adapters.value.includes(adapter)) throw new Error('MCP adapter is already attached')
+
+    await adapter.refresh?.()
+
     const newServerIds = adapter.runtime.servers.value.map((server) => server.id)
+    const newServerIdSet = new Set<string>()
+    for (const serverId of newServerIds) {
+      if (newServerIdSet.has(serverId)) throw new Error(`Duplicate MCP server id: ${serverId}`)
+      newServerIdSet.add(serverId)
+    }
+
     const existingServerIds = new Set(runtime.servers.value.map((server) => server.id))
 
     for (const serverId of newServerIds) {
@@ -125,7 +143,6 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     }
 
     adapters.value = [...adapters.value, adapter]
-    await adapter.refresh?.()
   }
 
   async function removeAdapter(serverId: string) {
@@ -133,6 +150,7 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     try {
       await adapter.close?.()
     } finally {
+      if (adapter === registrationAdapter) registrationAdapter = undefined
       adapters.value = adapters.value.filter((item) => item !== adapter)
     }
   }
@@ -144,15 +162,14 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
 
   async function close() {
     await Promise.all(adapters.value.map((adapter) => adapter.close?.()))
+    registrationAdapter = undefined
   }
 
   return {
     runtime,
     listTools,
     callTool,
-    registerMcpServer: registrationAdapter?.registerMcpServer
-      ? (config) => registrationAdapter.registerMcpServer!(config)
-      : undefined,
+    registerMcpServer: registrationAdapter?.registerMcpServer ? registerMcpServer : undefined,
     addAdapter,
     removeAdapter,
     refreshServer,

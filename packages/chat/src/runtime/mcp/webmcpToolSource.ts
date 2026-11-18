@@ -115,7 +115,7 @@ export function createWebMcpToolSource(options: CreateWebMcpToolSourceOptions = 
       const tool = descriptors.get(name)
       if (!context?.executeTool || !tool) throw new Error(`WebMCP 工具不可用：${name}`)
 
-      return readWebMcpToolText(await context.executeTool(tool, JSON.stringify(args ?? {})))
+      return readWebMcpToolText(await context.executeTool(tool, args ?? {}))
     },
     subscribe(listener) {
       listeners.add(listener)

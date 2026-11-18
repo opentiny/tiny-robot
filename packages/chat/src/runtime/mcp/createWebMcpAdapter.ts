@@ -43,6 +43,7 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): C
   const definitions = new Map<string, ChatMcpToolDefinition>()
   let generation = 0
   let refreshTask: Promise<void> | undefined
+  let refreshRequested = false
   let closed = false
   let unsubscribe: (() => void) | undefined
 
@@ -63,57 +64,67 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): C
 
   async function refresh() {
     if (closed) return
-    const currentTask = refreshTask
-    if (currentTask) return currentTask
+    if (refreshTask) {
+      refreshRequested = true
+      return refreshTask
+    }
 
-    const currentGeneration = generation
     const task = (async () => {
-      if (!server.value.installed) return
-      server.value = { ...server.value, loading: true, error: undefined }
+      do {
+        refreshRequested = false
+        const currentGeneration = generation
 
-      try {
-        const listed = await source.listTools()
-        if (closed || generation !== currentGeneration || !server.value.installed) return
+        if (!server.value.installed) return
+        server.value = { ...server.value, loading: true }
 
-        const enabledById = new Map(toolStates.value.map((tool) => [tool.id, tool.enabled]))
-        const nextDefinitions = new Map<string, ChatMcpToolDefinition>()
-        const nextTools: ChatMcpToolInfo[] = []
+        try {
+          const listed = await source.listTools()
+          if (closed || generation !== currentGeneration || !server.value.installed) return
 
-        for (const tool of listed) {
-          if (!tool?.name || nextDefinitions.has(tool.name)) continue
-          const definition: ChatMcpToolDefinition = {
-            serverId,
-            id: tool.name,
-            name: `${serverId}__${tool.name}`,
-            originalName: tool.name,
-            description: tool.description,
-            inputSchema: normalizeWebMcpInputSchema(tool.inputSchema),
+          const enabledById = new Map(toolStates.value.map((tool) => [tool.id, tool.enabled]))
+          const nextDefinitions = new Map<string, ChatMcpToolDefinition>()
+          const nextTools: ChatMcpToolInfo[] = []
+
+          for (const tool of listed) {
+            if (!tool?.name || nextDefinitions.has(tool.name)) continue
+            const definition: ChatMcpToolDefinition = {
+              serverId,
+              id: tool.name,
+              name: `${serverId}__${tool.name}`,
+              originalName: tool.name,
+              description: tool.description,
+              inputSchema: normalizeWebMcpInputSchema(tool.inputSchema),
+            }
+            nextDefinitions.set(tool.name, definition)
+            nextTools.push({
+              id: tool.name,
+              name: tool.name,
+              description: tool.description,
+              enabled: enabledById.get(tool.name) ?? server.value.enabled,
+            })
           }
-          nextDefinitions.set(tool.name, definition)
-          nextTools.push({
-            id: tool.name,
-            name: tool.name,
-            description: tool.description,
-            enabled: enabledById.get(tool.name) ?? server.value.enabled,
-          })
-        }
 
-        definitions.clear()
-        for (const [id, definition] of nextDefinitions) definitions.set(id, definition)
-        toolStates.value = nextTools
-        server.value = { ...server.value, loading: undefined, error: undefined }
-      } catch (error) {
-        if (!closed && generation === currentGeneration) setError(error)
-        throw error
-      }
+          definitions.clear()
+          for (const [id, definition] of nextDefinitions) definitions.set(id, definition)
+          toolStates.value = nextTools
+          server.value = { ...server.value, loading: undefined, error: undefined }
+        } catch (error) {
+          if (!closed && generation === currentGeneration) setError(error)
+          throw error
+        }
+      } while (refreshRequested && !closed)
     })()
 
     refreshTask = task
-    try {
-      await task
-    } finally {
-      if (refreshTask === task) refreshTask = undefined
-    }
+    task.then(
+      () => {
+        if (refreshTask === task) refreshTask = undefined
+      },
+      () => {
+        if (refreshTask === task) refreshTask = undefined
+      },
+    )
+    return task
   }
 
   function handleToolChange() {
@@ -147,6 +158,8 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): C
     removeServer(id) {
       if (id !== serverId) throw new Error(`Unknown MCP server: ${id}`)
       generation += 1
+      refreshRequested = false
+      refreshTask = undefined
       server.value = {
         ...server.value,
         installed: false,
@@ -161,12 +174,13 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): C
       if (id !== serverId) throw new Error(`Unknown MCP server: ${id}`)
       if (enabled && !server.value.installed) throw new Error(`MCP server is not installed: ${id}`)
 
-      server.value = { ...server.value, enabled, error: undefined }
       if (enabled) {
         startSubscription()
-        if (definitions.size === 0) await refresh()
+        if (definitions.size === 0 || server.value.error) await refresh()
+        server.value = { ...server.value, enabled: true, error: undefined }
         toolStates.value = toolStates.value.map((tool) => ({ ...tool, enabled: true }))
       } else {
+        server.value = { ...server.value, enabled: false, error: undefined }
         toolStates.value = toolStates.value.map((tool) => ({ ...tool, enabled: false }))
       }
     },

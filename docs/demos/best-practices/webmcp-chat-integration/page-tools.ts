@@ -24,9 +24,7 @@ export function createDemoPageTools() {
 
   const context: WebMcpContext = {
     getTools: async () => tools,
-    executeTool: async (tool, input) => {
-      const args = JSON.parse(input || '{}') as Record<string, unknown>
-
+    executeTool: async (tool, args) => {
       if (tool.name === 'get-page-info') {
         return {
           content: [{ type: 'text', text: JSON.stringify({ title: 'WebMCP Demo', section: section.value }) }],

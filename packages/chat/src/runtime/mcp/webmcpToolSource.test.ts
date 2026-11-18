@@ -4,8 +4,8 @@ import type { WebMcpContext } from './webmcpTypes'
 
 function createContext(tools: Array<{ name: string; description?: string; inputSchema?: unknown }>) {
   const listeners = new Set<() => void>()
-  const executeTool = vi.fn(async (tool: { name: string }, input: string) => ({
-    content: [{ type: 'text', text: `${tool.name}:${input}` }],
+  const executeTool = vi.fn(async (tool: { name: string }, input: Record<string, unknown>) => ({
+    content: [{ type: 'text', text: `${tool.name}:${JSON.stringify(input)}` }],
   }))
   const context: WebMcpContext & { emit: () => void } = {
     getTools: async () => tools,
@@ -19,7 +19,7 @@ function createContext(tools: Array<{ name: string; description?: string; inputS
 }
 
 describe('createWebMcpToolSource', () => {
-  it('reads tools, normalizes schemas, and calls executeTool with JSON input', async () => {
+  it('reads tools, normalizes schemas, and calls executeTool with object input', async () => {
     const { context, executeTool } = createContext([
       {
         name: 'echo',
@@ -37,7 +37,7 @@ describe('createWebMcpToolSource', () => {
       },
     ])
     await expect(source.callTool('echo', { text: 'hello' })).resolves.toBe('echo:{"text":"hello"}')
-    expect(executeTool).toHaveBeenCalledWith(expect.objectContaining({ name: 'echo' }), '{"text":"hello"}')
+    expect(executeTool).toHaveBeenCalledWith(expect.objectContaining({ name: 'echo' }), { text: 'hello' })
   })
 
   it('notifies subscribers after toolchange and refreshes the next tool list', async () => {
