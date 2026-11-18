@@ -69,7 +69,8 @@ export interface LayoutAsidePanelsProps {
 
 export interface LayoutNormalProps extends LayoutAsidePanelsProps {
   mode: 'normal'
-  floatingState?: never
+  /** Preserve controlled geometry when switching between normal and floating modes. */
+  floatingState?: LayoutFloatingState
   defaultFloatingState?: never
   floatingOptions?: never
 }

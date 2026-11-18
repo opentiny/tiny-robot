@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useWindowSize } from '@vueuse/core'
-import { computed, h, nextTick, onBeforeUpdate, shallowRef } from 'vue'
+import { computed, h, nextTick, onBeforeUpdate, shallowRef, watch } from 'vue'
 import { TrAnchor, TrLayout } from '@opentiny/tiny-robot'
 import type {
   ExtensionManagerActionEvent,
@@ -74,6 +74,24 @@ const { width: viewportWidth } = useWindowSize()
 
 const resolvedOptions = computed(() => resolveChatUIOptions(props.ui))
 const resolvedData = computed(() => resolveChatUIData(props.data, resolvedOptions.value.labels))
+watch(
+  [() => resolvedOptions.value.layout.surface.mode, () => resolvedData.value.conversation.activeId],
+  async ([mode, conversationId], [previousMode, previousConversationId], onCleanup) => {
+    if (mode === previousMode || conversationId !== previousConversationId) return
+    const target = scrollTarget.value
+    if (!target) return
+    const top = target.scrollTop
+    const atBottom = target.scrollHeight - target.clientHeight - top <= 1
+    let current = true
+    onCleanup(() => {
+      current = false
+    })
+    // Moving the surface through Teleport can reset the browser's scroll offset.
+    await nextTick()
+    if (!current || scrollTarget.value !== target || resolvedData.value.conversation.activeId !== conversationId) return
+    target.scrollTo({ top: atBottom ? target.scrollHeight - target.clientHeight : top, behavior: 'instant' })
+  },
+)
 const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') : draftValue.value))
 const isMobileViewport = computed(() => {
   const width = viewportWidth.value
@@ -228,6 +246,7 @@ const layoutProps = computed<LayoutProps>(() => {
   return {
     ...asideProps,
     mode: 'normal',
+    floatingState: props.floatingState,
   }
 })
 
