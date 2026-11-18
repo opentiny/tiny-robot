@@ -142,7 +142,15 @@ export interface ChatBubbleOptions {
   readonly actions?: false | Readonly<ChatBubbleActionsOptions>
 }
 
-export type ChatBubbleActionId = 'copy' | 'edit' | 'regenerate' | 'info'
+export interface ChatBubbleTimestampContext {
+  readonly message: ChatMessageItem
+}
+
+export interface ChatBubbleTimestampOptions {
+  readonly format?: (timestamp: number, context: ChatBubbleTimestampContext) => string | undefined
+}
+
+export type ChatBubbleActionId = 'copy' | 'edit' | 'regenerate' | 'info' | 'timestamp'
 export type ChatActionCondition = boolean | ((context: ChatBubbleActionContext) => boolean)
 export type ChatActionDisplay = 'always' | 'hover'
 
@@ -202,6 +210,7 @@ export interface ChatMessageInfoOptions {
 export interface ChatBubbleActionsOptions {
   readonly visible?: ChatActionCondition
   readonly display?: ChatActionDisplay | ((context: ChatBubbleActionContext) => ChatActionDisplay)
+  readonly timestamp?: ChatBubbleTimestampOptions
   readonly user?: ChatBubbleRoleActions
   readonly assistant?: ChatBubbleRoleActions
   readonly copy?: { readonly getText?: (context: ChatBubbleActionContext) => string }

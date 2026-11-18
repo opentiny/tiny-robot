@@ -377,29 +377,30 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         >
           <template #after="slotProps">
             <slot name="bubble-after" v-bind="slotProps" />
-            <ChatBubbleActions
-              v-if="
-                props.options.actions && getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)
-              "
-              :context="getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)!"
-              :options="props.options.actions"
-              :role="slotProps.role ?? 'assistant'"
-              :editing="
-                editingMessageKey ===
-                getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)?.messageKey
-              "
-              @edit-start="handleEditStart"
-              @regenerate="
-                emit('regenerateMessage', {
-                  conversationId,
-                  messageId: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)?.messageId,
-                  message: getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)!.message,
-                })
-              "
-              @error="emit('bubbleActionError', $event)"
+            <template
+              v-for="context in [getActionContext(slotProps as BubbleMessageGroup, slotProps.messageIndexes)]"
+              :key="context?.messageKey"
             >
-              <template #action="actionProps"><slot name="bubble-action" v-bind="actionProps" /></template>
-            </ChatBubbleActions>
+              <ChatBubbleActions
+                v-if="context && props.options.actions"
+                :context="context"
+                :options="props.options.actions"
+                :role="slotProps.role ?? 'assistant'"
+                :editing="editingMessageKey === context.messageKey"
+                :stream-state="(slotProps.messages.at(-1) as ChatMessageItem)?.streamState"
+                @edit-start="handleEditStart"
+                @regenerate="
+                  emit('regenerateMessage', {
+                    conversationId,
+                    messageId: context.messageId,
+                    message: context.message,
+                  })
+                "
+                @error="emit('bubbleActionError', $event)"
+              >
+                <template #action="actionProps"><slot name="bubble-action" v-bind="actionProps" /></template>
+              </ChatBubbleActions>
+            </template>
           </template>
           <template v-if="$slots['bubble-prefix']" #prefix="slotProps">
             <slot name="bubble-prefix" v-bind="slotProps" />

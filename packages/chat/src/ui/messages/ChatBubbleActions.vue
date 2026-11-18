@@ -2,6 +2,7 @@
 import { computed, onUnmounted, shallowRef, watch } from 'vue'
 import { IconCheck, IconCopy, IconEditPen, IconInfo, IconRefresh } from '@opentiny/tiny-robot-svgs'
 import { resolveChatTokenUsage } from '../../runtime/usage'
+import { resolveChatMessageTimestamp, useChatTimestampDate } from './messageTimestamp'
 import ChatMessageInfoPopover from './ChatMessageInfoPopover.vue'
 import type {
   ChatActionCondition,
@@ -11,6 +12,7 @@ import type {
   ChatBubbleActionId,
   ChatIcon,
   ChatMessageInfoItem,
+  ChatMessageItem,
 } from '../../types'
 
 const props = defineProps<{
@@ -18,6 +20,7 @@ const props = defineProps<{
   options: ChatBubbleActionsOptions
   role: string
   editing?: boolean
+  streamState?: ChatMessageItem['streamState']
 }>()
 const emit = defineEmits<{
   editStart: [context: ChatBubbleActionContext]
@@ -56,6 +59,15 @@ const items = computed<readonly ChatBubbleActionItem[]>(() => {
   const resolved = typeof configured === 'function' ? configured(defaultItems, props.context) : configured
   return resolved === false ? [] : (resolved ?? defaultItems)
 })
+const timestampDate = useChatTimestampDate()
+const timestamp = computed(() => {
+  if (!items.value.some((item) => actionId(item) === 'timestamp')) return
+  return resolveChatMessageTimestamp(
+    { ...props.context.message, streamState: props.streamState ?? props.context.message.streamState },
+    props.options.timestamp?.format,
+    timestampDate.value,
+  )
+})
 
 function actionId(item: ChatBubbleActionItem): string {
   return typeof item === 'string' ? item : item.id
@@ -67,7 +79,11 @@ function actionLabel(item: ChatBubbleActionItem) {
   if (id === 'regenerate') {
     return props.context.turnState === 'error' || props.context.turnState === 'aborted' ? '重试' : '重新生成'
   }
-  return { copy: '复制', edit: '编辑', regenerate: '重新生成', info: '对话信息' }[id as ChatBubbleActionId] ?? id
+  return (
+    { copy: '复制', edit: '编辑', regenerate: '重新生成', info: '对话信息', timestamp: '完成时间' }[
+      id as ChatBubbleActionId
+    ] ?? id
+  )
 }
 
 function actionIcon(item: ChatBubbleActionItem): ChatIcon | undefined {
@@ -154,6 +170,7 @@ function visible(item: ChatBubbleActionItem) {
   if (id === 'edit' && !props.context.capabilities.canEdit) return false
   if (id === 'regenerate' && !props.context.capabilities.canRegenerate) return false
   if (id === 'info' && !infoItems.value.length) return false
+  if (id === 'timestamp' && !timestamp.value) return false
   return typeof item === 'string' || condition(item.visible)
 }
 
@@ -233,8 +250,15 @@ function setSlotOpen(id: string, open: boolean) {
     }"
   >
     <template v-for="item in items" :key="actionId(item)">
+      <time
+        v-if="visible(item) && actionId(item) === 'timestamp' && timestamp"
+        class="tr-chat-message-timestamp"
+        :datetime="timestamp.timestamp"
+      >
+        {{ timestamp.label }}
+      </time>
       <span
-        v-if="visible(item) && (typeof item === 'string' || item.type !== 'slot')"
+        v-else-if="visible(item) && (typeof item === 'string' || item.type !== 'slot')"
         class="tr-chat-bubble-actions__item"
         :data-action="actionId(item)"
         @keydown.esc="infoOpen = false"
@@ -339,6 +363,14 @@ function setSlotOpen(id: string, open: boolean) {
 .tr-chat-bubble-actions__button :deep(svg) {
   width: 16px;
   height: 16px;
+}
+.tr-chat-message-timestamp {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--tr-text-secondary);
+  font-size: 12px;
+  line-height: 20px;
+  vertical-align: middle;
 }
 .tr-chat-bubble-actions.is-editing {
   display: none;

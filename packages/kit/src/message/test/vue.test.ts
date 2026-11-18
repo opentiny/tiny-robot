@@ -97,15 +97,17 @@ describe('createVueMessageAdapter', () => {
     await engine.sendMessage('ping')
     unsubscribe()
 
-    expect(subscribeSnapshots).toHaveLength(expectedMessageSnapshots.length)
-    subscribeSnapshots.forEach((snapshot, idx) => {
+    expect(subscribeSnapshots).toHaveLength(expectedMessageSnapshots.length + 1)
+    subscribeSnapshots.slice(0, expectedMessageSnapshots.length).forEach((snapshot, idx) => {
       expect(snapshot).toMatchObject(expectedMessageSnapshots[idx])
     })
 
-    expect(watchSnapshots).toHaveLength(expectedMessageSnapshots.length)
-    watchSnapshots.forEach((snapshot, idx) => {
+    expect(watchSnapshots).toHaveLength(expectedMessageSnapshots.length + 1)
+    watchSnapshots.slice(0, expectedMessageSnapshots.length).forEach((snapshot, idx) => {
       expect(snapshot).toMatchObject(expectedMessageSnapshots[idx])
     })
+    expect(subscribeSnapshots.at(-1)?.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
+    expect(watchSnapshots.at(-1)?.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
   })
 
   it('updates nested message content through the reactive assistant message reference', async () => {

@@ -14,7 +14,7 @@ const data: ChatUIData = {
       {
         role: 'assistant',
         content: '通过 custom 添加业务按钮，通过 slot 自定义按钮内容。',
-        metadata: { source: '《TinyRobot 组件使用指南》' },
+        metadata: { source: '《TinyRobot 组件使用指南》', completedAt: Math.floor(Date.now() / 1000) },
       },
     ],
   },
@@ -40,6 +40,7 @@ const ui: ChatUIOptions = {
           },
         },
         { type: 'slot', id: 'source' },
+        'timestamp',
       ],
     },
   },

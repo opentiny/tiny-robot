@@ -391,7 +391,7 @@ const ui: ChatUIOptions = {
 
 #### 配置消息操作
 
-在气泡下方启用复制、编辑、重新生成和消息信息操作。消息操作默认关闭，需要在 `ui.bubble.actions` 中显式配置；用户和助手的动作列表分别配置，数组会替换该角色的默认列表。
+在气泡下方展示复制、编辑、重新生成、消息信息和回复完成时间，也支持添加自定义操作。消息操作默认关闭，通过 `ui.bubble.actions` 分别配置用户和助手的动作列表；数组决定展示内容和顺序，并替换该角色的默认列表，所有项统一遵循操作组的显隐规则。
 
 <demo
   vue="../../demos/chat/bubble-actions.vue"
@@ -410,7 +410,7 @@ const ui: ChatUIOptions = {
         return message === latest ? 'always' : 'hover'
       },
       user: ['copy', 'edit'],
-      assistant: ['copy', 'regenerate', 'info'],
+      assistant: ['copy', 'regenerate', 'info', 'timestamp'],
     },
   },
 }
@@ -424,6 +424,9 @@ const ui: ChatUIOptions = {
 | `edit` | 编辑最新的纯文本用户消息。`TrChat` 会调用 Runtime 的 `actions.editMessage`，成功后关闭编辑器。 |
 | `regenerate` | 重新生成与消息关联的助手回答。请求处于错误或中止状态时，按钮文案会显示为“重试”。 |
 | `info` | 显示消息已有的模型、结束原因、时间及输入／输出／总 Token；可通过 `info.items(context)` 自定义内容，没有有效信息项时不显示。 |
+| `timestamp` | 以文本显示已完成助手回复的时间，无点击行为；通过 `timestamp.format(timestamp, { message })` 自定义格式。 |
+
+时间读取 `message.metadata.completedAt`（Unix 秒），Kit 自动写入，自定义消息需自行提供。
 
 `display` 支持 `'always'`、`'hover'` 或回调；默认使用 `'hover'`。上例通过当前 Runtime 的消息列表，让最新用户和助手消息的按钮常驻，历史消息悬停或键盘聚焦时显示；触屏下所有消息的可用按钮常驻。信息面板仅通过点击按钮展开，再次点击按钮、点击面板外部或按 Escape 关闭。使用 `visible`、`user` 和 `assistant` 可以按角色或消息上下文调整动作，函数配置会收到默认动作列表和 `ChatBubbleActionContext`。
 
@@ -460,7 +463,7 @@ const runtime = useChatRuntimeFromConversation({ conversation, composer: { model
   description="使用 custom 实现收藏，使用 bubble-action 插槽展示自定义的“查看来源”按钮。"
 />
 
-示例通过 `(defaults) => [...defaults, ...]` 保留内置按钮并追加操作。自定义 `id` 请避开内置动作名称；`visible` 和 `disabled` 支持布尔值或上下文回调。
+示例通过 `(defaults) => [...defaults, ...]` 保留内置按钮、追加操作，并将 `'timestamp'` 排在最后。自定义 `id` 请避开内置动作名称；`visible` 和 `disabled` 支持布尔值或上下文回调。
 
 `onClick` 可读取 `context.message` 等消息信息。插槽参数包含 `item`、`context`、`disabled` 和 `setOpen`，需自行绑定 `disabled`；展开浮层时调用 `setOpen(true)`，关闭时调用 `setOpen(false)`，可在鼠标离开历史消息后保持动作区域可见。
 

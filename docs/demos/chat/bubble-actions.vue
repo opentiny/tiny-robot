@@ -55,7 +55,7 @@ const ui: ChatUIOptions = {
         return message === latest ? 'always' : 'hover'
       },
       user: ['copy', 'edit'],
-      assistant: ['copy', 'regenerate', 'info'],
+      assistant: ['copy', 'regenerate', 'info', 'timestamp'],
     },
   },
 }
@@ -70,7 +70,7 @@ onMounted(async () => {
 <template>
   <section class="bubble-actions-demo">
     <p class="bubble-actions-demo__tip">
-      最新用户和助手消息的操作按钮常驻，历史消息悬停显示。支持复制、编辑、重新生成和查看消息信息。
+      助手消息完成后显示时间；当天仅显示时分，历史消息显示日期和时间。时间随操作组显隐，最新用户和助手消息的操作组常驻，历史消息悬停显示。
     </p>
     <div class="bubble-actions-demo__chat">
       <TrChat :runtime="runtime" :ui="ui" />

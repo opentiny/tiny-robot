@@ -266,10 +266,27 @@ export const createMessageEngine = (
     }
   }
 
-  const finishTurnAfterRequest = async (abortSignal: AbortSignal) => {
+  const finishTurnAfterRequest = async (
+    abortSignal: AbortSignal,
+    assistantMessage?: ChatMessage | null,
+    completedAt?: number,
+  ) => {
     if (isPausing() || getState().requestState === 'paused') {
       await finishTurnPause(abortSignal)
       return
+    }
+
+    if (abortSignal.aborted) {
+      setRequestState('aborted')
+      return
+    }
+
+    if (assistantMessage?.role === 'assistant' && completedAt !== undefined) {
+      mutate('messages', () => {
+        assistantMessage.loading = undefined
+        assistantMessage.metadata ??= {}
+        assistantMessage.metadata.completedAt = completedAt
+      })
     }
 
     setRequestState('completed')
@@ -291,8 +308,10 @@ export const createMessageEngine = (
     runtime.abortController = ac
 
     let assistantMessage: ChatMessage | null = null
-    const setAssistantMessage = (message: ChatMessage) => {
+    let completedAt: number | undefined
+    const setAssistantMessage = (message: ChatMessage, timestamp?: number) => {
       assistantMessage = message
+      completedAt = timestamp
     }
 
     try {
@@ -314,7 +333,7 @@ export const createMessageEngine = (
 
       try {
         await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
-        await finishTurnAfterRequest(ac.signal)
+        await finishTurnAfterRequest(ac.signal, assistantMessage, completedAt)
       } catch (error) {
         if (
           ac.signal.aborted ||
@@ -500,7 +519,7 @@ export const createMessageEngine = (
   async function executeRequest(
     responseProvider: ResponseProvider,
     abortSignal: AbortSignal,
-    options: { setAssistantMessage?: (message: ChatMessage) => void } = {},
+    options: { setAssistantMessage?: (message: ChatMessage, completedAt?: number) => void } = {},
   ) {
     // executeRequest 可能递归调用，需要再设置 requesting 状态
     setRequestState('processing', 'requesting')
@@ -629,6 +648,7 @@ export const createMessageEngine = (
       }
     }
 
+    options.setAssistantMessage?.(assistantMessage, Math.floor(Date.now() / 1000))
     await postRequest(assistantMessage, responseProvider, abortSignal, lastChoice, options)
   }
 
@@ -637,7 +657,7 @@ export const createMessageEngine = (
     responseProvider: ResponseProvider,
     abortSignal: AbortSignal,
     lastChoice?: ChatCompletionChoice,
-    options?: { setAssistantMessage?: (message: ChatMessage) => void },
+    options?: { setAssistantMessage?: (message: ChatMessage, completedAt?: number) => void },
   ) {
     let shouldRequest = false
 
