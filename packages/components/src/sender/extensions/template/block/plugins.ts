@@ -602,7 +602,7 @@ export function pasteHandlerPlugin() {
           return false
         }
 
-        const text = event.clipboardData?.getData('text/plain')?.replace(/\r\n?/g, '\n')
+        const text = event.clipboardData?.getData('text/plain')
         if (text) {
           const { state, dispatch } = view
           const $from = state.selection.$from

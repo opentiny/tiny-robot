@@ -64,6 +64,24 @@ test.describe('Sender editor behavior', () => {
       .toBe('first\nsecond')
   })
 
+  for (const lineBreak of ['a\rb', 'a\nb']) {
+    test(`EDITOR-05 normalizes ${JSON.stringify(lineBreak)} to one paragraph`, async ({ mount }) => {
+      const component = await mount(SenderEditorFixture, { props: { mode: 'multiple' } })
+      const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+      await editor.click()
+      await dispatchPaste(editor, lineBreak)
+      await expect
+        .poll(() =>
+          editor.evaluate((element) => ({
+            text: element.textContent,
+            paragraphCount: element.querySelectorAll(':scope > p').length,
+          })),
+        )
+        .toEqual({ text: 'a\nb', paragraphCount: 1 })
+    })
+  }
+
   test('EDITOR-06 prefers clipboard text/plain when HTML is also present', async ({ mount }) => {
     const component = await mount(SenderEditorFixture)
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

@@ -109,10 +109,12 @@ test.describe('Sender core public contract', () => {
   ]) {
     test(`synchronous setContent and submit validates ${scenario.name}`, async ({ mount }) => {
       const component = await mount(SenderCoreFixture, { props: { maxLength: 2, modelValue: scenario.initial } })
-      await expect(component.getByTestId('sender-root').locator('.ProseMirror')).toHaveText(scenario.initial)
+      const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+      await expect(editor).toHaveText(scenario.initial)
 
       await component.getByTestId('synchronous-content').fill(scenario.content)
       await component.getByTestId('set-content-and-submit').click()
+      await expect.poll(() => editor.textContent()).toBe(scenario.content)
       await expect(component.getByTestId('submit-count')).toHaveText(scenario.count)
       await expect(component.getByTestId('last-submit')).toHaveText(scenario.payload)
     })

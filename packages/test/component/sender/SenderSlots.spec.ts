@@ -53,6 +53,7 @@ test.describe('Sender public slots', () => {
     await expect(component.getByTestId('scope-state')).toHaveText('false|false|true')
     await component.getByTestId('insert-action').click()
     await expect.poll(() => editor.textContent()).toBe('footer-insert inserted ')
+    await editor.press('Home')
     await component.getByTestId('footer-append').click()
     await expect.poll(() => editor.textContent()).toBe('footer-insert inserted footer-append')
     await component.getByTestId('footer-replace').click()

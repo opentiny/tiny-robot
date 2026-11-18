@@ -67,7 +67,13 @@ export function useModeSwitch(
       const dom = editor.value?.view.dom
       if (!dom) return null
       const root = dom.getRootNode()
-      return root instanceof ShadowRoot ? root.activeElement : dom.ownerDocument.activeElement
+      if (root instanceof ShadowRoot) {
+        // A shadow root reports no active element when focus moved to a control
+        // outside the root. Fall back to the document active element so that
+        // restoration does not steal focus from that control.
+        return root.activeElement ?? dom.ownerDocument.activeElement
+      }
+      return dom.ownerDocument.activeElement
     }
 
     const activeElement = getActiveElement()
@@ -88,7 +94,24 @@ export function useModeSwitch(
           Boolean(editorRef.value?.contains(currentActiveElement))
 
         if (restoreEditorFocus && focusWasNotMovedOutside) {
-          editor.value.commands.focus('end')
+          const currentEditor = editor.value
+          const endPosition = currentEditor.state.doc.content.size
+          currentEditor.commands.setTextSelection(endPosition)
+
+          // Tiptap's focus command defers view.focus() to an animation frame.
+          // Recheck ownership in that frame before performing the actual focus.
+          requestAnimationFrame(() => {
+            if (disposed || currentEditor.isDestroyed) return
+            const activeElement = getActiveElement()
+            const focusStillBelongsToSender =
+              !activeElement ||
+              activeElement === currentEditor.view.dom.ownerDocument.body ||
+              Boolean(editorRef.value?.contains(activeElement))
+            if (!focusStillBelongsToSender) return
+
+            currentEditor.view.focus()
+            currentEditor.commands.scrollIntoView()
+          })
         }
       }
       isAutoSwitching.value = false
