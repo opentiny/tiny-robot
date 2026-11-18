@@ -33,7 +33,9 @@
     "test:release-scripts": "node --test scripts/prepare-publish-packages.test.js scripts/prepare-publish-readmes.test.js scripts/set-publish-version.test.js scripts/verify-publish-versions.test.js",
     "test:package-install": "node scripts/test-package-install.js",
     "lint": "eslint . --fix",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "prepare:wc-apps": "node scripts/web-component/prepare-apps.mjs",
+    "test:wc-apps": "node scripts/web-component/test-apps.mjs"
   },
   "devDependencies": {
     "@vue/eslint-config-prettier": "^10.2.0",
