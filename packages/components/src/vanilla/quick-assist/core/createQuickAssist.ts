@@ -353,9 +353,9 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       onClose: () => closeSession('escape'),
     })
     if (hadTrigger) emit({ type: 'trigger_click', sessionId: candidate.id })
-    if (!isCurrent(candidate)) return
+    if (!isCurrent(candidate) || !ui.contains(popover)) return
     emit({ type: 'popover_show', sessionId: candidate.id })
-    if (!isCurrent(candidate)) return
+    if (!isCurrent(candidate) || !ui.contains(popover)) return
     // Use the same selection/line anchor and placement rules as the trigger.
     // Anchoring to the removed trigger adds its height and a second offset.
     const positionPopover = (): void => reposition(popover, candidate)

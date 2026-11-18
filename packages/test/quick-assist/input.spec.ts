@@ -486,7 +486,7 @@ for (const entry of ['index', 'umd']) {
       expect(result).toEqual({ records: [2, 0, 2, 0], value: '', hosts: 0 })
     })
 
-    for (const action of ['close', 'destroy', 'replace'] as const) {
+    for (const action of ['close', 'destroy', 'replace', 'reenter'] as const) {
       test(`suggestion attributes can ${action} during popover rendering without stale input resources`, async ({
         page,
       }) => {
@@ -494,6 +494,7 @@ for (const entry of ['index', 'umd']) {
         page.on('pageerror', (error) => pageErrors.push(error.message))
         const result = await page.evaluate(async (action) => {
           let firstRender = false
+          let trigger: HTMLButtonElement | null = null
           const anchor = document.querySelector('#term')!
           window.qa.updateOptions({
             input: { maxLength: 3, autoFill: true },
@@ -503,6 +504,7 @@ for (const entry of ['index', 'umd']) {
                 if (firstRender) {
                   firstRender = false
                   if (action === 'replace') window.qa.activate({ text: 'new', anchor, open: 'popover' })
+                  else if (action === 'reenter') trigger!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
                   else window.qa[action]()
                 }
                 return {}
@@ -536,7 +538,7 @@ for (const entry of ['index', 'umd']) {
           try {
             let error: string | null = null
             window.qa.activate({ text: 'old', anchor })
-            const trigger = document.querySelector<HTMLButtonElement>('.tr-quick-assist__trigger')!
+            trigger = document.querySelector<HTMLButtonElement>('.tr-quick-assist__trigger')!
             trigger.click()
             await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
             if (!document.querySelector('.tr-quick-assist__suggestion')) throw new Error('Recommendations not ready')
@@ -551,22 +553,24 @@ for (const entry of ['index', 'umd']) {
             const current = document.querySelector<HTMLTextAreaElement>('.tr-quick-assist__input')
             const value = current?.value ?? null
             const focused = !!current && document.activeElement === current
-            if (action === 'replace') window.qa.close()
+            const suggestions = document.querySelectorAll('.tr-quick-assist__suggestion').length
+            if (action === 'replace' || action === 'reenter') window.qa.close()
             const remaining = live.reduce((total, listeners) => total + listeners.size, 0)
             const hosts = document.querySelectorAll('.tr-quick-assist').length
             // A closed instance must remain usable for the next session.
             if (action !== 'destroy') window.qa.activate({ text: 'ok', anchor, open: 'popover' })
             const reopened = document.querySelector<HTMLTextAreaElement>('.tr-quick-assist__input')?.value ?? null
             window.qa.destroy()
-            return { error, value, focused, remaining, hosts, reopened }
+            return { error, value, focused, suggestions, remaining, hosts, reopened }
           } finally {
             cleanups.forEach((cleanup) => cleanup())
           }
         }, action)
         expect(result).toEqual({
           error: null,
-          value: action === 'replace' ? 'new' : null,
-          focused: action === 'replace',
+          value: action === 'replace' ? 'new' : action === 'reenter' ? 'old' : null,
+          focused: action === 'replace' || action === 'reenter',
+          suggestions: action === 'replace' || action === 'reenter' ? 1 : 0,
           remaining: 0,
           hosts: 0,
           reopened: action === 'destroy' ? null : 'ok',

@@ -188,6 +188,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       status.textContent = messages.empty
     }
 
+    const renderingList = suggestionList
     for (const suggestion of state.suggestions) {
       const button = root.createElement('button')
       button.type = 'button'
@@ -203,8 +204,8 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
         // Reporting must not re-enter rendering or leave submission disabled.
         if (activeSession) options.onCallbackError?.(activeSession.id, error)
       }
-      // A host error listener may synchronously close or replace this session.
-      if (!suggestionList || activeSession !== renderingSession) return
+      // A host callback may close or replace the list, including within the same session.
+      if (!suggestionList || suggestionList !== renderingList || activeSession !== renderingSession) return
       button.addEventListener('click', () => {
         if (activeSession) activeSession.inputValue = input?.value ?? activeSession.inputValue
         onSuggestionClick?.(suggestion)
@@ -432,7 +433,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       releaseLayout = () => limitTooltip?.destroy()
       if (limitTooltip) container.append(tooltip)
       renderSuggestions()
-      if (activeSession !== session) return popover
+      if (activeSession !== session || visible !== popover) return popover
       syncInput = () => {
         if (!input || activeSession !== session) return
         // Measure the compact row first; wrapped text promotes the composer to its two-row layout.
