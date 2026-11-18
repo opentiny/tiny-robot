@@ -486,6 +486,95 @@ for (const entry of ['index', 'umd']) {
       expect(result).toEqual({ records: [2, 0, 2, 0], value: '', hosts: 0 })
     })
 
+    for (const action of ['close', 'destroy', 'replace'] as const) {
+      test(`suggestion attributes can ${action} during popover rendering without stale input resources`, async ({
+        page,
+      }) => {
+        const pageErrors: string[] = []
+        page.on('pageerror', (error) => pageErrors.push(error.message))
+        const result = await page.evaluate(async (action) => {
+          let firstRender = false
+          const anchor = document.querySelector('#term')!
+          window.qa.updateOptions({
+            input: { maxLength: 3, autoFill: true },
+            suggestions: [{ id: 'one', label: 'One', prompt: 'one' }],
+            attrs: {
+              suggestion: () => {
+                if (firstRender) {
+                  firstRender = false
+                  if (action === 'replace') window.qa.activate({ text: 'new', anchor, open: 'popover' })
+                  else window.qa[action]()
+                }
+                return {}
+              },
+            },
+          })
+          // Track live global resources, including listeners attached after a callback ends the session.
+          const cleanups: Array<() => void> = []
+          const live: Array<Set<EventListenerOrEventListenerObject>> = []
+          for (const [target, types] of [
+            [window, ['scroll', 'resize']],
+            [document.fonts, ['loadingdone', 'loadingerror']],
+          ] as Array<[EventTarget, string[]]>) {
+            const add = target.addEventListener
+            const remove = target.removeEventListener
+            const listeners = new Map(types.map((type) => [type, new Set<EventListenerOrEventListenerObject>()]))
+            live.push(...listeners.values())
+            target.addEventListener = (type, listener, options) => {
+              if (listener) listeners.get(type)?.add(listener)
+              add.call(target, type, listener, options)
+            }
+            target.removeEventListener = (type, listener, options) => {
+              if (listener) listeners.get(type)?.delete(listener)
+              remove.call(target, type, listener, options)
+            }
+            cleanups.push(() => {
+              target.addEventListener = add
+              target.removeEventListener = remove
+            })
+          }
+          try {
+            let error: string | null = null
+            window.qa.activate({ text: 'old', anchor })
+            const trigger = document.querySelector<HTMLButtonElement>('.tr-quick-assist__trigger')!
+            trigger.click()
+            await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+            if (!document.querySelector('.tr-quick-assist__suggestion')) throw new Error('Recommendations not ready')
+            // A retained trigger can re-enter showPopover with already resolved recommendations.
+            firstRender = true
+            try {
+              trigger.click()
+            } catch (caught) {
+              error = String(caught)
+            }
+            await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+            const current = document.querySelector<HTMLTextAreaElement>('.tr-quick-assist__input')
+            const value = current?.value ?? null
+            const focused = !!current && document.activeElement === current
+            if (action === 'replace') window.qa.close()
+            const remaining = live.reduce((total, listeners) => total + listeners.size, 0)
+            const hosts = document.querySelectorAll('.tr-quick-assist').length
+            // A closed instance must remain usable for the next session.
+            if (action !== 'destroy') window.qa.activate({ text: 'ok', anchor, open: 'popover' })
+            const reopened = document.querySelector<HTMLTextAreaElement>('.tr-quick-assist__input')?.value ?? null
+            window.qa.destroy()
+            return { error, value, focused, remaining, hosts, reopened }
+          } finally {
+            cleanups.forEach((cleanup) => cleanup())
+          }
+        }, action)
+        expect(result).toEqual({
+          error: null,
+          value: action === 'replace' ? 'new' : null,
+          focused: action === 'replace',
+          remaining: 0,
+          hosts: 0,
+          reopened: action === 'destroy' ? null : 'ok',
+        })
+        expect(pageErrors).toEqual([])
+      })
+    }
+
     test('input copy belongs to input, while the dialog keeps its own accessible name', async ({ page }) => {
       await page.evaluate(() => {
         window.qa.updateOptions({

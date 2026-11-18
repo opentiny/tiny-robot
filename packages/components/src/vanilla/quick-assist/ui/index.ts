@@ -428,8 +428,11 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       // Unlimited input has no validation tooltip and needs no extra observers.
       const limitTooltip =
         options.input?.maxLength == null ? undefined : bindInputLimitTooltip(submitWrapper, tooltip, popover)
+      // Suggestion attribute callbacks may synchronously close or replace this session.
+      releaseLayout = () => limitTooltip?.destroy()
       if (limitTooltip) container.append(tooltip)
       renderSuggestions()
+      if (activeSession !== session) return popover
       syncInput = () => {
         if (!input || activeSession !== session) return
         // Measure the compact row first; wrapped text promotes the composer to its two-row layout.
