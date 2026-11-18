@@ -5,6 +5,8 @@
 
 import { ref, watch, nextTick, computed, onScopeDispose, type Ref } from 'vue'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { isAndroid, isiOS } from '@tiptap/core'
+import { Selection } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/vue-3'
 import type { SenderProps, UseModeSwitchReturn, InputMode } from '../index.type'
 
@@ -95,8 +97,16 @@ export function useModeSwitch(
 
         if (restoreEditorFocus && focusWasNotMovedOutside) {
           const currentEditor = editor.value
-          const endPosition = currentEditor.state.doc.content.size
-          currentEditor.commands.setTextSelection(endPosition)
+          const endSelection = Selection.atEnd(currentEditor.state.doc)
+          if (!currentEditor.state.selection.eq(endSelection)) {
+            currentEditor.view.dispatch(currentEditor.state.tr.setSelection(endSelection))
+          }
+
+          // Tiptap focuses synchronously on mobile before its animation-frame
+          // focus because a frame-only focus can dismiss the virtual keyboard.
+          if (isiOS() || isAndroid()) {
+            currentEditor.view.dom.focus()
+          }
 
           // Tiptap's focus command defers view.focus() to an animation frame.
           // Recheck ownership in that frame before performing the actual focus.
