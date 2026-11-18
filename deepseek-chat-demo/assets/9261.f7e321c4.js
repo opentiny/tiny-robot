@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkdeepseek_chat_demo_vue_chat=self.rspackChunkdeepseek_chat_demo_vue_chat||[]).push([[9261],{5820(e,c,s){s.d(c,{createArchitectureServices:()=>t.S});var t=s(3738);s(7127)}}]);
