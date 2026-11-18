@@ -1,0 +1,66 @@
+.sf-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 90px;
+  max-width: 100%;
+  height: 36px;
+  padding: 0 42px 0 14px;
+  border: none;
+  border-radius: 18px;
+  background: var(--dsw-specific-selector);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--ds-transition-duration) var(--ds-ease-in-out),
+    color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover-accent);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--dsw-alias-brand-primary);
+  }
+
+  &:disabled {
+    color: var(--dsw-alias-label-caption);
+    cursor: default;
+  }
+
+  > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.sf-open {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sf-placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sf-arrow {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: flex;
+  color: var(--dsw-alias-label-secondary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* The library owns positioning, keyboard navigation and outside-click dismissal. */
+.settings-modal .tr-dropdown-menu__list {
+  max-height: min(320px, 45dvh);
+  overflow-y: auto;
+}
