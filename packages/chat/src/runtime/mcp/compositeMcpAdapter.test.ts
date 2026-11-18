@@ -54,12 +54,12 @@ describe('createCompositeMcpAdapter', () => {
     await expect(adapter.callTool('local-tools', 'navigate', {})).resolves.toBe('local:navigate')
   })
 
-  it('拒绝重复的 Server ID', () => {
-    const adapter = createCompositeMcpAdapter({
-      adapters: [createAdapter('same', 'one', 'one'), createAdapter('same', 'two', 'two')],
-    })
-
-    expect(() => adapter.runtime.servers.value).toThrow('Duplicate MCP server id: same')
+  it('在创建时拒绝重复的 Server ID', () => {
+    expect(() =>
+      createCompositeMcpAdapter({
+        adapters: [createAdapter('same', 'one', 'one'), createAdapter('same', 'two', 'two')],
+      }),
+    ).toThrow('Duplicate MCP server id: same')
   })
 
   it('支持通过已有 Adapter 动态添加和移除外部 MCP', async () => {

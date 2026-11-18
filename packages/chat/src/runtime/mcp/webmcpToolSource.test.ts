@@ -4,7 +4,7 @@ import type { WebMcpContext } from './webmcpTypes'
 
 function createContext(tools: Array<{ name: string; description?: string; inputSchema?: unknown }>) {
   const listeners = new Set<() => void>()
-  const executeTool = vi.fn(async (tool: { name: string }, input: Record<string, unknown>) => ({
+  const executeTool = vi.fn(async (tool: { name: string }, input: Record<string, unknown> | string) => ({
     content: [{ type: 'text', text: `${tool.name}:${JSON.stringify(input)}` }],
   }))
   const context: WebMcpContext & { emit: () => void } = {
@@ -38,6 +38,37 @@ describe('createWebMcpToolSource', () => {
     ])
     await expect(source.callTool('echo', { text: 'hello' })).resolves.toBe('echo:{"text":"hello"}')
     expect(executeTool).toHaveBeenCalledWith(expect.objectContaining({ name: 'echo' }), { text: 'hello' })
+  })
+
+  it('falls back to a JSON string when the browser rejects object input', async () => {
+    const tool = { name: 'echo' }
+    const executeTool = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to parse input arguments'))
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'echo:ok' }] })
+    const context: WebMcpContext = {
+      listTools: async () => [tool],
+      executeTool,
+    }
+    const source = createWebMcpToolSource({ getContext: () => context })
+
+    await expect(source.callTool('echo', { text: 'hello' })).resolves.toBe('echo:ok')
+    expect(executeTool).toHaveBeenNthCalledWith(1, tool, { text: 'hello' })
+    expect(executeTool).toHaveBeenNthCalledWith(2, tool, '{"text":"hello"}')
+  })
+
+  it('does not retry non-parse tool errors', async () => {
+    const tool = { name: 'echo' }
+    const error = new Error('tool execution failed')
+    const executeTool = vi.fn().mockRejectedValue(error)
+    const context: WebMcpContext = {
+      listTools: async () => [tool],
+      executeTool,
+    }
+    const source = createWebMcpToolSource({ getContext: () => context })
+
+    await expect(source.callTool('echo', { text: 'hello' })).rejects.toBe(error)
+    expect(executeTool).toHaveBeenCalledOnce()
   })
 
   it('notifies subscribers after toolchange and refreshes the next tool list', async () => {

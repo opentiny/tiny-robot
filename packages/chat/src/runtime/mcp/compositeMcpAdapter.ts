@@ -91,6 +91,8 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     },
   }
 
+  collectServers(adapters.value)
+
   if (registrationAdapter?.registerMcpServer) {
     runtime.registerMcpServer = registerMcpServer
   }

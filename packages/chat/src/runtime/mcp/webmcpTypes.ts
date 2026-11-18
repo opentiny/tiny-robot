@@ -7,7 +7,7 @@ export interface WebMcpToolDescriptor {
 export interface WebMcpContext {
   listTools?: () => Promise<readonly WebMcpToolDescriptor[]>
   getTools?: () => Promise<readonly WebMcpToolDescriptor[]>
-  executeTool?: (tool: WebMcpToolDescriptor, input: Record<string, unknown>) => Promise<unknown>
+  executeTool?: (tool: WebMcpToolDescriptor, input: Record<string, unknown> | string) => Promise<unknown>
   addEventListener?: (type: 'toolchange', listener: () => void) => void
   removeEventListener?: (type: 'toolchange', listener: () => void) => void
 }

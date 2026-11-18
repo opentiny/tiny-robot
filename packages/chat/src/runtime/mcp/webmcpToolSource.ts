@@ -10,6 +10,12 @@ function readDefaultContext(): WebMcpContext | undefined {
   return (document as Document & { modelContext?: WebMcpContext }).modelContext
 }
 
+function isWebMcpInputParseError(error: unknown) {
+  const name = error instanceof Error ? error.name : (error as { name?: unknown } | null)?.name
+  const message = error instanceof Error ? error.message : String(error)
+  return name === 'TypeError' && /failed to parse input arguments/i.test(message)
+}
+
 export function normalizeWebMcpInputSchema(raw: unknown): Record<string, unknown> {
   let schema: Record<string, unknown> = {}
 
@@ -115,7 +121,13 @@ export function createWebMcpToolSource(options: CreateWebMcpToolSourceOptions = 
       const tool = descriptors.get(name)
       if (!context?.executeTool || !tool) throw new Error(`WebMCP 工具不可用：${name}`)
 
-      return readWebMcpToolText(await context.executeTool(tool, args ?? {}))
+      const input = args ?? {}
+      try {
+        return readWebMcpToolText(await context.executeTool(tool, input))
+      } catch (error) {
+        if (!isWebMcpInputParseError(error)) throw error
+        return readWebMcpToolText(await context.executeTool(tool, JSON.stringify(input)))
+      }
     },
     subscribe(listener) {
       listeners.add(listener)
