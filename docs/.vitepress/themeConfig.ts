@@ -20,6 +20,17 @@ const sharedSidebarItems = [
     ],
   },
   {
+    text: 'Web Component',
+    base: '/web-component/',
+    items: [
+      { text: 'TrChat 使用指南', link: 'index' },
+      { text: 'Runtime 创建与释放', link: 'runtime' },
+      { text: '内容定制', link: 'customization' },
+      { text: 'Angular 接入', link: 'angular' },
+      { text: 'React 接入', link: 'react' },
+    ],
+  },
+  {
     text: '组件',
     base: '/components/',
     items: [
@@ -80,6 +91,7 @@ const sidebar = {
   '/best-practices/': sharedSidebarItems,
   '/icons/': sharedSidebarItems,
   '/suites/': sharedSidebarItems,
+  '/web-component/': sharedSidebarItems,
   '/examples/': [
     {
       text: '演示',
