@@ -24,16 +24,17 @@ test.describe('useAutoScroll', () => {
     await expectAtBottom(scroller)
   })
 
-  test('preserves the reading position after the user scrolls upward', async ({ mount }) => {
+  test('preserves the reading position after the user scrolls upward', async ({ mount, page }) => {
     const component = await mount(AutoScrollFixture)
     const scroller = component.getByTestId('observed-scroll')
 
     await expectAtBottom(scroller)
+    await scroller.hover()
     await scroller.evaluate((element) => {
-      element.scrollTop = element.scrollHeight - element.clientHeight - 100
-      element.dispatchEvent(new Event('scroll'))
+      element.scrollTop = element.scrollHeight
     })
-    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(200)
+    await page.mouse.wheel(0, -100)
+    await expect.poll(() => distanceToBottom(scroller)).toBeGreaterThanOrEqual(100)
     const before = await scroller.evaluate((element) => element.scrollTop)
 
     await component.getByRole('button', { name: 'Grow observed content' }).click()

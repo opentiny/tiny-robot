@@ -148,8 +148,11 @@ export function useChatAutoScroll({
       clearPause()
       if (reason === 'anchor') pauseFromAnchor()
       else if (reason === 'renderer') {
-        if (enabled()) scrollToBottom()
-        else pauseFromRenderer()
+        if (!enabled()) {
+          pauseFromRenderer()
+          return
+        }
+        scrollToBottomInternal().then(pauseFromRenderer)
       }
     },
     { flush: 'sync' },
