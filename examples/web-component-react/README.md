@@ -20,7 +20,7 @@ pnpm dev
 
 ## 能力页面
 
-左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法、普通 Slot 和 Scoped Slot 六个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`、`#/content/ordinary-slots`、`#/content/scoped-slots`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
+左侧导航切换属性与事件、Runtime 接入、浮窗状态、公开方法、普通 Slot、Scoped Slot 和 Bubble 正文七个演示。可直接在地址后添加 `#/basic/props`、`#/basic/runtime`、`#/basic/floating`、`#/basic/methods`、`#/content/ordinary-slots`、`#/content/scoped-slots`、`#/content/bubble-content`；刷新及浏览器前进后退保留当前能力。切页销毁旧视图，重新进入时从初始状态开始。
 
 ## 接入代码
 
