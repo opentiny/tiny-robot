@@ -334,7 +334,7 @@
 
   /* ===== QuickAssist decoration tokens ===== */
   --tr-assist-border-color: rgba(255, 255, 255, 0.2);
-  --tr-assist-trigger-border-color: transparent;
+  --tr-assist-trigger-border-color: rgba(255, 255, 255, 0.2);
   --tr-assist-suggestion-bg-hover: #262626;
   --tr-assist-icon-gradient-start: #b47aff;
   --tr-assist-icon-gradient-middle: #d580ff;

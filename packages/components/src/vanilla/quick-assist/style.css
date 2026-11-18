@@ -14,7 +14,7 @@
   --tr-quick-assist-text: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
   --tr-quick-assist-muted: var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary));
   --tr-quick-assist-border: var(--tr-assist-border-color, var(--tr-vanilla-default-assist-border-color));
-  --tr-quick-assist-popover-border: var(--tr-quick-assist-border);
+  --tr-quick-assist-popover-border: var(--tr-quick-assist-trigger-border);
   --tr-quick-assist-popover-bg: var(--tr-quick-assist-bg);
   --tr-quick-assist-suggestion-bg: var(--tr-quick-assist-popover-bg);
   --tr-quick-assist-trigger-border: var(
@@ -472,7 +472,6 @@
 }
 
 .tr-quick-assist[data-tr-vanilla-color-mode='dark'] {
-  --tr-quick-assist-popover-border: transparent;
   --tr-quick-assist-popover-bg: #1a1a1a;
   --tr-quick-assist-glow-opacity: 0.3;
   --tr-quick-assist-scrollbar-thumb: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));

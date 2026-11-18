@@ -863,8 +863,8 @@ QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-
 | [`--tr-quick-assist-text`](#example-theme) | 主要文字颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
 | [`--tr-quick-assist-muted`](#example-theme) | 入口悬停文字、推荐问题、输入框占位文字及状态提示颜色 | `#595959` / `#b3b3b3`，可继承 `--tr-text-secondary` |
 | [`--tr-quick-assist-border`](#example-theme) | 输入框、推荐问题描边及滚动条颜色 | `#e6e6e6` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-border-color` |
-| [`--tr-quick-assist-trigger-border`](#example-theme) | 入口描边颜色，悬停时保持不变 | `#dbdbdb` / `transparent`，可继承 `--tr-assist-trigger-border-color` |
-| [`--tr-quick-assist-popover-border`](#example-theme) | 输入浮层外描边颜色，悬停时保持不变 | `var(--tr-quick-assist-border)` / `transparent` |
+| [`--tr-quick-assist-trigger-border`](#example-theme) | 入口描边颜色，悬停时保持不变 | `#dbdbdb` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-trigger-border-color` |
+| [`--tr-quick-assist-popover-border`](#example-theme) | 输入浮层外描边颜色，悬停时保持不变 | `var(--tr-quick-assist-trigger-border)`，即 `#dbdbdb` / `rgba(255, 255, 255, 0.2)` |
 | [`--tr-quick-assist-hover-bg`](#example-theme) | 推荐问题悬停背景色 | `#f5f5f5` / `#262626`，可继承 `--tr-assist-suggestion-bg-hover` |
 | [`--tr-quick-assist-suggestion-bg`](#example-theme) | 推荐问题默认背景色，与悬停背景区分 | `var(--tr-quick-assist-popover-bg)`，浅色 `#fff` / 深色 `#1a1a1a` |
 | [`--tr-quick-assist-glow-opacity`](#example-theme) | 输入框下沿四色渐变光晕的透明度，设为 `0` 可隐藏 | `0.16` / `0.3` |

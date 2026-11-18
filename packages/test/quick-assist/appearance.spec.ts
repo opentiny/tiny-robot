@@ -15,7 +15,7 @@ for (const entry of ['index', 'umd']) {
           window.qa.activate({ text: '解释当前内容', anchor: document.querySelector('#term')! })
         }, mode)
         const trigger = page.locator('.tr-quick-assist__trigger')
-        const border = mode === 'light' ? 'rgb(219, 219, 219)' : 'rgba(0, 0, 0, 0)'
+        const border = mode === 'light' ? 'rgb(219, 219, 219)' : 'rgba(255, 255, 255, 0.2)'
         const background = mode === 'light' ? 'rgb(255, 255, 255)' : 'rgb(38, 38, 38)'
         await expect(trigger).toHaveCSS('width', '88px')
         await expect(trigger).toHaveCSS('height', '24px')
@@ -47,7 +47,7 @@ for (const entry of ['index', 'umd']) {
         const input = page.locator('.tr-quick-assist__input')
         const submit = page.locator('.tr-quick-assist__submit')
         const suggestion = page.locator('.tr-quick-assist__suggestion').first()
-        const popoverBorder = mode === 'light' ? 'rgb(230, 230, 230)' : 'rgba(0, 0, 0, 0)'
+        const popoverBorder = border
         const suggestionBorder = mode === 'light' ? 'rgb(230, 230, 230)' : 'rgba(255, 255, 255, 0.2)'
         await expect(popover).toHaveCSS('border-color', popoverBorder)
         for (const surface of [popover, composer, submit, suggestion]) {

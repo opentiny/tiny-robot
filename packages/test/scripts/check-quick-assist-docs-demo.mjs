@@ -175,11 +175,13 @@ try {
     })
     const trigger = demo.locator('.tr-quick-assist__trigger')
     await expect(demo.locator('[data-tr-vanilla]')).toHaveAttribute('data-tr-vanilla-color-mode', mode)
-    await expect(trigger).toHaveCSS('border-color', mode === 'dark' ? 'rgba(0, 0, 0, 0)' : 'rgb(219, 219, 219)')
+    const outerBorder = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgb(219, 219, 219)'
+    await expect(trigger).toHaveCSS('border-color', outerBorder)
     await trigger.hover()
     await expect(trigger).toHaveCSS('color', mode === 'dark' ? 'rgb(179, 179, 179)' : 'rgb(89, 89, 89)')
     await trigger.click()
     const popover = demo.locator('.tr-quick-assist__popover')
+    await expect(popover).toHaveCSS('border-color', outerBorder)
     const composer = demo.locator('.tr-quick-assist__composer')
     const suggestion = demo.locator('.tr-quick-assist__suggestion').first()
     const border = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgb(230, 230, 230)'

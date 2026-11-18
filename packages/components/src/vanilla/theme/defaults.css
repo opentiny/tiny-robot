@@ -19,7 +19,7 @@
     --tr-vanilla-default-text-primary: #e6e6e6;
     --tr-vanilla-default-text-secondary: #b3b3b3;
     --tr-vanilla-default-assist-border-color: rgba(255, 255, 255, 0.2);
-    --tr-vanilla-default-assist-trigger-border-color: transparent;
+    --tr-vanilla-default-assist-trigger-border-color: rgba(255, 255, 255, 0.2);
     --tr-vanilla-default-assist-suggestion-bg-hover: #262626;
     --tr-vanilla-default-radius-full: 9999px;
     --tr-vanilla-default-assist-box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.48);
