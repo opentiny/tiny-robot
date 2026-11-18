@@ -13,6 +13,7 @@ import type { QuickAssistSession } from '../core/types'
 import { positionElement } from '../positioning'
 import { bindVanillaTheme } from '../../theme/service'
 import { createInputScrollbar } from './scrollbar'
+import { bindInputLimitTooltip } from './limit-tooltip'
 import { makeAiIcon, makeSendIcon } from './icons'
 
 export interface QuickAssistUIOptions {
@@ -364,7 +365,8 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       tooltip.id = `tr-quick-assist-limit-${session.id}`
       tooltip.setAttribute('role', 'tooltip')
       tooltip.textContent = inputOptions.maxLengthExceededMessage
-      submitWrapper.append(submit, tooltip)
+      tooltip.hidden = true
+      submitWrapper.append(submit)
       let composing = false
       const syncSubmit = () => {
         if (!input || !submit) return
@@ -380,6 +382,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
         if (tooLong) submitWrapper.setAttribute('aria-describedby', tooltip.id)
         else submitWrapper.removeAttribute('aria-describedby')
         submit.disabled = state.submittingDisabled || !input.value.trim() || tooLong
+        limitTooltip?.update(tooLong)
       }
       input.addEventListener('input', () => {
         session.inputValue = input?.value ?? ''
@@ -422,6 +425,10 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       popover.append(suggestionList, status)
       container.append(popover)
       visible = popover
+      // Unlimited input has no validation tooltip and needs no extra observers.
+      const limitTooltip =
+        options.input?.maxLength == null ? undefined : bindInputLimitTooltip(submitWrapper, tooltip, popover)
+      if (limitTooltip) container.append(tooltip)
       renderSuggestions()
       syncInput = () => {
         if (!input || activeSession !== session) return
@@ -493,6 +500,7 @@ export function createQuickAssistUI(options: QuickAssistUIOptions): QuickAssistU
       resize?.observe(popover)
       resize?.observe(form)
       releaseLayout = () => {
+        limitTooltip?.destroy()
         resize?.disconnect()
         typographyObserver?.disconnect()
         fonts?.removeEventListener('loadingdone', scheduleInputLayout)

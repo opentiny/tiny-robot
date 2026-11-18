@@ -417,24 +417,21 @@
 }
 
 .tr-quick-assist__limit-tooltip {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
+  position: fixed;
   z-index: 1;
-  display: none;
+  max-width: calc(100vw - 16px);
   padding: 8px;
   border-radius: 8px;
   background: var(--tr-quick-assist-popover-bg);
   color: var(--tr-quick-assist-text);
   box-shadow: var(--tr-quick-assist-shadow);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 18px;
 }
 
-.tr-quick-assist__submit-wrapper--invalid:hover .tr-quick-assist__limit-tooltip,
-.tr-quick-assist__submit-wrapper--invalid:focus .tr-quick-assist__limit-tooltip {
-  display: block;
+.tr-quick-assist__limit-tooltip[hidden] {
+  display: none;
 }
 
 /* Selection limit: match the design while retaining the normal entry geometry. */

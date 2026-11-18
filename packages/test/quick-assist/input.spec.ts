@@ -140,6 +140,130 @@ for (const entry of ['index', 'umd']) {
       await expect(input).toHaveValue('显式开启预填')
     })
 
+    test('limit tooltip only exists for a configured character limit', async ({ page }) => {
+      const open = () =>
+        page.evaluate(() =>
+          window.qa.activate({
+            text: '输入限制',
+            anchor: document.querySelector('#term')!,
+            open: 'popover',
+          }),
+        )
+      const tooltip = page.locator('.tr-quick-assist__limit-tooltip')
+      await open()
+      await expect(tooltip).toHaveCount(0)
+      await page.evaluate(() => window.qa.updateOptions({ input: { maxLength: 3 } }))
+      await open()
+      await expect(tooltip).toHaveCount(1)
+      await expect(tooltip).toBeHidden()
+      await page.evaluate(() => window.qa.updateOptions({ input: { maxLength: null } }))
+      await open()
+      await expect(tooltip).toHaveCount(0)
+      await page.evaluate(() => window.qa.destroy())
+      await expect(tooltip).toHaveCount(0)
+    })
+
+    for (const width of [1280, 240]) {
+      test(`limit tooltip remains fully painted for pointer and keyboard at width ${width}`, async ({ page }, info) => {
+        await page.setViewportSize({ width, height: 300 })
+        await page.evaluate(() => {
+          window.qa.updateOptions({
+            input: { maxLength: 3, autoFill: false, maxLengthExceededMessage: '超过三个字符，请缩短内容后再发送' },
+          })
+          window.qa.activate({
+            source: 'editor',
+            text: '单行超限提示',
+            getRect: () => new DOMRect(innerWidth - 15, innerHeight - 20, 1, 18),
+            open: 'popover',
+          })
+        })
+        const input = page.locator('.tr-quick-assist__input')
+        const wrapper = page.locator('.tr-quick-assist__submit-wrapper')
+        const tooltip = page.locator('.tr-quick-assist__limit-tooltip')
+        await input.fill('iiii')
+        await expect(page.locator('.tr-quick-assist__composer')).toHaveCSS('height', '40px')
+        for (const action of ['pointer', 'keyboard']) {
+          if (action === 'pointer') await wrapper.hover()
+          else {
+            await page.mouse.move(1, 1)
+            await wrapper.focus()
+          }
+          await expect(tooltip).toBeVisible()
+          await expect
+            .poll(() =>
+              tooltip.evaluate((element) => {
+                const rect = element.getBoundingClientRect()
+                const range = document.createRange()
+                range.selectNodeContents(element)
+                const textRects = [...range.getClientRects()]
+                return (
+                  rect.left >= 7 &&
+                  rect.right <= innerWidth - 7 &&
+                  rect.top >= 7 &&
+                  rect.bottom <= innerHeight - 7 &&
+                  textRects.every((r) => {
+                    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+                    return hit === element || element.contains(hit)
+                  })
+                )
+              }),
+            )
+            .toBe(true)
+          await page.screenshot({ path: info.outputPath(`limit-${action}.png`), animations: 'disabled' })
+        }
+        await input.fill('iii')
+        await expect(tooltip).toBeHidden()
+        await input.fill('一\n二\n三\n四')
+        await wrapper.hover()
+        await expect(tooltip).toBeVisible()
+        await input.press('Escape')
+        await expect(tooltip).toHaveCount(0)
+        await page.evaluate(() => {
+          window.qa.activate({ text: '新会话', anchor: document.querySelector('#term')!, open: 'popover' })
+          window.qa.destroy()
+        })
+        await expect(tooltip).toHaveCount(0)
+      })
+    }
+
+    test('limit tooltip follows popover scrolling and is hidden while its anchor is clipped', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 220 })
+      await page.evaluate(() => {
+        window.qa.updateOptions({
+          input: { maxLength: 3, autoFill: false },
+          maxSuggestions: 20,
+          suggestions: Array.from({ length: 20 }, (_, i) => ({
+            id: String(i),
+            label: `推荐问题 ${i}`,
+            prompt: String(i),
+          })),
+        })
+        window.qa.activate({
+          source: 'editor',
+          text: '检查滚动',
+          getRect: () => new DOMRect(160, 30, 1, 18),
+          open: 'popover',
+        })
+      })
+      const input = page.locator('.tr-quick-assist__input')
+      const wrapper = page.locator('.tr-quick-assist__submit-wrapper')
+      const tooltip = page.locator('.tr-quick-assist__limit-tooltip')
+      const popover = page.locator('.tr-quick-assist__popover')
+      await input.fill('四个字符')
+      await wrapper.focus()
+      await expect(tooltip).toBeVisible()
+      await popover.evaluate((el) => {
+        el.scrollTop = el.scrollHeight
+      })
+      await expect(tooltip).toBeHidden()
+      await popover.evaluate((el) => {
+        el.scrollTop = 0
+      })
+      await expect(tooltip).toBeVisible()
+      await page.evaluate(() => window.qa.close())
+      await expect(tooltip).toHaveCount(0)
+    })
+
     for (const multiline of [false, true]) {
       for (const twoRows of [false, true]) {
         test(`design dimensions: multiline=${multiline}, two suggestion rows=${twoRows}`, async ({ page }) => {
