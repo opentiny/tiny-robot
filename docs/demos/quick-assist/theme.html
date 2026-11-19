@@ -72,15 +72,16 @@
         const select = document.querySelector('#theme-mode')
         const status = document.querySelector('#theme-status')
         const system = window.matchMedia('(prefers-color-scheme: dark)')
-        let previewUmdUrl
+        let previewGlobalUrl
         try {
-          previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
+          previewGlobalUrl = window.parent.__tinyRobotVanillaDemoGlobalUrl
         } catch {
           // 单独打开或跨源嵌入时使用本地构建产物。
         }
         const script = document.createElement('script')
         script.src =
-          previewUmdUrl ?? new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI).href
+          previewGlobalUrl ??
+          new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI).href
         await new Promise((resolve, reject) => {
           script.onload = resolve
           script.onerror = () => reject(new Error('组件加载失败，请先构建 TinyRobot'))

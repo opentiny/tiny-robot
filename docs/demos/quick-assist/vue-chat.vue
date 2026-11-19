@@ -30,7 +30,18 @@
 
       <details v-if="latestRequest" class="qa-demo__context">
         <summary>本次提交的 prompt 与脱敏 Context</summary>
-        <pre>{{ JSON.stringify({ prompt: latestRequest.prompt, context: latestRequest.context }, null, 2) }}</pre>
+        <pre>{{
+          JSON.stringify(
+            {
+              query: latestRequest.query,
+              prompt: latestRequest.prompt,
+              context: latestRequest.context,
+              suggestion: latestRequest.suggestion,
+            },
+            null,
+            2,
+          )
+        }}</pre>
       </details>
 
       <TrSender v-model="draft" mode="multiple" placeholder="也可以在这里输入问题" @submit="handleManualSubmit" />
