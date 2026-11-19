@@ -55,7 +55,7 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
 
   test('TC-BS-05: 从模板块右侧按 Backspace 应该进入模板块', async () => {
     await templateHelper.setSimpleTemplate()
-    await templateHelper.moveCursorAtTemplate(0, 'after')
+    await templateHelper.focusAfterTemplate(0)
     await templateHelper.pressBackspace()
 
     await templateHelper.expectTemplateCount(1)

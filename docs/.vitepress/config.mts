@@ -4,11 +4,18 @@ import { defineConfigWithTheme, type DefaultTheme } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
 import { themeConfig } from './themeConfig'
+import { vanillaThemePlugin } from '../../packages/components/scripts/vanilla-theme.mjs'
 import { resolveSourceLinks } from './source-links'
 
 type DocsThemeConfig = DefaultTheme.Config & { sourceLinks: ReturnType<typeof resolveSourceLinks> }
 
 const devAlias = {
+  '@opentiny/tiny-robot/vanilla/style.css': fileURLToPath(
+    new URL('../../packages/components/src/vanilla/style.css', import.meta.url),
+  ),
+  '@opentiny/tiny-robot/vanilla': fileURLToPath(
+    new URL('../../packages/components/src/vanilla/index.ts', import.meta.url),
+  ),
   '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
   '@opentiny/tiny-robot-kit': fileURLToPath(new URL('../../packages/kit/src', import.meta.url)),
   '@opentiny/tiny-robot-style': fileURLToPath(
@@ -37,7 +44,7 @@ export default defineConfigWithTheme<DocsThemeConfig>({
     ],
   ],
   vite: {
-    plugins: [vueJsx(), SidebarBadgePlugin()],
+    plugins: [vueJsx(), SidebarBadgePlugin(), vanillaThemePlugin()],
     server: {
       open: true,
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
