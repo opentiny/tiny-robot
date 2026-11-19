@@ -122,8 +122,9 @@ const lastVisibleIndex = computed(() => {
 
 function getActionContext(group: BubbleMessageGroup, messageIndexes: number[]): ChatBubbleActionContext | undefined {
   const indexedMessages = messageIndexes.map((index) => props.messages[index]).filter(Boolean)
-  const role = group.role
-  const messageIndex = [...messageIndexes].reverse().find((index) => props.messages[index]?.role === role) ?? -1
+  const role = group.role || 'assistant'
+  const messageIndex =
+    [...messageIndexes].reverse().find((index) => (props.messages[index]?.role || 'assistant') === role) ?? -1
   const message = props.messages[messageIndex]
   if (!message || messageIndex < 0) return
   const bubbleMessage = bubbleMessages.value[messageIndex]
@@ -135,7 +136,7 @@ function getActionContext(group: BubbleMessageGroup, messageIndexes: number[]): 
     messageKey: bubbleMessage?.renderKey ?? messageId ?? String(messageIndex),
     message,
     messages: indexedMessages,
-    isLatest: messageIndex === lastVisibleIndex.value,
+    isLatest: messageIndexes.includes(lastVisibleIndex.value),
     turnState: capability?.turnState ?? 'unknown',
     capabilities: {
       canEdit: Boolean(messageId && capability?.canEdit),
@@ -402,7 +403,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                   v-if="context && props.options.actions"
                   :context="context"
                   :options="props.options.actions"
-                  :role="slotProps.role ?? 'assistant'"
+                  :role="slotProps.role || 'assistant'"
                   :editing="editingMessageKey === context.messageKey"
                   :stream-state="
                     resolveStreamState(context.message, props.request, getMessageStreamState(context.message))

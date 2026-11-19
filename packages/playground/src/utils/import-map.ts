@@ -27,8 +27,6 @@ export function generateImportMap(options: ImportMapOptions) {
       '@opentiny/tiny-robot-svgs': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${tinyRobotVersion}/dist/tiny-robot-svgs.min.js`,
       '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/dist/index.mjs`,
 
-      '@opentiny/tiny-robot-chat': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-chat@${tinyRobotVersion}/dist/index.js`,
-
       // TinyVue 相关包
       '@opentiny/vue': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-pc.mjs',
       '@opentiny/vue-icon': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-icon.mjs',

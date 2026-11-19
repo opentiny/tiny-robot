@@ -117,8 +117,8 @@ watch(tinyRobotVersion, async (newVersion) => {
   const indexCssFile = store.files['src/index.css']
   if (indexCssFile) {
     const updatedCss = indexCssFile.code.replace(
-      /(@opentiny\/tiny-robot(?:-chat)?)@[^\s'"\/]+\/dist\/style\.css/g,
-      `$1@${newVersion}/dist/style.css`,
+      /@opentiny\/tiny-robot@[^\s'"\/]+\/dist\/style\.css/g,
+      `@opentiny/tiny-robot@${newVersion}/dist/style.css`,
     )
     if (indexCssFile.code !== updatedCss) {
       indexCssFile.code = updatedCss

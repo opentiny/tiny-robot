@@ -54,6 +54,18 @@ test('bubble actions are opt-in and edit cancel leaves the original message unch
   await expect(component.getByTestId('user-actions').getByRole('textbox', { name: '编辑消息' })).toHaveCount(0)
 })
 
+test('latest actions remain visible for omitted roles and assistant groups ending in a tool message', async ({
+  mount,
+}) => {
+  const component = await mount(ChatBubbleActionsFixture)
+  for (const sectionName of ['missing-role-actions', 'assistant-tool-actions']) {
+    const actions = component.getByTestId(sectionName).locator('.tr-chat-bubble-actions')
+    await expect(actions).toHaveCount(1)
+    await expect(actions).toHaveClass(/is-latest/)
+    await expect(actions.getByRole('button', { name: '复制', exact: true })).toBeVisible()
+  }
+})
+
 for (const rejectEdit of [false, true]) {
   test(`Runtime ${rejectEdit ? 'rejection' : 'synchronous error'} leaves the edit draft usable`, async ({ mount }) => {
     const component = await mount(ChatMessageEditFixture, { props: { rejectEdit } })

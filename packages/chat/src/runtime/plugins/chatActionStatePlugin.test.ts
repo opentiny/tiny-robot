@@ -23,6 +23,27 @@ const completion = (content: string): ChatCompletion => ({
 })
 
 describe('chat action state plugin with an external conversation', () => {
+  it('keeps fallback action identity linked across consecutive replays', async () => {
+    let responseIndex = 0
+    const engine = useMessage({
+      initialMessages: [{ id: 'user-1', role: 'user', content: 'question' }],
+      responseProvider: async function* () {
+        yield completion(['first answer', 'second answer', 'third answer'][responseIndex++]!)
+      },
+      plugins: [createChatActionStatePlugin()],
+    })
+    const user = engine.messages.value[0]!
+
+    await expect(engine.rerun(user)).resolves.toBe(true)
+    await expect(engine.rerun(user)).resolves.toBe(true)
+
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ id: 'user-1', turnState: 'completed' })
+    expect(engine.messages.value[1]?.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({
+      userMessageId: 'user-1',
+      turnState: 'completed',
+    })
+  })
+
   it.each(['completed', 'error', 'aborted'] as const)(
     'tracks streaming and %s states without changing history',
     async (outcome) => {

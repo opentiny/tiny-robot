@@ -113,6 +113,13 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
     > = {}
     const usersById = new Map<string, number>()
     const assistantsByUserId = new Map<string, number[]>()
+    let latestTurnEnd = messages.length
+    for (let index = latestUserIndex + 1; index < messages.length; index++) {
+      if (messages[index]?.role === 'user' && !isAutoContinuationMessage(messages[index]!)) {
+        latestTurnEnd = index
+        break
+      }
+    }
     messages.forEach((message, index) => {
       const metadata = message.metadata?.[CHAT_ACTION_METADATA_KEY] as
         { id?: string; userMessageId?: string } | undefined
@@ -132,25 +139,27 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       if (typeof id !== 'string') continue
       const userMessageId = message.role === 'user' ? id : metadata?.userMessageId
       const linkedUserIndex = userMessageId ? (usersById.get(userMessageId) ?? -1) : -1
-      const linkedAssistantIndex = userMessageId
-        ? assistantsByUserId.get(userMessageId)?.find((assistantIndex) => assistantIndex > linkedUserIndex)
-        : undefined
+      const isLatestTurn = linkedUserIndex >= 0 && linkedUserIndex === latestUserIndex
+      const linkedAssistantIndex =
+        userMessageId && isLatestTurn
+          ? assistantsByUserId.get(userMessageId)?.find((assistantIndex) => assistantIndex > linkedUserIndex)
+          : undefined
       const linkedAssistant = linkedAssistantIndex === undefined ? undefined : messages[linkedAssistantIndex]
       const linkedAssistantMetadata = linkedAssistant?.metadata?.[CHAT_ACTION_METADATA_KEY] as
         { turnState?: ChatConversation['requestState'] } | undefined
       const plainText = typeof messages[linkedUserIndex]?.content === 'string'
       const attachments = (messages[linkedUserIndex] as { externalPayloads?: unknown } | undefined)?.externalPayloads
       const hasAttachments = Array.isArray(attachments) ? attachments.length > 0 : Boolean(attachments)
-      const turnEnd = messages.findIndex(
-        (item, i) => i > linkedUserIndex && item.role === 'user' && !isAutoContinuationMessage(item),
-      )
-      const turnMessages = messages.slice(linkedUserIndex + 1, turnEnd < 0 ? undefined : turnEnd)
-      const hasTools = turnMessages.some((item) => item.role === 'tool' || Boolean(item.tool_calls?.length))
+      const hasTools =
+        isLatestTurn &&
+        messages
+          .slice(linkedUserIndex + 1, latestTurnEnd)
+          .some((item) => item.role === 'tool' || Boolean(item.tool_calls?.length))
       const state = metadata?.turnState ?? linkedAssistantMetadata?.turnState ?? 'unknown'
       const canReplay = Boolean(
         userMessageId &&
         !isSendingDisabled() &&
-        linkedUserIndex === latestUserIndex &&
+        isLatestTurn &&
         plainText &&
         !hasAttachments &&
         !hasTools &&

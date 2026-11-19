@@ -750,7 +750,6 @@ export const createMessageEngine = (
     runtime.currentTurn = [nextTarget]
     runtime.turnId = null
     runtime.customContext = {}
-    setRequestState('processing', 'requesting')
     mutate('messages', (draft) => {
       const currentIndex = adapter.getMessageIndex?.(resolvedTarget) ?? draft.messages.indexOf(resolvedTarget)
       if (currentIndex < 0) return

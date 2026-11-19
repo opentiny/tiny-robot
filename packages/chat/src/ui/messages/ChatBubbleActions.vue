@@ -185,7 +185,7 @@ function textToCopy() {
   const override = props.options.copy?.getText?.(props.context)
   if (override !== undefined) return override
   return props.context.messages
-    .filter((message) => ['user', 'assistant'].includes(message.role ?? '') && message.content)
+    .filter((message) => ['user', 'assistant'].includes(message.role ?? props.role) && message.content)
     .map(messageText)
     .join('\n')
 }

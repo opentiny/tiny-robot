@@ -72,6 +72,25 @@ describe('useMessage', () => {
     expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'answer'])
   })
 
+  it('installs the replay abort controller before synchronous request-state observers run', async () => {
+    const engine = useMessage({ responseProvider: mockResponseProvider('answer') })
+    await engine.sendMessage('question')
+    let aborting: Promise<void> | undefined
+    const stop = watch(
+      () => engine.requestState.value,
+      (state) => {
+        if (state === 'processing') aborting = engine.abortRequest()
+      },
+      { flush: 'sync' },
+    )
+
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    await aborting
+    stop()
+
+    expect(engine.requestState.value).toBe('aborted')
+  })
+
   it('ignores a delayed after-request append after another hook fails', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => {

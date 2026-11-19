@@ -1,5 +1,6 @@
 import { isAutoContinuationMessage } from '@opentiny/tiny-robot-kit'
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
+import { getMessageActionId } from '../messageActionIdentity'
 import { CHAT_ACTION_METADATA_KEY } from '../useChatRuntimeFromConversation'
 
 function generateActionId() {
@@ -15,8 +16,14 @@ export function createChatActionStatePlugin(): UseMessagePlugin {
       const user = [...currentTurn]
         .reverse()
         .find((message) => message.role === 'user' && !isAutoContinuationMessage(message))
-      const metadata = user?.metadata?.[CHAT_ACTION_METADATA_KEY] as { id?: string; turnState?: string } | undefined
-      if (metadata) metadata.turnState = 'processing'
+      if (!user) return
+      user.metadata ??= {}
+      const metadata = user.metadata[CHAT_ACTION_METADATA_KEY] as { id?: string; turnState?: string } | undefined
+      user.metadata[CHAT_ACTION_METADATA_KEY] = {
+        ...metadata,
+        id: metadata?.id ?? getMessageActionId(user) ?? generateActionId(),
+        turnState: 'processing',
+      }
     },
     onCompletionChunk({ currentTurn, currentMessage, updateCurrentMessage }) {
       if (currentMessage.role !== 'assistant') return

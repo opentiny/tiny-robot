@@ -23,6 +23,11 @@ const messages = ref<ChatMessageItem[]>([
   },
 ])
 const userMessages: ChatMessageItem[] = [messages.value[0]!]
+const missingRoleMessages: ChatMessageItem[] = [{ content: 'Role omitted' }]
+const assistantToolMessages: ChatMessageItem[] = [
+  { role: 'assistant', content: 'Grouped answer' },
+  { role: 'tool', content: 'Tool result' },
+]
 const base = resolveChatUIOptions(undefined)
 const actions = computed(() => ({
   ...base.bubble,
@@ -49,6 +54,10 @@ const actions = computed(() => ({
     user: ['copy', 'edit'] as const,
     assistant: ['copy', 'info'] as const,
   },
+}))
+const actionDisplayOptions = computed(() => ({
+  ...actions.value,
+  actions: { user: ['copy'] as const, assistant: ['copy'] as const },
 }))
 const infoActions = {
   ...actions.value,
@@ -92,6 +101,32 @@ const hiddenActions = base.bubble
         :messages="messages.slice(1)"
         :scroll-target="null"
         :options="infoActions"
+        :welcome="false"
+        :prompts="false"
+        :labels="base.labels"
+        :is-empty="false"
+        :center-empty-state="false"
+        :center-welcome-composer="false"
+      />
+    </section>
+    <section data-testid="missing-role-actions">
+      <ChatMessages
+        :messages="missingRoleMessages"
+        :scroll-target="null"
+        :options="actionDisplayOptions"
+        :welcome="false"
+        :prompts="false"
+        :labels="base.labels"
+        :is-empty="false"
+        :center-empty-state="false"
+        :center-welcome-composer="false"
+      />
+    </section>
+    <section data-testid="assistant-tool-actions">
+      <ChatMessages
+        :messages="assistantToolMessages"
+        :scroll-target="null"
+        :options="actionDisplayOptions"
         :welcome="false"
         :prompts="false"
         :labels="base.labels"
