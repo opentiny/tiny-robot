@@ -53,9 +53,4 @@ export type {
   WebMcpToolDescriptor,
   WebMcpToolSource,
 } from './runtime/mcp/webmcpTypes'
-export type {
-  ChatProviderConfig,
-  ChatProviderFeatureBody,
-  ChatProviderModelConfig,
-  ChatProviderType,
-} from './runtime/provider'
+export type { ChatProviderConfig, ChatProviderModelConfig, ChatProviderType } from './runtime/provider'

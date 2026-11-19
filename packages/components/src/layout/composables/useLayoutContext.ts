@@ -17,6 +17,10 @@ export function useLayoutContext(): LayoutContext {
   return context
 }
 
+export function useOptionalLayoutContext(): LayoutContext | null {
+  return inject(layoutContextKey, null)
+}
+
 export function useLayoutAsideContext(side: 'left' | 'right') {
   const context = useLayoutContext()
 

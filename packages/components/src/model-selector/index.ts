@@ -11,4 +11,11 @@ const install = function <T>(app: App<T>) {
 ModelSelector.install = install
 
 export * from './index.type'
+export {
+  normalizeModelFields,
+  resolveModelFeatureValues,
+  pickModelFeatureValues,
+  canSetModelFieldValue,
+  isModelFieldValue,
+} from './featureFields'
 export default ModelSelector as typeof ModelSelector & { install: typeof install }

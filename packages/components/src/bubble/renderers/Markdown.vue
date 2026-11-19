@@ -27,8 +27,21 @@ const markdownContent = ref('')
 watchEffect(() => {
   if (markdownItAndDompurify.value) {
     const { markdown, dompurify } = markdownItAndDompurify.value
-    const rendered = markdown(mdConfig || {}).render(content.value)
-    markdownContent.value = dompurify.sanitize(rendered, dompurifyConfig)
+    const md = markdown(mdConfig || {})
+
+    // Safari needs an explicit tab stop to make code blocks scrollable with the keyboard.
+    for (const rule of ['fence', 'code_block']) {
+      const renderCodeBlock = md.renderer.rules[rule]
+
+      if (!renderCodeBlock) {
+        continue
+      }
+
+      md.renderer.rules[rule] = (...args) =>
+        renderCodeBlock(...args).replace(/^<pre(?=[\s>])/i, '<pre tabindex="0" role="region" aria-label="Code block"')
+    }
+
+    markdownContent.value = dompurify.sanitize(md.render(content.value), dompurifyConfig)
   }
 })
 </script>
@@ -48,5 +61,11 @@ watchEffect(() => {
   font-size: var(--tr-bubble-text-font-size);
   line-height: var(--tr-bubble-text-line-height);
   color: var(--tr-bubble-text-color);
+  overflow-wrap: anywhere;
+
+  :deep(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

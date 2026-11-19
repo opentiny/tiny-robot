@@ -3,14 +3,14 @@ import { computed, shallowRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import type { SenderSlotScope, SenderSubmitExtra } from '@opentiny/tiny-robot'
 import ExtensionSelector from './ExtensionSelector.vue'
-import ModelFeatureButton from './ModelFeatureButton.vue'
 import ModelSelector from './ModelSelector.vue'
 import ChatToolbarButton from './ChatToolbarButton.vue'
 import type {
-  ChatBuiltInModelFeature,
+  ChatModelFeatureValueChangePayload,
   ChatLabels,
   ChatMcpView,
   ChatModelView,
+  ChatRequestView,
   ChatSenderView,
   ChatSenderToolbarItem,
   ChatSendPayload,
@@ -20,6 +20,7 @@ import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../res
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
+  request?: ChatRequestView
   value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
@@ -37,8 +38,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   openExtensionsPanel: []
   modelSelect: [payload: { id: string | null }]
-  modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
-  modelReasoningEffortChange: [payload: { effort: string | null }]
+  modelFeatureValueChange: [payload: ChatModelFeatureValueChangePayload]
   senderDragEnter: [payload: SenderDragPayload]
   senderDragOver: [payload: SenderDragPayload]
   senderDragLeave: [payload: SenderDragPayload]
@@ -48,6 +48,7 @@ const emit = defineEmits<{
 
 defineSlots<{
   'sender-header'?: () => unknown
+  'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
   'sender-actions-inline'?: (scope: SenderSlotScope) => unknown
   'sender-footer'?: (scope: SenderSlotScope) => unknown
@@ -70,8 +71,6 @@ async function focusInput(): Promise<boolean> {
 defineExpose({ focusInput })
 
 const defaultToolbar: readonly ChatSenderToolbarItem[] = [
-  { type: 'builtin', id: 'thinking' },
-  { type: 'builtin', id: 'search' },
   { type: 'builtin', id: 'model' },
   { type: 'builtin', id: 'mcp' },
 ]
@@ -89,18 +88,18 @@ const toolbarItems = computed(() => {
       if (item.type === 'custom') return true
       if (item.id === 'mcp') return Boolean(props.mcp || props.hasRegisteredExtensions)
       if (item.id === 'model') return Boolean(props.model?.options?.length)
-      return Boolean(props.model)
+      return false
     })
     .map((item) => ({ ...item, disabled: props.sender.disabled || item.disabled === true }))
 })
 
 const senderProps = computed(() => {
   const { toolbar: _toolbar, ...options } = props.senderOptions
+  const processing = props.request ? props.request.state === 'processing' : props.sender.loading
   return {
     ...options,
     placeholder:
-      options.placeholder ??
-      (props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
+      options.placeholder ?? (processing ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder),
     modelValue: props.value,
     loading: props.sender.loading,
     disabled: props.sender.disabled,
@@ -129,14 +128,6 @@ function handleUpdateSenderValue(value: string) {
 
 function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData'], extra?: SenderSubmitExtra) {
   emit('submit', { text, structuredData, externalPayloads: extra?.externalPayloads })
-}
-
-function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: boolean }) {
-  emit('modelFeatureChange', payload)
-}
-
-function handleReasoningEffortChange(payload: { effort: string | null }) {
-  emit('modelReasoningEffortChange', payload)
 }
 
 function handleSelectModel(payload: { id: string | null }) {
@@ -186,6 +177,9 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
     <template v-if="$slots['sender-header']" #header>
       <slot name="sender-header" />
     </template>
+    <template v-if="$slots['input-prefix']" #input-prefix>
+      <slot name="input-prefix" />
+    </template>
     <template v-if="$slots['sender-content']" #content="slotProps">
       <slot name="sender-content" v-bind="slotProps" />
     </template>
@@ -210,7 +204,7 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
             :disabled="item.disabled"
             :append-to="modelOptions?.appendTo"
             @select-model="handleSelectModel"
-            @update-reasoning-effort="handleReasoningEffortChange"
+            @feature-value-change="emit('modelFeatureValueChange', $event)"
           />
           <ExtensionSelector
             v-else-if="item.id === 'mcp' && (mcp || hasRegisteredExtensions)"
@@ -218,14 +212,6 @@ function getSenderSlotScope(scope: unknown): SenderSlotScope {
             :label="hasRegisteredExtensions ? labels.extensions : labels.mcp"
             :disabled="item.disabled"
             @open="handleOpenExtensionPanel"
-          />
-          <ModelFeatureButton
-            v-else-if="model && (item.id === 'thinking' || item.id === 'search')"
-            :id="item.id"
-            :model="model"
-            :labels="labels"
-            :disabled="item.disabled"
-            @update-feature="handleFeatureChange"
           />
         </template>
       </div>

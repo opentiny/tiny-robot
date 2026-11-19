@@ -85,8 +85,6 @@ export function createDefaultChatLabels(): ChatLabels {
     mcpInstallServer: '安装',
     mcpRetryServer: '重试',
     mcpRemoveServer: '卸载',
-    thinkingFeature: '深度思考',
-    searchFeature: '联网搜索',
     welcomeTitle: 'TinyRobot AI 助手',
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
     openRightAside: '打开详情',

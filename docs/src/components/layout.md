@@ -212,6 +212,7 @@ const messageListRef = ref<HTMLElement | null>(null)
 | `floatingState`        | 受控浮层状态，需配合 `update:floatingState` 同步外部状态；不要和 `defaultFloatingState` 同时传入 | [`LayoutFloatingState`](#layout-floating-state)     | `-`        |
 | `defaultFloatingState` | 非受控浮层初始状态，仅首次挂载读取一次；不要和 `floatingState` 同时传入                          | [`LayoutFloatingState`](#layout-floating-state)     | `-`        |
 | `floatingOptions`      | 浮层行为配置，包括拖拽、缩放和尺寸约束；不参与状态控制                                           | [`LayoutFloatingOptions`](#layout-floating-options) | `-`        |
+| `rightAsideDrawerOnOverflow` | 浮层宽度不足以容纳当前左侧栏、主区最小宽度和展开的右侧栏时，将右侧栏从 dock 切换为 Drawer | `boolean` | `false` |
 
 ### Layout.ProxyScrollbar {#layout-proxy-scrollbar-props}
 

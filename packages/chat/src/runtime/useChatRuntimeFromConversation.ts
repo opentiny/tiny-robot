@@ -137,7 +137,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
   async function sendDefaultMessage(payload: KitRuntimeSendPayload, targetConversation: KitConversation) {
     const nextText = payload.text.trim()
 
-    if (!nextText) {
+    if (!nextText && !payload.externalPayloads?.length) {
       return null
     }
 
@@ -187,7 +187,7 @@ export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConver
       )
     }
     try {
-      if ((!text && !send) || !eligible()) {
+      if ((!text && !payload.externalPayloads?.length && !send) || !eligible()) {
         return false
       }
 

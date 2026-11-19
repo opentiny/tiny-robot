@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ChatUI from '../../../chat/src/ChatUI.vue'
+import type { ChatLayoutOptions } from '../../../chat/src/types'
 import type {
   ExtensionManagerActionEvent,
   ExtensionManagerNameClickEvent,
@@ -8,10 +9,17 @@ import type {
   ExtensionManagerTabChangeEvent,
 } from '../../../components/src'
 
-const props = withDefaults(defineProps<{ withMcp?: boolean; withSkills?: boolean }>(), {
-  withMcp: true,
-  withSkills: true,
-})
+const props = withDefaults(
+  defineProps<{
+    withMcp?: boolean
+    withSkills?: boolean
+    floatingWidth?: number
+    defaultRightAsideOpen?: boolean
+    layout?: ChatLayoutOptions
+    mainMinWidth?: string
+  }>(),
+  { withMcp: true, withSkills: true },
+)
 
 const tabs: ExtensionManagerTab[] = [
   {
@@ -55,6 +63,13 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
       Open extension overlay
     </button>
     <ChatUI
+      :default-right-aside-open="props.defaultRightAsideOpen"
+      :style="{ '--tr-layout-main-min-width': props.mainMinWidth }"
+      :floating-state="
+        props.floatingWidth
+          ? { placement: 'top-left', offsetX: 16, offsetY: 16, width: props.floatingWidth, height: 340 }
+          : undefined
+      "
       :data="{
         mcp: props.withMcp
           ? {
@@ -68,6 +83,10 @@ function recordTabChange(payload: ExtensionManagerTabChangeEvent) {
         history: false,
         welcome: false,
         extensions: props.withSkills ? { tabs, overlayOpen } : undefined,
+        layout: {
+          ...props.layout,
+          surface: props.floatingWidth ? { mode: 'floating' } : undefined,
+        },
       }"
       @extension-action="recordAction"
       @extension-name-click="recordNameClick"

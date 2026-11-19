@@ -40,7 +40,7 @@ test('updates all public packages and preserves unrelated JSON content', () => {
       assert.equal(packageJson.version, '1.0.0-rc.3')
       assert.equal(packageJson.metadata.version, 'nested')
       if (name === '@opentiny/tiny-robot') {
-        assert.equal(packageJson.peerDependencies['@opentiny/tiny-robot-kit'], '^1.0.0-rc.3')
+        assert.equal(packageJson.peerDependencies['@opentiny/tiny-robot-kit'], '1.0.0-rc.3')
       }
       assert.equal(raw.endsWith('\n'), true)
     }
@@ -49,6 +49,17 @@ test('updates all public packages and preserves unrelated JSON content', () => {
     cleanup(root)
   }
 })
+test('keeps a compatible Kit peer range for a stable release', () => {
+  const root = createFixture()
+  try {
+    setPublishVersion({ rootDir: root, version: '1.0.0+build-info' })
+    const component = JSON.parse(fs.readFileSync(path.join(root, 'packages/components/package.json'), 'utf8'))
+    assert.equal(component.peerDependencies['@opentiny/tiny-robot-kit'], '^1.0.0+build-info')
+  } finally {
+    cleanup(root)
+  }
+})
+
 test('rejects unusable npm dist-tags without changing files', () => {
   const root = createFixture()
   try {

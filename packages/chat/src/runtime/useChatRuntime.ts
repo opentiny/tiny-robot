@@ -83,7 +83,10 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const resolvedMcp =
     mcpAdapters.length > 1 ? createCompositeMcpAdapter({ adapters: mcpAdapters, registrationAdapter }) : mcpAdapters[0]
   const composerOptions = options.composer ?? {}
-  const builtInPlugins: UseMessagePlugin[] = [errorStatePlugin(), createRunConfigContextPlugin()]
+  const builtInPlugins: UseMessagePlugin[] = [
+    errorStatePlugin(),
+    createRunConfigContextPlugin(providerRuntime?.resolveModel),
+  ]
 
   if (providerRuntime) {
     builtInPlugins.push(createProviderRequestPlugin(providerRuntime.resolveModel))

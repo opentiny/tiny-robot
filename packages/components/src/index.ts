@@ -52,6 +52,13 @@ export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './layout/index.type'
 export * from './model-selector/index.type'
+export {
+  normalizeModelFields,
+  resolveModelFeatureValues,
+  pickModelFeatureValues,
+  canSetModelFieldValue,
+  isModelFieldValue,
+} from './model-selector/featureFields'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './sender-actions/index.type'
