@@ -1,0 +1,1 @@
+import{Z as e}from"./theme.CD1QNO6w.js";import{d as o,o as s,e as a,J as c,x as t,k as r}from"./framework.Db5kvxEE.js";const n={class:"form-container"},_=o({__name:"basic",setup(d){return(p,i)=>(s(),a("div",n,[c(t(e))]))}}),l=r(_,[["__scopeId","data-v-d15cc8d6"]]);export{l as default};

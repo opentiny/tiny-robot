@@ -1,0 +1,1 @@
+import{F as e}from"./theme.CD1QNO6w.js";import{d as t,o,h as r,x as n,a as s}from"./framework.Db5kvxEE.js";const u=t({__name:"empty",setup(c){const a=s([]);return(p,m)=>(o(),r(n(e),{data:a},null,8,["data"]))}});export{u as default};
