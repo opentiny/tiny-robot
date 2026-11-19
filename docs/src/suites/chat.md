@@ -1133,7 +1133,7 @@ const ui: ChatUIOptions = {
 | `mcp`        | `Record<string, never>`，当前没有配置字段。                                                                                         | —                                                   |
 | `extensions` | `tabs` 注册 [ExtensionManager](../components/extension-manager) 页签；`defaultActiveTab` 设置初始页签；`overlayOpen` 切换二级面板。 | [ExtensionManager](../components/extension-manager) |
 
-`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRetryServer`、`mcpRemoveServer`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
+`ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`extensions`、`mcpInstallServer`、`mcpRetryServer`、`mcpRemoveServer`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 
 #### `sender.toolbar` {#sender-toolbar}
 

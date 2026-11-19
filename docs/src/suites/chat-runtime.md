@@ -404,7 +404,6 @@ const runtime = useChatRuntime({
 import { createWebMcpAdapter, useChatRuntime } from '@opentiny/tiny-robot-chat'
 
 const webmcp = createWebMcpAdapter({
-  getContext: () => document.modelContext,
   server: {
     id: 'page-webmcp',
     name: '页面工具',
@@ -793,7 +792,7 @@ const history = useChatHistoryData({
 
 | 类型                       | 定义                                                                                                                                                                                                                             |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`efforts?: readonly ModelSelectorReasoningEffortOption[]`；`defaultEffort?: string`；`thinkingRequired?: boolean`；`capabilities?: Partial<Record<'thinking' \| 'search', boolean>>`；`metadata?: Record<string, unknown>` |
+| `ChatModelOption`          | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`features?: readonly ModelSelectorField[]`；`metadata?: Record<string, unknown>` |
 | `ChatMcpServerInfo`        | `id: string`；`name: string`；`description?: string`；`icon?: string`；`category?: string`；`installed: boolean`；`enabled: boolean`；`loading?: boolean`；`error?: unknown`；`metadata?: Record<string, unknown>`               |
 | `ChatMcpToolInfo`          | `id: string`；`name: string`；`description?: string`；`enabled: boolean`                                                                                                                                                         |
 | `ChatMcpToolState`         | `Partial<Record<string, readonly ChatMcpToolInfo[]>>`，键为 MCP 服务 ID。                                                                                                                                                        |
