@@ -39,7 +39,8 @@ export interface ResolvedQuickAssistOptions extends QuickAssistOptions {
   maxSuggestions: number
   selection: {
     forwardOnly: boolean
-    maxTextLength: number
+    maxTextLength: number | null
+    maxTextLengthExceededMessage: string
     validate?: NonNullable<QuickAssistOptions['selection']>['validate']
     validateActivation?: NonNullable<QuickAssistOptions['selection']>['validateActivation']
   }
