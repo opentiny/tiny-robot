@@ -1,4 +1,7 @@
 export * from './lengthPlugin'
+export * from './askUserPlugin'
+export * from '../../../message/plugins/askUserPlugin'
+export * from '../../../message/tools/askUser'
 export * from './skillPlugin'
 export * from './thinkingPlugin'
 export * from './toolPlugin'

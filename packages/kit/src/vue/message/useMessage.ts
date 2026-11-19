@@ -64,6 +64,8 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       abortSignal: context.abortSignal,
       customContext: context.customContext,
       setCustomContext: context.setCustomContext,
+      createMessage: context.createMessage,
+      mutate: context.mutate,
     }
   }
 

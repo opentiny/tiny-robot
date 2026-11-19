@@ -18,7 +18,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 
 `create` scaffolds a new Chat Basic project. The `basic` template is the only supported template and is used by default.
 
-`add chat` creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and merges `.env.example`. Existing files with different contents are reported as conflicts and are never silently overwritten. If a write fails, the CLI attempts to roll back the changes that were already applied and reports any residual paths.
+`add chat` creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and merges `.env.example`. The generated `src/tiny-robot-chat/README.md` comes from `packages/cli/templates/chat/README.md`. Existing files with different contents are reported as conflicts and are never silently overwritten. If a write fails, the CLI attempts to roll back the changes that were already applied and reports any residual paths.
 
 `add chat` never modifies `src/main.ts`, `src/main.js`, `src/App.vue`, or `vite.config.*`, and it does not mount the component automatically. Render `TinyRobotChat` in the host application and add the MCP proxy manually; the generated component imports its required styles. Interactive mode shows the plan and asks for confirmation; `--dry-run` previews the plan without changing files and `--yes` applies it without confirmation:
 

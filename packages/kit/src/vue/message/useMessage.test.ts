@@ -6,7 +6,8 @@ import { mockResponseProvider, mockSequentialResponseProvider } from './mockResp
 import { lengthPlugin } from './plugins/lengthPlugin'
 import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { TOOL_RESUME_COMMAND, toolPlugin } from './plugins/toolPlugin'
-import type { ResponseProvider } from './types'
+import type { ResponseProvider, UseMessagePlugin } from './types'
+import { useAskUserRuntime } from './useAskUserRuntime'
 import { useMessage } from './useMessage'
 
 describe('useMessage', () => {
@@ -170,6 +171,34 @@ describe('useMessage', () => {
     await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
     expect(provider).toHaveBeenCalledTimes(3)
     expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'regenerated'])
+  })
+
+  it('injects the AskUser prompt into the existing system message', async () => {
+    const responseProvider = vi.fn(
+      (requestBody: Parameters<ResponseProvider>[0], abortSignal: Parameters<ResponseProvider>[1]) => {
+        const systemMessage = requestBody.messages.find((message) => message.role === 'system')
+        expect(systemMessage?.content).toContain('请使用 ask_user 工具收集信息。')
+        expect(systemMessage?.content).toContain('Product instructions.')
+        return mockResponseProvider('ok')(requestBody, abortSignal)
+      },
+    )
+
+    const engine = useMessage({
+      initialMessages: [{ role: 'system', content: 'Product instructions.' }],
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          askUser: true,
+          askUserPrompt: '请使用 ask_user 工具收集信息。',
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await engine.sendMessage('请继续')
+
+    expect(engine.messages.value[0]).toMatchObject({ role: 'system', content: 'Product instructions.' })
   })
 
   it('uses the core vue adapter while keeping the original return shape', async () => {
@@ -567,6 +596,135 @@ describe('useMessage', () => {
     })
   })
 
+  it('bridges vue AskUser tool callbacks with core mutation and resume flow', async () => {
+    let resolvePaused!: () => void
+    let hasContextBridge = false
+    const paused = new Promise<void>((resolve) => {
+      resolvePaused = resolve
+    })
+
+    const responseProvider = mockSequentialResponseProvider([
+      {
+        finish_reason: 'tool_calls',
+        onRequest(requestBody) {
+          expect(requestBody.tools?.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
+            'ask_user',
+            'lookup',
+          ])
+        },
+        tool_calls: [
+          {
+            index: 0,
+            id: 'call-ask-user-vue',
+            type: 'function',
+            function: {
+              name: 'ask_user',
+              arguments: JSON.stringify({
+                questions: [
+                  {
+                    id: 'name',
+                    question: '姓名',
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+      {
+        content: '资料已保存',
+        onRequest(requestBody) {
+          const toolMessage = requestBody.messages.at(-1)
+          expect(toolMessage).toMatchObject({
+            role: 'tool',
+            tool_call_id: 'call-ask-user-vue',
+          })
+          expect(JSON.parse(String(toolMessage?.content))).toEqual({
+            outcome: 'completed',
+            answers: { name: { status: 'answered', value: 'Ada' } },
+          })
+        },
+      },
+    ])
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          askUser: true,
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'lookup',
+                parameters: { type: 'object', properties: {} },
+              },
+            },
+          ],
+          callTool: async () => 'lookup result',
+          onTurnPause: (context) => {
+            hasContextBridge = typeof context.createMessage === 'function' && typeof context.mutate === 'function'
+            resolvePaused()
+          },
+        }),
+      ],
+    })
+    const askUserRuntime = useAskUserRuntime(engine)
+    const turn = engine.sendMessage('请完善我的资料')
+
+    await paused
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(hasContextBridge).toBe(true)
+    expect(engine.requestState.value).toBe('paused')
+    const assistantMessage = engine.messages.value[1]
+    expect(assistantMessage?.content).toEqual([
+      expect.objectContaining({
+        type: 'ask_user',
+        questions: [{ id: 'name', question: '姓名' }],
+      }),
+    ])
+    expect(assistantMessage?.state).toMatchObject({
+      askUser: {
+        status: 'active',
+        currentStep: 0,
+        answers: {},
+      },
+      askUserRuntime: {
+        toolCallId: 'call-ask-user-vue',
+      },
+      toolCall: {
+        'call-ask-user-vue': {
+          status: 'awaiting-approval',
+        },
+      },
+    })
+
+    askUserRuntime.handleStateChange({
+      key: 'askUser',
+      value: {
+        status: 'submitted',
+        currentStep: 0,
+        answers: { name: 'Ada' },
+        completedStepIds: ['name'],
+      },
+      messageIndex: 1,
+      contentIndex: 0,
+    })
+    await askUserRuntime.handleBubbleEvent({ name: 'ask-user:submit', messageIndex: 1, contentIndex: 0 })
+    await turn
+
+    expect(engine.requestState.value).toBe('completed')
+    expect(engine.messages.value.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: '资料已保存',
+    })
+    expect(engine.messages.value[2]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-ask-user-vue',
+    })
+  })
+
   it('restores a persisted paused turn with reactive messages after recreating useMessage', async () => {
     const values = new Map<string, string>()
     vi.stubGlobal('localStorage', {
@@ -719,7 +877,10 @@ describe('useMessage', () => {
 
     const requestBody = responseProvider.mock.calls[0]?.[0]
     expect(requestBody.messages).toEqual([expect.objectContaining({ role: 'user', content: 'read docs' })])
-    expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
+    expect(requestBody.tools?.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
+      'list_skill_files',
+      'read_skill_file',
+    ])
   })
 
   it('calls vue onInstructionsResolved immediately without a request body', async () => {
@@ -831,13 +992,15 @@ describe('useMessage', () => {
 
   it('uses reactive preferred skill names in auto mode', async () => {
     const preferredSkillNames = ref(['stale'])
-    const responseProvider = vi.fn((requestBody) => {
-      expect(requestBody.messages[0]).toMatchObject({
-        role: 'system',
-        content: expect.stringContaining('Preferred skill names: docs'),
-      })
-      return mockResponseProvider('ok')(requestBody)
-    })
+    const responseProvider = vi.fn(
+      (requestBody: Parameters<ResponseProvider>[0], abortSignal: Parameters<ResponseProvider>[1]) => {
+        expect(requestBody.messages[0]).toMatchObject({
+          role: 'system',
+          content: expect.stringContaining('Preferred skill names: docs'),
+        })
+        return mockResponseProvider('ok')(requestBody, abortSignal)
+      },
+    )
 
     const engine = useMessage({
       responseProvider,

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
+import type { BasePluginContext as CoreBasePluginContext, MutateMessageStateFn } from '../../message/types'
 import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
 import type { ChatTokenUsage } from '../../message/types'
 export type { ChatTokenUsage }
@@ -156,6 +157,8 @@ export interface BasePluginContext {
   plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   abortSignal: AbortSignal
+  createMessage: CoreBasePluginContext['createMessage']
+  mutate: MutateMessageStateFn
   /**
    * Custom context data that can be set by plugins
    */
