@@ -357,7 +357,8 @@ try {
 
     const promptTerm = page.locator('#qa-build-prompt-term')
     const promptResult = page.locator('.qa-prompt-result')
-    for (const viaSuggestion of [false, true]) {
+    for (const question of ['如何选择？', '怎样控制成本？', null]) {
+      const viaSuggestion = question === null
       await promptTerm.scrollIntoViewIfNeeded()
       await promptTerm.evaluate((element) => {
         const range = document.createRange()
@@ -368,19 +369,33 @@ try {
         document.dispatchEvent(new Event('selectionchange'))
       })
       await page.locator('.tr-quick-assist__trigger').click()
-      await page.locator('.tr-quick-assist__popover textarea').fill('如何选择？')
+      await page.locator('.tr-quick-assist__popover textarea').fill(question ?? '推荐项会使用自己的问题')
       if (viaSuggestion) await page.getByRole('button', { name: '解释 计费模式', exact: true }).click()
       else await page.locator('.tr-quick-assist__popover textarea').press('Enter')
-      await expect(promptResult.locator('dd').nth(0)).toHaveText(viaSuggestion ? '解释 计费模式' : '如何选择？')
-      await expect(promptResult.locator('dd').nth(1)).toHaveText(
+      const values = promptResult.locator('.qa-prompt-result__value')
+      await expect(values).toHaveCount(3)
+      await expect(promptResult.locator('dt')).toHaveText([
+        'query · 展示的问题',
+        'prompt · 最终发送内容',
+        'context.text · 选中内容',
+      ])
+      await expect(values.nth(0)).toHaveText(viaSuggestion ? '解释 计费模式' : question)
+      expect(await values.nth(1).textContent()).toBe(
         [
           '产品：云服务器',
           '业务场景：生产环境',
           '参考内容：计费模式',
-          `用户问题：${viaSuggestion ? '请解释“计费模式”的含义，并比较常见选项。' : '如何选择？'}`,
+          `用户问题：${viaSuggestion ? '请解释“计费模式”的含义，并比较常见选项。' : question}`,
         ].join('\n\n'),
       )
-      await expect(promptResult.locator('dd').nth(2)).toHaveText('计费模式')
+      await expect(values.nth(2)).toHaveText('计费模式')
+      for (const value of await values.all()) {
+        await expect(value).toHaveCSS('white-space', 'pre-wrap')
+        await expect(value).toHaveCSS('overflow-y', 'visible')
+        await expect(value).toHaveCSS('border-radius', '8px')
+        await expect(value).toHaveCSS('font-size', '14px')
+      }
+      expect(await values.nth(1).evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true)
     }
 
     const contextText = page.locator('#qa-context-tenant')

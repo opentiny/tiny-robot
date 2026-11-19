@@ -138,11 +138,11 @@ createQuickAssist({
 
 ### 输入区高度、字数与预填 {#example-input}
 
-<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="调整最大行数、字数限制和预填行为，验证本次预填只覆盖当前激活。" />
+<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="先配置实例并划词体验，再用三个按钮对比实例默认与单次预填覆盖。" />
 
 `input.placeholder` 设置空输入时的提示，`input.maxLengthExceededMessage` 设置超限校验提示。输入框和发送按钮的无障碍名称分别由 `input.ariaLabel`、`input.submitLabel` 配置，`ariaLabel` 仅标识 textarea，`submitLabel` 用于图标发送按钮的无障碍名称与正常悬停标题。弹层使用 `trigger.label` 作为对话框名称，占位文案不能代替无障碍名称。
 
-`input.autoFill` 默认为 `false`，输入框初始留空；设为 `true` 可预填选中的文字，选区上下文始终保留。
+`input.autoFill` 是实例默认值，默认为 `false`，输入框初始留空；设为 `true` 可预填选中文字。`activate()` 的 `autoFill` 仅覆盖当前调用，不修改实例配置。无论是否预填，选中文字始终保留在请求上下文 `context.text` 中。
 
 `input.maxRows` 调整最多可见行数；换行和自动折行都会触发高度调整，删除内容后收缩，弹层会重新定位。
 
@@ -155,15 +155,20 @@ const assist = createQuickAssist({
   input: {
     maxRows: 2,
     maxLength: 10000,
-    autoFill: true,
+    autoFill: false,
     placeholder: '告诉 AI 你想做什么',
     ariaLabel: '问题内容',
     submitLabel: '发送问题',
     maxLengthExceededMessage: '问题不能超过 10000 个字符',
   },
 })
-assist.activate({ text: '选中的代码', anchor: element, open: 'popover', autoFill: false })
-// 仅本次不预填；后续激活仍沿用 input.autoFill: true。
+const text = '查看系统盘使用率'
+// 按实例配置打开：省略 autoFill，使用实例默认值。
+assist.activate({ text, anchor: element, open: 'popover' })
+// 本次预填：仅当前输入框填入选中文字。
+assist.activate({ text, anchor: element, open: 'popover', autoFill: true })
+// 本次留空：仅当前输入框留空，后续仍沿用实例配置。
+assist.activate({ text, anchor: element, open: 'popover', autoFill: false })
 ```
 
 完整 `activate({ source: 'monaco', text, getRect, autoFill: false })` 也支持相同的单次覆盖，选区文字仍保留在请求上下文中。实例 `updateOptions({ input: { autoFill: false } })` 会替换整个 `input` 配置组，其余字段恢复默认值。
@@ -265,7 +270,7 @@ const quickAssist = createQuickAssist({
 
 用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
 
-下面的示例对两种发送方式统一补充产品、业务场景和选中内容，并展示提交后的 `query`、`prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
+下面的示例对两种发送方式统一补充产品、业务场景和选中内容，提交后分别用只读文本块展示 `query`、完整 `prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
 
 <demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
 

@@ -10,14 +10,24 @@
     <div v-if="submitted" class="qa-prompt-result" aria-live="polite">
       <p>发送方式：{{ submitted.suggestion ? '点击推荐项' : '手动输入' }}</p>
       <dl>
-        <dt>query · 展示的问题</dt>
-        <dd>{{ submitted.query }}</dd>
-        <dt>prompt · 最终发送内容</dt>
-        <dd>
-          <pre>{{ submitted.prompt }}</pre>
-        </dd>
-        <dt>context.text · 选中内容</dt>
-        <dd>{{ submitted.context.text }}</dd>
+        <div>
+          <dt>query · 展示的问题</dt>
+          <dd>
+            <pre class="qa-prompt-result__value">{{ submitted.query }}</pre>
+          </dd>
+        </div>
+        <div>
+          <dt>prompt · 最终发送内容</dt>
+          <dd>
+            <pre class="qa-prompt-result__value">{{ submitted.prompt }}</pre>
+          </dd>
+        </div>
+        <div>
+          <dt>context.text · 选中内容</dt>
+          <dd>
+            <pre class="qa-prompt-result__value">{{ submitted.context.text }}</pre>
+          </dd>
+        </div>
       </dl>
     </div>
   </div>
@@ -83,17 +93,30 @@ onBeforeUnmount(() => quickAssist?.destroy())
   color: var(--vp-c-text-2, #536171);
   font-size: 13px;
 }
-dt {
-  margin-top: 12px;
+.qa-prompt-result dl {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+.qa-prompt-result dt {
+  margin: 0;
   font-weight: 600;
 }
-dd {
-  margin: 4px 0 0;
-  overflow-wrap: anywhere;
+.qa-prompt-result dd {
+  margin: 6px 0 0;
 }
-pre {
+.qa-prompt-result__value {
   margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--vp-c-divider, #dfe3e8);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft, #f5f7fa);
+  color: var(--vp-c-text-1, #213547);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  overflow: visible;
 }
 </style>

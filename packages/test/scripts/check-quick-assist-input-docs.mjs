@@ -60,7 +60,31 @@ try {
 
   const demo = page.locator('.qa-input-demo')
   const input = page.locator('.tr-quick-assist__input')
-  const open = () => demo.getByRole('button', { name: '询问“查看系统盘使用率”', exact: true }).click()
+  const open = (name = '按实例配置打开') => demo.getByRole('button', { name, exact: true }).click()
+  const autoFill = demo.getByRole('checkbox', { name: '预填选中文字', exact: true })
+  const selectAndOpen = async () => {
+    await page.evaluate(() => {
+      window.getSelection().removeAllRanges()
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    const text = demo.locator('#qa-input-demo-selection')
+    await text.scrollIntoViewIfNeeded()
+    await text.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      window.getSelection().addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    await page.locator('.tr-quick-assist__trigger').click()
+  }
+  await expect(demo.getByRole('group', { name: '实例配置' })).toBeVisible()
+  await expect(demo.getByRole('heading', { name: '划词体验' })).toBeVisible()
+  await expect(demo.getByRole('heading', { name: '命令式调用' })).toBeVisible()
+  await expect(demo.getByRole('combobox')).toHaveCount(0)
+  await expect(autoFill).not.toBeChecked()
+  await selectAndOpen()
+  await expect(input).toHaveValue('')
+  await input.press('Escape')
   await open()
   await expect(input).toHaveValue('')
   await input.fill('第一行\n第二行\n第三行')
@@ -70,12 +94,10 @@ try {
   await input.press('Escape')
 
   await demo.getByRole('checkbox', { name: '限制为 50 个字符' }).check()
-  await demo.getByRole('checkbox', { name: '默认填入上下文' }).uncheck()
-  await demo.getByRole('combobox', { name: '本次预填' }).selectOption('enabled')
-  await open()
+  await open('本次预填')
   await expect(input).toHaveValue('查看系统盘使用率')
+  await expect(autoFill).not.toBeChecked()
   await input.press('Escape')
-  await demo.getByRole('combobox', { name: '本次预填' }).selectOption('inherit')
   await open()
   await expect(input).toHaveValue('')
   await expect(page.locator('.tr-quick-assist__counter')).toHaveText('0 / 50')
@@ -103,6 +125,20 @@ try {
   await input.fill('第一行\n第二行\n第三行')
   await expect(input).toHaveCSS('height', '54px')
   await input.press('Escape')
+  await autoFill.check()
+  await selectAndOpen()
+  await expect(input).toHaveValue('查看系统盘使用率')
+  await input.press('Escape')
+  await open('本次留空')
+  await expect(input).toHaveValue('')
+  await expect(autoFill).toBeChecked()
+  await input.fill('留空后提问')
+  await input.press('Enter')
+  await expect(demo.locator('aside')).toContainText('保留的上下文：查看系统盘使用率')
+  await open()
+  await expect(input).toHaveValue('查看系统盘使用率')
+  await expect(autoFill).toBeChecked()
+  await input.press('Escape')
   expect(errors).toEqual([])
   expect(failedAssets).toEqual([])
   const result = {
@@ -117,6 +153,8 @@ try {
       'length validation',
       'submission context',
       'activation override isolation',
+      'selection follows instance configuration',
+      'grouped direct activation controls',
       'maxRows configuration',
     ],
     pageErrors: errors,
