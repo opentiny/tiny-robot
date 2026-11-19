@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QuickAssist editor spike (Phase 0)</title>
+    <style>
+      body {
+        margin: 16px;
+        font: 14px/1.5 sans-serif;
+      }
+      .block {
+        margin-bottom: 24px;
+      }
+      .editor {
+        height: 220px;
+        width: 480px;
+        border: 1px solid #888;
+      }
+      /* CM6 编辑器必须显式限高，否则撑满全文高度、滚动/虚拟化不生效 */
+      .editor .cm-editor {
+        height: 100%;
+      }
+      .narrow {
+        width: 300px;
+      }
+      #focus-btn {
+        margin: 8px 0;
+      }
+      .status {
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="focus-btn" type="button">编辑器外的焦点目标</button>
+    <div class="block">
+      <h2>CodeMirror 6 (basicSetup, 含 drawSelection)</h2>
+      <div id="cm1" class="editor"></div>
+    </div>
+    <div class="block">
+      <h2>Monaco main (300 行，长行)</h2>
+      <div id="monaco1" class="editor"></div>
+    </div>
+    <div class="block">
+      <h2>Monaco wordWrap</h2>
+      <div id="monaco-wrap" class="editor narrow"></div>
+    </div>
+    <div class="block" id="monaco-throwaway-block">
+      <h2>Monaco throwaway (可移除容器)</h2>
+      <div id="monaco-throwaway"><div class="editor"></div></div>
+    </div>
+    <pre id="status" class="status">loading…</pre>
+    <script type="module" src="./spike-editors-main.ts"></script>
+  </body>
+</html>
