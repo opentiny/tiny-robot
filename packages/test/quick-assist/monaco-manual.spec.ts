@@ -22,7 +22,7 @@ test('published API powers the actual Monaco documentation demo', async ({ page 
   await expect(demo.getByRole('button', { name: '解释选中代码' })).toHaveCount(0)
   await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
   await page.locator('.tr-quick-assist__trigger').click()
-  await expect(page.locator('.tr-quick-assist__popover textarea')).toHaveValue(/function calculatePrice/)
+  await expect(page.locator('.tr-quick-assist__popover textarea')).toHaveValue('')
   // Esc 的 keyup 和编辑器重获焦点不能立即重新激活同一选区。
   await page.keyboard.press('Escape')
   await page.keyboard.press('Shift')

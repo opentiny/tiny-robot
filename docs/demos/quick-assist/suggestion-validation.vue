@@ -111,12 +111,12 @@ function configure() {
     // 只展示通过校验的远程问题，避免静态问题占位影响对比。
     mergeSuggestions: (_base, valid) => {
       accepted.value = valid
-      displayed.value = valid
+      displayed.value = valid.slice(0, 2)
       finished.value = true
-      status.value = `远程返回 ${incoming.value.length} 条，保留 ${valid.length} 条，过滤 ${incoming.value.length - valid.length} 条。`
+      status.value = `远程返回 ${incoming.value.length} 条，保留 ${valid.length} 条，过滤 ${incoming.value.length - valid.length} 条，最多展示 2 条。`
       return valid
     },
-    maxSuggestions: 6,
+    maxSuggestions: 2,
     onEvent(event) {
       if (event.type === 'error' && event.stage === 'suggestions') {
         accepted.value = []
