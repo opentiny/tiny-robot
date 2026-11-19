@@ -38,12 +38,15 @@ export interface AnchorOverlayProps {
   expanded: boolean
   placement: AnchorPlacement
   floatingOffset?: number
+  maxHeight?: number
+  searchBelow?: boolean
 }
 
 export interface AnchorOverlayExpose {
   hostEl: HTMLElement | null
   overlayEl: HTMLElement | null
   navEl: HTMLElement | null
+  searchCapEl: HTMLElement | null
 }
 
 export interface AnchorListProps {
@@ -51,6 +54,7 @@ export interface AnchorListProps {
   activeId?: string
   expanded: boolean
   highlightedIndex: number
+  retainedHoverId?: string
   placement: AnchorPlacement
   tooltipDelay: number
   emptyText: string
@@ -71,6 +75,7 @@ export interface AnchorItemProps {
   activeId?: string
   expanded: boolean
   highlighted: boolean
+  hoverOverride?: boolean
   placement: AnchorPlacement
   tooltipDelay: number
 }
@@ -95,15 +100,17 @@ export interface AnchorActiveSyncOptions {
 }
 
 export interface AnchorFloatingOffsetOptions {
+  expanded: Ref<boolean>
   container: Ref<HTMLElement | null | undefined>
   host: Ref<HTMLElement | null | undefined>
+  searchCap: Ref<HTMLElement | null>
 }
 
 export interface AnchorOverlayInteractionsOptions {
   overlay: Ref<AnchorOverlayExpose | null>
   highlightedId: Ref<string | undefined>
   shouldAutoCollapse: Ref<boolean>
-  handleNavigationKeydown: (event: KeyboardEvent) => boolean
+  handleNavigationKeydown: (event: KeyboardEvent, focusedId?: string) => boolean
   getHighlightedItem: () => AnchorItem | undefined
   onSelectItem: (itemId: string) => void
   setExpanded: (value: boolean) => void

@@ -1,62 +1,63 @@
-import type { ChatProviderConfig, ChatProviderModelConfig, ChatProviderType, ChatResolvedProviderModel } from './types'
+import type { ModelSelectorFeatureValues } from '@opentiny/tiny-robot'
+import type { ChatProviderConfig, ChatProviderType, ChatResolvedProviderModel } from './types'
 
 interface ChatProviderPreset {
   label: string
   apiUrl: string
-  featureBody?: ChatProviderModelConfig['featureBody']
-  efforts?: ChatProviderModelConfig['efforts']
-  defaultEffort?: ChatProviderModelConfig['defaultEffort']
-  effortParam?: ChatProviderModelConfig['effortParam']
+  mapFeatureValues: (values: ModelSelectorFeatureValues, modelId: string) => Record<string, unknown>
+}
+
+export function usesQwenThinkingBudget(modelId: string) {
+  return /^qwen3\.[567]-(flash|plus|max)(-|$)/.test(modelId)
+}
+
+function mapQwenReasoningEffort(reasoning: string, modelId: string) {
+  if (reasoning === 'off' || reasoning === 'on') return {}
+
+  if (usesQwenThinkingBudget(modelId)) {
+    // Omitting the budget uses the model's maximum thinking length.
+    if (reasoning === 'low') return { thinking_budget: 1024 }
+    if (reasoning === 'high') return { thinking_budget: 8192 }
+    return {}
+  }
+
+  return /^qwen3\.8-(max|flash|omni-flash|2\.4t-a95b|27b)(-|$)/.test(modelId) ? { reasoning_effort: reasoning } : {}
 }
 
 const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
   openai: {
     label: 'OpenAI',
     apiUrl: 'https://api.openai.com/v1',
+    mapFeatureValues: ({ reasoning }, modelId) => {
+      if (typeof reasoning !== 'string') return {}
+      if (reasoning !== 'off' && reasoning !== 'on') return { reasoning_effort: reasoning }
+      if (!/^gpt-5\.[45](-\d{4}-\d{2}-\d{2})?$/.test(modelId)) return {}
+      return { reasoning_effort: reasoning === 'off' ? 'none' : 'medium' }
+    },
   },
   deepseek: {
     label: 'DeepSeek',
     apiUrl: 'https://api.deepseek.com/chat/completions',
-    featureBody: {
-      thinking: {
-        enabled: {
-          thinking: {
-            type: 'enabled',
-          },
-        },
-        disabled: {
-          thinking: {
-            type: 'disabled',
-          },
-        },
-      },
-    },
-    efforts: [
-      { value: 'low', label: '低' },
-      { value: 'high', label: '高' },
-      { value: 'max', label: '最高' },
-    ],
-    defaultEffort: 'high',
-    effortParam: 'reasoning_effort',
+    mapFeatureValues: (values) =>
+      typeof values.reasoning === 'string'
+        ? {
+            thinking: { type: values.reasoning === 'off' ? 'disabled' : 'enabled' },
+            ...(values.reasoning !== 'off' && values.reasoning !== 'on' ? { reasoning_effort: values.reasoning } : {}),
+          }
+        : {},
   },
   qwen: {
     label: 'DashScope',
     apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-    featureBody: {
-      thinking: {
-        enabled: {
-          enable_thinking: true,
-        },
-        disabled: {
-          enable_thinking: false,
-        },
-      },
-      search: {
-        enabled: {
-          enable_search: true,
-        },
-      },
-    },
+    mapFeatureValues: (values, modelId) => ({
+      ...(typeof values.reasoning === 'string'
+        ? {
+            enable_thinking: values.reasoning !== 'off',
+            ...mapQwenReasoningEffort(values.reasoning, modelId),
+          }
+        : {}),
+      ...(typeof values.search === 'boolean' ? { enable_search: values.search } : {}),
+    }),
   },
 }
 
@@ -93,13 +94,7 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
         apiKey: provider.apiKey,
         headers: provider.headers,
         timeout: provider.timeout,
-        featureBody: {
-          ...preset.featureBody,
-          ...model.featureBody,
-        },
-        efforts: model.efforts ?? preset.efforts,
-        defaultEffort: model.defaultEffort ?? preset.defaultEffort,
-        effortParam: model.effortParam ?? preset.effortParam,
+        mapFeatureValues: model.mapFeatureValues ?? ((values) => preset.mapFeatureValues(values, model.id)),
       }
     })
   })

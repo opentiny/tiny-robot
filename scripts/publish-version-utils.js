@@ -165,6 +165,10 @@ export function assertPublishVersion(version) {
   return { version, distTag: channel }
 }
 
+export function resolveKitPeerRange(version) {
+  return SEMVER_PATTERN.exec(version)?.[1] ? version : `^${version}`
+}
+
 export function resolvePublishedDependencyRange(spec, version) {
   if (!spec.startsWith('workspace:')) return spec
 

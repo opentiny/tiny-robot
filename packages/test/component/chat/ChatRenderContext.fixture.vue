@@ -19,8 +19,11 @@ const props = withDefaults(
     contentPaddingInline?: string
     scrollButtonAlign?: 'flex-start' | 'center' | 'flex-end'
     hideSender?: boolean
+    autoScroll?: boolean
+    shortContent?: boolean
+    instances?: number
   }>(),
-  { anchor: true },
+  { anchor: true, autoScroll: true, instances: 1 },
 )
 const thread = shallowRef('thread-a')
 const senderHeader = shallowRef(false)
@@ -29,30 +32,34 @@ const requests = shallowRef<Record<string, { state: ChatRequestState }>>({
   'thread-b': { state: 'processing' },
 })
 const messages = shallowRef<ChatMessageItem[]>(
-  props.consecutiveUsers
-    ? [
-        { id: 'adjacent-user-1', role: 'user', content: 'Adjacent question one' },
-        { id: 'adjacent-user-2', role: 'user', content: 'Adjacent question two' },
-        ...(props.assistantDivider ? [{ id: 'assistant-divider', role: 'assistant', content: 'x'.repeat(1000) }] : []),
-      ]
-    : Array.from({ length: 6 }, (_, index) => [
-        {
-          id: `user-${index}`,
-          role: 'user',
-          content: [
-            { type: 'text', text: `Question ${index}` },
-            { type: 'text', text: 'part two' },
-          ],
-          state: { content: `Displayed question ${index}` },
-        },
-        {
-          id: `answer-${index}`,
-          renderKey: `answer-${index}`,
-          role: 'assistant',
-          content: 'Answer',
-          ...(index === 5 ? { streamState: 'streaming' as const } : {}),
-        },
-      ]).flat(),
+  props.shortContent
+    ? [{ id: 'short-answer', role: 'assistant', content: 'Answer' }]
+    : props.consecutiveUsers
+      ? [
+          { id: 'adjacent-user-1', role: 'user', content: 'Adjacent question one' },
+          { id: 'adjacent-user-2', role: 'user', content: 'Adjacent question two' },
+          ...(props.assistantDivider
+            ? [{ id: 'assistant-divider', role: 'assistant', content: 'x'.repeat(1000) }]
+            : []),
+        ]
+      : Array.from({ length: 6 }, (_, index) => [
+          {
+            id: `user-${index}`,
+            role: 'user',
+            content: [
+              { type: 'text', text: `Question ${index}` },
+              { type: 'text', text: 'part two' },
+            ],
+            state: { content: `Displayed question ${index}` },
+          },
+          {
+            id: `answer-${index}`,
+            renderKey: `answer-${index}`,
+            role: 'assistant',
+            content: 'Answer',
+            ...(index === 5 ? { streamState: 'streaming' as const } : {}),
+          },
+        ]).flat(),
 )
 const data = computed(() => ({
   conversation: { activeId: thread.value },
@@ -69,6 +76,7 @@ const ui = computed<ChatUIOptions>(() => ({
   },
   sender: props.hideSender ? false : {},
   bubble: {
+    autoScroll: props.autoScroll,
     bubbleList: {
       contentRenderMode: 'split',
       ...(props.assistantDivider
@@ -169,7 +177,15 @@ function switchAutomaticStream() {
     <button data-testid="auto-finish" @click="finishAutomaticStream">Finish automatic stream</button>
     <button data-testid="auto-switch" @click="switchAutomaticStream">Switch automatic stream</button>
     <button data-testid="sender-header" @click="senderHeader = !senderHeader">Toggle sender header</button>
+    <button
+      data-testid="send"
+      @click="messages = [...messages, { id: 'new-user', role: 'user', content: 'New question' }]"
+    >
+      Send
+    </button>
     <TrChatUI
+      v-for="instance in props.instances"
+      :key="instance"
       :data="data"
       :ui="ui"
       :is-empty="false"

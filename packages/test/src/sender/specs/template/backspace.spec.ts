@@ -60,13 +60,8 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
 
     await templateHelper.expectTemplateCount(1)
     await templateHelper.expectTemplateText(0, '张三')
-    await test.expect
-      .poll(() =>
-        templateHelper.getTemplateContent(0).evaluate((element) => {
-          return element.contains(window.getSelection()?.anchorNode ?? null)
-        }),
-      )
-      .toBe(true)
+    await templateHelper.expectEditorToContainText('，来自')
+    await templateHelper.expectCaretInTemplate(0)
   })
 
   test('TC-BS-06: 从右侧删除空模板块需要多次操作', async () => {

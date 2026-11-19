@@ -1,6 +1,25 @@
 import type { ChatMcpServers, ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
+const reasoningFields: ChatProviderConfig['models'][number]['features'] = [
+  {
+    key: 'reasoning',
+    label: '思考强度',
+    type: 'select',
+    defaultValue: 'off',
+    options: [
+      { value: 'off', label: '关闭' },
+      { value: 'low', label: '低' },
+      { value: 'high', label: '高' },
+      { value: 'max', label: '最高' },
+    ],
+  },
+]
+const qwenFields: ChatProviderConfig['models'][number]['features'] = [
+  ...reasoningFields,
+  { key: 'search', label: '联网搜索', type: 'switch' },
+]
+
 export interface McpExample {
   id: string
   title: string
@@ -44,19 +63,19 @@ export const modelProviders: ChatProviderConfig[] = [
         id: 'qwen3.7-flash',
         label: 'Qwen3.7 Flash',
         icon: IconBailian,
-        capabilities: { thinking: true, search: true },
+        features: qwenFields,
       },
       {
         id: 'qwen3.7-plus',
         label: 'Qwen3.7 Plus',
         icon: IconBailian,
-        capabilities: { thinking: true, search: true },
+        features: qwenFields,
       },
       {
         id: 'qwen3.7-max',
         label: 'Qwen3.7 Max',
         icon: IconBailian,
-        capabilities: { thinking: true, search: true },
+        features: qwenFields,
       },
     ],
   },
@@ -69,13 +88,13 @@ export const modelProviders: ChatProviderConfig[] = [
         id: 'deepseek-v4-flash',
         label: 'DeepSeek V4 Flash',
         icon: IconDeepseek,
-        capabilities: { thinking: true },
+        features: reasoningFields,
       },
       {
         id: 'deepseek-v4-pro',
         label: 'DeepSeek V4 Pro',
         icon: IconDeepseek,
-        capabilities: { thinking: true },
+        features: reasoningFields,
       },
     ],
   },
