@@ -4,7 +4,6 @@ import type {
   GetSuggestions,
   MergeSuggestions,
   QuickAssistContext,
-  QuickAssistMessages,
   QuickAssistSuggestionInput,
   Suggestion,
   SuggestionFactory,
@@ -17,29 +16,19 @@ export interface RecommendationResolverOptions {
   validateSuggestion?: ValidateSuggestion
   mergeSuggestions?: MergeSuggestions
   maxSuggestions: number
-  messages: QuickAssistMessages
 }
 
-function renderMessage(
-  message: string | ((text: string) => string) | undefined,
-  text: string,
-  fallback: string,
-): string {
-  const value = typeof message === 'function' ? message(text) : message
-  return (value ?? fallback).replace(/\{text\}/gu, () => text)
-}
-
-function defaultSuggestions(context: QuickAssistContext, messages: QuickAssistMessages): Suggestion[] {
+function defaultSuggestions(context: QuickAssistContext): Suggestion[] {
   const text = context.text
   return [
     {
       id: 'explain',
-      label: renderMessage(messages.defaultExplain, text, `解释 ${text}`),
+      label: `解释 ${text}`,
       prompt: `请结合当前页面上下文解释「${text}」是什么意思`,
     },
     {
       id: 'use-case',
-      label: renderMessage(messages.defaultUseCase, text, `${text} 适用场景`),
+      label: `${text}适用场景`,
       prompt: `请结合当前页面上下文说明「${text}」的适用场景`,
     },
   ]
@@ -104,7 +93,7 @@ export function createRecommendationResolver(
   const resolveBase = (context: QuickAssistContext): Suggestion[] => {
     const inputs = hasConfiguredSuggestions ? staticInputs : []
     if (!hasConfiguredSuggestions && !options.getSuggestions) {
-      return defaultMerge(defaultSuggestions(context, options.messages), [], options.maxSuggestions)
+      return defaultMerge(defaultSuggestions(context), [], options.maxSuggestions)
     }
     const values = inputs.map((input, index) => {
       if (isFactory(input)) {
