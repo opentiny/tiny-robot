@@ -31,8 +31,13 @@ const getToolDescriptionId = (tool: McpExtensionTool) =>
     <ul v-if="props.tools.length" class="mcp-extension-detail__tools">
       <li v-for="tool in props.tools" :key="tool.id" class="mcp-extension-detail__tool">
         <div class="mcp-extension-detail__tool-content">
-          <strong class="mcp-extension-detail__tool-name">{{ tool.name }}</strong>
-          <p v-if="tool.description" :id="getToolDescriptionId(tool)" class="mcp-extension-detail__tool-description">
+          <strong class="mcp-extension-detail__tool-name" :title="tool.name">{{ tool.name }}</strong>
+          <p
+            v-if="tool.description"
+            :id="getToolDescriptionId(tool)"
+            class="mcp-extension-detail__tool-description"
+            :title="tool.description"
+          >
             {{ tool.description }}
           </p>
         </div>
