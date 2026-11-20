@@ -92,10 +92,11 @@ function intersectPeerRanges(name, ranges) {
 
   for (const combination of combinations) {
     const comparators = combination.flat()
-    let range = comparators
-      .map((comparator) => comparator.value)
-      .filter(Boolean)
-      .join(' ')
+    let range =
+      comparators
+        .map((comparator) => comparator.value)
+        .filter(Boolean)
+        .join(' ') || '*'
 
     const prereleaseTuples = combination.map((set) => new Set(set.flatMap(getPrereleaseTuple)))
     const allPrereleaseTuples = new Set(prereleaseTuples.flatMap((tuples) => [...tuples]))
@@ -123,7 +124,9 @@ function intersectPeerRanges(name, ranges) {
 
 function getPrereleaseTuple(comparator) {
   const version = comparator.semver
-  return version?.prerelease.length ? [`${version.major}.${version.minor}.${version.patch}`] : []
+  return typeof version === 'object' && Array.isArray(version.prerelease) && version.prerelease.length
+    ? [`${version.major}.${version.minor}.${version.patch}`]
+    : []
 }
 
 function intersectRanges(leftRange, rightRange) {
@@ -133,11 +136,12 @@ function intersectRanges(leftRange, rightRange) {
 
   for (const left of leftSets) {
     for (const right of rightSets) {
-      const range = [...left, ...right]
-        .map((comparator) => comparator.value)
-        .filter(Boolean)
-        .join(' ')
-      if (semver.minVersion(range)) intersections.push(new semver.Range(range).range)
+      const range =
+        [...left, ...right]
+          .map((comparator) => comparator.value)
+          .filter(Boolean)
+          .join(' ') || '*'
+      if (semver.minVersion(range)) intersections.push(new semver.Range(range).range || '*')
     }
   }
 

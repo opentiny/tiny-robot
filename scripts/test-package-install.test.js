@@ -74,3 +74,24 @@ test('preserves prerelease exclusions from every peer range', () => {
     /editor has incompatible ranges: >=1\.0\.0-alpha <1\.0\.0, >=0\.0\.0 <1\.0\.0/,
   )
 })
+
+test('intersects wildcard peer ranges with constrained ranges', () => {
+  const packages = [
+    { packageJson: { name: 'first', peerDependencies: { editor: '*' } } },
+    { packageJson: { name: 'second', peerDependencies: { editor: '^2.0.0' } } },
+  ]
+
+  const peers = collectPeerDependencies(packages, new Set())
+
+  assert.equal(semver.satisfies('2.5.0', peers.editor), true)
+  assert.equal(semver.satisfies('1.5.0', peers.editor), false)
+})
+
+test('preserves an unconstrained intersection for wildcard peer aliases', () => {
+  const packages = [
+    { packageJson: { name: 'first', peerDependencies: { editor: '*' } } },
+    { packageJson: { name: 'second', peerDependencies: { editor: 'x' } } },
+  ]
+
+  assert.deepEqual(collectPeerDependencies(packages, new Set()), { editor: '*' })
+})
