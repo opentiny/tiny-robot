@@ -137,7 +137,7 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 `mode="view"` 控制详情是否展示编辑能力；`mode="edit"` 下，文本资源可以编辑，二进制资源仍只读。根目录 `SKILL.md` 跟随详情模式允许编辑。
 
-文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名，并通过 `file-action` 事件通知应用。应用负责处理这些事件并完成实际持久化，同时处理空目录等 `SkillDefinition` 未表达的数据。
+文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名，并通过 `file-action` 事件通知应用。应用负责处理这些事件并完成实际持久化；`SkillDefinition.directories` 用于持久化空目录。
 
 文件树操作统一由 `mode="edit"` 控制；当前组件不支持自定义文件树 action 列表或 action resolver。
 
@@ -145,7 +145,7 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 本地文件选择区支持键盘访问；移除文件夹后焦点回到上传入口。GitHub 地址无效时输入框会标记错误并获得焦点，解析错误以可见提示呈现。解析期间提交按钮不可用，用户可以在失败后修改输入并重试。
 
-查看模式下，文件树中的文件和文件夹按钮支持键盘操作。当前文件内容位于可聚焦、可滚动的只读区域，保留原有换行和空格；光标进入后可选中、复制，按 Ctrl+A（macOS 上按 Command+A）可全选正文，长文本可以用键盘阅读。文件树和内容预览区域在自身区域内滚动，不会无限拉长详情。文件浏览区域默认最大高度为 `520px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。查看模式下详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
+查看模式下，文件树中的文件和文件夹按钮支持键盘操作。当前文件内容位于可聚焦、可滚动的只读区域，保留原有换行和空格；光标进入后可选中、复制，按 Ctrl+A（macOS 上按 Command+A）可全选正文，长文本可以用键盘阅读。文件树和内容预览区域在自身区域内滚动，不会无限拉长详情。文件浏览区域默认最小高度为 `500px`、最大高度为 `600px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。查看模式下详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
 
 ## API
 
@@ -197,6 +197,7 @@ interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 
@@ -253,18 +254,22 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | `save`        | 用户在编辑状态下点击“保存”时；应用应保存定义并更新传入的 `definition`。                                  | `(definition: SkillDefinition) => void` |
 | `file-action` | 用户执行新增、删除或重命名文件/文件夹后。文件操作同时会触发 `save`；文件夹操作可由应用根据此事件持久化。 | `(action: SkillFileAction) => void`     |
 
-文件树中的文件夹支持新增文件夹、新增文件、删除和重命名；文件支持删除和重命名。名称只能包含英文字母、数字、下划线、中划线和点号；新增文本文件及文本文件重命名仅支持 `.md`、`.txt`、`.json` 后缀。删除操作会显示危险色菜单项，根目录 `SKILL.md` 不提供这些操作。文件变更会立即反映在组件的文件树中，并通过 `save` 事件交给业务持久化；文件夹操作通过 `file-action` 事件通知业务。由于 `SkillDefinition` 只描述文件资源，空文件夹的持久化由业务处理。
+文件树中的文件夹支持新增文件夹、新增文件、删除和重命名；文件支持删除和重命名。名称只能包含英文字母、数字、下划线、中划线和点号；新增文本文件及文本文件重命名仅支持 `.md`、`.txt`、`.json` 后缀。删除操作会显示危险色菜单项，根目录 `SKILL.md` 不提供这些操作。文件变更会立即反映在组件的文件树中，并通过 `save` 事件交给业务持久化；文件夹操作通过 `file-action` 事件通知业务。`directories` 用于保留没有文件的空目录，删除目录中的最后一个文件不会自动删除该目录。
 
 `updated-at` 只展示传入文本，不自行格式化日期。选择资源文件时，组件会读取定义提供的内容；Markdown 文本按格式化内容显示，其他文本显示为纯文本，图片可预览，其他二进制文件提供下载。
 
 #### CSS Variables
 
-| 变量名                                           | 说明                                         | 默认值  |
-| ------------------------------------------------ | -------------------------------------------- | ------- |
-| `--tr-skill-extension-detail-content-max-height` | 文件浏览区域（目录树和内容预览）的最大高度。 | `520px` |
+| 变量名                                         | 说明                                                   | 默认值  |
+| ---------------------------------------------- | ------------------------------------------------------ | ------- |
+| `--tr-skill-extension-detail-content-min-height` | 文件浏览区域的最小高度，避免切换到编辑态时页面跳动。   | `500px` |
+| `--tr-skill-extension-detail-content-max-height` | 文件浏览区域（目录树和内容预览）的最大高度。           | `600px` |
 
 开发者可在组件或外层容器上设置此变量，例如：
 
 ```vue
-<tr-skill-extension-detail :definition="definition" style="--tr-skill-extension-detail-content-max-height: 320px" />
+<tr-skill-extension-detail
+  :definition="definition"
+  style="--tr-skill-extension-detail-content-min-height: 500px; --tr-skill-extension-detail-content-max-height: 600px"
+/>
 ```

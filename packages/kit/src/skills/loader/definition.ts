@@ -1,5 +1,11 @@
 import type { SkillResourceDescriptor } from '../types'
-import type { LoadableSkillFile, SkillLoadBaseOptions, SkillLoadResult, SkillLoadWarning } from './type'
+import type {
+  LoadableSkillFile,
+  LoadableSkillFiles,
+  SkillLoadBaseOptions,
+  SkillLoadResult,
+  SkillLoadWarning,
+} from './type'
 import {
   getFallbackSkillName,
   getRecord,
@@ -51,12 +57,15 @@ export function createSkillDefinition(files: LoadableSkillFile[], options: Skill
     return [toSkillResource(file)]
   })
 
+  const directories = collectDirectories(normalizedFiles, (files as LoadableSkillFiles).directories)
+
   return {
     skill: {
       name: getString(frontmatter.name) || getFallbackSkillName(entryFile),
       description: getString(frontmatter.description) || '',
       instructions,
       resources: resources.length ? resources : undefined,
+      directories: directories.length ? directories : undefined,
       metadata: {
         ...getRecord(frontmatter.metadata),
         ...(getString(frontmatter.homepage) ? { homepage: getString(frontmatter.homepage) } : {}),
@@ -64,6 +73,23 @@ export function createSkillDefinition(files: LoadableSkillFile[], options: Skill
     },
     warnings,
   }
+}
+
+function collectDirectories(files: LoadableSkillFile[], explicitDirectories: string[] = []) {
+  const fileDirectories = new Set<string>()
+
+  for (const file of files) {
+    const segments = file.path.split('/')
+    segments.pop()
+    while (segments.length > 0) {
+      fileDirectories.add(segments.join('/'))
+      segments.pop()
+    }
+  }
+
+  return [...new Set(explicitDirectories.map(normalizeSkillPath).filter(Boolean))]
+    .filter((directory) => !fileDirectories.has(directory))
+    .sort()
 }
 
 function normalizeFiles<T extends LoadableSkillFile>(

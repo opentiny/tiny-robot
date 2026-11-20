@@ -154,7 +154,7 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
             return undefined
           }
 
-          const resourceCount = (await this.readResourceFiles(directory)).length
+          const resourceCount = (await this.readResourceFiles(directory)).files.length
 
           return {
             name: skill.name,
@@ -189,11 +189,12 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
   private async readSkillDirectory(directory: string): Promise<SkillDefinition> {
     const skill = await this.readSkillEntry(directory)
-    const resources = await this.readResourceDescriptors(directory)
+    const { resources, directories } = await this.readResourceDescriptors(directory)
 
     return {
       ...skill,
       resources: resources.length ? resources : undefined,
+      directories: directories.length ? directories : undefined,
     }
   }
 
@@ -220,8 +221,9 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
   private async readResourceDescriptors(directory: string) {
     const resources: SkillResourceDescriptor[] = []
+    const { files, directories } = await this.readResourceFiles(directory)
 
-    for (const { fullPath, path } of await this.readResourceFiles(directory)) {
+    for (const { fullPath, path } of files) {
       const fileStat = await stat(fullPath)
       const kind = isTextSkillFilePath(path) ? 'text' : 'binary'
       const base = {
@@ -249,11 +251,25 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
       )
     }
 
-    return resources
+    const fileDirectories = new Set<string>()
+    for (const file of files) {
+      const segments = file.path.split('/')
+      segments.pop()
+      while (segments.length > 0) {
+        fileDirectories.add(segments.join('/'))
+        segments.pop()
+      }
+    }
+
+    return {
+      resources,
+      directories: directories.filter((directory) => !fileDirectories.has(directory)),
+    }
   }
 
   private async readResourceFiles(directory: string) {
     const files: Array<{ fullPath: string; path: string }> = []
+    const directories = new Set<string>()
 
     const walk = async (currentDirectory: string) => {
       const entries = await readdir(currentDirectory, {
@@ -268,6 +284,8 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
         const fullPath = join(currentDirectory, entry.name)
 
         if (entry.isDirectory()) {
+          const path = normalizeSkillPath(relative(directory, fullPath))
+          if (path) directories.add(path)
           await walk(fullPath)
           continue
         }
@@ -286,7 +304,10 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
     }
 
     await walk(directory)
-    return files.sort((a, b) => a.path.localeCompare(b.path))
+    return {
+      files: files.sort((a, b) => a.path.localeCompare(b.path)),
+      directories: [...directories].sort(),
+    }
   }
 
   private async writeResource(directory: string, resource: SkillResourceDescriptor) {
@@ -319,9 +340,33 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   private async writeSkillDirectory(directory: string, skill: SkillDefinition) {
     await writeFile(join(directory, entryFile), serializeSkillEntry(skill), 'utf8')
 
+    for (const directoryPath of skill.directories ?? []) {
+      await this.writeDirectory(directory, directoryPath)
+    }
+
     for (const resource of skill.resources ?? []) {
       await this.writeResource(directory, resource)
     }
+  }
+
+  private async writeDirectory(directory: string, path: string) {
+    const normalizedPath = normalizeSkillPath(path)
+    if (
+      !normalizedPath ||
+      normalizedPath.toLowerCase() === entryFile.toLowerCase() ||
+      hasWindowsDrivePrefix(normalizedPath)
+    ) {
+      throw new Error(`Invalid skill directory path: ${path}`)
+    }
+
+    const root = resolve(directory)
+    const fullPath = resolve(root, normalizedPath)
+    const relativePath = relative(root, fullPath)
+    if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
+      throw new Error(`Invalid skill directory path: ${path}`)
+    }
+
+    await mkdir(fullPath, { recursive: true })
   }
 
   private async backupExistingDirectory(directory: string, backupDirectory: string) {

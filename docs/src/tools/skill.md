@@ -269,6 +269,7 @@ interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -279,6 +280,7 @@ interface SkillDefinition {
 | `description` | UI 展示、搜索和 auto 候选摘要 |
 | `instructions` | 当前 skill 提供给模型的核心指令 |
 | `resources` | 可由运行时资源工具列出和读取的附加文件 |
+| `directories` | 需要保留的相对目录路径，即使目录暂时为空 |
 | `metadata` | 应用或 Loader 保留的扩展信息 |
 
 ### 浏览器加载
