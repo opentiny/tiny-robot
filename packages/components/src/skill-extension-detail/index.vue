@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { IconAddFile, IconAddFolder, IconFile, IconFolder, IconMore, IconSkill } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 import type { SkillDefinition, SkillResourceDescriptor } from '../skill-import-form/index.type'
@@ -30,7 +30,12 @@ const contentKind = ref<'markdown' | 'text' | 'binary'>('markdown')
 const editingMode = ref<'visual' | 'source'>('visual')
 const switchingFile = ref(false)
 const openActionMenuKey = ref<string>()
-const customFolderPaths = ref<string[]>([])
+const inlineRename = ref<{
+  row: SkillFileNode | SkillFolderNode
+  value: string
+  error: string
+}>()
+const inlineRenameInput = ref<HTMLInputElement | null>(null)
 const nameDialog = ref<NameDialogState>()
 const deleteDialog = ref<DeleteDialogState>()
 const fileSwitchDialog = ref<{
@@ -63,7 +68,7 @@ interface SkillFolderNode {
 type SkillTreeNode = SkillFileNode | SkillFolderNode
 type SkillTreeRow = SkillTreeNode | { type: 'skill'; key: 'skill'; name: 'SKILL.md'; depth: 0 }
 type TreeAction = 'create-file' | 'create-folder' | 'delete-file' | 'delete-folder' | 'rename'
-type NameAction = 'create-file' | 'create-folder' | 'rename'
+type NameAction = 'create-file' | 'create-folder'
 
 interface NameDialogState {
   action: NameAction
@@ -95,6 +100,7 @@ const selectedResourceId = ref<string>()
 const collapsedFolders = ref(new Set<string>())
 const fileTreeId = `skill-extension-detail-${useStableId()}-files`
 const resources = computed(() => currentDefinition.value.resources ?? [])
+const directories = computed(() => currentDefinition.value.directories ?? [])
 
 const makeResourceTree = (items: SkillResourceDescriptor[], extraFolders: string[] = []): SkillTreeNode[] => {
   const root: SkillTreeNode[] = []
@@ -159,7 +165,7 @@ const makeResourceTree = (items: SkillResourceDescriptor[], extraFolders: string
   return root
 }
 
-const resourceTree = computed(() => makeResourceTree(resources.value, customFolderPaths.value))
+const resourceTree = computed(() => makeResourceTree(resources.value, directories.value))
 const treeRows = computed<SkillTreeRow[]>(() => {
   const rows: SkillTreeRow[] = [{ type: 'skill', key: 'skill', name: 'SKILL.md', depth: 0 }]
   const appendVisible = (nodes: SkillTreeNode[]) => {
@@ -232,9 +238,26 @@ const resourceFolderPaths = computed(() => {
   return paths
 })
 
+const createResourceId = (path: string) => {
+  const resourceIds = new Set(resources.value.map((resource) => resource.resourceId))
+  if (!resourceIds.has(path)) return path
+
+  let index = 1
+  let resourceId = `${path}#${index}`
+  while (resourceIds.has(resourceId)) {
+    index += 1
+    resourceId = `${path}#${index}`
+  }
+  return resourceId
+}
+
 const isPathTaken = (path: string, ignoredPath?: string) => {
   const normalizedPath = normalizePath(path)
   const normalizedIgnoredPath = ignoredPath ? normalizePath(ignoredPath) : undefined
+  if (normalizedPath.toLowerCase() === 'skill.md' && normalizedIgnoredPath?.toLowerCase() !== 'skill.md') {
+    return true
+  }
+
   return (
     resources.value.some(
       (resource) =>
@@ -243,7 +266,7 @@ const isPathTaken = (path: string, ignoredPath?: string) => {
     [...resourceFolderPaths.value].some(
       (folderPath) => folderPath === normalizedPath && folderPath !== normalizedIgnoredPath,
     ) ||
-    customFolderPaths.value.some(
+    directories.value.some(
       (folderPath) =>
         normalizePath(folderPath) === normalizedPath && normalizePath(folderPath) !== normalizedIgnoredPath,
     )
@@ -255,11 +278,55 @@ const hasSupportedTextExtension = (name: string) => {
   return supportedSkillTextExtensions.includes(extension as (typeof supportedSkillTextExtensions)[number])
 }
 
+const startInlineRename = (row: SkillFileNode | SkillFolderNode) => {
+  inlineRename.value = {
+    row,
+    value: row.name,
+    error: '',
+  }
+  void nextTick(() => {
+    inlineRenameInput.value?.focus()
+    inlineRenameInput.value?.select()
+  })
+}
+
+const cancelInlineRename = () => {
+  inlineRename.value = undefined
+}
+
+const clearInlineRenameError = () => {
+  if (inlineRename.value) inlineRename.value.error = ''
+}
+
+const submitInlineRename = () => {
+  const draft = inlineRename.value
+  if (!draft) return
+
+  const name = draft.value.trim()
+  if (!name || !/^[A-Za-z0-9_.-]+$/.test(name) || name === '.' || name === '..') {
+    draft.error = '名称只能包含英文字母、数字、下划线、中划线和点号。'
+    return
+  }
+
+  if (draft.row.type === 'file' && draft.row.resource.kind === 'text' && !hasSupportedTextExtension(name)) {
+    draft.error = '仅支持 .md、.txt、.json 文件。'
+    return
+  }
+
+  const nextPath = normalizePath(`${getParentPath(draft.row.path)}/${name}`)
+  if (isPathTaken(nextPath, draft.row.path)) {
+    draft.error = '该名称已存在。'
+    return
+  }
+
+  inlineRename.value = undefined
+  handleTreeAction('rename', draft.row, name)
+}
+
 const nameDialogTitle = computed(() => {
   if (!nameDialog.value) return ''
   if (nameDialog.value.action === 'create-folder') return '新增文件夹'
-  if (nameDialog.value.action === 'create-file') return '新增文件'
-  return '重命名'
+  return '新增文件'
 })
 
 const closeNameDialog = () => {
@@ -270,7 +337,7 @@ const openNameDialog = (action: NameAction, row: SkillFileNode | SkillFolderNode
   nameDialog.value = {
     action,
     row,
-    value: action === 'rename' ? row.name : '',
+    value: '',
     error: '',
   }
 }
@@ -279,8 +346,27 @@ const openRootCreateDialog = (action: 'create-file' | 'create-folder') => {
   requestTreeAction(action, rootFolder)
 }
 
-const emitResourceDefinition = (nextResources: SkillResourceDescriptor[]) => {
-  const definition = { ...currentDefinition.value, resources: nextResources }
+const emitResourceDefinition = (
+  nextResources: SkillResourceDescriptor[],
+  nextDirectories: string[] = directories.value,
+) => {
+  const resourceDirectories = new Set<string>()
+  for (const resource of nextResources) {
+    let parentPath = getParentPath(resource.path)
+    while (parentPath) {
+      resourceDirectories.add(parentPath)
+      parentPath = getParentPath(parentPath)
+    }
+  }
+
+  const normalizedDirectories = [...new Set(nextDirectories.map(normalizePath).filter(Boolean))]
+    .filter((directory) => !resourceDirectories.has(directory))
+    .sort()
+  const definition = {
+    ...currentDefinition.value,
+    resources: nextResources,
+    directories: normalizedDirectories.length ? normalizedDirectories : undefined,
+  }
   localDefinition.value = definition
   emit('save', definition)
 }
@@ -325,16 +411,20 @@ const confirmDelete = () => {
     const resourcePath = normalizePath(resource.path)
     return resourcePath !== normalizedPath && (!isFolder || !resourcePath.startsWith(`${normalizedPath}/`))
   })
+  const parentPath = getParentPath(currentPath)
+  const nextDirectories = parentPath ? [...directories.value, parentPath] : directories.value
   if (isFolder) {
-    customFolderPaths.value = customFolderPaths.value.filter(
+    const directoriesAfterDelete = nextDirectories.filter(
       (folderPath) =>
         normalizePath(folderPath) !== normalizedPath && !normalizePath(folderPath).startsWith(`${normalizedPath}/`),
     )
+    emitResourceDefinition(nextResources, directoriesAfterDelete)
+  } else {
+    emitResourceDefinition(nextResources, nextDirectories)
   }
   clearSelectionIfPathMatches(currentPath, isFolder)
   closeDeleteDialog()
   emitFileAction({ type: action, target: isFolder ? 'folder' : 'file', path: currentPath })
-  emitResourceDefinition(nextResources)
 }
 
 const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNode, providedName?: string) => {
@@ -355,7 +445,7 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
     }
 
     if (action === 'create-folder') {
-      customFolderPaths.value = [...new Set([...customFolderPaths.value, path])]
+      emitResourceDefinition(resources.value, [...directories.value, path])
       emitFileAction({ type: action, target: 'folder', path })
       collapsedFolders.value = new Set(
         [...collapsedFolders.value].filter((folderKey) => folderKey !== `folder:${row.path}`),
@@ -366,12 +456,15 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
     const resource: SkillResourceDescriptor = {
       path,
       kind: 'text',
-      resourceId: path,
+      resourceId: createResourceId(path),
       text: '',
     }
     emitFileAction({ type: action, target: 'file', path })
     emitResourceDefinition([...resources.value, resource])
-    selectedResourceId.value = resource.resourceId
+    draftContent.value = ''
+    textContent.value = ''
+    isEditing.value = false
+    selectResource(resource.resourceId)
     return
   }
 
@@ -387,7 +480,7 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
   }
 
   if (!providedName) {
-    openNameDialog('rename', row)
+    startInlineRename(row)
     return
   }
   const name = providedName
@@ -408,7 +501,7 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
       }
       return resource
     })
-    customFolderPaths.value = customFolderPaths.value.map((folderPath) => {
+    const nextDirectories = directories.value.map((folderPath) => {
       const folderPathValue = normalizePath(folderPath)
       if (folderPathValue === normalizedPath) return nextPath
       if (folderPathValue.startsWith(`${normalizedPath}/`)) {
@@ -416,7 +509,7 @@ const handleTreeAction = (action: TreeAction, row: SkillFileNode | SkillFolderNo
       }
       return folderPath
     })
-    emitResourceDefinition(nextResources)
+    emitResourceDefinition(nextResources, nextDirectories)
   } else {
     emitResourceDefinition(
       resources.value.map((resource) =>
@@ -437,19 +530,14 @@ const submitNameDialog = () => {
     return
   }
 
-  const needsTextExtension =
-    dialog.action === 'create-file' ||
-    (dialog.action === 'rename' && dialog.row.type === 'file' && dialog.row.resource.kind === 'text')
+  const needsTextExtension = dialog.action === 'create-file'
   if (needsTextExtension && !hasSupportedTextExtension(name)) {
     dialog.error = '仅支持 .md、.txt、.json 文件。'
     return
   }
 
-  const path =
-    dialog.action === 'rename'
-      ? normalizePath(`${getParentPath(dialog.row.path)}/${name}`)
-      : normalizePath(`${dialog.row.path}/${name}`)
-  if (isPathTaken(path, dialog.action === 'rename' ? dialog.row.path : undefined)) {
+  const path = normalizePath(`${dialog.row.path}/${name}`)
+  if (isPathTaken(path)) {
     dialog.error = '该名称已存在。'
     return
   }
@@ -602,6 +690,7 @@ watch(
   (mode) => {
     if (mode !== 'edit') {
       openActionMenuKey.value = undefined
+      inlineRename.value = undefined
       isEditing.value = false
       closeFileSwitchDialog()
     }
@@ -650,9 +739,9 @@ watch(
       localDefinition.value = null
     }
     if (nextDefinition.name !== previousDefinition?.name) {
-      customFolderPaths.value = []
       collapsedFolders.value = new Set()
       openActionMenuKey.value = undefined
+      inlineRename.value = undefined
       nameDialog.value = undefined
       deleteDialog.value = undefined
       isEditing.value = false
@@ -667,11 +756,32 @@ watch(
   },
 )
 
+const handleDocumentClick = (event: MouseEvent) => {
+  const target = event.target
+  const clickedActionMenu =
+    target instanceof Element &&
+    target.closest('.skill-extension-detail__tree-action-trigger, .skill-extension-detail__tree-action-menu')
+  if (clickedActionMenu) return
+
+  const clickedInlineRename = target instanceof Element && target.closest('.skill-extension-detail__tree-inline-editor')
+
+  if (inlineRename.value && !clickedInlineRename) {
+    const renameDraft = inlineRename.value
+    submitInlineRename()
+    if (inlineRename.value === renameDraft) cancelInlineRename()
+  }
+
+  if (!openActionMenuKey.value) return
+  openActionMenuKey.value = undefined
+}
+
 onMounted(async () => {
+  document.addEventListener('click', handleDocumentClick)
   markdownRuntime.value = await getMarkdownItAndDompurify()
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
   readGeneration += 1
   releaseResourceUrl()
 })
@@ -738,7 +848,36 @@ onBeforeUnmount(() => {
             </button>
 
             <div v-else-if="row.type === 'folder'" class="skill-extension-detail__tree-node">
+              <div v-if="inlineRename?.row.key === row.key" class="skill-extension-detail__inline-rename-wrapper">
+                <div
+                  class="skill-extension-detail__tree-inline-editor"
+                  :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
+                >
+                  <span
+                    class="skill-extension-detail__chevron"
+                    :class="{ 'skill-extension-detail__chevron--collapsed': collapsedFolders.has(row.key) }"
+                    aria-hidden="true"
+                  ></span>
+                  <IconFolder class="skill-extension-detail__folder-icon" aria-hidden="true" />
+                  <input
+                    ref="inlineRenameInput"
+                    v-model="inlineRename.value"
+                    type="text"
+                    :aria-label="`重命名 ${row.name}`"
+                    :aria-invalid="Boolean(inlineRename.error)"
+                    :title="inlineRename.error || undefined"
+                    @keydown.enter.prevent="submitInlineRename"
+                    @keydown.esc.prevent="cancelInlineRename"
+                    @blur="submitInlineRename"
+                    @input="clearInlineRenameError"
+                  />
+                </div>
+                <p v-if="inlineRename.error" class="skill-extension-detail__inline-rename-error" role="alert">
+                  {{ inlineRename.error }}
+                </p>
+              </div>
               <button
+                v-else
                 type="button"
                 class="skill-extension-detail__tree-button skill-extension-detail__tree-button--folder"
                 :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
@@ -754,7 +893,7 @@ onBeforeUnmount(() => {
                 <span>{{ row.name }}</span>
               </button>
               <button
-                v-if="props.mode === 'edit'"
+                v-if="props.mode === 'edit' && inlineRename?.row.key !== row.key"
                 type="button"
                 class="skill-extension-detail__tree-action-trigger"
                 :disabled="switchingFile"
@@ -787,7 +926,31 @@ onBeforeUnmount(() => {
             </div>
 
             <div v-else class="skill-extension-detail__tree-node">
+              <div v-if="inlineRename?.row.key === row.key" class="skill-extension-detail__inline-rename-wrapper">
+                <div
+                  class="skill-extension-detail__tree-inline-editor"
+                  :style="{ paddingLeft: `${24 + row.depth * 16}px` }"
+                >
+                  <IconFile class="skill-extension-detail__file-icon" aria-hidden="true" />
+                  <input
+                    ref="inlineRenameInput"
+                    v-model="inlineRename.value"
+                    type="text"
+                    :aria-label="`重命名 ${row.name}`"
+                    :aria-invalid="Boolean(inlineRename.error)"
+                    :title="inlineRename.error || undefined"
+                    @keydown.enter.prevent="submitInlineRename"
+                    @keydown.esc.prevent="cancelInlineRename"
+                    @blur="submitInlineRename"
+                    @input="clearInlineRenameError"
+                  />
+                </div>
+                <p v-if="inlineRename.error" class="skill-extension-detail__inline-rename-error" role="alert">
+                  {{ inlineRename.error }}
+                </p>
+              </div>
               <button
+                v-else
                 type="button"
                 class="skill-extension-detail__tree-button"
                 :class="{
@@ -801,7 +964,7 @@ onBeforeUnmount(() => {
                 <span class="skill-extension-detail__tree-name">{{ row.name }}</span>
               </button>
               <button
-                v-if="props.mode === 'edit'"
+                v-if="props.mode === 'edit' && inlineRename?.row.key !== row.key"
                 type="button"
                 class="skill-extension-detail__tree-action-trigger"
                 :disabled="switchingFile"
@@ -1013,7 +1176,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  padding: 8px 12px 16px;
+  padding: 8px 0 16px;
 }
 
 .skill-extension-detail__icon {
@@ -1024,7 +1187,7 @@ onBeforeUnmount(() => {
   height: 28px;
   place-items: center;
   border: 1px solid var(--tr-border-color-default);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--tr-text-primary);
 }
 
@@ -1081,8 +1244,12 @@ onBeforeUnmount(() => {
 
 .skill-extension-detail__browser {
   display: flex;
-  min-height: 300px;
-  max-height: var(--tr-skill-extension-detail-content-max-height, 520px);
+  box-sizing: border-box;
+  min-height: var(
+    --tr-skill-extension-detail-content-min-height,
+    var(--tr-skill-extension-detail-content-height, 500px)
+  );
+  max-height: var(--tr-skill-extension-detail-content-max-height, 600px);
   overflow: hidden;
   border: 1px solid @detail-divider-color;
   border-radius: 8px;
@@ -1196,6 +1363,50 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 20px;
   text-align: left;
+}
+
+.skill-extension-detail__inline-rename-wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.skill-extension-detail__tree-inline-editor {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 32px 4px 8px;
+  color: var(--tr-text-primary);
+}
+
+.skill-extension-detail__tree-inline-editor input {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  height: 26px;
+  padding: 2px 6px;
+  border: 1px solid var(--tr-text-primary);
+  border-radius: 4px;
+  background: var(--tr-container-bg-default);
+  color: var(--tr-text-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  outline: none;
+}
+
+.skill-extension-detail__tree-inline-editor input[aria-invalid='true'] {
+  border-color: var(--tr-color-error);
+}
+
+.skill-extension-detail__inline-rename-error {
+  margin: 0 8px 4px;
+  color: var(--tr-color-error);
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
 }
 
 .skill-extension-detail__tree-button:hover {
@@ -1381,6 +1592,7 @@ onBeforeUnmount(() => {
 .skill-extension-detail__content--editing {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .skill-extension-detail__mode-switch {
@@ -1558,6 +1770,7 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .skill-extension-detail__browser {
     min-height: 0;
+    height: auto;
     max-height: none;
     flex-direction: column;
   }

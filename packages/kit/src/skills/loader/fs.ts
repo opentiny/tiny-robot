@@ -1,14 +1,15 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import type { FsSkillLoadOptions, LoadableSkillFile, SkillLoadContext } from './type'
+import type { FsSkillLoadOptions, LoadableSkillFiles, SkillLoadContext } from './type'
 import { isTextSkillFilePath, normalizeSkillPath, throwIfSkillLoadCancelled } from './utils'
 
 export async function loadFsSkillFiles(
   options: FsSkillLoadOptions,
   context: SkillLoadContext,
-): Promise<LoadableSkillFile[]> {
+): Promise<LoadableSkillFiles> {
   const ignored = new Set(options.ignoredDirectories ?? ['node_modules'])
-  const result: LoadableSkillFile[] = []
+  const result: LoadableSkillFiles = []
+  const directories = new Set<string>()
 
   const walk = async (directory: string) => {
     throwIfSkillLoadCancelled(context.signal)
@@ -21,6 +22,8 @@ export async function loadFsSkillFiles(
 
       if (entry.isDirectory()) {
         if (!ignored.has(entry.name) && !entry.name.startsWith('.')) {
+          const path = normalizeSkillPath(relative(options.root, fullPath))
+          if (path) directories.add(path)
           await walk(fullPath)
         }
         continue
@@ -54,5 +57,6 @@ export async function loadFsSkillFiles(
   }
 
   await walk(options.root)
+  Object.defineProperty(result, 'directories', { value: [...directories].sort() })
   return result
 }

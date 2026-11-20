@@ -74,6 +74,7 @@ describe('FsSkillStorage', () => {
         homepage: 'https://example.com/demo',
         version: '1.0.0',
       },
+      directories: ['empty'],
       resources: [
         {
           path: 'references/guide.md',
@@ -94,6 +95,7 @@ describe('FsSkillStorage', () => {
       'homepage: https://example.com/demo',
     )
     await expect(readFile(join(root, 'demo', 'references', 'guide.md'), 'utf8')).resolves.toBe('# Guide')
+    await expect(stat(join(root, 'demo', 'empty'))).resolves.toMatchObject({ isDirectory: expect.any(Function) })
 
     const storedSkill = await storage.get('demo')
     const guide = storedSkill?.resources?.find((resource) => resource.path === 'references/guide.md')
@@ -106,6 +108,7 @@ describe('FsSkillStorage', () => {
         homepage: 'https://example.com/demo',
         version: '1.0.0',
       },
+      directories: ['empty'],
     })
     expect(guide).toMatchObject({
       path: 'references/guide.md',
