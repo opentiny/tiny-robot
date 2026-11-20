@@ -132,7 +132,8 @@
 
     <script>
       ;(async () => {
-        const root = document.documentElement
+        // === 1. 文档站预览适配：如独立项目已通过 <script src=".../vanilla.global.js"> 引入，可整体删除本段 ===
+        const previewRoot = document.documentElement
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         let parentRoot
         let previewGlobalUrl
@@ -146,10 +147,9 @@
         }
         const syncTheme = () => {
           const dark = parentRoot ? parentRoot.classList.contains('dark') : systemTheme.matches
-          root.dataset.theme = dark ? 'dark' : 'light'
-          // The docs preview also copies TinyRobot's shared CSS into this iframe.
-          // Keep its token selector in sync with Vanilla's custom theme source.
-          root.dataset.trColorMode = root.dataset.theme
+          previewRoot.dataset.theme = dark ? 'dark' : 'light'
+          // 文档预览会向 iframe 复制 TinyRobot 共享样式，保持其主题属性与自定义主题来源同步。
+          previewRoot.dataset.trColorMode = previewRoot.dataset.theme
         }
         syncTheme()
         const themeObserver = parentRoot ? new MutationObserver(syncTheme) : undefined
@@ -163,20 +163,23 @@
           },
           { once: true },
         )
+
+        // 已预先加载 window.TinyRobotVanilla 时直接复用，跳过文档预览回退脚本加载。
+        if (!window.TinyRobotVanilla) {
+          const localGlobalUrl = new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI)
+          const script = document.createElement('script')
+          script.src = previewGlobalUrl ?? localGlobalUrl.href
+          await new Promise((resolve, reject) => {
+            script.onload = resolve
+            script.onerror = () => reject(new Error('无框架组件脚本加载失败，请先通过 <script> 引入 vanilla.global.js'))
+            document.head.appendChild(script)
+          })
+        }
+
+        // === 2. QuickAssist 核心接入代码 ===
         const output = document.querySelector('#request-output')
         const panel = document.querySelector('#assistant-panel')
         const status = document.querySelector('#event-status')
-
-        // 文档预览在 iframe 中运行，资源地址由文档页面提供；单独打开此文件时从仓库构建产物加载。
-        const localGlobalUrl = new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI)
-        const script = document.createElement('script')
-        script.src = previewGlobalUrl ?? localGlobalUrl.href
-        await new Promise((resolve, reject) => {
-          script.onload = resolve
-          script.onerror = () => reject(new Error('无框架组件脚本加载失败'))
-          document.head.appendChild(script)
-        })
-
         window.TinyRobotVanilla.configureVanillaTheme({
           source: { type: 'attribute', attribute: 'data-theme' },
         })

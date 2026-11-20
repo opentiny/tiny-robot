@@ -10,7 +10,10 @@
     </fieldset>
     <section class="qa-input-demo__group">
       <h4>划词体验</h4>
-      <p id="qa-input-demo-selection" class="qa-input-demo__selection">{{ exampleText }}</p>
+      <p id="qa-input-demo-selection" class="qa-input-demo__selection">{{ selectionText }}</p>
+      <p class="qa-input-demo__hint">
+        勾选“限制为 50 个字符”和“预填选中文字”，再从左向右选中整段文字，可观察超限计数和发送禁用效果。
+      </p>
     </section>
     <section class="qa-input-demo__group">
       <h4>命令式调用</h4>
@@ -37,13 +40,15 @@ const maxRows = ref(2)
 const limited = ref(false)
 const autoFill = ref(false)
 const exampleText = '查看系统盘使用率'
+const selectionText =
+  '云服务器运行一段时间后，系统盘使用率持续升高。请结合日志增长、临时文件、应用缓存和磁盘分区情况，分析空间占用的主要原因，并给出清理顺序、容量扩展建议以及操作前需要确认的事项。'
 const request = shallowRef<AIRequest>()
 let assist: QuickAssistInstance | undefined
 
 function configure() {
   maxRows.value = Math.max(1, Math.min(6, Math.trunc(Number(maxRows.value)) || 2))
   assist?.updateOptions({
-    input: { maxRows: maxRows.value, maxLength: limited.value ? 50 : undefined, autoFill: autoFill.value },
+    input: { maxRows: maxRows.value, maxLength: limited.value ? 50 : null, autoFill: autoFill.value },
   })
 }
 
@@ -60,13 +65,13 @@ function open(event: MouseEvent, prefill?: boolean) {
 onMounted(() => {
   assist = createQuickAssist({
     include: ['#qa-input-demo-selection'],
+    input: { maxRows: maxRows.value, maxLength: limited.value ? 50 : null, autoFill: autoFill.value },
     adapter: {
       submit: (value) => {
         request.value = value
       },
     },
   })
-  configure()
 })
 
 onBeforeUnmount(() => assist?.destroy())
@@ -74,6 +79,8 @@ onBeforeUnmount(() => assist?.destroy())
 
 <style scoped>
 .qa-input-demo {
+  color: var(--vp-c-text-1, #213547);
+  background: var(--vp-c-bg, #fff);
   display: grid;
   gap: 16px;
   padding: 16px;
@@ -114,6 +121,12 @@ onBeforeUnmount(() => assist?.destroy())
   padding: 12px;
   border-radius: 8px;
   background: var(--vp-c-bg-soft);
+}
+.qa-input-demo__hint {
+  margin: 8px 0 0;
+  color: var(--vp-c-text-2, #536171);
+  font-size: 13px;
+  line-height: 1.6;
 }
 .qa-input-demo button,
 .qa-input-demo input[type='number'] {

@@ -32,11 +32,11 @@ onMounted(() => {
       nearbyText: context.nearbyText ? redactTenant(context.nearbyText) : undefined,
       businessContext: { ...context.businessContext, tenantId: '[已脱敏]' },
     }),
-    // 输入框保留用户选中的原文；发送前也要对最终问题做脱敏。
+    // 用户手动输入或开启 input.autoFill 预填的内容可能含敏感信息，发送前仍需对最终 prompt 脱敏。
     buildPrompt: ({ query, suggestion }) => redactTenant(suggestion?.prompt ?? query),
     adapter: {
       submit(request) {
-        submitted.value = JSON.stringify({ 提交内容: request.prompt, 上下文: request.context }, null, 2)
+        submitted.value = JSON.stringify({ prompt: request.prompt, context: request.context }, null, 2)
       },
     },
   })

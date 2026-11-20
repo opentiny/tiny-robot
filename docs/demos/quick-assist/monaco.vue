@@ -67,7 +67,7 @@ function explainSelection() {
     endColumn: currentModel.getLineMaxColumn(Math.min(currentModel.getLineCount(), selection.endLineNumber + 2)),
   })
 
-  // 选词完成后由示例主动调用通用 API，仍未引入官方编辑器桥接器。
+  // 选词完成后由应用代码调用通用 activate() API 接入。
   quickAssist?.activate({
     source: 'monaco',
     autoFill: false, // 本次不预填代码，保留上下文，不修改实例默认设置。

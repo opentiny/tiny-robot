@@ -10,8 +10,9 @@
       </label>
       <label><input v-model="enabled" type="checkbox" @change="configure" />启用业务校验</label>
     </div>
-    <p class="qa-validation-demo__text">
-      请选择 <strong id="qa-validation-text">竞价计费</strong> 并打开智能帮助，观察校验前后的问题变化。
+    <p id="qa-validation-scope" class="qa-validation-demo__text">
+      请选中本段中的任意词语（例如
+      <strong id="qa-validation-text">竞价计费</strong>）并打开智能帮助，观察校验前后的问题变化。
     </p>
     <p>业务规则：标题 ≤ 40 字、问题 ≤ 1000 字，且问题包含选中文字。空白字段始终由基础校验过滤。</p>
     <p aria-live="polite">{{ status }}</p>
@@ -87,7 +88,7 @@ function configure() {
   status.value = '配置已更新，请选择“竞价计费”并打开智能帮助。'
   const result = response.value
   quickAssist = createQuickAssist({
-    include: ['#qa-validation-text'],
+    include: ['#qa-validation-scope'],
     suggestions: staticSuggestions,
     getSuggestions: async (context, signal) => {
       status.value = '正在模拟远程请求…'
@@ -129,7 +130,11 @@ function configure() {
     adapter: {
       submit(request) {
         submitted.value = JSON.stringify(
-          { 推荐项: request.suggestion?.label ?? '手动输入', 提交内容: request.prompt },
+          {
+            query: request.query,
+            prompt: request.prompt,
+            suggestion: request.suggestion?.label ?? null,
+          },
           null,
           2,
         )
