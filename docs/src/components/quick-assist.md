@@ -294,6 +294,7 @@ const quickAssist = createQuickAssist({
 上下文处理注意事项：
 
 - **脱敏约束**：`sanitizeContext` 返回值必须保留 `source` 与 `text` 两个字符串字段，其余字段可按需删改；若用户手动输入或开启 `input.autoFill` 预填了敏感文本，还应在 `buildPrompt` 中对最终 `prompt` 做脱敏。
+- **外发字段**：`sanitizeContext` 与 `buildPrompt` 都不会改写 `request.query`；手动提交时它是去除首尾空白的输入，点击推荐时为推荐项的 `label`。建议只发送已处理的 `prompt` 与 `context`；若需向外部服务转发完整 `request`，应额外脱敏或省略 `query`、`suggestion` 等可能包含敏感信息的字段。
 - **可克隆约束**：不要在上下文中放入函数、DOM 节点、`Range`、选区快照或共享内存对象，否则会在拷贝阶段报错并阻止提交。
 - **只读副本**：推荐函数与 `buildPrompt` 收到的是上下文副本，修改副本不会影响最终传给 `adapter` 的上下文。
 - **双重防护**：请结合页面标记（`data-sensitive`、`data-ai-selection="false"`）与 `sanitizeContext` 共同拦截密钥、令牌、租户 ID、订单数据等敏感信息。
