@@ -4,6 +4,16 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v0.5.2
+
+`2026-11-20`
+
+### ✨ 新特性
+
+**组件**
+
+- **QuickAssist**：新增与框架无关的划词智能帮助组件，支持推荐问题、手动提问、上下文采集和自定义脱敏，通过 `adapter.submit(request)` 对接应用已有的 AI 对话能力；支持程序化激活、自定义选区源、会话级推荐与业务校验，提供可配置的自适应输入框、划词长度限制、选区高亮和明暗主题；支持 NPM/CDN 接入，并提供 Vue 对话面板、编辑器等交互示例及完整使用指南。 by @hexqi in [#427](https://github.com/opentiny/tiny-robot/pull/427) [#466](https://github.com/opentiny/tiny-robot/pull/466) [#471](https://github.com/opentiny/tiny-robot/pull/471) [#511](https://github.com/opentiny/tiny-robot/pull/511)
+
 ## v0.5.1
 
 `2026-08-10`

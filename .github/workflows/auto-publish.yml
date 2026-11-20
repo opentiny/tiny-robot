@@ -67,6 +67,8 @@ jobs:
             echo "dist_tag=beta" >> "$GITHUB_OUTPUT"
           elif [[ "$tag_name" == *rc* ]]; then
             echo "dist_tag=rc" >> "$GITHUB_OUTPUT"
+          elif [[ "$tag_name" == v0.5.* ]]; then
+            echo "dist_tag=legacy-v0.5" >> "$GITHUB_OUTPUT"
           else
             echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
           fi
@@ -89,7 +91,7 @@ jobs:
 
       # 步骤8: 发布组件到NPM
       - name: Publish components
-        run: pnpm lerna publish from-package --pre-dist-tag ${{steps.parse_tag.outputs.dist_tag}} --yes
+        run: pnpm lerna publish from-package --dist-tag ${{steps.parse_tag.outputs.dist_tag}} --yes
         env:
           # 使用NPM令牌进行身份验证
           NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
