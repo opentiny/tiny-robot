@@ -8,7 +8,7 @@ import {
   IconPlugin,
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
-import { type Component, computed, nextTick, ref, useCssModule, watch } from 'vue'
+import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
 import { TinyButton } from '@opentiny/vue'
 import { type ToolCallState, useBubbleEventFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
@@ -23,6 +23,7 @@ const props = defineProps<
 >()
 
 const { toolCall, toolCallWithResult, state } = useToolCall(props)
+const toolName = computed(() => toolCall.value?.function.name || 'Untitled')
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['running', { text: '正在调用', icon: IconLoading }],
@@ -52,115 +53,6 @@ const prettyJSON = (json: unknown, space = 2) => {
   } catch {}
 
   return prettyJson
-}
-
-const formatJsonPreservingNumbers = (json: string, space = 2) => {
-  let index = 0
-  const indent = (level: number) => ' '.repeat(level * space)
-  const skipWhitespace = () => {
-    while (index < json.length && /\s/.test(json[index] ?? '')) index += 1
-  }
-
-  const parseString = () => {
-    const start = index
-    if (json[index] !== '"') throw new Error('Invalid JSON string')
-    index += 1
-
-    while (index < json.length) {
-      if (json[index] === '\\') {
-        index += 2
-        continue
-      }
-      if (json[index] === '"') {
-        index += 1
-        const token = json.slice(start, index)
-        JSON.parse(token)
-        return token
-      }
-      index += 1
-    }
-
-    throw new Error('Unterminated JSON string')
-  }
-
-  const parsePrimitive = () => {
-    const start = index
-    while (index < json.length && !/[\s,\]}]/.test(json[index] ?? '')) index += 1
-    const token = json.slice(start, index)
-    if (!token) throw new Error('Invalid JSON value')
-    JSON.parse(token)
-    return token
-  }
-
-  const parseValue = (level: number): string => {
-    skipWhitespace()
-    const valueStart = json[index]
-    if (valueStart === '"') return parseString()
-    if (valueStart === '{') return parseObject(level)
-    if (valueStart === '[') return parseArray(level)
-    return parsePrimitive()
-  }
-
-  const parseObject = (level: number): string => {
-    index += 1
-    skipWhitespace()
-    if (json[index] === '}') {
-      index += 1
-      return '{}'
-    }
-
-    const entries: string[] = []
-    while (index < json.length) {
-      const key = parseString()
-      skipWhitespace()
-      if (json[index] !== ':') throw new Error('Invalid JSON object')
-      index += 1
-      entries.push(`${indent(level + 1)}${key}: ${parseValue(level + 1)}`)
-      skipWhitespace()
-      if (json[index] === '}') {
-        index += 1
-        return `{
-${entries.join(',\n')}
-${indent(level)}}`
-      }
-      if (json[index] !== ',') throw new Error('Invalid JSON object')
-      index += 1
-      skipWhitespace()
-    }
-
-    throw new Error('Unterminated JSON object')
-  }
-
-  const parseArray = (level: number): string => {
-    index += 1
-    skipWhitespace()
-    if (json[index] === ']') {
-      index += 1
-      return '[]'
-    }
-
-    const values: string[] = []
-    while (index < json.length) {
-      values.push(`${indent(level + 1)}${parseValue(level + 1)}`)
-      skipWhitespace()
-      if (json[index] === ']') {
-        index += 1
-        return `[
-${values.join(',\n')}
-${indent(level)}]`
-      }
-      if (json[index] !== ',') throw new Error('Invalid JSON array')
-      index += 1
-      skipWhitespace()
-    }
-
-    throw new Error('Unterminated JSON array')
-  }
-
-  const formatted = parseValue(0)
-  skipWhitespace()
-  if (index !== json.length) throw new Error('Unexpected JSON value')
-  return formatted
 }
 
 const classes = useCssModule()
@@ -204,19 +96,6 @@ const jsonStr = computed(() => {
   return prettyJSON(toolCallWithResult.value, 2)
 })
 
-const argumentsJson = computed(() => {
-  const rawArguments = toolCall.value?.function.arguments
-  if (typeof rawArguments === 'string') {
-    try {
-      return formatJsonPreservingNumbers(rawArguments)
-    } catch {
-      // Invalid or incomplete JSON falls back to the repaired value.
-    }
-  }
-
-  return prettyJSON(toolCallWithResult.value.arguments)
-})
-
 const detail = computed(() => {
   return highlightJSON(jsonStr.value)
 })
@@ -241,11 +120,10 @@ watch(jsonStr, (_, oldValue) => {
 })
 
 const open = ref(false)
-const editing = ref(false)
-const editedArguments = ref('')
-const editError = ref(false)
 
-const canEdit = computed(() => Boolean(toolCall.value?.editable))
+watchEffect(() => {
+  open.value = state.value.open ?? false
+})
 
 const handleBubbleEvent = useBubbleEventFn()
 
@@ -261,62 +139,8 @@ const emitToolAction = (action: 'resume' | 'reject') => {
   })
 }
 
-const startEditing = () => {
-  editedArguments.value = argumentsJson.value
-  editError.value = false
-  editing.value = true
-}
-
-const cancelEditing = () => {
-  editError.value = false
-  editing.value = false
-}
-
-watch(
-  () => state.value.open ?? false,
-  (nextOpen, previousOpen) => {
-    open.value = nextOpen
-    if (!nextOpen && previousOpen) {
-      cancelEditing()
-    }
-  },
-  { immediate: true },
-)
-
-watch(
-  () => toolCall.value?.id,
-  (nextId, previousId) => {
-    if (nextId !== previousId) {
-      cancelEditing()
-    }
-  },
-)
-
-const saveEditing = () => {
-  const toolCallId = toolCall.value?.id
-  if (!toolCallId || !canEdit.value) {
-    return
-  }
-
-  try {
-    const argumentsText = editedArguments.value.trim() || '{}'
-    JSON.parse(argumentsText)
-    handleBubbleEvent({
-      name: 'tool-call:edit',
-      payload: { toolCallId, arguments: argumentsText },
-    })
-    editError.value = false
-    editing.value = false
-  } catch {
-    editError.value = true
-  }
-}
-
 const handleClick = () => {
   open.value = !open.value
-  if (!open.value) {
-    cancelEditing()
-  }
 
   const toolCallId = toolCall.value?.id
   if (toolCallId) {
@@ -340,9 +164,9 @@ const handleClick = () => {
       <div class="header-left">
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
         <div class="tool-info">
-          <div>
+          <div class="title-row">
             <span>{{ textAndIcon.text }}&nbsp;</span>
-            <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
+            <span class="title" :title="toolName">{{ toolName }}</span>
           </div>
           <div v-if="description" class="description" :title="description">{{ description }}</div>
         </div>
@@ -357,35 +181,34 @@ const handleClick = () => {
         <tiny-button size="mini" round :reset-time="0" @click.stop="emitToolAction('reject')">拒绝</tiny-button>
       </div>
     </div>
-    <template v-if="open">
-      <div class="divider"></div>
-      <div v-if="editing" class="edit-panel">
-        <textarea v-model="editedArguments" class="edit-input" aria-label="工具参数" @input="editError = false" />
-        <p v-if="editError" class="edit-error" role="alert">请输入合法的 JSON 参数</p>
-        <div class="edit-actions">
-          <tiny-button size="mini" :reset-time="0" @click="cancelEditing">取消</tiny-button>
-          <tiny-button type="primary" size="mini" :reset-time="0" @click="saveEditing">保存</tiny-button>
-        </div>
-      </div>
-      <template v-else>
-        <div class="detail" v-html="detail" ref="detailRef"></div>
-        <button v-if="canEdit" type="button" class="edit-trigger" @click="startEditing">编辑</button>
-      </template>
-    </template>
+    <div v-show="open" class="divider"></div>
+    <div v-show="open" class="detail" v-html="detail" ref="detailRef"></div>
   </div>
 </template>
 
 <style lang="less" scoped>
 .tr-bubble__tool-call {
+  @card-padding: 12px;
+  --tool-title-line-height: 24px;
+
   font-size: 14px;
-  line-height: 24px;
-  padding: 12px;
+  line-height: var(--tool-title-line-height);
+  padding: @card-padding;
   color: var(--tr-text-secondary);
   background-color: var(--tr-bubble-tool-call-bg);
   border-radius: 12px;
   margin-block: var(--tr-bubble-tool-call-space-y);
-  min-width: var(--tr-bubble-tool-call-min-width);
-  max-width: var(--tr-bubble-tool-call-max-width);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--tr-bubble-tool-call-max-width, 100%);
+
+  // Give the shrink-to-fit bubble a preferred width that can still shrink on narrow screens.
+  &::before {
+    content: '';
+    display: block;
+    width: calc(var(--tr-bubble-tool-call-min-width, 0px) - 2 * @card-padding);
+    max-width: 100%;
+  }
 
   &:first-child {
     margin-top: 0;
@@ -415,9 +238,16 @@ const handleClick = () => {
     min-width: 0;
   }
 
+  .title-row {
+    display: flex;
+    white-space: nowrap;
+  }
+
   .title {
     color: var(--tr-text-primary);
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .description {
@@ -436,6 +266,39 @@ const handleClick = () => {
     display: flex;
     gap: var(--tr-spacing-sm);
 
+    :deep(.tiny-button.tiny-button--default) {
+      --tv-Button-bg-color-default: var(--tr-bubble-tool-approval-default-bg);
+      --tv-Button-border-color-default: var(--tr-border-color-default);
+      --tv-Button-text-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-icon-color-default: var(--tr-bubble-tool-approval-default-color);
+      --tv-Button-bg-color-active-default: var(--tr-bubble-tool-approval-default-hover-bg);
+      --tv-Button-border-color-active-default: var(--tr-border-color-default);
+      --tv-Button-text-color-active-default: var(--tr-bubble-tool-approval-default-color);
+    }
+
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-bg-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-border-color-primary: var(--tr-bubble-tool-approval-primary-bg);
+      --tv-Button-text-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-icon-color-primary: var(--tr-bubble-tool-approval-primary-color);
+      --tv-Button-bg-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-border-color-active-primary: var(--tr-bubble-tool-approval-primary-hover-bg);
+      --tv-Button-text-color-active-primary: var(--tr-bubble-tool-approval-primary-color);
+    }
+
+    :deep(button:focus-visible) {
+      outline: 2px solid var(--tr-text-primary);
+      outline-offset: 2px;
+    }
+
+    :deep(.tiny-button.tiny-button--default),
+    :deep(.tiny-button.tiny-button--primary) {
+      --tv-Button-text-color-disabled: var(--tr-text-disabled);
+      --tv-Button-bg-color-disabled: var(--tr-container-bg-disabled);
+      --tv-Button-border-color-disabled: var(--tr-border-color-disabled);
+      --tv-Button-icon-color-disabled: var(--tr-icon-color-disabled);
+    }
+
     .tiny-button + .tiny-button {
       margin-left: 0;
     }
@@ -446,11 +309,13 @@ const handleClick = () => {
     grid-row: 1;
     display: flex;
     align-items: center;
+    block-size: var(--tool-title-line-height);
   }
 
   .header-icon {
     font-size: 20px;
     flex-shrink: 0;
+    margin-block-start: calc((var(--tool-title-line-height) - 1em) / 2);
 
     &.icon-running {
       color: #898989;
@@ -493,49 +358,6 @@ const handleClick = () => {
   font-family: monospace;
   max-height: var(--tr-bubble-tool-call-max-height, 300px);
   overflow-y: auto;
-}
-
-.edit-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.edit-input {
-  width: 100%;
-  min-height: 120px;
-  resize: vertical;
-  padding: 8px;
-  border: 1px solid var(--tr-border-color, #d9d9d9);
-  border-radius: 4px;
-  background: var(--tr-bg-color, #fff);
-  color: inherit;
-  font: inherit;
-  font-family: monospace;
-  box-sizing: border-box;
-}
-
-.edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--tr-spacing-sm);
-}
-
-.edit-error {
-  margin: 0;
-  color: var(--tr-color-error, #f23030);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.edit-trigger {
-  margin-top: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--tr-brand-color, #1476ff);
-  cursor: pointer;
-  font: inherit;
 }
 </style>
 

@@ -6,8 +6,6 @@ import { Component, VNode } from 'vue'
 export interface ToolCall {
   id: string
   type: 'function' | string
-  /** Whether the tool arguments can be edited from the expanded details view. */
-  editable?: boolean
   function: {
     name: string
     arguments: string
@@ -280,13 +278,6 @@ export type BubbleEvent =
       payload: {
         key: string
         value: unknown
-      }
-    }
-  | {
-      name: 'tool-call:edit'
-      payload: {
-        toolCallId: string
-        arguments: string
       }
     }
   | {
