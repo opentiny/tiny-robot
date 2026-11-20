@@ -99,11 +99,45 @@ const quickAssist = createQuickAssist({
 
 <demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="划词后查看提交给应用的请求内容。" />
 
-### 延迟显示入口 {#example-trigger-delay}
+### 划词范围与长度限制 {#example-selection-scope}
 
-设置 `trigger.showDelay` 可在选区稳定后延迟显示划词入口，单位为毫秒；默认 `0`，保持立即显示。连续拖选时从最后一次有效选区重新计时，并等待鼠标松开；选区失效、关闭、停用或销毁时会取消待显示的入口。延迟只影响入口，不影响点击后打开输入浮层。
+试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较正常入口、超限禁用入口和排除效果。
 
-<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
+<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
+
+```ts
+const quickAssist = createQuickAssist({
+  adapter,
+  include: ['#app'], // 配置后，选区中的每个文本节点都必须位于匹配区域
+  exclude: ['[data-qa-ignore]', '.private-value'], // 在内置排除项上追加
+  selection: {
+    maxTextLength: 8000,
+    validate(snapshot) {
+      return snapshot.text.trim().length > 0
+    },
+  },
+})
+```
+
+划词默认上限为 **8000**，使用 `selection.maxTextLength` 配置正整数，设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算，内部空格和换行各计 1，普通 emoji 计 1（组合 emoji 按实际码点数计数）。输入框的 `input.maxLength` 独立配置，默认不限制，也可显式设为 `null`。
+
+超限后仍在释放鼠标后显示“智能帮助”入口，文字和边框置灰，保留彩色星标；入口出现时立即显示“划词字数超出限制 当前字数/上限”，并随入口保持可见，当前字数为红色。入口不可打开，点击、Enter 和程序直接打开均不能绕过限制，也不会触发上下文或推荐请求。提示文案可通过 `selection.maxTextLengthExceededMessage` 配置。上述规则同时适用于页面划词、`activate()` 和 `registerSource()` 编辑器来源。范围、敏感区域和文本有效性校验继续生效。
+
+```ts
+selection: {
+  maxTextLength: null
+} // 不限制划词长度
+input: {
+  maxLength: null
+} // 不限制输入长度
+```
+
+默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会显示禁用入口，不会截断或发送。
+
+默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
+::: tip 支持范围
+当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
+:::
 
 ### 划词方向与入口位置 {#example-direction-placement}
 
@@ -129,6 +163,12 @@ quickAssist.updateOptions({
 
 <demo vue="../../demos/quick-assist/direction-placement.vue" title="划词方向与首末行定位" description="切换方向限制和入口位置，跨行选中文字观察入口对齐。" />
 
+### 延迟显示入口 {#example-trigger-delay}
+
+设置 `trigger.showDelay` 可在选区稳定后延迟显示划词入口，单位为毫秒；默认 `0`，保持立即显示。连续拖选时从最后一次有效选区重新计时，并等待鼠标松开；选区失效、关闭、停用或销毁时会取消待显示的入口。延迟只影响入口，不影响点击后打开输入浮层。
+
+<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
+
 ```ts
 createQuickAssist({
   adapter,
@@ -136,7 +176,7 @@ createQuickAssist({
 })
 ```
 
-### 输入区高度、字数与预填 {#example-input}
+### 输入区配置 {#example-input}
 
 <demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="先配置实例并划词体验，再用三个按钮对比实例默认与单次预填覆盖。" />
 
@@ -190,32 +230,7 @@ assist.activate({ text, anchor: element, open: 'popover', autoFill: false })
 
 `Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送，此时 `query` 使用推荐项的 `label`，不受输入框内容影响；手动发送时 `query` 使用去除首尾空白后的输入内容。划词原文保留在 `context.text` 中。`buildPrompt` 收到的 `query` 遵循相同规则，可用它自定义最终发送的 `prompt`。
 
-#### 推荐状态文案 {#example-suggestion-messages}
-
-`messages` 只配置推荐区的三个状态文案：
-
-| 字段      | 何时显示                                                                                       |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| `loading` | 推荐正在加载时                                                                                 |
-| `empty`   | 没有可显示的推荐时，包括显式配置 `suggestions: []`                                             |
-| `error`   | 推荐准备或加载失败且无可显示推荐时，包括静态工厂、上下文构建或远程推荐异常；已有静态推荐会保留 |
-
-以下配置可加入推荐示例的创建参数：
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  messages: {
-    loading: '正在获取推荐问题…',
-    empty: '暂无推荐问题，可直接输入',
-    error: '无法生成推荐问题',
-  },
-})
-```
-
-这些状态文案不控制输入占位、字数校验或发送失败。输入文案由 [`input`](#example-input) 配置；发送失败通过 `onEvent` 的 `stage: 'adapter'` 通知应用。自定义推荐的标题和提交内容统一使用 `suggestions` 的 `label` / `prompt` 或 `getLabel` / `getPrompt`，不提供单独重写内置标题的字段。
-
-#### 远程推荐覆盖静态问题 {#example-remote-suggestions}
+#### 远程推荐与覆盖策略 {#example-remote-suggestions}
 
 如果问题全部由远程接口提供，只需配置 `getSuggestions`，省略 `suggestions`，内置的“解释”和“适用场景”模板就不会显示。如果希望加载期间先显示静态问题，远程返回后整体替换，可显式提供静态模板，并通过 `mergeSuggestions` 只返回远程结果。
 
@@ -266,13 +281,30 @@ const quickAssist = createQuickAssist({
 
 `ValidateSuggestion` 类型可从 `@opentiny/tiny-robot/vanilla` 导入。AI 原始输出的 JSON 解析、字段映射和缺失 `id` 的生成应在业务 `getSuggestions` 中完成，组件接收统一的 `Suggestion[]`。
 
-### 自定义发送内容 {#example-build-prompt}
+#### 推荐状态文案 {#example-suggestion-messages}
 
-用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
+`messages` 只配置推荐区的三个状态文案：
 
-下面的示例对两种发送方式统一补充产品、业务场景和选中内容，提交后分别用只读文本块展示 `query`、完整 `prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
+| 字段      | 何时显示                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `loading` | 推荐正在加载时                                                                                 |
+| `empty`   | 没有可显示的推荐时，包括显式配置 `suggestions: []`                                             |
+| `error`   | 推荐准备或加载失败且无可显示推荐时，包括静态工厂、上下文构建或远程推荐异常；已有静态推荐会保留 |
 
-<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
+以下配置可加入推荐示例的创建参数：
+
+```ts
+const quickAssist = createQuickAssist({
+  adapter,
+  messages: {
+    loading: '正在获取推荐问题…',
+    empty: '暂无推荐问题，可直接输入',
+    error: '无法生成推荐问题',
+  },
+})
+```
+
+这些状态文案不控制输入占位、字数校验或发送失败。输入文案由 [`input`](#example-input) 配置；发送失败通过 `onEvent` 的 `stage: 'adapter'` 通知应用。自定义推荐的标题和提交内容统一使用 `suggestions` 的 `label` / `prompt` 或 `getLabel` / `getPrompt`，不提供单独重写内置标题的字段。
 
 ### 页面上下文与敏感数据 {#example-context}
 
@@ -334,45 +366,13 @@ const quickAssist = createQuickAssist({
 
 不提供 `getNearbyContext` 时使用默认提取策略；提供后使用回调结果，仍受 `maxLength` 限制并继续经过 `sanitizeContext`。自定义提取应避开敏感区域。
 
-### 生效范围与选择长度 {#example-selection-scope}
+### 自定义发送内容 {#example-build-prompt}
 
-试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较正常入口、超限禁用入口和排除效果。
+用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
 
-<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
+下面的示例对两种发送方式统一补充产品、业务场景和选中内容，提交后分别用只读文本块展示 `query`、完整 `prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
 
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  include: ['#app'], // 配置后，选区中的每个文本节点都必须位于匹配区域
-  exclude: ['[data-qa-ignore]', '.private-value'], // 在内置排除项上追加
-  selection: {
-    maxTextLength: 8000,
-    validate(snapshot) {
-      return snapshot.text.trim().length > 0
-    },
-  },
-})
-```
-
-划词默认上限为 **8000**，使用 `selection.maxTextLength` 配置正整数，设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算，内部空格和换行各计 1，普通 emoji 计 1（组合 emoji 按实际码点数计数）。输入框的 `input.maxLength` 独立配置，默认不限制，也可显式设为 `null`。
-
-超限后仍在释放鼠标后显示“智能帮助”入口，文字和边框置灰，保留彩色星标；入口出现时立即显示“划词字数超出限制 当前字数/上限”，并随入口保持可见，当前字数为红色。入口不可打开，点击、Enter 和程序直接打开均不能绕过限制，也不会触发上下文或推荐请求。提示文案可通过 `selection.maxTextLengthExceededMessage` 配置。上述规则同时适用于页面划词、`activate()` 和 `registerSource()` 编辑器来源。范围、敏感区域和文本有效性校验继续生效。
-
-```ts
-selection: {
-  maxTextLength: null
-} // 不限制划词长度
-input: {
-  maxLength: null
-} // 不限制输入长度
-```
-
-默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会显示禁用入口，不会截断或发送。
-
-默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
-::: tip 支持范围
-当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
-:::
+<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
 
 ### 主动激活：按钮与自定义选区 {#example-activation}
 
@@ -660,23 +660,6 @@ onBeforeUnmount(() => {
 
 在全局布局组件统一创建可覆盖多页面；如果 QuickAssist 只属于某个视图，则在该视图的挂载/卸载边界创建和销毁。
 
-### 元素属性 {#example-attrs}
-
-通过 `attrs` 为内部元素追加安全的 DOM 属性。该入口用于类名、测试标记和 ARIA 关联等补充属性；输入区文案使用 [`input`](#example-input)，推荐状态文案使用 [`messages`](#example-suggestion-messages)。
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  attrs: {
-    trigger: { 'data-testid': 'quick-assist-trigger' },
-    input: { 'aria-describedby': 'quick-assist-hint' },
-    suggestion: (suggestion) => ({ 'data-suggestion-id': suggestion.id }),
-  },
-})
-```
-
-`aria-describedby` 指向宿主页面中已有的提示元素，例如 `<p id="quick-assist-hint">请勿输入敏感信息。</p>`。`attrs` 不能覆盖内部事件、样式或行为属性，具体限制见 Props 表下方说明。
-
 ### 事件监听 {#example-events}
 
 通过 `onEvent` 统一监听事件，使用 `event.type` 区分事件类型，并通过 `sessionId` 关联同一次划词会话。
@@ -752,6 +735,23 @@ TinyRobotVanilla.configureVanillaTheme({
 ```
 
 浮层挂载在 `body` 下，局部主题来源只同步亮暗状态，不会复制局部品牌变量。自定义变量应放在 `html`、`body` 或组件根节点的全局样式中。iframe 需通过 `configureVanillaTheme(config, iframeDocument)` 配置其自身文档。
+
+### 自定义元素属性 {#example-attrs}
+
+通过 `attrs` 为内部元素追加安全的 DOM 属性。该入口用于类名、测试标记和 ARIA 关联等补充属性；输入区文案使用 [`input`](#example-input)，推荐状态文案使用 [`messages`](#example-suggestion-messages)。
+
+```ts
+const quickAssist = createQuickAssist({
+  adapter,
+  attrs: {
+    trigger: { 'data-testid': 'quick-assist-trigger' },
+    input: { 'aria-describedby': 'quick-assist-hint' },
+    suggestion: (suggestion) => ({ 'data-suggestion-id': suggestion.id }),
+  },
+})
+```
+
+`aria-describedby` 指向宿主页面中已有的提示元素，例如 `<p id="quick-assist-hint">请勿输入敏感信息。</p>`。`attrs` 不能覆盖内部事件、样式或行为属性，具体限制见 Props 表下方说明。
 
 ## 交互与限制
 
