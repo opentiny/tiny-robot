@@ -6,7 +6,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { preparePublishPackages } from './prepare-publish-packages.js'
-import { PUBLISHED_DEPENDENCY_SECTIONS, PUBLISH_PACKAGES } from './publish-version-utils.js'
+import { PUBLISHED_DEPENDENCY_SECTIONS, PUBLISH_PACKAGES, readPublishPackages } from './publish-version-utils.js'
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -56,6 +56,28 @@ function packPublishPackages(stagingRoot, tarballDirectory) {
   return tarballs
 }
 
+export function collectPeerDependencies(packages, publishedPackageNames) {
+  const peerRanges = new Map()
+
+  for (const { packageJson } of packages) {
+    for (const [name, range] of Object.entries(packageJson.peerDependencies ?? {})) {
+      if (
+        publishedPackageNames.has(name) ||
+        packageJson.peerDependenciesMeta?.[name]?.optional === true ||
+        typeof range !== 'string'
+      ) {
+        continue
+      }
+
+      const ranges = peerRanges.get(name) ?? new Set()
+      ranges.add(range)
+      peerRanges.set(name, ranges)
+    }
+  }
+
+  return Object.fromEntries([...peerRanges].map(([name, ranges]) => [name, [...ranges].join(' ')]))
+}
+
 function assertInstalledManifests(consumerDirectory) {
   for (const [name] of PUBLISH_PACKAGES) {
     const manifest = JSON.parse(
@@ -72,9 +94,10 @@ function assertInstalledManifests(consumerDirectory) {
   }
 }
 
-function installWith(packageManager, tarballs, temporaryRoot) {
+function installWith(packageManager, tarballs, peerDependencies, temporaryRoot) {
   const consumerDirectory = path.join(temporaryRoot, `${packageManager}-consumer`)
-  const dependencies = Object.fromEntries([...tarballs].map(([name, tarball]) => [name, `file:${tarball}`]))
+  const tarballDependencies = Object.fromEntries([...tarballs].map(([name, tarball]) => [name, `file:${tarball}`]))
+  const dependencies = { ...tarballDependencies, ...peerDependencies }
   const packageJson = {
     name: `${packageManager}-package-install-smoke-test`,
     private: true,
@@ -84,7 +107,7 @@ function installWith(packageManager, tarballs, temporaryRoot) {
   fs.mkdirSync(consumerDirectory)
   fs.writeFileSync(path.join(consumerDirectory, 'package.json'), `${JSON.stringify(packageJson, null, 2)}\n`)
   if (packageManager === 'pnpm') {
-    const overrides = Object.entries(dependencies)
+    const overrides = Object.entries(tarballDependencies)
       .map(([name, spec]) => `  ${JSON.stringify(name)}: ${JSON.stringify(spec)}`)
       .join('\n')
     fs.writeFileSync(path.join(consumerDirectory, 'pnpm-workspace.yaml'), `overrides:\n${overrides}\n`)
@@ -111,8 +134,9 @@ function testPackageInstall({ rootDir = process.cwd() } = {}) {
     copyPublishPackages(rootDir, stagingRoot)
     preparePublishPackages({ rootDir: stagingRoot })
     const tarballs = packPublishPackages(stagingRoot, tarballDirectory)
-    installWith('npm', tarballs, temporaryRoot)
-    installWith('pnpm', tarballs, temporaryRoot)
+    const peers = collectPeerDependencies(readPublishPackages(stagingRoot), new Set(tarballs.keys()))
+    installWith('npm', tarballs, peers, temporaryRoot)
+    installWith('pnpm', tarballs, peers, temporaryRoot)
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true })
   }
