@@ -277,287 +277,160 @@ const quickAssist = createQuickAssist({
 })
 ```
 
+## 上下文与自定义发送内容
+
 ### 页面上下文与敏感数据 {#example-context}
 
-选中示例中的虚构租户编号并提交，可查看选区文本、附近文本和业务字段中的编号被统一脱敏后的上下文。另一个标为敏感的区域不能触发划词，也不会进入附近文本。
+上下文按 `base → nearby → getContext → sanitizeContext` 顺序构建。默认采集仅做内置 DOM 排除与限长裁剪，不会自动识别或替换业务敏感字段；配置 `sanitizeContext` 后，组件会在其完成脱敏后才调用推荐函数或 `adapter`。选中示例中的虚构租户编号并提交，观察选区文本、附近文本和业务字段被统一脱敏后的结果：
 
-<demo vue="../../demos/quick-assist/context.vue" title="上下文与脱敏" description="选中文字并提交，查看允许交给应用的上下文。" />
+<demo vue="../../demos/quick-assist/context.vue" title="上下文与脱敏" description="选中虚构租户编号并提交，查看脱敏后的 prompt 与 context。" />
 
-默认上下文包含：
+默认采集的基础上下文包含：
 
-- `source: 'selection'`、`text` 和 `selection.text`；
-- 页面标题与 URL；URL 只包含域名和路径，不采集查询参数或片段标识；
-- 限长的 `nearbyText`，从选区附近的有限语义块提取；找不到语义块时最多退回选中文字。
+- `source`（原生划词为 `'selection'`）、`text` 和 `selection: { text }`；
+- `page`：页面标题 `title` 与去除了查询参数（query）和片段标识（hash）的 `url`；
+- `nearbyText`：从选区附近有限语义块中提取的限长文本（默认最多 500 字符）；未匹配到合适语义块时最多退回选中文本，绝不读取整页 `body.innerText` 或表单值。
 
-可以通过 `getContext` 添加业务字段，通过 `getNearbyContext` 定制附近文本，并通过 `sanitizeContext` 返回最终允许外发的完整上下文。`sanitizeContext` 在业务上下文构造后执行；脱敏完成前不会调用推荐函数或 `adapter`。
+上下文处理注意事项：
 
-- `sanitizeContext` 返回值必须保留 `source`、`text` 两个字符串字段，其余字段可删除。
-- 上下文中不要放函数、DOM 对象或共享内存数据，否则会报错并阻止提交。
-- 推荐函数和 `buildPrompt` 收到上下文副本，修改副本不会改变最终提交的上下文。
+- **脱敏约束**：`sanitizeContext` 返回值必须保留 `source` 与 `text` 两个字符串字段，其余字段可按需删改；若用户手动输入或开启 `input.autoFill` 预填了敏感文本，还应在 `buildPrompt` 中对最终 `prompt` 做脱敏。
+- **外发字段**：`sanitizeContext` 与 `buildPrompt` 都不会改写 `request.query`；手动提交时它是去除首尾空白的输入，点击推荐时为推荐项的 `label`。建议只发送已处理的 `prompt` 与 `context`；若需向外部服务转发完整 `request`，应额外脱敏或省略 `query`、`suggestion` 等可能包含敏感信息的字段。
+- **可克隆约束**：不要在上下文中放入函数、DOM 节点、`Range`、选区快照或共享内存对象，否则会在拷贝阶段报错并阻止提交。
+- **只读副本**：推荐函数与 `buildPrompt` 收到的是上下文副本，修改副本不会影响最终传给 `adapter` 的上下文。
+- **双重防护**：请结合页面标记（`data-sensitive`、`data-ai-selection="false"`）与 `sanitizeContext` 共同拦截密钥、令牌、租户 ID、订单数据等敏感信息。
 
-下面使用虚构租户编号演示脱敏。输入框可能保留选中的原文，因此还需通过 `buildPrompt` 对最终发送的问题脱敏；此例的宿主仅发送 `prompt` 和 `context`。
+### 自定义附近文本 {#example-nearby-context}
 
-```ts
-const tenantId = 'tenant-demo-4812'
-const redactTenant = (text: string) => text.replaceAll(tenantId, '[redacted]')
+默认附近文本提取会向上查找最近的内置语义块标签（`p`、`li`、`td`、`th`、`label`、`section`、`fieldset`），并自动跳过隐藏节点（含 `display: none`、`visibility: hidden`、`[hidden]`、`[aria-hidden="true"]`）、表单控件、编辑器和敏感排除区域。
 
-const quickAssist = createQuickAssist({
-  adapter,
-  getContext: () => ({ product: '云服务器', section: '创建实例', tenantId }),
-  sanitizeContext: (context) => ({
-    ...context,
-    text: redactTenant(context.text),
-    selection: context.selection ? { ...context.selection, text: redactTenant(context.selection.text) } : undefined,
-    nearbyText: context.nearbyText ? redactTenant(context.nearbyText) : undefined,
-    businessContext: {
-      ...context.businessContext,
-      tenantId: '[redacted]',
-    },
-  }),
-  buildPrompt: ({ query, suggestion }) => redactTenant(suggestion?.prompt ?? query),
-})
-```
-
-默认采集不会读取整页 `body.innerText` 或表单值。选区与附近文本会跳过常见编辑区和敏感标记，但通用规则不能识别所有业务秘密。请通过 `sanitizeContext` 删除访问密钥、令牌、用户或租户 ID、订单数据等，并在页面上为敏感区域添加 `data-sensitive` 或 `data-ai-selection="false"`。不要把 DOM、`Range` 或选区快照序列化后传给模型。
-
-#### 自定义附近文本 {#example-nearby-context}
-
-默认提取会使用语义块，可通过 `nearbyContext` 扩展候选块并限制长度；需要完全自定义提取时，提供 `getNearbyContext`：
+- 仅需扩展候选容器时，优先配置 `nearbyContext.blockSelectors`（在内置集合上追加）以复用内置安全提取器；
+- 需要完全自定义来源时，提供 `getNearbyContext(snapshot)`，并**优先读取已知安全的业务数据结构或白名单摘要**：
 
 ```ts
+const SAFE_SECTION_SUMMARIES: Record<string, string> = {
+  'ecs-billing': '云服务器支持包年包月、按需计费与竞价计费三种模式。',
+}
+
 const quickAssist = createQuickAssist({
   adapter,
   nearbyContext: { maxLength: 200, blockSelectors: ['.product-description'] },
   getNearbyContext(snapshot) {
-    const element = snapshot.anchorElement
-    return element?.closest('.product-description')?.textContent ?? snapshot.text
+    // 优先从已知安全的业务摘要读取，避免直接扫描含表单、CSS 隐藏节点或敏感内容的 DOM
+    const sectionId = snapshot.anchorElement?.closest('[data-section-id]')?.getAttribute('data-section-id')
+    return (sectionId && SAFE_SECTION_SUMMARIES[sectionId]) || snapshot.text
   },
 })
 ```
 
-不提供 `getNearbyContext` 时使用默认提取策略；提供后使用回调结果，仍受 `maxLength` 限制并继续经过 `sanitizeContext`。自定义提取应避开敏感区域。
+::: warning 自定义提取的安全过滤责任
+提供 `getNearbyContext` 会完全替代内置附近文本提取；组件仅对回调返回的字符串执行 `nearbyContext.maxLength` 长度裁剪和可选 `sanitizeContext` 处理，**不会**重新按内置 DOM 规则过滤该字符串。
 
-### 生效范围与选择长度 {#example-selection-scope}
-
-试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较正常入口、超限禁用入口和排除效果。
-
-<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  include: ['#app'], // 配置后，选区中的每个文本节点都必须位于匹配区域
-  exclude: ['[data-qa-ignore]', '.private-value'], // 在内置排除项上追加
-  selection: {
-    maxTextLength: 8000,
-    validate(snapshot) {
-      return snapshot.text.trim().length > 0
-    },
-  },
-})
-```
-
-划词默认上限为 **8000**，使用 `selection.maxTextLength` 配置正整数，设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算，内部空格和换行各计 1，普通 emoji 计 1（组合 emoji 按实际码点数计数）。输入框的 `input.maxLength` 独立配置，默认不限制，也可显式设为 `null`。
-
-超限后仍在释放鼠标后显示“智能帮助”入口，文字和边框置灰，保留彩色星标；入口出现时立即显示“划词字数超出限制 当前字数/上限”，并随入口保持可见，当前字数为红色。入口不可打开，点击、Enter 和程序直接打开均不能绕过限制，也不会触发上下文或推荐请求。提示文案可通过 `selection.maxTextLengthExceededMessage` 配置。上述规则同时适用于页面划词、`activate()` 和 `registerSource()` 编辑器来源。范围、敏感区域和文本有效性校验继续生效。
-
-```ts
-selection: {
-  maxTextLength: null
-} // 不限制划词长度
-input: {
-  maxLength: null
-} // 不限制输入长度
-```
-
-默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会显示禁用入口，不会截断或发送。
-
-默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
-::: tip 支持范围
-当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
+切勿直接读取整段容器的 `textContent`（会读入 `display: none` / `visibility: hidden` 等 CSS 隐藏节点、`textarea` 等表单初始文本以及敏感子节点）。如确需自行扫描 DOM，应遍历原始 DOM，通过 `getComputedStyle` 排除隐藏节点，并跳过表单控件（`input`、`textarea`、`select`、`option`）、编辑器、`[contenteditable]`、`[hidden]`、`[aria-hidden="true"]` 及敏感排除区域。
 :::
+
+### 自定义发送内容 {#example-build-prompt}
+
+默认情况下，提交给 `adapter` 的 `prompt` 为：
+
+```ts
+const defaultPrompt = suggestion?.prompt ?? query
+```
+
+它**不会自动把选中的原文 `context.text` 拼进 `prompt`**。如果你的对话后端只接收单段 `prompt` 文本，或希望统一附加产品、场景与选中原文，可通过同步钩子 `buildPrompt({ query, context, suggestion })` 构造最终发送内容，同时保留简洁的 `query` 用于界面展示。
+
+<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项提交时的 query、prompt 和 context.text。" />
+
+## 主动激活与编辑器集成
 
 ### 主动激活：按钮与自定义选区 {#example-activation}
 
-通过 `activate()` 可以主动提供文本和锚点，复用“智能帮助入口 → 输入浮层 → 推荐与提交”的流程。默认先展示入口；传入 `open: 'popover'` 可跳过入口，直接打开并聚焦输入框。它不会直接显示 AI 答案。
+通过 `activate()` 可主动提供文本和定位锚点，复用“入口 → 输入浮层 → 推荐与提交”的完整交互流程。传入 `open: 'popover'` 可跳过入口与 `trigger.showDelay`，直接打开并聚焦输入框（不触发 `trigger_show` / `trigger_click`，仍触发 `selection` 与 `popover_show`）。
 
-示例默认勾选“直接显示输入框”：点击术语按钮直接提问，悬停或键盘聚焦指标卡片可查看指标专属推荐；浮层打开后可移入其中操作。取消勾选即可对比先显示入口的流程。提交后，下方展示实际收到的内容与来源。
+示例默认点击激活，勾选“悬停指标时自动显示入口”可体验仅展示入口而不抢焦点的悬停触发：
 
-<demo vue="../../demos/quick-assist/activation.vue" title="主动激活与自定义定位" description="点击与悬停触发，切换直接输入，并对比实例默认推荐和本次专属推荐。" />
+<demo vue="../../demos/quick-assist/activation.vue" title="主动激活与自定义定位" description="点击按钮或指标卡片主动触发，切换直接输入与悬停入口，对比默认推荐与本次专属推荐。" />
 
-最简单的方式是传入一个 DOM 元素作为锚点：
+**1. 元素锚点快捷形式（适合按钮、徽标、卡片）**
 
 ```ts
 const explainButton = document.querySelector<HTMLButtonElement>('#explain')!
 
 explainButton.addEventListener('click', () => {
   quickAssist.activate({
-    text: '需要解释的代码或业务术语',
+    text: '需要解释的业务术语',
     anchor: explainButton,
-    open: 'popover', // 直接打开输入框；省略时先显示智能帮助入口
-    // source 默认是 manual；可选 meta 会进入上下文脱敏管道。
-    meta: { feature: 'code-explanation' },
+    open: 'popover', // 省略时默认先展示入口按钮
+    meta: { feature: 'term-explanation' }, // source 默认为 'manual'
+    suggestions: [
+      {
+        id: 'explain-term',
+        getLabel: () => '解释这个术语',
+        getPrompt: (context) => `请解释：${context.text}`,
+      },
+    ],
   })
 })
 ```
 
-`open: 'popover'` 立即进入输入浮层，跳过 `trigger.showDelay`，不产生 `trigger_show` 或 `trigger_click` 事件，仍产生 `selection` 和 `popover_show`。上下文构造或脱敏未完成时可以编辑，但暂不能发送。`open` 只影响本次激活，普通页面划词不变。
+单次激活支持以下覆盖参数，均只影响本次会话，不改变实例默认配置：
 
-**为本次激活单独提供推荐**，无需 `updateOptions()`，也不影响其他区域：
+| 本次激活参数 | 行为 |
+| --- | --- |
+| 不传 `suggestions` / `getSuggestions` | 沿用实例默认推荐配置 |
+| `suggestions: [...]` | 替换本次静态推荐，且默认不再调用实例的 `getSuggestions` |
+| `suggestions: []` | 本次不显示推荐，保留手动提问 |
+| `getSuggestions: fn` | 使用本次异步推荐函数，可与本次静态推荐组合使用 |
+| `getSuggestions: null` | 本次禁用远程推荐，静态推荐按对应配置展示 |
+| `autoFill: boolean` | 覆盖本次输入区预填行为，优先于实例 `input.autoFill` |
+| `open: 'trigger' \| 'popover'` | 决定先展示入口还是直接打开输入浮层（默认 `'trigger'`） |
 
-```ts
-quickAssist.activate({
-  source: 'editor',
-  text: selectedCode,
-  anchor: codeElement,
-  open: 'popover',
-  suggestions: [
-    {
-      id: 'explain-code',
-      getLabel: () => '解释这段代码',
-      getPrompt: (context) => `请解释以下代码：\n${context.text}`,
-    },
-    {
-      id: 'review-code',
-      getLabel: () => '检查潜在问题',
-      getPrompt: (context) => `请检查以下代码是否存在潜在问题：\n${context.text}`,
-    },
-  ],
-})
-```
-
-| 本次激活参数                          | 行为                                                                                          |
-| ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 不传 `suggestions` / `getSuggestions` | 使用实例默认推荐配置                                                                          |
-| `suggestions: [...]`                  | 替换本次的静态推荐；不调用实例的远程推荐                                                      |
-| `autoFill: boolean`                   | 仅覆盖本次预填行为，优先于实例 `input.autoFill`，不修改实例设置；完整形式与元素锚点形式均支持 |
-| `suggestions: []`                     | 不显示推荐，保留手动提问                                                                      |
-| `getSuggestions: fn`                  | 使用本次的异步推荐函数，可与本次静态推荐一起配置                                              |
-| `getSuggestions: null`                | 本次禁用远程推荐，静态推荐仍按对应配置展示                                                    |
-
-推荐项的结构与实例级 `suggestions` 一致，支持固定问题与 `getLabel` / `getPrompt` 工厂。工厂与远程函数均在上下文脱敏后执行，数量限制、远程校验、合并策略仍使用实例配置；关闭或新激活会中止旧请求、忽略旧结果。固定项在激活时复制，后续不会因原数组被修改而变化。
-
-元素移除、祖先隐藏或尺寸塌缩时会清理当前会话；实例停用或销毁后调用 `activate()` 不生效。显式再次调用可以重新打开已关闭的内容。
-
-需要将入口放在编辑器选区、图表或自定义画布旁时，使用完整形式：
+**2. 完整几何句柄形式（适合代码编辑器、图表、自定义画布）**
 
 ```ts
 quickAssist.activate({
   source: 'editor',
   text: selectedCode,
   anchorElement: editorContainer,
-  getRect: () => getCurrentSelectionRect(),
+  getRect: () => getCurrentSelectionRect(), // 返回相对视口的 CSS 像素矩形；不可见或失效返回 null
   verify: () => isCapturedSelectionStillValid(),
   getNearbyText: () => capturedNearbyCode,
   onInvalidate(notify) {
-    // notify 表示需要复检；verify 与 getRect 有效则重定位，否则关闭。
+    // 覆盖 showDelay、入口与浮层阶段；通知后复检 verify + getRect，有效则重定位，否则关闭
     return subscribeToSelectionAndLayoutChanges(notify)
   },
   meta: { language: 'typescript', fileName: 'price.ts' },
 })
 ```
 
-`getCurrentSelectionRect` 等函数由宿主实现，以上是接口示意。矩形使用**相对浏览器视口的 CSS 像素坐标**，与 `getBoundingClientRect()` 一致；选区不可见或失效时返回 `null`，零宽但有高度的 caret 矩形也有效。编辑器的内部坐标需要加上容器的视口坐标，并由宿主判断编辑器自身的裁剪范围。
-
-`onInvalidate` 从接受激活时开始订阅，覆盖 `showDelay`、入口和输入浮层阶段，关闭时调用返回的清理函数。未提供该订阅时，仅在滚动、窗口 resize、延迟显示等检查时发现失效；模型或布局变化需由宿主通知，或主动 `close()`。
-
-`text`、`meta` 和 `getNearbyText()` 的结果在激活时捕获；附近文本受 `nearbyContext.maxLength` 限制，业务上下文和脱敏仍在打开输入浮层后执行。`meta` 仅放可 JSON 序列化的业务字段。不要传 DOM、编辑器实例、Range 或访问密钥。
-
-主动激活遵循非空、最大文本长度和几何校验；`include` / `exclude`、`selection.forwardOnly`、旧的 `selection.validate` 与 `getNearbyContext` 仅作用于原生 DOM 划词。宿主应自行决定哪些自定义区域可以激活。代码场景可通过 `selection.validateActivation` 替换默认的纯数字/符号/URL 等文本规则，但不能绕过长度和几何限制：
-
-```ts
-quickAssist.updateOptions({
-  selection: {
-    maxTextLength: 2000,
-    validateActivation: ({ text }) => text.trim().length > 0,
-  },
-})
-```
+使用要点：
+- **坐标规范**：`getRect()` 须返回相对浏览器视口的 CSS 像素矩形（与 `getBoundingClientRect()` 一致；零宽但有高度的光标矩形同样有效），编辑器内部坐标需加上容器视口偏移并自行判断是否滚出可视裁剪区。
+- **快照与启停**：`text`、`meta` 和 `getNearbyText()` 在激活时立即捕获；实例停用或销毁后调用 `activate()` 不生效。
+- **失效检测边界（两种形式的区别）**：
+  - **元素锚点快捷形式（`anchor`）**：组件内部自动安装 `ResizeObserver` 与祖先 `MutationObserver`，元素移除、祖先隐藏或尺寸塌缩时会**自动关闭**当前会话。
+  - **完整几何句柄形式（`anchorElement` + `getRect`）**：组件仅在滚动、窗口 `resize` 及延迟显示到期时复检锚点；不会自动监听元素移除、编辑器模型变化或容器内部布局变化。需通过 `onInvalidate(notify)` 订阅宿主变化通知（或主动调用 `close()`），否则锚点移除后浮层会保留到下一次滚动或 `resize` 复检时才关闭。
+- **校验范围**：主动激活遵循非空、最大长度与几何校验；`include` / `exclude`、`selection.forwardOnly`、原生 DOM 划词校验 `selection.validate` 与 `getNearbyContext` 仅作用于原生 DOM 划词。如需放宽主动激活的文本内容规则（例如允许代码符号），可配置 `selection.validateActivation`。
 
 ### Monaco 选中代码后主动解释 {#example-monaco}
 
-这个示例使用真实 Monaco 编辑器。鼠标拖选并松开，或用 Shift + 方向键完成选区后，页面自动读取编辑器模型并调用 `activate()`，把“智能帮助”入口定位到选区末端；点击入口后可发送“解释这段代码”。关闭后，同一选区不会因无关 keyup 立即重开，清空后重新选择即可再次触发。代码解释和问题检查通过本次 `activate({ suggestions })` 配置，实例继续使用默认推荐。下方示例助手显示实际收到的请求，本例不调用模型。
+普通原生划词默认排除 Monaco、CodeMirror 与输入框；在编辑器中，应用可通过监听编辑器选区事件并调用通用 `activate()` 接口完成集成，无需解除原生过滤规则。
 
-<demo vue="../../demos/quick-assist/monaco.vue" title="Monaco 主动选区解释" description="选词完成后自动调用通用 API，不依赖编辑器桥接器。" />
+<demo vue="../../demos/quick-assist/monaco.vue" title="Monaco 主动选区解释" description="选词完成后通过通用 activate() 接口定位到选区末端并展示代码专属推荐。" />
 
-核心接线如下，完整可运行代码见示例源码。Monaco 需要由应用自行安装，并在浏览器挂载后创建：
+接入代码编辑器时的关键要点（完整可运行代码可展开上方示例源码查看）：
 
-```ts
-let lastIdentity: string | undefined
-
-function explainSelection() {
-  const selection = editor.getSelection()
-  const model = editor.getModel()
-  const container = editor.getDomNode()
-  if (!selection || selection.isEmpty() || !model || !container) return
-
-  const text = model.getValueInRange(selection)
-  const version = model.getVersionId()
-  const identity = `${model.uri}:${version}:${selection.selectionStartLineNumber}:${selection.selectionStartColumn}:${selection.positionLineNumber}:${selection.positionColumn}`
-  if (identity === lastIdentity) return
-  lastIdentity = identity
-  const end = selection.getEndPosition()
-
-  quickAssist.activate({
-    source: 'monaco',
-    text,
-    suggestions: [
-      {
-        id: 'explain-code',
-        getLabel: () => '解释这段代码',
-        getPrompt: (context) => `请解释以下代码：\n${context.text}`,
-      },
-    ],
-    anchorElement: container,
-    meta: { language: model.getLanguageId() },
-    verify: () => editor.getModel() === model && model.getVersionId() === version,
-    getRect() {
-      const position = editor.getScrolledVisiblePosition(end)
-      const layout = editor.getLayoutInfo()
-      if (
-        !container.isConnected ||
-        !container.getClientRects().length ||
-        !position ||
-        position.left < layout.contentLeft ||
-        position.left > layout.contentLeft + layout.contentWidth ||
-        position.top < 0 ||
-        position.top + position.height > layout.height
-      )
-        return null
-      const box = container.getBoundingClientRect()
-      return new DOMRect(box.left + position.left, box.top + position.top, 0, position.height)
-    },
-  })
-}
-
-// 选择完成后调度，让 Monaco 先处理完事件；自动调用对相同选区去重。
-const activateWhenSettled = () => requestAnimationFrame(() => explainSelection())
-// 简化接线。完整示例还处理拖选期间的门控、指针取消和卸载时取消调度。
-const disposables = [
-  editor.onMouseUp(activateWhenSettled),
-  editor.onKeyUp((event) => {
-    if (!event.browserEvent.isComposing) activateWhenSettled()
-  }),
-  editor.onDidChangeCursorSelection(() => {
-    if (editor.getSelection()?.isEmpty()) lastIdentity = undefined
-    quickAssist.close()
-  }),
-  editor.onDidChangeModelContent(() => quickAssist.close()),
-  editor.onDidScrollChange(() => quickAssist.close()),
-  editor.onDidLayoutChange(() => quickAssist.close()),
-]
-// 卸载时 disposables.forEach(item => item.dispose())，并销毁助手、编辑器和模型。
-```
-
-普通页面仍默认排除 Monaco、CodeMirror 和输入框；主动调用不依赖解除这些过滤规则。此处的自动激活由示例页面接线实现，当前未提供官方 Monaco / CodeMirror 自动桥接器。
+1. **拖选门控与防重入**：在 `pointerdown` 期间暂不激活，待 `pointerup` 或非输入法组合态的 `keyup` 后通过 `requestAnimationFrame` 读取最终选区，并用 `uri + version + range` 对相同选区去重，避免无关按键反复弹出。
+2. **视口坐标与裁剪判断**：使用 `editor.getScrolledVisiblePosition(end)` 加上容器 `getBoundingClientRect()` 换算视口坐标；若选区滚出内容裁剪区域则返回 `null`。
+3. **快照捕获与一致性校验**：在激活时截取选中代码及前后有限行作为 `getNearbyText`，并通过 `verify()` 校验模型实例、文档版本号和选区范围是否一致。
+4. **生命周期联动**：监听选区变化、内容修改、滚动和布局变化及时调用 `quickAssist.close()`；组件卸载时释放所有监听、`quickAssist.destroy()` 以及编辑器实例。
 
 ### 注册自定义来源 {#example-register-source}
 
-需要多个来源随组件统一启停时，可使用 `registerSource()`。下面以点击业务按钮为例：在按钮已挂载后注册，`activate` 负责订阅宿主事件，`deactivate` 负责取消订阅；来源需要清理自己的会话时，可调用 `emit(null)`。
+当页面存在多个自定义触发源，需要随 QuickAssist 实例统一启停、注销并做来源级会话隔离时，可使用高级接口 `registerSource()`；单个按钮或单编辑器场景直接使用 `activate()` 即可。
 
 ```ts
 const button = document.querySelector<HTMLButtonElement>('#explain-metric')!
 let stopListening: (() => void) | undefined
+
 const unregister = quickAssist.registerSource({
   name: 'metric-click',
   activate(emit) {
@@ -569,9 +442,7 @@ const unregister = quickAssist.registerSource({
         getRect: () => (button.isConnected ? button.getBoundingClientRect() : null),
       })
     button.addEventListener('click', onClick)
-    stopListening = () => {
-      button.removeEventListener('click', onClick)
-    }
+    stopListening = () => button.removeEventListener('click', onClick)
   },
   deactivate() {
     stopListening?.()
@@ -579,21 +450,51 @@ const unregister = quickAssist.registerSource({
   },
 })
 
-// 不再需要这个来源时调用，移除其监听并关闭属于该来源的会话。
+// 不再需要该来源时注销，会移除其监听并关闭属于该来源的当前会话
 // unregister()
 ```
 
-停用或销毁实例也会调用来源的 `deactivate()`；重新启用时会再次调用 `activate()`，因此订阅与清理应成对实现。单个按钮直接调用 `activate()` 的用法见[主动激活示例](#example-activation)。
+实例调用 `disable()` 或 `destroy()` 时会自动触发已注册来源的 `deactivate()`；重新 `enable()` 时会再次调用 `activate()`，因此订阅与清理应成对实现。来源需要主动清理自身会话时，可调用 `emit(null)`。
+
+## 生命周期与事件监听
 
 ### 生命周期与路由 {#example-lifecycle}
 
-以下示例可直接启用或停用划词，并模拟路由切换时调用 `close()`；组件卸载时应调用 `destroy()`。
+以下示例演示通过 `enable()`、`disable()` 控制划词监听，以及模拟 SPA 路由切换时调用 `close()`；页面或宿主组件卸载时应调用 `destroy()`。
 
-<demo vue="../../demos/quick-assist/lifecycle.vue" title="启停与关闭会话" description="通过按钮控制划词功能，并模拟页面切换。" />
+<demo vue="../../demos/quick-assist/lifecycle.vue" title="启停与关闭会话" description="通过按钮控制划词启停状态，并模拟路由切换关闭当前会话。" />
 
-#### Angular
+QuickAssist 会自动响应浏览器的 `popstate` 与 `hashchange` 事件关闭当前界面；使用前端路由库（基于 `history.pushState`）时，应在路由钩子中手动调用 `quickAssist.close()`。
 
-在视图创建后初始化实例，并在组件销毁时调用 `destroy()`。QuickAssist 会自动响应浏览器 `popstate` 与 `hashchange`；Angular Router 通常通过 `pushState` 导航，不一定产生这两个事件，因此应在路由导航开始时调用 `close()`。
+<span id="vue"></span>
+
+**Vue 集成**
+
+```ts
+import { onBeforeUnmount, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
+import '@opentiny/tiny-robot/vanilla/style.css'
+import type { QuickAssistInstance } from '@opentiny/tiny-robot/vanilla'
+
+const router = useRouter()
+let quickAssist: QuickAssistInstance | undefined
+let removeAfterEach: (() => void) | undefined
+
+onMounted(() => {
+  quickAssist = createQuickAssist({ adapter })
+  removeAfterEach = router.afterEach(() => quickAssist?.close())
+})
+
+onBeforeUnmount(() => {
+  removeAfterEach?.()
+  quickAssist?.destroy()
+})
+```
+
+<span id="angular"></span>
+
+**Angular 集成**
 
 ```ts
 import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core'
@@ -613,9 +514,7 @@ export class AppShellComponent implements AfterViewInit, OnDestroy {
     this.quickAssist = createQuickAssist({
       include: ['#app'],
       adapter: {
-        submit: (request) => {
-          this.openAssistantAndSend(request.prompt, request.context)
-        },
+        submit: (request) => this.openAssistantAndSend(request.prompt, request.context),
       },
     })
     this.routeSubscription = this.router.events
@@ -629,66 +528,20 @@ export class AppShellComponent implements AfterViewInit, OnDestroy {
   }
 
   private openAssistantAndSend(prompt: string, context: unknown) {
-    // 接入应用已有面板与发送方法；不要只把 prompt 留在输入框里。
+    // 接入应用已有的 AI 对话面板与发送方法
   }
 }
 ```
 
-如果 Angular 应用启用 SSR，请只在浏览器生命周期中创建实例。`root` 可传入 `Document`，不能传 `ShadowRoot`。
-
-#### Vue
-
-在 `onMounted` 中创建，在卸载前 `destroy()`。Vue Router 的 SPA 导航也建议用 `afterEach` 或路由监听调用 `close()`。
-
-```ts
-import { onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
-import '@opentiny/tiny-robot/vanilla/style.css'
-
-const router = useRouter()
-let quickAssist: ReturnType<typeof createQuickAssist> | undefined
-let removeAfterEach: (() => void) | undefined
-
-onMounted(() => {
-  quickAssist = createQuickAssist({ adapter })
-  removeAfterEach = router.afterEach(() => quickAssist?.close())
-})
-
-onBeforeUnmount(() => {
-  removeAfterEach?.()
-  quickAssist?.destroy()
-})
-```
-
-在全局布局组件统一创建可覆盖多页面；如果 QuickAssist 只属于某个视图，则在该视图的挂载/卸载边界创建和销毁。
-
-### 元素属性 {#example-attrs}
-
-通过 `attrs` 为内部元素追加安全的 DOM 属性。该入口用于类名、测试标记和 ARIA 关联等补充属性；输入区文案使用 [`input`](#example-input)，推荐状态文案使用 [`messages`](#example-suggestion-messages)。
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  attrs: {
-    trigger: { 'data-testid': 'quick-assist-trigger' },
-    input: { 'aria-describedby': 'quick-assist-hint' },
-    suggestion: (suggestion) => ({ 'data-suggestion-id': suggestion.id }),
-  },
-})
-```
-
-`aria-describedby` 指向宿主页面中已有的提示元素，例如 `<p id="quick-assist-hint">请勿输入敏感信息。</p>`。`attrs` 不能覆盖内部事件、样式或行为属性，具体限制见 Props 表下方说明。
+> SSR 环境下请仅在浏览器挂载生命周期内创建实例。如果页面多个模块同时使用 QuickAssist，建议按区域职责划分：优先在全局布局复用单实例，并通过 `activate()` / `registerSource()` 接入局部特殊区域；若确需创建多个实例，请使用互不重叠的 `include` 选择器并在各区域卸载时调用 `destroy()`，避免同一选区同时触发多个入口。
 
 ### 事件监听 {#example-events}
 
-通过 `onEvent` 统一监听事件，使用 `event.type` 区分事件类型，并通过 `sessionId` 关联同一次划词会话。
-
-选中下面的文字，点击入口后手动发送或点击推荐项，可观察 `selection`、`trigger_show`、`trigger_click`、`popover_show`、`suggestion_click`、`close` 和 `submit`。按 Esc 可观察 `reason: 'escape'`；勾选“模拟提交失败”后提交，可观察 `stage: 'adapter'` 的 `error`。日志按发生顺序保留最近 40 条，清空日志不会重置组件的会话编号。
+通过 `onEvent(event)` 统一接收交互与错误事件，使用 `event.type` 区分类型，并用 `event.sessionId` 关联同一次划词会话。
 
 <demo vue="../../demos/quick-assist/events.vue" title="事件监听与会话日志" description="观察完整交互事件、会话编号、关闭原因和模拟提交错误。" />
 
-提交时组件先触发 `close`（`reason: 'submit'`），再触发 `submit` 并调用适配器；适配器失败时随后触发 `error`。`submit` 表示请求已交给适配器，并不表示模型已成功回答。事件元数据不包含选区原文、`query`、`prompt` 或完整上下文；业务错误对象仍应按应用自己的日志规则处理。
+提交时会先触发 `close`（`reason: 'submit'`），再触发 `submit` 并调用适配器；若适配器抛错或返回被拒绝的 Promise，随后触发 `stage: 'adapter'` 的 `error`。`submit` 仅表示请求已交给适配器，不表示模型已完成回答。事件元数据不包含选区原文、`query`、`prompt` 或完整上下文；错误对象应按应用自身的日志安全规范处理。
 
 ### 主题配置 {#example-theme}
 
