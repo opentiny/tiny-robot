@@ -55,7 +55,8 @@ test.describe('SkillExtensionDetail', () => {
 
     await expect(detail.getByRole('heading', { name: 'empty-skill' })).toBeVisible()
     await expect(detail).toContainText('描述：暂无描述')
-    await expect(detail.getByText('暂无资源文件')).toBeVisible()
+    await expect(detail.getByRole('button', { name: 'SKILL.md' })).toBeVisible()
+    await expect(detail.getByText('暂无资源文件')).toHaveCount(0)
   })
 
   test('loads lazy text resources and provides binary downloads', async ({ mount }) => {
