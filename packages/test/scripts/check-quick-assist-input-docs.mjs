@@ -29,8 +29,8 @@ try {
     title?.querySelectorAll('.header-anchor').forEach((anchor) => anchor.remove())
     return title?.textContent?.trim()
   })
-  expect(parentSection).toBe('代码示例')
-  const apiTable = page.locator('h2#props').locator('xpath=following-sibling::table[1]')
+  expect(parentSection).toBe('输入与推荐')
+  const apiTable = page.locator('#props').locator('xpath=following-sibling::table[1]')
   const documentedKeys = await apiTable.locator('td:first-child').allTextContents()
   for (const key of [
     'input.maxRows',
@@ -62,6 +62,9 @@ try {
   const input = page.locator('.tr-quick-assist__input')
   const open = (name = '按实例配置打开') => demo.getByRole('button', { name, exact: true }).click()
   const autoFill = demo.getByRole('checkbox', { name: '预填选中文字', exact: true })
+  const selectionText = (await demo.locator('#qa-input-demo-selection').innerText()).trim()
+  const selectionLength = Array.from(selectionText).length
+  expect(selectionLength).toBeGreaterThan(50)
   const selectAndOpen = async () => {
     await page.evaluate(() => {
       window.getSelection().removeAllRanges()
@@ -127,7 +130,9 @@ try {
   await input.press('Escape')
   await autoFill.check()
   await selectAndOpen()
-  await expect(input).toHaveValue('查看系统盘使用率')
+  await expect(input).toHaveValue(selectionText)
+  await expect(page.locator('.tr-quick-assist__counter')).toHaveText(`${selectionLength} / 50`)
+  await expect(page.locator('.tr-quick-assist__submit')).toBeDisabled()
   await input.press('Escape')
   await open('本次留空')
   await expect(input).toHaveValue('')
@@ -154,6 +159,7 @@ try {
       'submission context',
       'activation override isolation',
       'selection follows instance configuration',
+      'long selected text exceeds the configured input limit',
       'grouped direct activation controls',
       'maxRows configuration',
     ],

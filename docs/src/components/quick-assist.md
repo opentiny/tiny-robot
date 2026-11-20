@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [2, 3]
 ---
 
 <script setup>
@@ -12,141 +12,175 @@ if (typeof window !== 'undefined') {
 
 # QuickAssist 智能帮助
 
-QuickAssist 是一个与框架无关的智能帮助组件，可以用在需要在页面中进行轻量AI交互的场景。当前提供了“划词”和主动 API 两种触发方式，以及输入交互，用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
+QuickAssist 是一个与框架无关的智能帮助组件，用于为页面提供轻量 AI 触发与输入交互。用户选中页面文字（或由应用主动调用 API）后，可查看推荐问题、编辑提问，并将最终问题与有限上下文（配置 `sanitizeContext` 后为脱敏上下文）交给应用已有的 AI 对话面板。
+
+快速跳转：[立即体验](#example-basic) · [安装与引入](#安装与引入) · [接入对话面板](#example-chat-panel) · [API 参考](#api) · [常见问题](#常见问题)
+
+## 概览
+
+### 适用场景
+
+- 控制台、文档页、详情页等场景，希望用户划词后直接针对所选概念向 AI 提问；
+- 指标卡片、工具按钮、代码编辑器等场景，希望由应用代码主动触发轻量提问入口；
+- 需要与框架解耦（Vue、Angular、React 或原生 HTML），并复用应用现有 AI 对话面板与模型服务。
+
+### 职责边界与支持范围
+
+::: tip 组件边界
+QuickAssist 只负责触发入口、输入浮层、推荐问题和有限上下文采集（业务脱敏需配置 `sanitizeContext`）；**不负责**展示 AI 回答、流式渲染、重试、多轮对话或模型调用，这些均由应用已有的 AI 对话面板承担。
+:::
+
+| 能力项 | 支持情况与说明 |
+| --- | --- |
+| 桌面端原生划词 | 支持鼠标拖选与键盘 `Shift` 选词（默认仅正向划词触发） |
+| 移动端 | 暂不支持移动端原生长按划词链路；程序主动调用 `activate()`（如点击按钮）不受原生划词链路限制 |
+| iframe | 父文档实例不会自动监听子 iframe 内的选区。可在子 iframe 内独立创建实例；同源场景也可由宿主传入该 iframe 的 `Document` 作为 `root`，并通过 `configureVanillaTheme(config, iframeDocument)` 同步主题。跨源 iframe 受同源策略限制 |
+| Shadow DOM | `root` 仅接受 `Document`，不接受 `ShadowRoot`；原生划词监听不穿透 Shadow DOM 选区 |
+| CSP（内容安全策略） | CDN 方式会自动动态注入 `<style>`；若页面 CSP 禁止动态样式注入，请改用 NPM 方式并显式引入 CSS |
+| 选区保留高亮 | 输入框聚焦期间的原文灰色高亮通过 CSS Custom Highlight API 绘制，不修改原文 DOM；不支持该 API 的浏览器会自动降级为无保留高亮，不影响主流程 |
 
 ## 安装与引入
+
+::: info 版本支持
+QuickAssist 自 TinyRobot **0.5.2** 版本提供，支持通过 `@opentiny/tiny-robot/vanilla` 或 `dist/vanilla/vanilla.global.js` 引入。以下 NPM 与 CDN 示例均使用 `0.5.2`。
+:::
 
 ### NPM 方式
 
 ```bash
-npm install @opentiny/tiny-robot
+npm install @opentiny/tiny-robot@0.5.2
 ```
 
-从 TinyRobot NPM 包的`/vanilla` 子路径导入，并显式加载组件样式：
+从 `@opentiny/tiny-robot/vanilla` 导入，并显式加载组件样式：
 
 ```ts
 import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
 import '@opentiny/tiny-robot/vanilla/style.css'
 ```
 
-QuickAssist 的运行时代码不依赖 Vue、Angular 等框架或其他界面组件。可以在任何技术栈项目中单独使用该组件，且产物不会包含任何框架运行时。
+QuickAssist 的 `/vanilla` 运行时代码不依赖 Vue、Angular 等框架运行时，打包产物不会包含框架代码。需要注意：`@opentiny/tiny-robot` 整包仍声明了 `vue`、`@opentiny/tiny-robot-kit`、`dompurify`、`markdown-it` 等 `peerDependencies`；在非 Vue 项目中安装时，包管理器可能会提示或按配置处理这些 peer 依赖，请按所在项目的包管理策略处理。
 
 ### CDN 方式
 
-通过 CDN 加载脚本后，使用 `window.TinyRobotVanilla` 创建组件，无需单独引入样式。将 `VERSION` 替换为包含 `vanilla.global.js` 的已发布 TinyRobot 版本号：
+通过 CDN 或自有静态目录加载 `vanilla.global.js` 后，使用全局对象 `window.TinyRobotVanilla` 创建实例，组件会自动注入样式，无需单独引入 CSS：
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@VERSION/dist/vanilla/vanilla.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.5.2/dist/vanilla/vanilla.global.js"></script>
 <script>
   const quickAssist = window.TinyRobotVanilla.createQuickAssist({
     adapter: {
       submit(request) {
-        openAssistantAndSend(request.prompt, request.context)
+        // 替换为应用自己的“打开 AI 面板并发送”逻辑，同时传入 prompt 与 context
+        console.log('QuickAssist submit:', {
+          query: request.query,
+          prompt: request.prompt,
+          context: request.context,
+        })
       },
     },
   })
 </script>
 ```
 
-也可以将 npm 包中的 `dist/vanilla/vanilla.global.js` 部署到自己的 CDN 或静态资源目录，再替换上面的脚本地址。此文件是整个无框架组件集合的入口，提供 `createQuickAssist`、`configureVanillaTheme` 等 API。
+该脚本是无框架组件集合的统一入口，导出 `createQuickAssist`、`configureVanillaTheme` 等 API。
 
-CDN 方式会在创建实例时自动注入组件样式。如果页面的内容安全策略禁止动态注入 `<style>`，可以使用 npm 方式并显式加载 CSS。
+## 快速开始
 
-## 代码示例
+<span id="代码示例"></span>
 
 ### 基础用法 {#example-basic}
 
-使用 `createQuickAssist` 可以创建选词智能帮助的UI实例。支持通过传入参数来进行各类自定义配置。  
-`adapter` 参数负责连接应用现有的 AI 对话能力，例如用户发送问题后或者点击推荐问题后显示下一步AI对话窗口。提交时应处理 `prompt` 和 `context`；只发送 `query` 会丢掉推荐问题和页面上下文。
+使用 `createQuickAssist` 创建实例并传入必填的 `adapter.submit(request)`。组件会在用户提交后先关闭划词界面，再调用 `adapter.submit`；若异步提交抛错，会通过 `onEvent` 发出 `stage: 'adapter'` 的 `error` 事件，不会重新打开界面。
 
-```ts
-import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
-import '@opentiny/tiny-robot/vanilla/style.css'
+<demo vue="../../demos/quick-assist/basic.vue" title="基础用法" description="从左向右选中文字并提交，观察 adapter.submit(request) 收到的核心字段。" />
 
-const quickAssist = createQuickAssist({
-  root: document, // 默认使用当前文档
-  include: ['#app'],
-  adapter: {
-    submit(request) {
-      // 替换为应用自己的“打开面板并自动发送”逻辑。
-      assistantPanel.open()
-      assistantChat.send({
-        content: request.prompt,
-        context: request.context,
-      })
-    },
-  },
-  onEvent(event) {
-    // 可在宿主接入埋点；事件不包含默认选区文本或完整上下文。
-    console.debug('[QuickAssist]', event.type)
-  },
-})
+::: warning 首次接入必读
+- **默认 `prompt` 规则**：默认情况下 `request.prompt` 等价于 `suggestion?.prompt ?? query`，**不会自动将选中原文 `context.text` 拼接进 `prompt`**。接入时应同时消费 `request.prompt` 与 `request.context`；若现有对话接口只接受一段文本，请通过 [`buildPrompt`](#example-build-prompt) 拼入 `context.text`。
+- **脱敏前提**：默认采集仅做内置 DOM 排除（表单、编辑器、`[data-sensitive]` 等）与限长裁剪，**不会自动识别或替换业务敏感 ID**；业务字段和文本脱敏仅在配置 [`sanitizeContext`](#example-context) 后执行。
+- **生命周期清理**：单页应用在路由离开当前页面时调用 `quickAssist.close()`，组件或页面销毁时调用 `quickAssist.destroy()`。
+:::
 
-// 单页应用在路由离开当前页面时调用 quickAssist.close()。
-// 页面/应用销毁时调用：
-// quickAssist.destroy()
-```
+### 接入对话面板 {#example-chat-panel}
 
-`adapter` 收到的 `AIRequest` 包含 `source`、`query`、`prompt` 和脱敏后的 `context`；点击推荐项时还包含 `suggestion`。组件先关闭划词界面，再调用 `adapter`；异步提交失败会通过 `error` 事件报告，不会重新打开已关闭的界面。
-
-下面的示例使用 TinyRobot 的 `TrBubbleList` 与 `TrSender` 呈现对话界面，并用本地模拟回复代替后端。QuickAssist 的 `adapter` 会打开面板，并把 `prompt` 与脱敏后的 `context` 一起交给对话函数。
+下面的示例将 QuickAssist 与 TinyRobot 的 `TrBubbleList`、`TrSender` 联动，并用本地模拟回复代替后端：选中示例正文中的文字并提交后，对话面板自动展开并发送 `prompt` 与经过 `sanitizeContext` 脱敏后的 `context`。
 
 <demo vue="../../demos/quick-assist/vue-chat.vue" title="Vue 对话面板接入" description="划词后打开 TinyRobot 对话面板，并自动提交 prompt 与脱敏上下文。" />
 
 ### HTML 接入 {#example-html}
 
-下面的 HTML 示例把请求对象安全地显示在模拟对话面板中，不连接实际模型服务。
+下面的原生 HTML 示例通过全局脚本 `window.TinyRobotVanilla` 接入，并将提交的请求对象展示在模拟对话面板中。迁移到独立项目时，在 `<head>` 中先通过 `<script src=".../vanilla.global.js"></script>` 引入构建产物或已发布 CDN 脚本即可——示例中若检测到已存在 `window.TinyRobotVanilla` 会自动跳过文档站预览加载器（也可直接删除注释第 1 段的预览适配代码）。
 
-<demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="划词后查看提交给应用的请求内容。" />
+<demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="通过全局脚本接入，划词后查看提交给应用的完整请求内容。" />
 
-### 延迟显示入口 {#example-trigger-delay}
+### 交互与上下文数据流
 
-设置 `trigger.showDelay` 可在选区稳定后延迟显示划词入口，单位为毫秒；默认 `0`，保持立即显示。连续拖选时从最后一次有效选区重新计时，并等待鼠标松开；选区失效、关闭、停用或销毁时会取消待显示的入口。延迟只影响入口，不影响点击后打开输入浮层。
+![QuickAssist 交互与上下文数据流：触发入口或直接打开输入浮层，准备上下文后手动发送或点击推荐，再构造 prompt 并交给应用对话面板。](/images/quick-assist-flow.svg)
 
-<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
+## 划词与触发
 
-### 划词方向与入口位置 {#example-direction-placement}
+### 划词范围与长度限制 {#example-selection-scope}
 
-默认仅正向划词触发入口，设置 `selection.forwardOnly: false` 可允许双向划词。方向按文档顺序判断，跨行向后选择仍视为正向，即使结束位置在起始位置左侧；键盘 Shift 选词采用相同规则。自定义 `selection.validate` 不会覆盖方向限制。此规则面向横排中文等常规阅读场景，不按 RTL 或竖排文字的视觉方向判断。
+通过 `include`、`exclude` 和 `selection` 控制可触发区域、文本有效性及最大字数上限。试着分别选中允许区域、超限整句、排除区域与范围外文字，对比效果：
 
-入口默认显示在最后一行选中文字的右下方，入口左边缘对齐文字右边缘。`top` 系列位置使用第一行，`bottom` 系列使用最后一行；同一行的多个内联文本片段合并计算。`start` 表示入口向文字左侧展开（入口右边缘对齐文字左边缘），`end` 表示入口向文字右侧展开（入口左边缘对齐文字右边缘），不带后缀则居中；`auto` 优先在末行下方居中。空间不足时会翻转到另一侧，并使用对应的首行或末行，必要时向视口内调整。
+<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
 
-点击入口后，输入浮层直接相对选区使用同一套 `placement` / `offset` 规则，默认间距为 8px；根据浮层自身尺寸进行翻转和视口避让。输入框聚焦和输入期间，原划词范围保留灰色高亮，关闭或提交后清除。高亮通过 CSS Custom Highlight API 绘制，不修改原文 DOM；不支持该 API 的浏览器仍可使用划词帮助，但不显示保留高亮。
+核心规则如下：
+
+- **生效范围（`include` / `exclude`）**：配置 `include` 后，选区中的所有文本节点都必须位于匹配区域内；`exclude` 会在内置排除规则基础上追加。
+- **内置排除区域**：默认排除 `input`、`textarea`、`select`、`option`、可编辑的 `contenteditable` 区域、Monaco（`.monaco-editor`）、CodeMirror（`.CodeMirror` / `.cm-editor`）、QuickAssist 自身界面（`.tr-quick-assist`），以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]`。普通只读 `contenteditable="false"` 区域允许划词，但若位于可编辑祖先或其他排除区域内仍会被排除。
+- **默认文本校验与自定义校验**：内置规则默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID，不设最短字符限制，因此 `ECS`、`VPC`、`QoS` 等短技术词可正常触发。配置 `selection.validate(snapshot)` 可替代默认文本内容规则，但**不能绕过**最大长度、`include` / `exclude`、编辑器与敏感区域检查。
+- **划词长度上限（`selection.maxTextLength`）**：默认为 **8000**（正整数），设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算（内部空格与换行各计 1，单个补充平面 emoji 计 1，组合 emoji 按实际码点数计数）。该上限独立于输入框的 `input.maxLength`。
+- **超限交互**：选区超出上限时，释放鼠标后仍显示置灰禁用的入口，并同步显示“划词字数超出限制 当前字数/上限”（文案可通过 `selection.maxTextLengthExceededMessage` 配置）。禁用入口不可通过点击、Enter 或程序打开，不会截断文本，也不会触发上下文或推荐请求。此规则同时适用于原生划词、`activate()` 和 `registerSource()`。
 
 ```ts
 const quickAssist = createQuickAssist({
   adapter,
-  selection: { forwardOnly: true },
-  trigger: { placement: 'bottom-end', offset: 8 },
-})
-
-// updateOptions 中提供的嵌套配置会整体替换原分组。
-quickAssist.updateOptions({
-  selection: { forwardOnly: false },
-  trigger: { placement: 'top-start' },
+  include: ['#app'],
+  exclude: ['[data-qa-ignore]', '.private-value'],
+  selection: {
+    maxTextLength: null, // 不限制划词长度（默认 8000）
+    validate: (snapshot) => snapshot.text.trim().length > 0,
+  },
 })
 ```
+
+### 划词方向与入口位置 {#example-direction-placement}
+
+切换方向限制和优先位置，跨行选中文字观察入口对齐与翻转效果：
 
 <demo vue="../../demos/quick-assist/direction-placement.vue" title="划词方向与首末行定位" description="切换方向限制和入口位置，跨行选中文字观察入口对齐。" />
 
-```ts
-createQuickAssist({
-  adapter,
-  trigger: { showDelay: 300 },
-})
-```
+- **划词方向（`selection.forwardOnly`）**：默认为 `true`，仅正向划词触发；设为 `false` 允许双向划词。方向按文档顺序判断（跨行向后选择仍视为正向，键盘 `Shift` 选词规则一致），面向横排常规阅读场景，不按 RTL 或竖排视觉方向判断；自定义 `selection.validate` 不会覆盖方向限制。
+- **定位基准与翻转（`trigger.placement` / `trigger.offset`）**：输入浮层打开后沿用同一套定位与间距规则（默认 `offset: 8` px），按各自尺寸在空间不足时自动翻转并向视口内避让。
 
-### 输入区高度、字数与预填 {#example-input}
+| `placement` 值 | 锚定行 | 水平对齐方式 |
+| --- | --- | --- |
+| `'bottom-end'`（默认） | 选中文字最后一行 | 入口左边缘对齐文字右边缘（向右下方展开） |
+| `'bottom-start'` | 选中文字最后一行 | 入口右边缘对齐文字左边缘（向左下方展开） |
+| `'bottom'` | 选中文字最后一行 | 相对末行水平居中 |
+| `'top-end'` | 选中文字第一行 | 入口左边缘对齐文字右边缘（向右上方展开） |
+| `'top-start'` | 选中文字第一行 | 入口右边缘对齐文字左边缘（向左上方展开） |
+| `'top'` | 选中文字第一行 | 相对首行水平居中 |
+| `'auto'` | 优先最后一行 | 优先在末行下方居中，空间不足时自动翻转 |
 
-<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="先配置实例并划词体验，再用三个按钮对比实例默认与单次预填覆盖。" />
+> 同一行内的多个内联文本片段会合并计算边界。调用 `updateOptions()` 修改 `selection` 或 `trigger` 时，提供的嵌套配置对象会整体替换原分组（详见 [`updateOptions`](#methods)）。
 
-`input.placeholder` 设置空输入时的提示，`input.maxLengthExceededMessage` 设置超限校验提示。输入框和发送按钮的无障碍名称分别由 `input.ariaLabel`、`input.submitLabel` 配置，`ariaLabel` 仅标识 textarea，`submitLabel` 用于图标发送按钮的无障碍名称与正常悬停标题。弹层使用 `trigger.label` 作为对话框名称，占位文案不能代替无障碍名称。
+### 延迟显示入口 {#example-trigger-delay}
 
-`input.autoFill` 是实例默认值，默认为 `false`，输入框初始留空；设为 `true` 可预填选中文字。`activate()` 的 `autoFill` 仅覆盖当前调用，不修改实例配置。无论是否预填，选中文字始终保留在请求上下文 `context.text` 中。
+设置 `trigger.showDelay`（非负整数，单位毫秒，默认 `0`）可在选区稳定后延迟显示划词入口。连续拖选时会从最后一次有效选区重新计时并等待鼠标松开；选区失效、关闭、停用或销毁会取消待显示任务。延迟仅作用于划词入口，不影响点击后打开输入浮层。
 
-`input.maxRows` 调整最多可见行数；换行和自动折行都会触发高度调整，删除内容后收缩，弹层会重新定位。
+<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
 
-默认不限制字数且不显示计数；设置 `input.maxLength` 后从空值开始显示 `0 / 上限`。按 Unicode 码点计数：中英文、换行各计 1，单个补充平面 emoji 计 1，组合 emoji 按实际码点数计数。允许粘贴超限文本，超过上限时当前字数变红、发送禁用，悬停或聚焦发送区域显示“字数超出限制”；Enter 同样不可提交。推荐问题独立提交，不受手动输入区的超限状态影响。
+## 输入与推荐
+
+### 输入区配置 {#example-input}
+
+<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="调整实例配置并划词体验，再用下方按钮对比实例默认与单次预填覆盖。" />
+
+- **文案与无障碍**：`input.placeholder` 控制空输入占位文案；`input.maxLengthExceededMessage` 控制超限提示；`input.ariaLabel` 标识 `textarea` 的无障碍名称；`input.submitLabel` 用作图标发送按钮的无障碍名称与悬停标题；弹层对话框名称使用 `trigger.label`。
+- **预填行为（`input.autoFill`）**：实例默认 `false`（打开输入框留空），设为 `true` 时自动预填选中文字。`activate({ autoFill })` 仅覆盖当次调用，不修改实例默认配置。无论是否预填，选区原文始终保留在 `context.text` 中。
+- **自动伸缩（`input.maxRows`）**：默认 `2` 行，换行和自动折行都会动态调整高度并在删除后收缩，同时重新定位浮层；超出后内部滚动。
+- **字数限制（`input.maxLength`）**：默认不限制且不显示计数（显式设为 `null` 或省略效果相同）。配置正整数后，从空值起持续显示 `当前字数 / 上限`（按 Unicode 码点计数）；允许粘贴超限文本，超限时字数变红、发送按钮禁用且 `Enter` 不可提交，悬停或聚焦发送区域展示超限提示。推荐问题独立提交，不受手动输入超限状态影响。
 
 ```ts
 const assist = createQuickAssist({
@@ -162,45 +196,75 @@ const assist = createQuickAssist({
     maxLengthExceededMessage: '问题不能超过 10000 个字符',
   },
 })
-const text = '查看系统盘使用率'
-// 按实例配置打开：省略 autoFill，使用实例默认值。
-assist.activate({ text, anchor: element, open: 'popover' })
-// 本次预填：仅当前输入框填入选中文字。
-assist.activate({ text, anchor: element, open: 'popover', autoFill: true })
-// 本次留空：仅当前输入框留空，后续仍沿用实例配置。
-assist.activate({ text, anchor: element, open: 'popover', autoFill: false })
+
+// 单次激活可覆盖本次预填策略，不影响实例默认设置
+assist.activate({ text: '查看系统盘使用率', anchor: element, open: 'popover', autoFill: true })
 ```
 
-完整 `activate({ source: 'monaco', text, getRect, autoFill: false })` 也支持相同的单次覆盖，选区文字仍保留在请求上下文中。实例 `updateOptions({ input: { autoFill: false } })` 会替换整个 `input` 配置组，其余字段恢复默认值。
+### 静态与异步推荐 {#example-suggestions}
 
-### 推荐问题 {#example-suggestions}
+选中示例中的文字并点击入口，可以先看到静态推荐，随后合并异步返回的推荐；点击任一推荐项会直接提交，无需再次点击发送。
 
-选中示例中的文字后点击划词入口，可以先看到静态推荐，再看到异步返回的推荐；点击任一推荐可查看提交结果。
+<demo vue="../../demos/quick-assist/recommendations.vue" title="静态与异步推荐" description="查看静态推荐与异步推荐的加载、合并与直接提交效果。" />
 
-<demo vue="../../demos/quick-assist/recommendations.vue" title="静态与异步推荐" description="查看推荐加载、合并和点击后直接提交的效果。" />
+QuickAssist 支持四种推荐配置模式：
 
-通过 `suggestions` 配置的问题称为“静态问题”，可包含根据选区生成文案的模板；与组件内置的默认推荐问题区分。QuickAssist 支持四种推荐模式：
+| 配置方式 | 打开输入浮层后的行为 |
+| --- | --- |
+| 省略 `suggestions` 与 `getSuggestions` | 立即显示两个内置默认模板：`id: 'explain'`（`解释 ${text}`）和 `id: 'use-case'`（`${text}适用场景`） |
+| 仅配置 `suggestions` | 立即显示静态推荐；显式传 `[]` 表示隐藏默认模板，仅保留手动提问 |
+| 仅配置 `getSuggestions` | 不显示内置默认模板；立即打开输入区，推荐区显示加载状态，返回后展示远程结果 |
+| 两者都配置 | 先展示静态推荐，远程返回后合并；默认静态在前、远程追加，按 `id` 保留首次出现项，最后受 `maxSuggestions`（默认 `2`）裁剪 |
 
-| 配置方式                               | 打开输入浮层后的行为                                                                                                                                 |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 省略 `suggestions` 与 `getSuggestions` | 立即显示“解释”和“适用场景”两个默认模板                                                                                                               |
-| 仅配置 `suggestions`                   | 立即显示静态推荐；显式传 `[]` 表示不显示默认模板                                                                                                     |
-| 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果                                                                       |
-| 两者都配置                             | 先显示静态模板，再合并异步推荐；默认静态在前、远程追加，按 `id` 保留首次出现项，最后由 `maxSuggestions` 裁剪；可用 `mergeSuggestions` 自定义覆盖策略 |
+每条 `Suggestion` 包含稳定的 `id`、展示文案 `label`、提交内容 `prompt` 以及可选的 `meta` 元数据；静态项也支持使用工厂对象 `SuggestionFactory`（`id` + `getLabel(context)` + `getPrompt(context)`），在上下文准备完成（含可选 `sanitizeContext` 脱敏）后求值。点击推荐项提交时，`AIRequest.query` 为推荐项的 `label`（不受输入框内容影响），`AIRequest.suggestion` 包含被点击项；手动提交时 `query` 为去首尾空白的输入内容。
 
-`Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送，此时 `query` 使用推荐项的 `label`，不受输入框内容影响；手动发送时 `query` 使用去除首尾空白后的输入内容。划词原文保留在 `context.text` 中。`buildPrompt` 收到的 `query` 遵循相同规则，可用它自定义最终发送的 `prompt`。
+### 远程推荐与合并策略 {#example-remote-suggestions}
 
-#### 推荐状态文案 {#example-suggestion-messages}
+<span id="自定义合并策略-mergesuggestions"></span>
 
-`messages` 只配置推荐区的三个状态文案：
+切换策略与模拟响应后重新划词，观察加载期间静态推荐与远程返回后的合并结果。接入真实接口时，将示例中的模拟延迟替换为 `fetch(url, { signal })` 并返回 `Suggestion[]` 即可。
 
-| 字段      | 何时显示                                                                                       |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| `loading` | 推荐正在加载时                                                                                 |
-| `empty`   | 没有可显示的推荐时，包括显式配置 `suggestions: []`                                             |
-| `error`   | 推荐准备或加载失败且无可显示推荐时，包括静态工厂、上下文构建或远程推荐异常；已有静态推荐会保留 |
+<demo vue="../../demos/quick-assist/remote-recommendations.vue" title="远程推荐与覆盖策略" description="切换策略和模拟响应后重新划词，观察静态回退与合并效果。" />
 
-以下配置可加入推荐示例的创建参数：
+`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐返回并通过校验后执行：
+
+- `base`：静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；
+- `incoming`：过滤无效项后、尚未去重或裁剪的远程推荐数组；
+- `context`：本次推荐使用的上下文副本（若配置了 `sanitizeContext` 则为脱敏后的上下文）。
+
+常用合并策略：
+
+| 目标 | `mergeSuggestions` 返回值 |
+| --- | --- |
+| 静态优先，追加未重复的远程项（默认） | `[...base, ...incoming]` |
+| 远程整体替换静态问题（远程返回 `[]` 时清空） | `incoming` |
+| 远程有结果时替换，返回 `[]` 时保留静态问题 | `incoming.length ? incoming : base` |
+| 远程优先，同 `id` 覆盖静态项，同时保留其他静态项 | `[...incoming, ...base]` |
+
+回调返回后，组件仍会执行格式校验、按 `id` 保留首次出现项并应用 `maxSuggestions` 上限。远程请求失败时**不会**调用 `mergeSuggestions`，组件会保留已显示的静态推荐并触发 `stage: 'suggestions'` 的 `error` 事件；**仅当没有可显示的推荐项时**（如仅配置 `getSuggestions`），组件内部推荐区才会展示 `messages.error` 文案（示例页面下方的状态栏为宿主监听 `onEvent` 自行渲染的提示）。
+
+### 远程问题校验 {#远程问题校验-validatesuggestion}
+
+组件会先检查远程响应是否为数组，再逐项检查 `id`、`label`、`prompt` 是否为非空字符串（纯空白无效），单条无效项会被过滤且不影响同批其他有效项。静态推荐及自定义合并结果若格式无效则会报错。
+
+在此基础上，可配置同步回调 `validateSuggestion(suggestion, context): boolean` 对远程推荐进行业务规则校验（在基础校验后、合并前逐项执行）：
+
+<demo vue="../../demos/quick-assist/suggestion-validation.vue" title="远程问题校验前后对比" description="对比原始问题与最终问题，查看空白、超长、不相关问题的过滤原因，以及全部无效时的静态回退。" />
+
+- **入参与返回值**：`suggestion` 是已通过基础校验的单条推荐副本（用于判断保留与否，不用于修改内容）；`context` 为本次推荐上下文副本（若配置了 `sanitizeContext` 则为脱敏后的上下文）；返回 `true` 保留，`false` 丢弃。
+- **`meta` 克隆限制**：推荐项的 `meta` 会经过结构化深拷贝（支持 `Date`、`Map`、`Set`、TypedArray 及循环引用，不支持函数、DOM 节点、响应式代理或共享内存）。远程项 `meta` 无法克隆时按无效项过滤。
+- **整批失败与合法空结果的区别**：响应不是数组、非空响应全部被过滤、回调抛错或返回非布尔值（含 `Promise`）时，视为整批失败——不调用 `mergeSuggestions`，保留静态推荐并触发 `stage: 'suggestions'` 错误事件；接口主动返回 `[]` 则属于成功的空结果，继续走 `mergeSuggestions`。
+- 模型原始输出的 JSON 解析、字段映射与缺失 `id` 生成应在 `getSuggestions` 内完成，组件统一接收 `Suggestion[]`。
+
+### 推荐状态文案 {#example-suggestion-messages}
+
+`messages` 仅控制推荐区域的三种状态文案（输入区文案在 [`input`](#example-input) 配置；发送错误由 `onEvent` 的 `stage: 'adapter'` 通知）：
+
+| 字段 | 默认值 | 显示时机 |
+| --- | --- | --- |
+| `loading` | `'正在加载推荐…'` | 远程推荐加载中 |
+| `empty` | `'暂无推荐'` | 无可显示推荐时（包含显式配置 `suggestions: []`） |
+| `error` | `'推荐加载失败'` | 推荐准备或加载失败且无静态推荐可回退时 |
 
 ```ts
 const quickAssist = createQuickAssist({
@@ -213,348 +277,160 @@ const quickAssist = createQuickAssist({
 })
 ```
 
-这些状态文案不控制输入占位、字数校验或发送失败。输入文案由 [`input`](#example-input) 配置；发送失败通过 `onEvent` 的 `stage: 'adapter'` 通知应用。自定义推荐的标题和提交内容统一使用 `suggestions` 的 `label` / `prompt` 或 `getLabel` / `getPrompt`，不提供单独重写内置标题的字段。
-
-#### 远程推荐覆盖静态问题 {#example-remote-suggestions}
-
-如果问题全部由远程接口提供，只需配置 `getSuggestions`，省略 `suggestions`，内置的“解释”和“适用场景”模板就不会显示。如果希望加载期间先显示静态问题，远程返回后整体替换，可显式提供静态模板，并通过 `mergeSuggestions` 只返回远程结果。
-
-下面的示例可切换“仅远程推荐”“远程整体替换”“空结果回退”和“远程优先”四种策略，以及成功、空数组、失败三种响应。示例用延迟模拟远程请求，无需后端即可运行；展开示例源码可查看完整配置。接入业务接口时，将 `getSuggestions` 中的模拟逻辑替换为 `fetch`，传入 `signal` 并返回 `Suggestion[]` 即可。
-
-<demo vue="../../demos/quick-assist/remote-recommendations.vue" title="远程推荐与覆盖策略" description="切换策略和响应后重新划词，观察加载期间的静态问题及远程返回后的结果。" />
-
-“远程整体替换”会在远程成功返回空数组时清空静态推荐；“空结果回退”则保留静态问题。“远程优先”示例中远程与静态的解释问题具有相同 `id`，可以观察远程问题如何覆盖静态问题，同时保留未重复的静态问题。
-
-请求失败时不会调用 `mergeSuggestions`，会保留已显示的静态问题并展示加载失败状态，同时触发 `stage: 'suggestions'` 的错误事件。仅配置远程推荐时没有静态问题可回退，用户仍可手动输入提交。
-
-#### 自定义合并策略 `mergeSuggestions` {#自定义合并策略-mergesuggestions}
-
-`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐成功返回并通过校验后调用。`base` 是静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；`incoming` 是过滤无效项后、尚未去重或裁剪的远程推荐数组；`context` 是本次推荐使用的脱敏上下文。回调必须返回 `Suggestion[]`。
-
-默认策略相当于 `[...base, ...incoming]`：静态项优先，同 `id` 的远程项不会覆盖静态项；静态项占满数量上限时，远程项可能不展示。可以按业务需要返回不同顺序：
-
-| 目标                                   | 回调返回值                          |
-| -------------------------------------- | ----------------------------------- |
-| 远程整体替换静态问题                   | `incoming`                          |
-| 远程有结果时替换，否则保留静态问题     | `incoming.length ? incoming : base` |
-| 远程优先，保留未重复的静态问题         | `[...incoming, ...base]`            |
-| 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]`            |
-
-自定义回调返回后，组件仍会校验推荐格式、按 `id` 保留首次出现项，并应用 `maxSuggestions` 上限（默认 `2`）。因此，远程优先策略也可以用来覆盖静态同 `id` 的问题。
-
-#### 远程问题校验 `validateSuggestion` {#远程问题校验-validatesuggestion}
-
-组件先检查远程响应是否为数组，再逐项检查 `id`、`label`、`prompt` 是否为非空字符串（纯空白也无效）。格式无效项会被过滤，不影响同批其他有效问题。静态问题及自定义合并结果也会进行格式校验，配置或合并结果无效时会报错。
-
-可选的同步回调 `validateSuggestion(suggestion, context): boolean` 在基础校验后、合并前逐项执行，仅用于远程问题：
-
-推荐的 `meta` 会进行结构化深拷贝，校验器修改副本或提供器在推荐被接收后修改原对象，都不会改变已接收的推荐内容。`meta` 支持 Date、Map、Set、类型化数组和循环引用，但不能包含函数、DOM 节点、响应式代理或共享内存。远程问题的 `meta` 无法克隆时，该项按无效问题过滤；非空批次全部无效时仍按推荐失败处理。
-
-| 参数或返回值          | 含义                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `suggestion`          | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
-| `context`             | 本次推荐使用的脱敏上下文，可读取 `text`、页面、附近文本和业务字段                                                        |
-| 返回 `true` / `false` | 保留 / 丢弃该问题                                                                                                        |
-
-下面的独立示例并列展示远程原始问题、逐项过滤原因和最终展示问题。选中“竞价计费”后打开智能帮助，查看同一批问题的校验结果；切换“启用业务校验”后重新划词，可对比哪些问题被保留。基础格式校验始终执行，不受该开关影响。
-
-<demo vue="../../demos/quick-assist/suggestion-validation.vue" title="远程问题校验前后对比" description="对比原始问题与最终问题，查看空白、超长、不相关问题的过滤原因，以及全部无效时的静态回退。" />
-
-示例业务规则限制标题不超过 40 字、问题不超过 1000 字，并要求问题包含选中文字，可按产品需要替换；组件本身不设置文字长度上限。切换为“全部异常问题”可观察全部无效时的静态问题回退，展开源码可查看完整的 `validateSuggestion` 配置。
-
-响应不是数组、非空响应全部被过滤、回调抛出异常或返回非布尔值（包括 `Promise`）时，整批远程推荐失败，不会调用 `mergeSuggestions`，会保留静态问题并触发 `stage: 'suggestions'` 的错误事件。仅远程模式仍可手动输入提交。接口主动返回 `[]` 则属于成功的空结果，继续按合并策略处理，与全部被过滤的情况区分。
-
-`ValidateSuggestion` 类型可从 `@opentiny/tiny-robot/vanilla` 导入。AI 原始输出的 JSON 解析、字段映射和缺失 `id` 的生成应在业务 `getSuggestions` 中完成，组件接收统一的 `Suggestion[]`。
-
-### 自定义发送内容 {#example-build-prompt}
-
-用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
-
-下面的示例对两种发送方式统一补充产品、业务场景和选中内容，提交后分别用只读文本块展示 `query`、完整 `prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
-
-<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
+## 上下文与自定义发送内容
 
 ### 页面上下文与敏感数据 {#example-context}
 
-选中示例中的虚构租户编号并提交，可查看选区文本、附近文本和业务字段中的编号被统一脱敏后的上下文。另一个标为敏感的区域不能触发划词，也不会进入附近文本。
+上下文按 `base → nearby → getContext → sanitizeContext` 顺序构建。默认采集仅做内置 DOM 排除与限长裁剪，不会自动识别或替换业务敏感字段；配置 `sanitizeContext` 后，组件会在其完成脱敏后才调用推荐函数或 `adapter`。选中示例中的虚构租户编号并提交，观察选区文本、附近文本和业务字段被统一脱敏后的结果：
 
-<demo vue="../../demos/quick-assist/context.vue" title="上下文与脱敏" description="选中文字并提交，查看允许交给应用的上下文。" />
+<demo vue="../../demos/quick-assist/context.vue" title="上下文与脱敏" description="选中虚构租户编号并提交，查看脱敏后的 prompt 与 context。" />
 
-默认上下文包含：
+默认采集的基础上下文包含：
 
-- `source: 'selection'`、`text` 和 `selection.text`；
-- 页面标题与 URL；URL 只包含域名和路径，不采集查询参数或片段标识；
-- 限长的 `nearbyText`，从选区附近的有限语义块提取；找不到语义块时最多退回选中文字。
+- `source`（原生划词为 `'selection'`）、`text` 和 `selection: { text }`；
+- `page`：页面标题 `title` 与去除了查询参数（query）和片段标识（hash）的 `url`；
+- `nearbyText`：从选区附近有限语义块中提取的限长文本（默认最多 500 字符）；未匹配到合适语义块时最多退回选中文本，绝不读取整页 `body.innerText` 或表单值。
 
-可以通过 `getContext` 添加业务字段，通过 `getNearbyContext` 定制附近文本，并通过 `sanitizeContext` 返回最终允许外发的完整上下文。`sanitizeContext` 在业务上下文构造后执行；脱敏完成前不会调用推荐函数或 `adapter`。
+上下文处理注意事项：
 
-- `sanitizeContext` 返回值必须保留 `source`、`text` 两个字符串字段，其余字段可删除。
-- 上下文中不要放函数、DOM 对象或共享内存数据，否则会报错并阻止提交。
-- 推荐函数和 `buildPrompt` 收到上下文副本，修改副本不会改变最终提交的上下文。
+- **脱敏约束**：`sanitizeContext` 返回值必须保留 `source` 与 `text` 两个字符串字段，其余字段可按需删改；若用户手动输入或开启 `input.autoFill` 预填了敏感文本，还应在 `buildPrompt` 中对最终 `prompt` 做脱敏。
+- **外发字段**：`sanitizeContext` 与 `buildPrompt` 都不会改写 `request.query`；手动提交时它是去除首尾空白的输入，点击推荐时为推荐项的 `label`。建议只发送已处理的 `prompt` 与 `context`；若需向外部服务转发完整 `request`，应额外脱敏或省略 `query`、`suggestion` 等可能包含敏感信息的字段。
+- **可克隆约束**：不要在上下文中放入函数、DOM 节点、`Range`、选区快照或共享内存对象，否则会在拷贝阶段报错并阻止提交。
+- **只读副本**：推荐函数与 `buildPrompt` 收到的是上下文副本，修改副本不会影响最终传给 `adapter` 的上下文。
+- **双重防护**：请结合页面标记（`data-sensitive`、`data-ai-selection="false"`）与 `sanitizeContext` 共同拦截密钥、令牌、租户 ID、订单数据等敏感信息。
 
-下面使用虚构租户编号演示脱敏。输入框可能保留选中的原文，因此还需通过 `buildPrompt` 对最终发送的问题脱敏；此例的宿主仅发送 `prompt` 和 `context`。
+### 自定义附近文本 {#example-nearby-context}
 
-```ts
-const tenantId = 'tenant-demo-4812'
-const redactTenant = (text: string) => text.replaceAll(tenantId, '[redacted]')
+默认附近文本提取会向上查找最近的内置语义块标签（`p`、`li`、`td`、`th`、`label`、`section`、`fieldset`），并自动跳过隐藏节点（含 `display: none`、`visibility: hidden`、`[hidden]`、`[aria-hidden="true"]`）、表单控件、编辑器和敏感排除区域。
 
-const quickAssist = createQuickAssist({
-  adapter,
-  getContext: () => ({ product: '云服务器', section: '创建实例', tenantId }),
-  sanitizeContext: (context) => ({
-    ...context,
-    text: redactTenant(context.text),
-    selection: context.selection ? { ...context.selection, text: redactTenant(context.selection.text) } : undefined,
-    nearbyText: context.nearbyText ? redactTenant(context.nearbyText) : undefined,
-    businessContext: {
-      ...context.businessContext,
-      tenantId: '[redacted]',
-    },
-  }),
-  buildPrompt: ({ query, suggestion }) => redactTenant(suggestion?.prompt ?? query),
-})
-```
-
-默认采集不会读取整页 `body.innerText` 或表单值。选区与附近文本会跳过常见编辑区和敏感标记，但通用规则不能识别所有业务秘密。请通过 `sanitizeContext` 删除访问密钥、令牌、用户或租户 ID、订单数据等，并在页面上为敏感区域添加 `data-sensitive` 或 `data-ai-selection="false"`。不要把 DOM、`Range` 或选区快照序列化后传给模型。
-
-#### 自定义附近文本 {#example-nearby-context}
-
-默认提取会使用语义块，可通过 `nearbyContext` 扩展候选块并限制长度；需要完全自定义提取时，提供 `getNearbyContext`：
+- 仅需扩展候选容器时，优先配置 `nearbyContext.blockSelectors`（在内置集合上追加）以复用内置安全提取器；
+- 需要完全自定义来源时，提供 `getNearbyContext(snapshot)`，并**优先读取已知安全的业务数据结构或白名单摘要**：
 
 ```ts
+const SAFE_SECTION_SUMMARIES: Record<string, string> = {
+  'ecs-billing': '云服务器支持包年包月、按需计费与竞价计费三种模式。',
+}
+
 const quickAssist = createQuickAssist({
   adapter,
   nearbyContext: { maxLength: 200, blockSelectors: ['.product-description'] },
   getNearbyContext(snapshot) {
-    const element = snapshot.anchorElement
-    return element?.closest('.product-description')?.textContent ?? snapshot.text
+    // 优先从已知安全的业务摘要读取，避免直接扫描含表单、CSS 隐藏节点或敏感内容的 DOM
+    const sectionId = snapshot.anchorElement?.closest('[data-section-id]')?.getAttribute('data-section-id')
+    return (sectionId && SAFE_SECTION_SUMMARIES[sectionId]) || snapshot.text
   },
 })
 ```
 
-不提供 `getNearbyContext` 时使用默认提取策略；提供后使用回调结果，仍受 `maxLength` 限制并继续经过 `sanitizeContext`。自定义提取应避开敏感区域。
+::: warning 自定义提取的安全过滤责任
+提供 `getNearbyContext` 会完全替代内置附近文本提取；组件仅对回调返回的字符串执行 `nearbyContext.maxLength` 长度裁剪和可选 `sanitizeContext` 处理，**不会**重新按内置 DOM 规则过滤该字符串。
 
-### 生效范围与选择长度 {#example-selection-scope}
-
-试着选择示例中允许的文字、排除区域，以及超过长度限制的句子，比较正常入口、超限禁用入口和排除效果。
-
-<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
-
-```ts
-const quickAssist = createQuickAssist({
-  adapter,
-  include: ['#app'], // 配置后，选区中的每个文本节点都必须位于匹配区域
-  exclude: ['[data-qa-ignore]', '.private-value'], // 在内置排除项上追加
-  selection: {
-    maxTextLength: 8000,
-    validate(snapshot) {
-      return snapshot.text.trim().length > 0
-    },
-  },
-})
-```
-
-划词默认上限为 **8000**，使用 `selection.maxTextLength` 配置正整数，设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算，内部空格和换行各计 1，普通 emoji 计 1（组合 emoji 按实际码点数计数）。输入框的 `input.maxLength` 独立配置，默认不限制，也可显式设为 `null`。
-
-超限后仍在释放鼠标后显示“智能帮助”入口，文字和边框置灰，保留彩色星标；入口出现时立即显示“划词字数超出限制 当前字数/上限”，并随入口保持可见，当前字数为红色。入口不可打开，点击、Enter 和程序直接打开均不能绕过限制，也不会触发上下文或推荐请求。提示文案可通过 `selection.maxTextLengthExceededMessage` 配置。上述规则同时适用于页面划词、`activate()` 和 `registerSource()` 编辑器来源。范围、敏感区域和文本有效性校验继续生效。
-
-```ts
-selection: {
-  maxTextLength: null
-} // 不限制划词长度
-input: {
-  maxLength: null
-} // 不限制输入长度
-```
-
-默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID；不会用固定最短长度过滤 `ECS`、`VPC`、`QoS` 等短技术词。`selection.validate` 自定义文本判断，但仍不能绕过最大长度、`include` / `exclude`、编辑器和敏感区域检查。超长选区会显示禁用入口，不会截断或发送。
-
-默认排除 `input`、`textarea`、`select`、可编辑的 `contenteditable` 区域、Monaco、CodeMirror、QuickAssist 自身界面，以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]` 等标记。普通只读 `contenteditable="false"` 区域可以划词；若它位于可编辑祖先或其他排除区域内，仍会被排除。
-::: tip 支持范围
-当前版本暂不支持移动端长按选择，以及 iframe 和 Shadow DOM 内的选区。
+切勿直接读取整段容器的 `textContent`（会读入 `display: none` / `visibility: hidden` 等 CSS 隐藏节点、`textarea` 等表单初始文本以及敏感子节点）。如确需自行扫描 DOM，应遍历原始 DOM，通过 `getComputedStyle` 排除隐藏节点，并跳过表单控件（`input`、`textarea`、`select`、`option`）、编辑器、`[contenteditable]`、`[hidden]`、`[aria-hidden="true"]` 及敏感排除区域。
 :::
+
+### 自定义发送内容 {#example-build-prompt}
+
+默认情况下，提交给 `adapter` 的 `prompt` 为：
+
+```ts
+const defaultPrompt = suggestion?.prompt ?? query
+```
+
+它**不会自动把选中的原文 `context.text` 拼进 `prompt`**。如果你的对话后端只接收单段 `prompt` 文本，或希望统一附加产品、场景与选中原文，可通过同步钩子 `buildPrompt({ query, context, suggestion })` 构造最终发送内容，同时保留简洁的 `query` 用于界面展示。
+
+<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项提交时的 query、prompt 和 context.text。" />
+
+## 主动激活与编辑器集成
 
 ### 主动激活：按钮与自定义选区 {#example-activation}
 
-通过 `activate()` 可以主动提供文本和锚点，复用“智能帮助入口 → 输入浮层 → 推荐与提交”的流程。默认先展示入口；传入 `open: 'popover'` 可跳过入口，直接打开并聚焦输入框。它不会直接显示 AI 答案。
+通过 `activate()` 可主动提供文本和定位锚点，复用“入口 → 输入浮层 → 推荐与提交”的完整交互流程。传入 `open: 'popover'` 可跳过入口与 `trigger.showDelay`，直接打开并聚焦输入框（不触发 `trigger_show` / `trigger_click`，仍触发 `selection` 与 `popover_show`）。
 
-示例默认勾选“直接显示输入框”：点击术语按钮直接提问，悬停或键盘聚焦指标卡片可查看指标专属推荐；浮层打开后可移入其中操作。取消勾选即可对比先显示入口的流程。提交后，下方展示实际收到的内容与来源。
+示例默认点击激活，勾选“悬停指标时自动显示入口”可体验仅展示入口而不抢焦点的悬停触发：
 
-<demo vue="../../demos/quick-assist/activation.vue" title="主动激活与自定义定位" description="点击与悬停触发，切换直接输入，并对比实例默认推荐和本次专属推荐。" />
+<demo vue="../../demos/quick-assist/activation.vue" title="主动激活与自定义定位" description="点击按钮或指标卡片主动触发，切换直接输入与悬停入口，对比默认推荐与本次专属推荐。" />
 
-最简单的方式是传入一个 DOM 元素作为锚点：
+**1. 元素锚点快捷形式（适合按钮、徽标、卡片）**
 
 ```ts
 const explainButton = document.querySelector<HTMLButtonElement>('#explain')!
 
 explainButton.addEventListener('click', () => {
   quickAssist.activate({
-    text: '需要解释的代码或业务术语',
+    text: '需要解释的业务术语',
     anchor: explainButton,
-    open: 'popover', // 直接打开输入框；省略时先显示智能帮助入口
-    // source 默认是 manual；可选 meta 会进入上下文脱敏管道。
-    meta: { feature: 'code-explanation' },
+    open: 'popover', // 省略时默认先展示入口按钮
+    meta: { feature: 'term-explanation' }, // source 默认为 'manual'
+    suggestions: [
+      {
+        id: 'explain-term',
+        getLabel: () => '解释这个术语',
+        getPrompt: (context) => `请解释：${context.text}`,
+      },
+    ],
   })
 })
 ```
 
-`open: 'popover'` 立即进入输入浮层，跳过 `trigger.showDelay`，不产生 `trigger_show` 或 `trigger_click` 事件，仍产生 `selection` 和 `popover_show`。上下文构造或脱敏未完成时可以编辑，但暂不能发送。`open` 只影响本次激活，普通页面划词不变。
+单次激活支持以下覆盖参数，均只影响本次会话，不改变实例默认配置：
 
-**为本次激活单独提供推荐**，无需 `updateOptions()`，也不影响其他区域：
+| 本次激活参数 | 行为 |
+| --- | --- |
+| 不传 `suggestions` / `getSuggestions` | 沿用实例默认推荐配置 |
+| `suggestions: [...]` | 替换本次静态推荐，且默认不再调用实例的 `getSuggestions` |
+| `suggestions: []` | 本次不显示推荐，保留手动提问 |
+| `getSuggestions: fn` | 使用本次异步推荐函数，可与本次静态推荐组合使用 |
+| `getSuggestions: null` | 本次禁用远程推荐，静态推荐按对应配置展示 |
+| `autoFill: boolean` | 覆盖本次输入区预填行为，优先于实例 `input.autoFill` |
+| `open: 'trigger' \| 'popover'` | 决定先展示入口还是直接打开输入浮层（默认 `'trigger'`） |
 
-```ts
-quickAssist.activate({
-  source: 'editor',
-  text: selectedCode,
-  anchor: codeElement,
-  open: 'popover',
-  suggestions: [
-    {
-      id: 'explain-code',
-      getLabel: () => '解释这段代码',
-      getPrompt: (context) => `请解释以下代码：\n${context.text}`,
-    },
-    {
-      id: 'review-code',
-      getLabel: () => '检查潜在问题',
-      getPrompt: (context) => `请检查以下代码是否存在潜在问题：\n${context.text}`,
-    },
-  ],
-})
-```
-
-| 本次激活参数                          | 行为                                                                                          |
-| ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 不传 `suggestions` / `getSuggestions` | 使用实例默认推荐配置                                                                          |
-| `suggestions: [...]`                  | 替换本次的静态推荐；不调用实例的远程推荐                                                      |
-| `autoFill: boolean`                   | 仅覆盖本次预填行为，优先于实例 `input.autoFill`，不修改实例设置；完整形式与元素锚点形式均支持 |
-| `suggestions: []`                     | 不显示推荐，保留手动提问                                                                      |
-| `getSuggestions: fn`                  | 使用本次的异步推荐函数，可与本次静态推荐一起配置                                              |
-| `getSuggestions: null`                | 本次禁用远程推荐，静态推荐仍按对应配置展示                                                    |
-
-推荐项的结构与实例级 `suggestions` 一致，支持固定问题与 `getLabel` / `getPrompt` 工厂。工厂与远程函数均在上下文脱敏后执行，数量限制、远程校验、合并策略仍使用实例配置；关闭或新激活会中止旧请求、忽略旧结果。固定项在激活时复制，后续不会因原数组被修改而变化。
-
-元素移除、祖先隐藏或尺寸塌缩时会清理当前会话；实例停用或销毁后调用 `activate()` 不生效。显式再次调用可以重新打开已关闭的内容。
-
-需要将入口放在编辑器选区、图表或自定义画布旁时，使用完整形式：
+**2. 完整几何句柄形式（适合代码编辑器、图表、自定义画布）**
 
 ```ts
 quickAssist.activate({
   source: 'editor',
   text: selectedCode,
   anchorElement: editorContainer,
-  getRect: () => getCurrentSelectionRect(),
+  getRect: () => getCurrentSelectionRect(), // 返回相对视口的 CSS 像素矩形；不可见或失效返回 null
   verify: () => isCapturedSelectionStillValid(),
   getNearbyText: () => capturedNearbyCode,
   onInvalidate(notify) {
-    // notify 表示需要复检；verify 与 getRect 有效则重定位，否则关闭。
+    // 覆盖 showDelay、入口与浮层阶段；通知后复检 verify + getRect，有效则重定位，否则关闭
     return subscribeToSelectionAndLayoutChanges(notify)
   },
   meta: { language: 'typescript', fileName: 'price.ts' },
 })
 ```
 
-`getCurrentSelectionRect` 等函数由宿主实现，以上是接口示意。矩形使用**相对浏览器视口的 CSS 像素坐标**，与 `getBoundingClientRect()` 一致；选区不可见或失效时返回 `null`，零宽但有高度的 caret 矩形也有效。编辑器的内部坐标需要加上容器的视口坐标，并由宿主判断编辑器自身的裁剪范围。
-
-`onInvalidate` 从接受激活时开始订阅，覆盖 `showDelay`、入口和输入浮层阶段，关闭时调用返回的清理函数。未提供该订阅时，仅在滚动、窗口 resize、延迟显示等检查时发现失效；模型或布局变化需由宿主通知，或主动 `close()`。
-
-`text`、`meta` 和 `getNearbyText()` 的结果在激活时捕获；附近文本受 `nearbyContext.maxLength` 限制，业务上下文和脱敏仍在打开输入浮层后执行。`meta` 仅放可 JSON 序列化的业务字段。不要传 DOM、编辑器实例、Range 或访问密钥。
-
-主动激活遵循非空、最大文本长度和几何校验；`include` / `exclude`、`selection.forwardOnly`、旧的 `selection.validate` 与 `getNearbyContext` 仅作用于原生 DOM 划词。宿主应自行决定哪些自定义区域可以激活。代码场景可通过 `selection.validateActivation` 替换默认的纯数字/符号/URL 等文本规则，但不能绕过长度和几何限制：
-
-```ts
-quickAssist.updateOptions({
-  selection: {
-    maxTextLength: 2000,
-    validateActivation: ({ text }) => text.trim().length > 0,
-  },
-})
-```
+使用要点：
+- **坐标规范**：`getRect()` 须返回相对浏览器视口的 CSS 像素矩形（与 `getBoundingClientRect()` 一致；零宽但有高度的光标矩形同样有效），编辑器内部坐标需加上容器视口偏移并自行判断是否滚出可视裁剪区。
+- **快照与启停**：`text`、`meta` 和 `getNearbyText()` 在激活时立即捕获；实例停用或销毁后调用 `activate()` 不生效。
+- **失效检测边界（两种形式的区别）**：
+  - **元素锚点快捷形式（`anchor`）**：组件内部自动安装 `ResizeObserver` 与祖先 `MutationObserver`，元素移除、祖先隐藏或尺寸塌缩时会**自动关闭**当前会话。
+  - **完整几何句柄形式（`anchorElement` + `getRect`）**：组件仅在滚动、窗口 `resize` 及延迟显示到期时复检锚点；不会自动监听元素移除、编辑器模型变化或容器内部布局变化。需通过 `onInvalidate(notify)` 订阅宿主变化通知（或主动调用 `close()`），否则锚点移除后浮层会保留到下一次滚动或 `resize` 复检时才关闭。
+- **校验范围**：主动激活遵循非空、最大长度与几何校验；`include` / `exclude`、`selection.forwardOnly`、原生 DOM 划词校验 `selection.validate` 与 `getNearbyContext` 仅作用于原生 DOM 划词。如需放宽主动激活的文本内容规则（例如允许代码符号），可配置 `selection.validateActivation`。
 
 ### Monaco 选中代码后主动解释 {#example-monaco}
 
-这个示例使用真实 Monaco 编辑器。鼠标拖选并松开，或用 Shift + 方向键完成选区后，页面自动读取编辑器模型并调用 `activate()`，把“智能帮助”入口定位到选区末端；点击入口后可发送“解释这段代码”。关闭后，同一选区不会因无关 keyup 立即重开，清空后重新选择即可再次触发。代码解释和问题检查通过本次 `activate({ suggestions })` 配置，实例继续使用默认推荐。下方示例助手显示实际收到的请求，本例不调用模型。
+普通原生划词默认排除 Monaco、CodeMirror 与输入框；在编辑器中，应用可通过监听编辑器选区事件并调用通用 `activate()` 接口完成集成，无需解除原生过滤规则。
 
-<demo vue="../../demos/quick-assist/monaco.vue" title="Monaco 主动选区解释" description="选词完成后自动调用通用 API，不依赖编辑器桥接器。" />
+<demo vue="../../demos/quick-assist/monaco.vue" title="Monaco 主动选区解释" description="选词完成后通过通用 activate() 接口定位到选区末端并展示代码专属推荐。" />
 
-核心接线如下，完整可运行代码见示例源码。Monaco 需要由应用自行安装，并在浏览器挂载后创建：
+接入代码编辑器时的关键要点（完整可运行代码可展开上方示例源码查看）：
 
-```ts
-let lastIdentity: string | undefined
-
-function explainSelection() {
-  const selection = editor.getSelection()
-  const model = editor.getModel()
-  const container = editor.getDomNode()
-  if (!selection || selection.isEmpty() || !model || !container) return
-
-  const text = model.getValueInRange(selection)
-  const version = model.getVersionId()
-  const identity = `${model.uri}:${version}:${selection.selectionStartLineNumber}:${selection.selectionStartColumn}:${selection.positionLineNumber}:${selection.positionColumn}`
-  if (identity === lastIdentity) return
-  lastIdentity = identity
-  const end = selection.getEndPosition()
-
-  quickAssist.activate({
-    source: 'monaco',
-    text,
-    suggestions: [
-      {
-        id: 'explain-code',
-        getLabel: () => '解释这段代码',
-        getPrompt: (context) => `请解释以下代码：\n${context.text}`,
-      },
-    ],
-    anchorElement: container,
-    meta: { language: model.getLanguageId() },
-    verify: () => editor.getModel() === model && model.getVersionId() === version,
-    getRect() {
-      const position = editor.getScrolledVisiblePosition(end)
-      const layout = editor.getLayoutInfo()
-      if (
-        !container.isConnected ||
-        !container.getClientRects().length ||
-        !position ||
-        position.left < layout.contentLeft ||
-        position.left > layout.contentLeft + layout.contentWidth ||
-        position.top < 0 ||
-        position.top + position.height > layout.height
-      )
-        return null
-      const box = container.getBoundingClientRect()
-      return new DOMRect(box.left + position.left, box.top + position.top, 0, position.height)
-    },
-  })
-}
-
-// 选择完成后调度，让 Monaco 先处理完事件；自动调用对相同选区去重。
-const activateWhenSettled = () => requestAnimationFrame(() => explainSelection())
-// 简化接线。完整示例还处理拖选期间的门控、指针取消和卸载时取消调度。
-const disposables = [
-  editor.onMouseUp(activateWhenSettled),
-  editor.onKeyUp((event) => {
-    if (!event.browserEvent.isComposing) activateWhenSettled()
-  }),
-  editor.onDidChangeCursorSelection(() => {
-    if (editor.getSelection()?.isEmpty()) lastIdentity = undefined
-    quickAssist.close()
-  }),
-  editor.onDidChangeModelContent(() => quickAssist.close()),
-  editor.onDidScrollChange(() => quickAssist.close()),
-  editor.onDidLayoutChange(() => quickAssist.close()),
-]
-// 卸载时 disposables.forEach(item => item.dispose())，并销毁助手、编辑器和模型。
-```
-
-普通页面仍默认排除 Monaco、CodeMirror 和输入框；主动调用不依赖解除这些过滤规则。此处的自动激活由示例页面接线实现，当前未提供官方 Monaco / CodeMirror 自动桥接器。
+1. **拖选门控与防重入**：在 `pointerdown` 期间暂不激活，待 `pointerup` 或非输入法组合态的 `keyup` 后通过 `requestAnimationFrame` 读取最终选区，并用 `uri + version + range` 对相同选区去重，避免无关按键反复弹出。
+2. **视口坐标与裁剪判断**：使用 `editor.getScrolledVisiblePosition(end)` 加上容器 `getBoundingClientRect()` 换算视口坐标；若选区滚出内容裁剪区域则返回 `null`。
+3. **快照捕获与一致性校验**：在激活时截取选中代码及前后有限行作为 `getNearbyText`，并通过 `verify()` 校验模型实例、文档版本号和选区范围是否一致。
+4. **生命周期联动**：监听选区变化、内容修改、滚动和布局变化及时调用 `quickAssist.close()`；组件卸载时释放所有监听、`quickAssist.destroy()` 以及编辑器实例。
 
 ### 注册自定义来源 {#example-register-source}
 
-需要多个来源随组件统一启停时，可使用 `registerSource()`。下面以点击业务按钮为例：在按钮已挂载后注册，`activate` 负责订阅宿主事件，`deactivate` 负责取消订阅；来源需要清理自己的会话时，可调用 `emit(null)`。
+当页面存在多个自定义触发源，需要随 QuickAssist 实例统一启停、注销并做来源级会话隔离时，可使用高级接口 `registerSource()`；单个按钮或单编辑器场景直接使用 `activate()` 即可。
 
 ```ts
 const button = document.querySelector<HTMLButtonElement>('#explain-metric')!
 let stopListening: (() => void) | undefined
+
 const unregister = quickAssist.registerSource({
   name: 'metric-click',
   activate(emit) {
@@ -566,9 +442,7 @@ const unregister = quickAssist.registerSource({
         getRect: () => (button.isConnected ? button.getBoundingClientRect() : null),
       })
     button.addEventListener('click', onClick)
-    stopListening = () => {
-      button.removeEventListener('click', onClick)
-    }
+    stopListening = () => button.removeEventListener('click', onClick)
   },
   deactivate() {
     stopListening?.()
@@ -576,21 +450,51 @@ const unregister = quickAssist.registerSource({
   },
 })
 
-// 不再需要这个来源时调用，移除其监听并关闭属于该来源的会话。
+// 不再需要该来源时注销，会移除其监听并关闭属于该来源的当前会话
 // unregister()
 ```
 
-停用或销毁实例也会调用来源的 `deactivate()`；重新启用时会再次调用 `activate()`，因此订阅与清理应成对实现。单个按钮直接调用 `activate()` 的用法见[主动激活示例](#example-activation)。
+实例调用 `disable()` 或 `destroy()` 时会自动触发已注册来源的 `deactivate()`；重新 `enable()` 时会再次调用 `activate()`，因此订阅与清理应成对实现。来源需要主动清理自身会话时，可调用 `emit(null)`。
+
+## 生命周期与事件监听
 
 ### 生命周期与路由 {#example-lifecycle}
 
-以下示例可直接启用或停用划词，并模拟路由切换时调用 `close()`；组件卸载时应调用 `destroy()`。
+以下示例演示通过 `enable()`、`disable()` 控制划词监听，以及模拟 SPA 路由切换时调用 `close()`；页面或宿主组件卸载时应调用 `destroy()`。
 
-<demo vue="../../demos/quick-assist/lifecycle.vue" title="启停与关闭会话" description="通过按钮控制划词功能，并模拟页面切换。" />
+<demo vue="../../demos/quick-assist/lifecycle.vue" title="启停与关闭会话" description="通过按钮控制划词启停状态，并模拟路由切换关闭当前会话。" />
 
-#### Angular
+QuickAssist 会自动响应浏览器的 `popstate` 与 `hashchange` 事件关闭当前界面；使用前端路由库（基于 `history.pushState`）时，应在路由钩子中手动调用 `quickAssist.close()`。
 
-在视图创建后初始化实例，并在组件销毁时调用 `destroy()`。QuickAssist 会自动响应浏览器 `popstate` 与 `hashchange`；Angular Router 通常通过 `pushState` 导航，不一定产生这两个事件，因此应在路由导航开始时调用 `close()`。
+<span id="vue"></span>
+
+**Vue 集成**
+
+```ts
+import { onBeforeUnmount, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
+import '@opentiny/tiny-robot/vanilla/style.css'
+import type { QuickAssistInstance } from '@opentiny/tiny-robot/vanilla'
+
+const router = useRouter()
+let quickAssist: QuickAssistInstance | undefined
+let removeAfterEach: (() => void) | undefined
+
+onMounted(() => {
+  quickAssist = createQuickAssist({ adapter })
+  removeAfterEach = router.afterEach(() => quickAssist?.close())
+})
+
+onBeforeUnmount(() => {
+  removeAfterEach?.()
+  quickAssist?.destroy()
+})
+```
+
+<span id="angular"></span>
+
+**Angular 集成**
 
 ```ts
 import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core'
@@ -610,9 +514,7 @@ export class AppShellComponent implements AfterViewInit, OnDestroy {
     this.quickAssist = createQuickAssist({
       include: ['#app'],
       adapter: {
-        submit: (request) => {
-          this.openAssistantAndSend(request.prompt, request.context)
-        },
+        submit: (request) => this.openAssistantAndSend(request.prompt, request.context),
       },
     })
     this.routeSubscription = this.router.events
@@ -626,43 +528,68 @@ export class AppShellComponent implements AfterViewInit, OnDestroy {
   }
 
   private openAssistantAndSend(prompt: string, context: unknown) {
-    // 接入应用已有面板与发送方法；不要只把 prompt 留在输入框里。
+    // 接入应用已有的 AI 对话面板与发送方法
   }
 }
 ```
 
-如果 Angular 应用启用 SSR，请只在浏览器生命周期中创建实例。`root` 可传入 `Document`，不能传 `ShadowRoot`。
+> SSR 环境下请仅在浏览器挂载生命周期内创建实例。如果页面多个模块同时使用 QuickAssist，建议按区域职责划分：优先在全局布局复用单实例，并通过 `activate()` / `registerSource()` 接入局部特殊区域；若确需创建多个实例，请使用互不重叠的 `include` 选择器并在各区域卸载时调用 `destroy()`，避免同一选区同时触发多个入口。
 
-#### Vue
+### 事件监听 {#example-events}
 
-在 `onMounted` 中创建，在卸载前 `destroy()`。Vue Router 的 SPA 导航也建议用 `afterEach` 或路由监听调用 `close()`。
+通过 `onEvent(event)` 统一接收交互与错误事件，使用 `event.type` 区分类型，并用 `event.sessionId` 关联同一次划词会话。
+
+<demo vue="../../demos/quick-assist/events.vue" title="事件监听与会话日志" description="观察完整交互事件、会话编号、关闭原因和模拟提交错误。" />
+
+提交时会先触发 `close`（`reason: 'submit'`），再触发 `submit` 并调用适配器；若适配器抛错或返回被拒绝的 Promise，随后触发 `stage: 'adapter'` 的 `error`。`submit` 仅表示请求已交给适配器，不表示模型已完成回答。事件元数据不包含选区原文、`query`、`prompt` 或完整上下文；错误对象应按应用自身的日志安全规范处理。
+
+## 主题与外观定制
+
+### 主题配置 {#example-theme}
+
+无框架组件内置亮暗两套配色，默认跟随 `html[data-tr-color-mode]`（识别 `light` / `dark`，缺失或无效时回退亮色）。已使用 TinyRobot `ThemeProvider` 的项目默认无需额外配置。
+
+其他系统在应用初始化时调用 `configureVanillaTheme()` 指定主题来源即可，无需向组件实例传参：
 
 ```ts
-import { onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
-import '@opentiny/tiny-robot/vanilla/style.css'
+import { configureVanillaTheme } from '@opentiny/tiny-robot/vanilla'
 
-const router = useRouter()
-let quickAssist: ReturnType<typeof createQuickAssist> | undefined
-let removeAfterEach: (() => void) | undefined
-
-onMounted(() => {
-  quickAssist = createQuickAssist({ adapter })
-  removeAfterEach = router.afterEach(() => quickAssist?.close())
-})
-
-onBeforeUnmount(() => {
-  removeAfterEach?.()
-  quickAssist?.destroy()
+configureVanillaTheme({
+  source: { type: 'attribute', attribute: 'data-cf-theme' },
 })
 ```
 
-在全局布局组件统一创建可覆盖多页面；如果 QuickAssist 只属于某个视图，则在该视图的挂载/卸载边界创建和销毁。
+<div class="qa-theme-demo">
 
-### 元素属性 {#example-attrs}
+<demo html="../../demos/quick-assist/theme.html" title="主题切换" description="切换亮色、暗色或跟随系统，选中文字查看入口和浮层；独立项目预先引入 vanilla.global.js 后会自动复用全局对象。" />
 
-通过 `attrs` 为内部元素追加安全的 DOM 属性。该入口用于类名、测试标记和 ARIA 关联等补充属性；输入区文案使用 [`input`](#example-input)，推荐状态文案使用 [`messages`](#example-suggestion-messages)。
+</div>
+
+其他常用模式：
+
+```ts
+configureVanillaTheme({ source: { type: 'class' } }) // 跟随 html.dark，否则亮色
+configureVanillaTheme({ colorMode: 'dark' }) // 固定暗色（也支持 'light'）
+configureVanillaTheme({ colorMode: 'auto' }) // 跟随操作系统配色
+configureVanillaTheme({}) // 恢复默认 TinyRobot 主题来源
+```
+
+- 配置按 `Document` 共享，对同一文档中**已有及后续创建的所有 Vanilla 组件**生效，主题切换不会清空正在编辑的问题。
+- 每次调用均与内置默认值合并，不累积上次配置；`source` 与 `colorMode` 互斥，不能同时设置。
+- 配色优先级：**组件 `--tr-quick-assist-*` 变量覆盖 → 宿主 `--tr-*` 主题变量 → 内置默认配色**。浮层挂载在 `body` 下，自定义变量应写在 `html`、`body` 或 `.tr-quick-assist` 全局样式中。
+
+### 自定义元素属性 {#example-attrs}
+
+通过 `attrs` 为组件内部元素追加安全的 DOM 属性（如测试标记、自定义类名、ARIA 关联等）。共支持 6 个目标位置：
+
+| 目标键名 | 对应的内部元素 |
+| --- | --- |
+| `root` | 组件挂载到 `body` 下的 `.tr-quick-assist` 宿主 `div`（**注意**：不同于配置项 `options.root` 传入的 `Document`） |
+| `trigger` | 划词入口按钮（`.tr-quick-assist__trigger`） |
+| `popover` | 输入浮层容器（`.tr-quick-assist__popover`） |
+| `input` | 问题输入框（`textarea.tr-quick-assist__input`） |
+| `submit` | 发送按钮（`button.tr-quick-assist__submit`） |
+| `suggestion` | 推荐问题按钮，支持属性对象或 `(suggestion) => QuickAssistAttributeMap` 回调 |
 
 ```ts
 const quickAssist = createQuickAssist({
@@ -675,73 +602,254 @@ const quickAssist = createQuickAssist({
 })
 ```
 
-`aria-describedby` 指向宿主页面中已有的提示元素，例如 `<p id="quick-assist-hint">请勿输入敏感信息。</p>`。`attrs` 不能覆盖内部事件、样式或行为属性，具体限制见 Props 表下方说明。
+安全过滤规则：
+- 事件处理器（`on*`）、`innerHTML`、`outerHTML`、`textContent`、`style`、`value`、`disabled`、`readonly`、`required`、`type`、`id` 以及非法属性名会被忽略；
+- `class` / `className` 仅追加合法 token，不会覆盖组件内置类名；
+- 普通属性值为 `false` / `null` / `undefined` 时移除属性，值为 `true` 时写入布尔存在属性（空字符串）；`aria-*` 属性则保留 `'true'` / `'false'` 语义字符串；
+- `attrs.suggestion` 回调抛错时不会中断渲染或提交，会触发 `stage: 'callback'` 的 `error` 事件。
 
-### 事件监听 {#example-events}
+## 交互与限制
 
-通过 `onEvent` 统一监听事件，使用 `event.type` 区分事件类型，并通过 `sessionId` 关联同一次划词会话。
+- 点击入口后输入框立即打开并聚焦，默认留空（`input.autoFill: true` 时预填选中文字）；按 `Enter` 发送，`Shift+Enter` 换行，输入法组合（IME）期间不会误提交。
+- 上下文构造或脱敏尚未完成时，用户仍可输入编辑，但提交按钮与推荐项暂时禁用，完成后自动恢复可用。
+- 新选区会替换旧会话；点击外部、按 `Esc`、锚点失效、显著滚动、路由变化或调用生命周期方法都会清理当前界面。
 
-选中下面的文字，点击入口后手动发送或点击推荐项，可观察 `selection`、`trigger_show`、`trigger_click`、`popover_show`、`suggestion_click`、`close` 和 `submit`。按 Esc 可观察 `reason: 'escape'`；勾选“模拟提交失败”后提交，可观察 `stage: 'adapter'` 的 `error`。日志按发生顺序保留最近 40 条，清空日志不会重置组件的会话编号。
+## API
 
-<demo vue="../../demos/quick-assist/events.vue" title="事件监听与会话日志" description="观察完整交互事件、会话编号、关闭原因和模拟提交错误。" />
+点击下方表格中的配置项、方法或事件名，可快速跳转到对应说明。
 
-提交时组件先触发 `close`（`reason: 'submit'`），再触发 `submit` 并调用适配器；适配器失败时随后触发 `error`。`submit` 表示请求已交给适配器，并不表示模型已成功回答。事件元数据不包含选区原文、`query`、`prompt` 或完整上下文；业务错误对象仍应按应用自己的日志规则处理。
+### Props {#props}
 
-### 主题配置 {#example-theme}
+配置项类型为 `QuickAssistOptions`，通过 `createQuickAssist(options)` 传入：
 
-独立入口内置亮暗配色，默认跟随 `html[data-tr-color-mode]`，识别 `light`、`dark`，属性缺失或无效时使用亮色。已有 TinyRobot `ThemeProvider` 默认无需额外配置。
+| 属性名 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| [`root`](#example-basic) | `Document` | `document` | 监听与挂载所在文档；不接受 `ShadowRoot` |
+| [`enabled`](#example-lifecycle) | `boolean` | `true` | 创建后是否立即启用划词与全局监听 |
+| [`adapter`](#example-basic) | `AIAdapter` | — | **必填**；通过 `submit(request)` 交给应用已有对话能力 |
+| [`include`](#example-selection-scope) | `string[]` | — | 限定可触发原生划词的页面区域选择器 |
+| [`exclude`](#example-selection-scope) | `string[]` | — | 在内置排除规则基础上追加的排除选择器 |
+| [`selection.maxTextLength`](#example-selection-scope) | `number \| null` | `8000` | 选区最大 Unicode 码点数（正整数）；`null` 表示不限制，超限显示禁用入口 |
+| [`selection.maxTextLengthExceededMessage`](#example-selection-scope) | `string` | `'划词字数超出限制'` | 选区超限提示前缀，后面自动追加 `当前字数/上限` |
+| [`selection.forwardOnly`](#example-direction-placement) | `boolean` | `true` | 仅正向划词触发；设为 `false` 允许双向选择 |
+| [`selection.validate`](#example-selection-scope) | `(snapshot: SelectionSnapshot) => boolean` | 内置文本规则 | 替代原生 DOM 划词的默认文本校验（不能绕过长度、范围与敏感区检查） |
+| [`selection.validateActivation`](#example-activation) | `(view: QuickAssistActivationView) => boolean` | 默认文本规则 | 替代主动激活与自定义来源的默认文本校验，不接收 DOM `Range` |
+| [`trigger.label`](#example-input) | `string` | `'智能帮助'` | 划词入口按钮文案及弹层无障碍名称；按钮默认固定宽 `88px` 超出省略，建议使用简短文案或覆盖 `.tr-quick-assist__trigger` 宽度样式 |
+| [`trigger.showDelay`](#example-trigger-delay) | `number` | `0` | 选区稳定后延迟显示入口的毫秒数，须为非负整数 |
+| [`trigger.offset`](#example-direction-placement) | `number` | `8` | 入口及输入浮层与选区的间距（px），须为非负数 |
+| [`trigger.placement`](#example-direction-placement) | `QuickAssistPlacement` | `'bottom-end'` | 入口与输入浮层的优先位置；上方按首行、下方按末行，空间不足自动翻转 |
+| [`input.maxRows`](#example-input) | `number` | `2` | 输入区最多可见行数（正整数），超过后内部滚动 |
+| [`input.maxLength`](#example-input) | `number \| null` | 不限制 | 输入区 Unicode 码点上限（正整数）；省略或 `null` 不限制，配置后持续显示计数且超限不可发送 |
+| [`input.autoFill`](#example-input) | `boolean` | `false` | 打开输入区时是否自动预填选中/激活文本，不影响 `context.text` |
+| [`input.placeholder`](#example-input) | `string` | `'告诉 AI 你想做什么'` | 输入为空时的占位文案 |
+| [`input.ariaLabel`](#example-input) | `string` | `'请输入问题'` | `textarea` 的无障碍名称（弹层标题使用 `trigger.label`） |
+| [`input.submitLabel`](#example-input) | `string` | `'发送问题'` | 图标发送按钮的无障碍名称与悬停标题 |
+| [`input.maxLengthExceededMessage`](#example-input) | `string` | `'字数超出限制'` | 超过 `input.maxLength` 时发送区域显示的提示文案 |
+| [`nearbyContext.maxLength`](#example-nearby-context) | `number` | `500` | 附近文本最大字符数（正整数） |
+| [`nearbyContext.blockSelectors`](#example-nearby-context) | `string[]` | `p, li, td, th, label, section, fieldset` | 在内置语义块之外追加的候选块选择器 |
+| [`getNearbyContext`](#example-nearby-context) | `GetNearbyContext` | — | 自定义原生 DOM 划词的附近文本提取，`snapshot` 含 DOM `Range` |
+| [`getContext`](#example-context) | `GetBusinessContext` | — | 异步或同步返回业务字段，合并到 `context.businessContext` |
+| [`sanitizeContext`](#example-context) | `SanitizeContext` | — | 返回最终允许外发的脱敏完整上下文 |
+| [`suggestions`](#example-suggestions) | `QuickAssistSuggestionInput[]` | 内置两条默认模板 | 静态推荐或模板工厂数组；`[]` 表示隐藏默认推荐 |
+| [`getSuggestions`](#example-remote-suggestions) | `GetSuggestions` | — | 使用当前会话上下文（配置 `sanitizeContext` 后为脱敏上下文）异步获取远程推荐 |
+| [`validateSuggestion`](#远程问题校验-validatesuggestion) | `ValidateSuggestion` | 基础格式校验 | 同步业务校验，仅过滤远程推荐，在合并前执行 |
+| [`mergeSuggestions`](#自定义合并策略-mergesuggestions) | `MergeSuggestions` | 静态优先追加 | 远程推荐返回后同步合并静态与远程推荐，最终按 `id` 去重并裁剪 |
+| [`maxSuggestions`](#example-suggestions) | `number` | `2` | 最多展示的推荐条数（正整数） |
+| [`buildPrompt`](#example-build-prompt) | `BuildPrompt` | `suggestion?.prompt ?? query` | 自定义最终提交的 `prompt`；默认不自动拼入 `context.text` |
+| [`attrs`](#example-attrs) | `QuickAssistAttrs` | — | 为 6 个内部目标元素追加安全 DOM 属性 |
+| [`messages.loading`](#example-suggestion-messages) | `string` | `'正在加载推荐…'` | 推荐加载中状态文案 |
+| [`messages.empty`](#example-suggestion-messages) | `string` | `'暂无推荐'` | 无可显示推荐时的状态文案 |
+| [`messages.error`](#example-suggestion-messages) | `string` | `'推荐加载失败'` | 推荐加载失败且无可回退推荐时的状态文案 |
+| [`onEvent`](#example-events) | `(event: QuickAssistEvent) => void` | — | 统一事件回调；回调内抛错不会打断组件清理 |
 
-其他系统只需在应用初始化时指定主题来源，无需向组件传入 `theme`：
+### Methods {#methods}
+
+`createQuickAssist(options)` 返回 `QuickAssistInstance` 实例，提供以下方法：
+
+| 方法名 | 签名 | 说明 |
+| --- | --- | --- |
+| [`activate`](#example-activation) | `(input: QuickAssistActivationInput \| QuickAssistAnchorShortcut) => void` | 主动提供文本与定位锚点，触发入口或直接打开浮层；实例停用/销毁时忽略 |
+| [`registerSource`](#example-register-source) | `(source: QuickAssistSelectionSource) => () => void` | 注册自动触发来源并返回注销函数，随实例启停联动 |
+| [`enable`](#example-lifecycle) | `() => void` | 启动划词监听、全局监听及已注册来源；重复调用无副作用 |
+| [`disable`](#example-lifecycle) | `() => void` | 关闭当前界面并停止监听与已注册来源；之后可再次 `enable()` |
+| [`close`](#example-lifecycle) | `() => void` | 关闭当前会话，保持监听启停状态不变 |
+| [`updateOptions`](#example-direction-placement) | `(partial: Partial<QuickAssistOptions>) => void` | 关闭当前会话、作废旧异步任务并更新配置 |
+| [`destroy`](#example-lifecycle) | `() => void` | 关闭界面并释放所有监听与 DOM；重复调用无副作用 |
+
+`updateOptions` 合并与约束规则：
+- **顶层浅合并、嵌套分组整体替换**：更新 `selection`、`trigger`、`input`、`nearbyContext`、`messages`、`attrs` 中任意分组时，会整体替换该分组，未传入的子字段恢复默认值（例如原配置 `trigger: { label: '帮助', offset: 12 }`，调用 `updateOptions({ trigger: { showDelay: 200 } })` 会把 `label` 和 `offset` 恢复默认）。
+- **清除可选顶层配置**：在顶层显式传入 `undefined`（如 `{ suggestions: undefined, mergeSuggestions: undefined }`）可清除该可选配置，恢复省略态。
+- **`root` 不可更改**：传入不同 `Document` 会抛错，需先 `destroy()` 再创建新实例。省略 `enabled` 时保持当前启停状态。
+
+### Functions {#configure-vanilla-theme}
+
+`configureVanillaTheme` 用于配置无框架组件的主题，配置类型为 `VanillaThemeConfig`：
 
 ```ts
-import { configureVanillaTheme } from '@opentiny/tiny-robot/vanilla'
-
-configureVanillaTheme({
-  source: { type: 'attribute', attribute: 'data-cf-theme' },
-})
+function configureVanillaTheme(config: VanillaThemeConfig, root?: Document): void
 ```
 
-`source` 支持以下配置，来源元素须在调用时存在：
+按 `Document` 配置所有 Vanilla 组件（包括 QuickAssist）的主题模式；省略 `root` 时默认使用当前 `document`。`config` 支持三种互斥形态：
 
-| 字段           | 类型                     | 默认值                 | 说明                                                            |
-| -------------- | ------------------------ | ---------------------- | --------------------------------------------------------------- |
-| `type`         | `'attribute' \| 'class'` | 必填                   | 按属性值或 class 判断主题；省略整个 `source` 时默认使用属性来源 |
-| `selector`     | `string`                 | `'html'`               | 主题来源元素的 CSS 选择器，取首个匹配元素                       |
-| `attribute`    | `string`                 | `'data-tr-color-mode'` | 仅 `attribute` 类型：监听的属性名                               |
-| `values.light` | `string`                 | `'light'`              | 仅 `attribute` 类型：亮色对应的属性值                           |
-| `values.dark`  | `string`                 | `'dark'`               | 仅 `attribute` 类型：暗色对应的属性值                           |
-| `darkClass`    | `string`                 | `'dark'`               | 仅 `class` 类型：暗色 class 名，按完整 token 匹配               |
-| `lightClass`   | `string`                 | —                      | 仅 `class` 类型：可选亮色 class 名；亮暗同时存在时暗色优先      |
-| `defaultMode`  | `'light' \| 'dark'`      | `'light'`              | 属性值未知、class 均未匹配或来源元素被移除时的回退模式          |
+- `{ colorMode: 'light' | 'dark' | 'auto' }`：直接指定亮色、暗色或跟随系统；
+- `{ source: VanillaThemeSource }`：监听指定元素上的属性或 class（来源元素须在调用时存在）；
+- `{}`：恢复默认监听 `html[data-tr-color-mode]`。
 
-<div class="qa-theme-demo">
+`VanillaThemeSource` 配置字段：
 
-<demo html="../../demos/quick-assist/theme.html" title="主题切换" description="切换亮色、暗色或跟随系统，再选中文字查看入口和浮层；本示例使用独立文档，不影响其他示例。" />
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `type` | `'attribute' \| 'class'` | 必填 | 按属性值或 class 判断主题 |
+| `selector` | `string` | `'html'` | 主题来源元素的 CSS 选择器，取首个匹配元素 |
+| `attribute` | `string` | `'data-tr-color-mode'` | 仅 `attribute` 类型：监听的属性名 |
+| `values.light` | `string` | `'light'` | 仅 `attribute` 类型：亮色对应的属性值 |
+| `values.dark` | `string` | `'dark'` | 仅 `attribute` 类型：暗色对应的属性值 |
+| `darkClass` | `string` | `'dark'` | 仅 `class` 类型：暗色 class 名，按完整 token 匹配 |
+| `lightClass` | `string` | — | 仅 `class` 类型：可选亮色 class 名；亮暗同时存在时暗色优先 |
+| `defaultMode` | `'light' \| 'dark'` | `'light'` | 属性值未知、class 均未匹配或来源元素移除时的回退模式 |
 
-</div>
+### Events {#events}
 
-也可以跟随 class，或直接指定颜色模式：
+所有事件均通过 `options.onEvent(event)` 回调分发，参数类型为 `QuickAssistEvent`，统一包含公共字段 `{ type, sessionId }`：
+
+- `sessionId: number`：实例内划词会话编号，每次接受新选区时递增，用于串联同一次划词从开始到关闭的事件；初始化配置错误发生在划词前，`sessionId` 为 `0`。
+
+| `event.type` | 附加字段 | 触发时机与说明 |
+| --- | --- | --- |
+| [`selection`](#example-events) | — | 接受新的合法选区或主动激活 |
+| [`trigger_show`](#example-events) | — | 展示划词入口 |
+| [`trigger_click`](#example-events) | — | 点击划词入口 |
+| [`popover_show`](#example-events) | — | 展示输入浮层 |
+| [`suggestion_click`](#example-events) | `suggestionId: string` | 点击推荐项 |
+| [`submit`](#example-events) | — | 提交请求（不含选区文本或发送内容） |
+| [`close`](#example-events) | `reason: QuickAssistCloseReason` | 会话关闭，原因取值为 `'outside'` \| `'escape'` \| `'scroll'` \| `'anchor-invalid'` \| `'route'` \| `'submit'` \| `'disable'` \| `'destroy'` \| `'update'` \| `'manual'` \| `'reselection'` |
+| [`error`](#example-events) | `stage: QuickAssistErrorStage`, `error: Error` | 发生可恢复或配置错误，详见下方 `stage` 枚举 |
+
+`QuickAssistErrorStage` 全部取值：
+
+| `stage` 值 | 触发场景 |
+| --- | --- |
+| `'config'` | `createQuickAssist` 或 `updateOptions` 参数校验失败 |
+| `'context'` | `getContext` 或上下文基础提取异常 |
+| `'sanitize'` | `sanitizeContext` 抛错、返回值缺少必填字段或含不可克隆对象 |
+| `'suggestions'` | 静态模板求值异常、`getSuggestions` 失败、响应无效、`validateSuggestion` / `mergeSuggestions` 异常 |
+| `'prompt'` | `buildPrompt` 回调抛错 |
+| `'adapter'` | `adapter.submit(request)` 同步抛错或返回被拒绝的 Promise |
+| `'callback'` | `attrs.suggestion` 渲染回调抛错 |
+
+### Types {#types}
+
+以下公开类型均从 `@opentiny/tiny-robot/vanilla` 导入：
+
+| 类型名 | 用途 | 说明 |
+| --- | --- | --- |
+| `QuickAssistOptions` | 配置项 | `createQuickAssist` 入参配置 |
+| `QuickAssistInstance` | 实例句柄 | `createQuickAssist` 返回值 |
+| `AIAdapter` | 宿主适配器 | `{ submit: (request: AIRequest) => void \| Promise<void> }` |
+| `AIRequest` | 提交载荷 | 传给 `adapter.submit` 的冻结请求对象 |
+| `QuickAssistContext` | 上下文载荷 | 传给推荐、`buildPrompt` 与 `adapter` 的上下文对象 |
+| `Suggestion` / `SuggestionFactory` | 推荐项 | 静态或远程推荐对象 / 延迟求值工厂对象 |
+| `QuickAssistSuggestionInput` | 推荐输入联合类型 | `Suggestion \| SuggestionFactory` |
+| `BuildPromptInput` | Prompt 构造入参 | `{ query: string; context: QuickAssistContext; suggestion?: Suggestion }` |
+| `SelectionSnapshot` | 原生选区快照 | 传给 `selection.validate` 与 `getNearbyContext`（含 DOM `Range`） |
+| `QuickAssistActivationInput` / `QuickAssistAnchorShortcut` | 主动激活入参 | 完整几何句柄形式 / DOM 元素快捷形式 |
+| `QuickAssistActivationView` | 主动激活只读视图 | 传给 `selection.validateActivation`（不含 DOM `Range`） |
+| `QuickAssistSelectionSource` | 自定义触发源 | `registerSource` 入参 |
+| `QuickAssistAttrs` | 安全 DOM 属性映射 | `root`、`trigger`、`popover`、`input`、`submit`、`suggestion` |
+| `QuickAssistEvent` / `QuickAssistCloseReason` / `QuickAssistErrorStage` | 事件类型 | `onEvent` 回调载荷与枚举 |
+| `VanillaThemeConfig` / `VanillaThemeSource` / `VanillaColorMode` | 主题配置 | `configureVanillaTheme` 入参类型 |
+
+以下为接入时最常用的核心数据结构完整定义（其余签名见对应 API 表格与 `@opentiny/tiny-robot/vanilla` 类型声明）：
 
 ```ts
-configureVanillaTheme({ source: { type: 'class' } }) // 跟随 html.dark，否则亮色
-configureVanillaTheme({ colorMode: 'dark' }) // 固定暗色，也支持 light
-configureVanillaTheme({ colorMode: 'auto' }) // 跟随操作系统
-configureVanillaTheme({}) // 恢复默认 TinyRobot 主题来源
+interface AIRequest {
+  source: string
+  /** 手动提交为去首尾空白的输入；点击推荐项为推荐项的 label */
+  query: string
+  prompt: string
+  context: QuickAssistContext
+  suggestion?: Suggestion
+}
+
+interface QuickAssistContext {
+  source: string
+  text: string
+  /** 仅包含文本摘要，不含 DOM Range */
+  selection?: { text: string }
+  page?: { title?: string; url?: string }
+  nearbyText?: string
+  businessContext?: Record<string, unknown>
+  meta?: Record<string, unknown>
+}
+
+interface Suggestion {
+  id: string
+  label: string
+  prompt: string
+  /** 可结构化克隆的元数据，不支持共享内存；仅 Suggestion 支持，SuggestionFactory 无此字段 */
+  meta?: Record<string, unknown>
+}
+
+interface SuggestionFactory {
+  id: string
+  getLabel: (context: QuickAssistContext) => string
+  getPrompt: (context: QuickAssistContext) => string
+}
+
+interface SelectionSnapshot {
+  text: string
+  direction?: 'forward' | 'backward'
+  /** 原生 DOM Range，仅在本地校验/提取阶段使用，切勿序列化后外发 */
+  range: Range
+  rect: DOMRectReadOnly
+  clientRects: DOMRectReadOnly[]
+  anchorElement: Element | null
+  root: Document
+  createdAt: number
+}
+
+interface QuickAssistAttrs {
+  root?: QuickAssistAttributeMap
+  trigger?: QuickAssistAttributeMap
+  popover?: QuickAssistAttributeMap
+  input?: QuickAssistAttributeMap
+  submit?: QuickAssistAttributeMap
+  suggestion?: QuickAssistAttributeMap | ((suggestion: Suggestion) => QuickAssistAttributeMap)
+}
 ```
 
-配置按 `Document` 共享，对已有及后续组件生效，主题变化不会清空正在编辑的问题。每次调用与内置默认值合并，不累积上次配置；`source` 与 `colorMode` 不能同时设置。
+### CSS Variables {#css-variables}
 
-CDN 方式使用相同 API，脚本加载完成后调用即可：
+<span id="css-变量"></span>
 
-```js
-TinyRobotVanilla.configureVanillaTheme({
-  source: { type: 'attribute', attribute: 'data-cf-theme' },
-})
-```
+QuickAssist 支持在 `.tr-quick-assist` 上覆盖以下 CSS 变量。默认值随 Vanilla 主题变化；未继承宿主 `--tr-*` 主题变量时使用组件内置默认配色。
 
-配色优先级为：**组件变量覆盖 → 宿主 `--tr-*` 变量 → 内置配色**。如果加载了 TinyRobot 全量样式，需同步其颜色模式；只使用组件自带配色时，加载 Vanilla CSS 即可（CDN 方式自动注入）。
+| 变量名 | 说明 | 默认值（浅色 / 深色） |
+| --- | --- | --- |
+| `--tr-quick-assist-bg` | 入口背景色及浅色浮层基础背景色 | `#fff` / `#262626`，可继承 `--tr-container-bg-default` |
+| `--tr-quick-assist-popover-bg` | 输入浮层、输入框及发送按钮背景色 | `var(--tr-quick-assist-bg)` / `#1a1a1a` |
+| `--tr-quick-assist-text` | 主要文字颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
+| `--tr-quick-assist-muted` | 入口悬停文字、推荐问题、输入框占位文字及状态提示颜色 | `#595959` / `#b3b3b3`，可继承 `--tr-text-secondary` |
+| `--tr-quick-assist-border` | 输入框、推荐问题描边及滚动条轨道参考色 | `#e6e6e6` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-border-color` |
+| `--tr-quick-assist-trigger-border` | 入口描边颜色，悬停时保持不变 | `#dbdbdb` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-trigger-border-color` |
+| `--tr-quick-assist-popover-border` | 输入浮层外描边颜色，悬停时保持不变 | `var(--tr-quick-assist-trigger-border)`（`#dbdbdb` / `rgba(255, 255, 255, 0.2)`） |
+| `--tr-quick-assist-hover-bg` | 推荐问题悬停背景色 | `#f5f5f5` / `#262626`，可继承 `--tr-assist-suggestion-bg-hover` |
+| `--tr-quick-assist-suggestion-bg` | 推荐问题默认背景色 | `var(--tr-quick-assist-popover-bg)`（`#fff` / `#1a1a1a`） |
+| `--tr-quick-assist-glow-opacity` | 输入框下沿四色渐变光晕透明度，设为 `0` 可隐藏 | `0.16` / `0.3` |
+| `--tr-quick-assist-scrollbar-thumb` | 输入框溢出时 4×16px 滚动条滑块颜色 | `#dbdbdb` / `#808080`（深色可继承 `--tr-text-disabled`） |
+| `--tr-quick-assist-accent` | 入口、发送按钮及推荐问题键盘聚焦轮廓颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
+| `--tr-quick-assist-radius` | 输入浮层圆角 | `16px` |
+| `--tr-quick-assist-pill-radius` | 入口及推荐问题按钮圆角 | `var(--tr-radius-full, 9999px)` |
+| `--tr-quick-assist-shadow` | 入口及输入浮层阴影 | `0 2px 8px 0 rgba(0, 0, 0, 0.16)` / `0 2px 8px 0 rgba(0, 0, 0, 0.48)` |
+| `--tr-quick-assist-z-index` | 组件层级 | `var(--tr-z-index-popover, 1500)` |
+| `--tr-quick-assist-popover-width` | 输入浮层宽度（仍受视口宽度减 `16px` 限制） | `344px` |
+| `--tr-quick-assist-selection-disabled-text` | 选区超限时禁用入口文字颜色 | `#c4c4c4` / `var(--tr-text-disabled, #808080)` |
+| `--tr-quick-assist-selection-disabled-border` | 选区超限时禁用入口描边颜色 | `#dbdbdb` / `var(--tr-quick-assist-trigger-border)` |
+| `--tr-quick-assist-selection-error` | 选区超限提示中当前字数的警示颜色 | `#f63737` / `var(--tr-color-error, #d94838)` |
 
-例如，在全局样式中覆盖组件变量：
+> AI 图标和发送图标使用随深浅主题与禁用状态切换的内置 SVG 资源，不受 `--tr-quick-assist-text` 或 `--tr-quick-assist-accent` 控制。
+
+覆盖变量示例（全局样式与深色模式专用覆盖，需置于组件样式之后）：
 
 ```css
 .tr-quick-assist {
@@ -749,150 +857,14 @@ TinyRobotVanilla.configureVanillaTheme({
   --tr-quick-assist-text: #183153;
   --tr-quick-assist-radius: 12px;
 }
-```
 
-浮层挂载在 `body` 下，局部主题来源只同步亮暗状态，不会复制局部品牌变量。自定义变量应放在 `html`、`body` 或组件根节点的全局样式中。iframe 需通过 `configureVanillaTheme(config, iframeDocument)` 配置其自身文档。
-
-## 交互与限制
-
-- 划词默认仅正向触发；入口默认出现在选区末行右下方，空间不足时会翻转或调整位置；打开输入浮层后仍会跟随入口对应的首末行位置。
-- 点击入口后输入框立即打开并聚焦，默认留空，设置 `input.autoFill: true` 可填入选中文字；按 Enter 发送，按 Shift+Enter 换行，输入法组合期间不会误发。
-- 等待业务上下文构造或脱敏时，仍可编辑输入，但暂时不能提交；脱敏完成前不会调用推荐函数。
-- 点击推荐项或手动发送后，组件先关闭划词界面，再调用 `adapter`。
-- 新选区会替换旧会话。点击外部、按 Esc、锚点失效、显著滚动、路由变化或调用生命周期方法时，会清理当前界面。
-- 浏览器的 `popstate` 和 `hashchange` 会自动关闭界面；其他单页应用导航应由路由钩子调用 `close()`。
-
-::: tip 功能边界
-输入浮层不显示 AI 答案，也不提供流式渲染、重试、多轮对话或模型管理；这些仍由应用已有的 AI 面板负责。
-:::
-
-## 配置迁移
-
-输入文案归入 `input`；推荐文案与提交内容统一使用 `suggestions`。以下旧字段已移除，不保留兼容别名：
-
-| 原配置                                               | 当前配置                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------- |
-| `messages.placeholder`                               | `input.placeholder`                                               |
-| `messages.inputTooLong`                              | `input.maxLengthExceededMessage`                                  |
-| `messages.inputLabel`                                | `input.ariaLabel`                                                 |
-| `messages.submitLabel`                               | `input.submitLabel`                                               |
-| `messages.defaultExplain`、`messages.defaultUseCase` | `suggestions` 中的 `label` / `prompt` 或 `getLabel` / `getPrompt` |
-
-## Props
-
-点击下方 API 表中的属性名、方法名、事件名或 CSS 变量名，可跳转到对应示例或用法说明。
-
-| 属性名                                                               | 类型                                                                                        | 默认值               | 说明                                                                                                                                           |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`root`](#example-basic)                                             | `Document`                                                                                  | `document`           | 所在文档；不接受 `ShadowRoot`                                                                                                                  |
-| [`enabled`](#example-lifecycle)                                      | `boolean`                                                                                   | `true`               | 是否启用划词监听                                                                                                                               |
-| [`adapter`](#example-basic)                                          | `AIAdapter`                                                                                 | —                    | 必填；由 `submit(request)` 交给应用已有的对话能力                                                                                              |
-| [`include`](#example-selection-scope)                                | `string[]`                                                                                  | —                    | 限定可触发的页面区域                                                                                                                           |
-| [`exclude`](#example-selection-scope)                                | `string[]`                                                                                  | —                    | 在内置排除规则上追加页面区域                                                                                                                   |
-| [`selection.maxTextLength`](#example-selection-scope)                | `number \| null`                                                                            | `8000`               | Unicode 码点上限，正整数；`null` 不限制。超限显示禁用入口                                                                                      |
-| [`selection.maxTextLengthExceededMessage`](#example-selection-scope) | `string`                                                                                    | `划词字数超出限制`   | 超限提示文案，后面自动追加当前字数和上限                                                                                                       |
-| [`selection.forwardOnly`](#example-direction-placement)              | `boolean`                                                                                   | `true`               | 仅正向选词触发；设为 false 允许双向选择                                                                                                        |
-| [`selection.validateActivation`](#example-activation)                | `(view: QuickAssistActivationView) => boolean`                                              | 默认文本规则         | 仅自定义激活的文本校验，不接收 DOM Range                                                                                                       |
-| [`selection.validate`](#example-selection-scope)                     | `(snapshot) => boolean`                                                                     | 内置校验             | 替代默认的文本内容校验                                                                                                                         |
-| [`trigger.label`](#example-input)                                    | `string`                                                                                    | `智能帮助`           | 划词入口文案                                                                                                                                   |
-| [`trigger.showDelay`](#example-trigger-delay)                        | `number`                                                                                    | `0`                  | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数                                                                                               |
-| [`trigger.offset`](#example-direction-placement)                     | `number`                                                                                    | `8`                  | 入口及输入浮层与选区的间距，单位为像素                                                                                                         |
-| [`trigger.placement`](#example-direction-placement)                  | `'auto' \| 'top' \| 'bottom' \| 'top-start' \| 'top-end' \| 'bottom-start' \| 'bottom-end'` | `'bottom-end'`       | 入口及输入浮层的优先位置；上方按首行、下方按末行，空间不足时调整                                                                               |
-| [`input.maxRows`](#example-input)                                    | `number`                                                                                    | `2`                  | 输入区最多显示的行数，须为正整数，超过后内部滚动                                                                                               |
-| [`input.maxLength`](#example-input)                                  | `number \| null`                                                                            | 不限制               | 可选的 Unicode 码点上限，须为正整数；省略或 `null` 不限制；配置后始终显示计数，超限不可发送                                                    |
-| [`input.autoFill`](#example-input)                                   | `boolean`                                                                                   | `false`               | 是否自动将选中或主动激活的文字填入输入区，不影响上下文                                                                                         |
-| [`input.placeholder`](#example-input)                                | `string`                                                                                    | `告诉 AI 你想做什么` | 输入为空时显示的占位文案                                                                                                                       |
-| [`input.ariaLabel`](#example-input)                                  | `string`                                                                                    | `请输入问题`         | textarea 的无障碍名称，不是弹层标题                                                                                                            |
-| [`input.submitLabel`](#example-input)                                | `string`                                                                                    | `发送问题`           | 图标发送按钮的无障碍名称和悬停标题                                                                                                             |
-| [`input.maxLengthExceededMessage`](#example-input)                   | `string`                                                                                    | `字数超出限制`       | 超过 input.maxLength 时在发送区域显示的校验提示                                                                                                |
-| [`nearbyContext.maxLength`](#example-nearby-context)                 | `number`                                                                                    | `500`                | 附近文本的最大字符数                                                                                                                           |
-| [`nearbyContext.blockSelectors`](#example-nearby-context)            | `string[]`                                                                                  | 内置选择器           | 在默认语义块之外增加候选块                                                                                                                     |
-| [`getNearbyContext`](#example-nearby-context)                        | `(snapshot) => string \| undefined`                                                         | —                    | 自定义附近文本；`snapshot` 含 DOM `Range`                                                                                                      |
-| [`getContext`](#example-context)                                     | `(context, signal) => Record \| Promise<Record>`                                            | —                    | 返回业务字段，合并到 `businessContext`                                                                                                         |
-| [`sanitizeContext`](#example-context)                                | `(context, signal) => QuickAssistContext \| Promise<QuickAssistContext>`                    | —                    | 返回最终允许外发的完整上下文                                                                                                                   |
-| [`suggestions`](#example-suggestions)                                | `QuickAssistSuggestionInput[]`                                                              | 默认推荐             | 静态推荐或推荐生成函数                                                                                                                         |
-| [`getSuggestions`](#example-remote-suggestions)                      | `(context, signal) => Suggestion[] \| Promise<Suggestion[]>`                                | —                    | 使用脱敏后的上下文获取异步推荐                                                                                                                 |
-| [`validateSuggestion`](#远程问题校验-validatesuggestion)             | `(suggestion: Suggestion, context: QuickAssistContext) => boolean`                          | 基础格式校验         | 可选业务校验，仅过滤远程问题，在合并前执行，见[远程问题校验](#远程问题校验-validatesuggestion)                                                 |
-| [`mergeSuggestions`](#example-remote-suggestions)                    | `(base, incoming, context) => Suggestion[]`                                                 | 静态优先追加         | 远程成功返回后同步合并；可整体替换或远程优先；最终按 `id` 保留首次出现项并受数量上限约束，见[自定义合并策略](#自定义合并策略-mergesuggestions) |
-| [`maxSuggestions`](#example-suggestions)                             | `number`                                                                                    | `2`                  | 最多展示的推荐数，必须为正整数                                                                                                                 |
-| [`buildPrompt`](#example-build-prompt)                               | `(input) => string`                                                                         | 内置构造             | 自定义提交内容                                                                                                                                 |
-| [`attrs`](#example-attrs)                                            | `QuickAssistAttrs`                                                                          | —                    | 为组件内部元素追加安全的 DOM 属性                                                                                                              |
-| [`messages.loading`](#example-suggestion-messages)                   | `string`                                                                                    | `正在加载推荐…`      | 推荐加载期间显示的状态文案                                                                                                                     |
-| [`messages.empty`](#example-suggestion-messages)                     | `string`                                                                                    | `暂无推荐`           | 没有可显示推荐时的状态文案                                                                                                                     |
-| [`messages.error`](#example-suggestion-messages)                     | `string`                                                                                    | `推荐加载失败`       | 推荐准备或加载失败且无可显示推荐时的状态文案；不表示输入校验或发送错误                                                                         |
-| [`onEvent`](#example-events)                                         | `(event) => void`                                                                           | —                    | 事件回调；回调异常不会打断组件清理                                                                                                             |
-
-`attrs.suggestion` 可以是属性对象，也可以是按推荐项返回属性对象的函数。事件处理器、`style`、写入 HTML 的属性、`value`、`disabled`、`type`、`id` 等会被忽略；`class` 只能追加，不能覆盖组件内部行为。
-
-## Methods
-
-| 方法名                                          | 参数                                                      | 说明                                                                 |
-| ----------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------- |
-| [`activate`](#example-activation)               | `QuickAssistActivationInput \| QuickAssistAnchorShortcut` | 提供文本和锚点，显示智能帮助入口；详见主动激活示例                   |
-| [`registerSource`](#example-register-source)    | `QuickAssistSelectionSource`                              | 注册自动来源，返回注销函数，随实例启停联动                           |
-| [`enable`](#example-lifecycle)                  | —                                                         | 启动划词和全局事件监听；重复调用无副作用                             |
-| [`disable`](#example-lifecycle)                 | —                                                         | 关闭当前输入浮层并停止监听；之后可再次调用 `enable()`                |
-| [`close`](#example-lifecycle)                   | —                                                         | 关闭当前会话，不销毁实例                                             |
-| [`updateOptions`](#example-direction-placement) | `partial: Partial<QuickAssistOptions>`                    | 关闭当前会话、废弃旧异步结果并重建配置；顶层浅合并，嵌套对象整体替换 |
-| [`destroy`](#example-lifecycle)                 | —                                                         | 关闭并释放监听器与 DOM；重复调用无副作用                             |
-
-`registerSource()` 是已实现的高级接口，用于多个自定义事件源的统一启停、注销和来源级去重；它不会自动读取编辑器选区或生成坐标。上面的按钮、指标和 Monaco 示例直接使用 `activate()`，无需注册来源。没有多来源管理需求时，不必使用此方法。
-
-`root` 创建后不可更换；`updateOptions({ root: anotherDocument })` 会抛出错误，应先销毁旧实例再创建新实例。更新时省略 `enabled` 会保留实例当前启用/停用状态；显式传入时使用新值。
-
-例如，原来配置 `trigger: { label: '帮助', offset: 12 }`，随后调用 `updateOptions({ trigger: { showDelay: 200 } })` 会把标签和偏移恢复到默认值。若要保留它们，需要传入完整分组：`updateOptions({ trigger: { label: '帮助', offset: 12, showDelay: 200 } })`。`selection`、`input`、`nearbyContext`、`messages` 和 `attrs` 同样遵循整体替换语义。
-
-## Events
-
-| 事件名                                | 参数             | 说明                                                                                                                          |
-| ------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`selection`](#example-events)        | —                | 接受新的合法选区                                                                                                              |
-| [`trigger_show`](#example-events)     | —                | 展示划词入口                                                                                                                  |
-| [`trigger_click`](#example-events)    | —                | 点击入口                                                                                                                      |
-| [`popover_show`](#example-events)     | —                | 展示输入浮层                                                                                                                  |
-| [`suggestion_click`](#example-events) | `suggestionId`   | 点击推荐项                                                                                                                    |
-| [`submit`](#example-events)           | —                | 提交请求；事件不包含选区文字或发送内容                                                                                        |
-| [`close`](#example-events)            | `reason`         | `outside`、`escape`、`scroll`、`anchor-invalid`、`route`、`submit`、`disable`、`destroy`、`update`、`manual` 或 `reselection` |
-| [`error`](#example-events)            | `stage`、`error` | 异步上下文、推荐、提交内容构造、适配器或配置发生错误                                                                          |
-
-`sessionId` 是组件实例内的划词会话编号：每次接受新的有效选区时递增，同一次划词从入口显示到关闭的事件使用相同编号，便于关联事件。它不是登录会话、用户 ID 或跨实例持久化的业务标识。配置错误发生在划词前，此时 `sessionId` 为 `0`。表中只列出部分事件的其他字段。事件不包含选区原文、`query`、`prompt` 或完整上下文；错误对象由应用按自己的日志规则处理。
-
-## CSS 变量
-
-QuickAssist 组件支持以下 CSS 变量来自定义样式，可在 `.tr-quick-assist` 上覆盖。默认值随 Vanilla 主题变化；未继承 TinyRobot 主题变量时，使用组件自带的对应主题默认值。
-
-| 变量名 | 说明 | 默认值（浅色 / 深色） |
-| --- | --- | --- |
-| [`--tr-quick-assist-bg`](#example-theme) | 入口背景色及浅色浮层基础背景色 | `#fff` / `#262626`，可继承 `--tr-container-bg-default` |
-| [`--tr-quick-assist-popover-bg`](#example-theme) | 输入浮层、输入框及发送按钮背景色 | `var(--tr-quick-assist-bg)` / `#1a1a1a` |
-| [`--tr-quick-assist-text`](#example-theme) | 主要文字颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
-| [`--tr-quick-assist-muted`](#example-theme) | 入口悬停文字、推荐问题、输入框占位文字及状态提示颜色 | `#595959` / `#b3b3b3`，可继承 `--tr-text-secondary` |
-| [`--tr-quick-assist-border`](#example-theme) | 输入框、推荐问题描边及滚动条颜色 | `#e6e6e6` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-border-color` |
-| [`--tr-quick-assist-trigger-border`](#example-theme) | 入口描边颜色，悬停时保持不变 | `#dbdbdb` / `rgba(255, 255, 255, 0.2)`，可继承 `--tr-assist-trigger-border-color` |
-| [`--tr-quick-assist-popover-border`](#example-theme) | 输入浮层外描边颜色，悬停时保持不变 | `var(--tr-quick-assist-trigger-border)`，即 `#dbdbdb` / `rgba(255, 255, 255, 0.2)` |
-| [`--tr-quick-assist-hover-bg`](#example-theme) | 推荐问题悬停背景色 | `#f5f5f5` / `#262626`，可继承 `--tr-assist-suggestion-bg-hover` |
-| [`--tr-quick-assist-suggestion-bg`](#example-theme) | 推荐问题默认背景色，与悬停背景区分 | `var(--tr-quick-assist-popover-bg)`，浅色 `#fff` / 深色 `#1a1a1a` |
-| [`--tr-quick-assist-glow-opacity`](#example-theme) | 输入框下沿四色渐变光晕的透明度，设为 `0` 可隐藏 | `0.16` / `0.3` |
-| [`--tr-quick-assist-scrollbar-thumb`](#example-theme) | 输入框溢出时持续可见的 4×16px 滚动条滑块颜色 | `#dbdbdb` / `#808080`（深色可继承 `--tr-text-disabled`） |
-| [`--tr-quick-assist-accent`](#example-theme) | 入口、发送按钮及推荐问题键盘聚焦时的轮廓颜色 | `#191919` / `#e6e6e6`，可继承 `--tr-text-primary` |
-| [`--tr-quick-assist-radius`](#example-theme) | 输入浮层圆角 | `16px` |
-| [`--tr-quick-assist-pill-radius`](#example-theme) | 入口及推荐问题按钮圆角 | `var(--tr-radius-full, 9999px)` |
-| [`--tr-quick-assist-shadow`](#example-theme) | 入口及输入浮层阴影 | `0 2px 8px 0 rgba(0, 0, 0, 0.16)` / `0 2px 8px 0 rgba(0, 0, 0, 0.48)` |
-| [`--tr-quick-assist-z-index`](#example-theme) | 组件层级 | `var(--tr-z-index-popover, 1500)` |
-| `--tr-quick-assist-popover-width` | 输入浮层宽度，仍受视口宽度减 16px 限制 | `344px` |
-
-AI 图标采用深浅主题对应的 SVG 资源；发送图标采用固定配色的 SVG，随主题和禁用状态切换，不受 `--tr-quick-assist-text` 或 `--tr-quick-assist-accent` 控制。旧版 `--tr-quick-assist-bg-subtle`、`--tr-quick-assist-border-hover` 和 `--tr-quick-assist-icon-gradient-*` 已不再生效。
-
-覆盖深色模式专用的浮层背景、外描边或光晕透明度时，使用匹配主题的选择器，并将业务样式放在组件样式之后：
-
-```css
 .tr-quick-assist[data-tr-vanilla-color-mode='dark'] {
   --tr-quick-assist-popover-border: transparent;
   --tr-quick-assist-glow-opacity: 0.4;
 }
 ```
 
-例如，通过 `attrs.popover.class` 为浮层添加业务 class 后设置宽度：
+结合 `attrs.popover.class` 按实例调整浮层宽度：
 
 ```ts
 createQuickAssist({
@@ -906,3 +878,13 @@ createQuickAssist({
   --tr-quick-assist-popover-width: 400px;
 }
 ```
+
+## 常见问题
+
+| 常见现象 | 可能原因与排查方向 |
+| --- | --- |
+| 划词后没有出现“智能帮助”入口 | ① 反向拖选被默认 `selection.forwardOnly: true` 拦截（可从左向右选择或设为 `false`）；② 选区超出 `include` 范围或落在表单、编辑器、`[data-sensitive]` 等排除区；③ 选区为纯数字、纯标点、URL 或 UUID 被内置文本规则过滤；④ 实例当前处于 `disable()` 状态；⑤ 移动端长按不触发原生划词链路 |
+| 打开浮层后输入框是空的，没有填入选中文字 | `input.autoFill` 默认为 `false`，但选区原文始终保留在 `request.context.text` 中；如需预填，可配置 `input.autoFill: true` 或在单次激活时传 `activate({ autoFill: true })` |
+| 远程推荐已返回，但界面未显示或条数不全 | ① 同时配置了 `suggestions` 与 `getSuggestions` 时，默认静态优先，静态项占满 `maxSuggestions`（默认 `2`）会截断远程项，请配置 `mergeSuggestions` 或增大 `maxSuggestions`；② 远程项 `id`/`label`/`prompt` 为空白、`meta` 含不可克隆对象，或被 `validateSuggestion` 过滤 |
+| 点击推荐或发送后浮层关闭了，但没看到 AI 回答 | QuickAssist 不内置回答区，提交后会先关闭浮层再调用 `adapter.submit(request)`；请在 `adapter.submit` 中打开并驱动应用已有的对话面板，并确认后端消费了 `request.context` 或已通过 `buildPrompt` 拼入 `context.text` |
+| 提交失败时没有错误提示，浮层也没有重新打开 | 组件先关闭浮层再提交，失败不会重开界面；请确保 `adapter.submit` 同步抛错或返回被拒绝的 `Promise`（异步函数务必 `return` Promise），并在 `onEvent` 中监听 `event.type === 'error' && event.stage === 'adapter'` |

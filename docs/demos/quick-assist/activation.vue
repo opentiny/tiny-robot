@@ -1,17 +1,25 @@
 <template>
   <section id="qa-manual-activation" class="qa-activation-demo">
-    <label class="qa-activation-demo__setting">
-      <input v-model="directOpen" type="checkbox" @change="closeCurrent" />
-      直接显示输入框（跳过“智能帮助”按钮）
-    </label>
+    <div class="qa-activation-demo__settings">
+      <label class="qa-activation-demo__setting">
+        <input v-model="directOpen" type="checkbox" @change="closeCurrent" />
+        点击时直接显示输入框（跳过“智能帮助”按钮）
+      </label>
+      <label class="qa-activation-demo__setting">
+        <input v-model="hoverTrigger" type="checkbox" @change="closeCurrent" />
+        悬停指标时自动显示入口
+      </label>
+    </div>
     <div class="qa-activation-demo__example">
       <h4>按钮作为锚点</h4>
       <p>点击按钮解释指定术语，使用实例的默认推荐；上方开关控制是否直接显示输入框。</p>
       <button type="button" @click="activateButton">解释“按需计费”</button>
     </div>
     <div class="qa-activation-demo__example">
-      <h4>悬停指标，自定义内容与推荐</h4>
-      <p>悬停或聚焦指标，按指标数值定位并提供专属推荐。浮层打开后可移入其中操作，也支持点击。</p>
+      <h4>点击指标，自定义内容与推荐</h4>
+      <p>
+        默认点击指标卡片按数值定位并提供专属推荐；勾选“悬停指标时自动显示入口”后，也可悬停先显示入口，避免浏览页面时误抢焦点。
+      </p>
       <div class="qa-activation-demo__metrics">
         <button
           v-for="metric in metrics"
@@ -20,7 +28,6 @@
           class="qa-activation-demo__metric"
           :aria-pressed="selectedMetric === metric.id"
           @pointerenter="activateMetric($event, metric)"
-          @focus="activateMetric($event, metric)"
           @click="activateMetric($event, metric)"
         >
           <span>{{ metric.label }}</span>
@@ -61,6 +68,7 @@ const metrics = [
 ]
 const selectedMetric = ref('')
 const directOpen = ref(true)
+const hoverTrigger = ref(false)
 const lastRequest = shallowRef<AIRequest>()
 let quickAssist: QuickAssistInstance | undefined
 let switchingActivation = false
@@ -91,16 +99,18 @@ function activateButton(event: MouseEvent) {
 }
 
 function activateMetric(event: Event, metric: (typeof metrics)[number]) {
-  if (event.type === 'pointerenter' && (event as PointerEvent).pointerType === 'touch') return
-  // Esc 恢复卡片焦点时不自动重开；重新悬停或显式点击仍可打开。
-  if (event.type === 'focus' && (switchingActivation || selectedMetric.value === metric.id)) return
+  const isHover = event.type === 'pointerenter'
+  if (isHover && (!hoverTrigger.value || (event as PointerEvent).pointerType === 'touch')) return
+  // 当前指标会话仍活跃或正在切换激活时不重复触发悬停；关闭后会清空 selectedMetric，再次进入可重新唤起。
+  if (isHover && (switchingActivation || selectedMetric.value === metric.id)) return
   const button = event.currentTarget as HTMLButtonElement
   const value = button.querySelector<HTMLElement>('[data-metric-value]')!
   selectedMetric.value = metric.id
   lastRequest.value = undefined
   activate({
     source: 'dashboard',
-    open: directOpen.value ? 'popover' : 'trigger',
+    // 悬停时仅展示入口，避免在浏览页面时突然抢占输入焦点。
+    open: isHover ? 'trigger' : directOpen.value ? 'popover' : 'trigger',
     text: `${metric.label}：${metric.value}`,
     suggestions: [
       {
@@ -129,7 +139,7 @@ function activateMetric(event: Event, metric: (typeof metrics)[number]) {
 
 onMounted(() => {
   quickAssist = createQuickAssist({
-    // 此 Demo 只演示 API 激活；旧 validate 只影响原生 DOM 划词。
+    // 此 Demo 只演示 API 激活；selection.validate 仅作用于原生 DOM 划词。
     include: ['#qa-manual-activation'],
     selection: { validate: () => false },
     suggestions: [
@@ -140,6 +150,11 @@ onMounted(() => {
       submit: (request) => {
         lastRequest.value = request
       },
+    },
+    onEvent: (event) => {
+      if (event.type === 'close' && !switchingActivation) {
+        selectedMetric.value = ''
+      }
     },
   })
 })
@@ -156,11 +171,16 @@ onBeforeUnmount(() => quickAssist?.destroy())
 .qa-activation-demo__example + .qa-activation-demo__example {
   margin-top: 22px;
 }
-.qa-activation-demo__setting {
+.qa-activation-demo__settings {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 20px;
+}
+.qa-activation-demo__setting {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
   font-size: 14px;
 }
 h4 {

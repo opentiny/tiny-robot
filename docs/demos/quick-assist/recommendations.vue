@@ -30,7 +30,11 @@ onMounted(() => {
     adapter: {
       submit(request) {
         submitted.value = JSON.stringify(
-          { 推荐项: request.suggestion?.label ?? '手动输入', 提交内容: request.prompt },
+          {
+            query: request.query,
+            prompt: request.prompt,
+            suggestion: request.suggestion?.label ?? null,
+          },
           null,
           2,
         )
