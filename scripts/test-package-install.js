@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import semver from 'semver'
 
 import { preparePublishPackages } from './prepare-publish-packages.js'
 import { PUBLISHED_DEPENDENCY_SECTIONS, PUBLISH_PACKAGES, readPublishPackages } from './publish-version-utils.js'
@@ -75,7 +76,34 @@ export function collectPeerDependencies(packages, publishedPackageNames) {
     }
   }
 
-  return Object.fromEntries([...peerRanges].map(([name, ranges]) => [name, [...ranges].join(' ')]))
+  return Object.fromEntries([...peerRanges].map(([name, ranges]) => [name, intersectPeerRanges(name, [...ranges])]))
+}
+
+function intersectPeerRanges(name, ranges) {
+  if (ranges.length === 1) return ranges[0]
+
+  // Each `||` branch is an alternative, so intersect branches as a Cartesian product.
+  const alternatives = ranges.map((range) => new semver.Range(range).set)
+  const combinations = alternatives.reduce(
+    (current, next) => current.flatMap((left) => next.map((right) => [...left, ...right])),
+    [[]],
+  )
+  const intersections = new Set()
+
+  for (const combination of combinations) {
+    const range = combination
+      .map((comparator) => comparator.value)
+      .filter(Boolean)
+      .join(' ')
+    const minimum = semver.minVersion(range)
+    if (minimum) intersections.add(new semver.Range(range).range)
+  }
+
+  if (intersections.size === 0) {
+    throw new Error(`Peer dependency ${name} has incompatible ranges: ${ranges.join(', ')}`)
+  }
+
+  return [...intersections].join(' || ')
 }
 
 function assertInstalledManifests(consumerDirectory) {
