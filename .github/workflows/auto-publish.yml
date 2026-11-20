@@ -14,6 +14,9 @@ jobs:
   build:
     # 指定运行环境为最新版本的ubuntu
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
@@ -29,7 +32,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 22 # 使用Node.js 22版本
+          node-version: '>=24.5.0 <25' # 确保随附 npm 支持 OIDC Trusted Publishing
           package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
@@ -92,14 +95,11 @@ jobs:
       # 步骤8: 发布组件到NPM
       - name: Publish components
         run: pnpm lerna publish from-package --dist-tag ${{steps.parse_tag.outputs.dist_tag}} --yes
-        env:
-          # 使用NPM令牌进行身份验证
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
 
       # 步骤9: 发布组件到GitHub Release
       - name: Release
         if: ${{ steps.parse_tag.outputs.dist_tag == 'latest' }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
@@ -117,7 +117,7 @@ jobs:
         run: ls -la ./docs/dist
 
       - name: Deploy docs
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/dist

@@ -1,6 +1,10 @@
 {
   "name": "@opentiny/tiny-robot-cli",
   "version": "0.5.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
+  },
   "description": "CLI to scaffold TinyRobot product projects",
   "type": "module",
   "bin": {
