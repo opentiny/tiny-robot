@@ -1,8 +1,8 @@
 <template>
   <div class="qa-feature-demo">
     <div class="qa-feature-demo__controls">
-      <button type="button" @click="enable">启用划词</button>
-      <button type="button" @click="disable">停用划词</button>
+      <button type="button" :aria-pressed="isEnabled" @click="enable">启用划词</button>
+      <button type="button" :aria-pressed="!isEnabled" @click="disable">停用划词</button>
       <button type="button" @click="close">模拟路由切换</button>
     </div>
     <p id="qa-lifecycle-text">选中这段文字，然后用上方按钮观察当前划词入口或输入浮层如何关闭。</p>
@@ -16,16 +16,19 @@ import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
 import '@opentiny/tiny-robot/vanilla/style.css'
 import type { QuickAssistInstance } from '@opentiny/tiny-robot/vanilla'
 
+const isEnabled = ref(true)
 const status = ref('划词已启用')
 let quickAssist: QuickAssistInstance | undefined
 
 function enable() {
   quickAssist?.enable()
+  isEnabled.value = true
   status.value = '划词已启用，可以重新选中文字'
 }
 
 function disable() {
   quickAssist?.disable()
+  isEnabled.value = false
   status.value = '划词已停用，当前界面已关闭'
 }
 
@@ -83,6 +86,10 @@ button {
 
 button:hover {
   border-color: var(--vp-c-brand-1, #2175c4);
+}
+button[aria-pressed='true'] {
+  border-color: var(--vp-c-brand-1, #2175c4);
+  background: var(--vp-c-brand-soft, #e8f2ff);
 }
 button:focus-visible {
   outline: 2px solid var(--vp-c-brand-1, #2175c4);
