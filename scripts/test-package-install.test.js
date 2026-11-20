@@ -44,7 +44,11 @@ test('intersects complete peer ranges with OR alternatives', () => {
     { packageJson: { name: 'second', peerDependencies: { editor: '^2.0.0 || ^3.0.0' } } },
   ]
 
-  assert.deepEqual(collectPeerDependencies(packages, new Set()), { editor: '>=2.0.0 <3.0.0-0' })
+  const peers = collectPeerDependencies(packages, new Set())
+
+  assert.equal(semver.satisfies('1.5.0', peers.editor), false)
+  assert.equal(semver.satisfies('2.5.0', peers.editor), true)
+  assert.equal(semver.satisfies('3.5.0', peers.editor), false)
 })
 
 test('rejects peer ranges with no semantic intersection', () => {
@@ -56,5 +60,17 @@ test('rejects peer ranges with no semantic intersection', () => {
   assert.throws(
     () => collectPeerDependencies(packages, new Set()),
     /editor has incompatible ranges: \^1\.0\.0, \^2\.0\.0/,
+  )
+})
+
+test('preserves prerelease exclusions from every peer range', () => {
+  const packages = [
+    { packageJson: { name: 'first', peerDependencies: { editor: '>=1.0.0-alpha <1.0.0' } } },
+    { packageJson: { name: 'second', peerDependencies: { editor: '>=0.0.0 <1.0.0' } } },
+  ]
+
+  assert.throws(
+    () => collectPeerDependencies(packages, new Set()),
+    /editor has incompatible ranges: >=1\.0\.0-alpha <1\.0\.0, >=0\.0\.0 <1\.0\.0/,
   )
 })

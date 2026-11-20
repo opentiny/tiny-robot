@@ -85,18 +85,33 @@ function intersectPeerRanges(name, ranges) {
   // Each `||` branch is an alternative, so intersect branches as a Cartesian product.
   const alternatives = ranges.map((range) => new semver.Range(range).set)
   const combinations = alternatives.reduce(
-    (current, next) => current.flatMap((left) => next.map((right) => [...left, ...right])),
+    (current, next) => current.flatMap((left) => next.map((right) => [...left, right])),
     [[]],
   )
   const intersections = new Set()
 
   for (const combination of combinations) {
-    const range = combination
+    const comparators = combination.flat()
+    let range = comparators
       .map((comparator) => comparator.value)
       .filter(Boolean)
       .join(' ')
+
+    const prereleaseTuples = combination.map((set) => new Set(set.flatMap(getPrereleaseTuple)))
+    const allPrereleaseTuples = new Set(prereleaseTuples.flatMap((tuples) => [...tuples]))
+    const commonPrereleaseTuples = new Set(
+      [...(prereleaseTuples[0] ?? [])].filter((tuple) => prereleaseTuples.every((tuples) => tuples.has(tuple))),
+    )
+
+    for (const tuple of allPrereleaseTuples) {
+      if (commonPrereleaseTuples.has(tuple)) continue
+      range = intersectRanges(range, `<${tuple}-0 || >=${tuple}`)
+      if (!range) break
+    }
+
+    if (!range) continue
     const minimum = semver.minVersion(range)
-    if (minimum) intersections.add(new semver.Range(range).range)
+    if (minimum) intersections.add(range)
   }
 
   if (intersections.size === 0) {
@@ -104,6 +119,29 @@ function intersectPeerRanges(name, ranges) {
   }
 
   return [...intersections].join(' || ')
+}
+
+function getPrereleaseTuple(comparator) {
+  const version = comparator.semver
+  return version?.prerelease.length ? [`${version.major}.${version.minor}.${version.patch}`] : []
+}
+
+function intersectRanges(leftRange, rightRange) {
+  const leftSets = new semver.Range(leftRange).set
+  const rightSets = new semver.Range(rightRange).set
+  const intersections = []
+
+  for (const left of leftSets) {
+    for (const right of rightSets) {
+      const range = [...left, ...right]
+        .map((comparator) => comparator.value)
+        .filter(Boolean)
+        .join(' ')
+      if (semver.minVersion(range)) intersections.push(new semver.Range(range).range)
+    }
+  }
+
+  return intersections.join(' || ')
 }
 
 function assertInstalledManifests(consumerDirectory) {
