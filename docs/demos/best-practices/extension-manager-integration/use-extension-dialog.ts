@@ -91,7 +91,10 @@ export const useExtensionDialog = ({ items, activeTab, message, saveDefinition, 
       source: 'manual',
       id,
       version: 1,
-      data: { value: { ...value }, tools: [{ id: 'query', name: '查询资料', enabled: true }] },
+      data: {
+        value: { ...value },
+        tools: [{ id: 'query', name: '查询资料', description: '根据关键词查询该 MCP 服务提供的资料。', enabled: true }],
+      },
     }
     try {
       await saveDefinition(definition)
