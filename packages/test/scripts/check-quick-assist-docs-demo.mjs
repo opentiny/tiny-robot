@@ -131,9 +131,13 @@ try {
       await checkThemeContrast(
         page.locator(
           [
+            '.qa-basic-demo',
+            '.qa-basic-demo__hint',
             '.qa-demo__page',
             '.qa-demo__page [data-sensitive]',
             '.qa-demo__open',
+            '.qa-demo__placeholder-title',
+            '.qa-demo__placeholder-desc',
             '.qa-position-demo label',
             '.qa-position-demo select',
             '#qa-position-text',
@@ -164,6 +168,7 @@ try {
     // Check the real HTML preview with the docs' copied shared styles present.
     // A dark Vanilla root can still inherit light --tr-* tokens if the iframe's
     // shared theme selector is not synchronized with its custom data-theme.
+    if (!standalone) await page.locator('iframe').first().scrollIntoViewIfNeeded()
     await paragraph.scrollIntoViewIfNeeded()
     await paragraph.evaluate((element) => {
       const range = document.createRange()
@@ -273,6 +278,7 @@ try {
   await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__suggestion'))
   if (!standalone) {
     for (const selector of [
+      '#qa-basic-text',
       '#qa-delay-text',
       '#qa-position-text',
       '#qa-recommendations-text',
@@ -283,6 +289,43 @@ try {
     ]) {
       await expect(page.locator(selector)).toBeVisible()
     }
+    const activationDemo = page.locator('#qa-manual-activation')
+    const firstMetric = activationDemo.locator('.qa-activation-demo__metric').first()
+    const secondMetric = activationDemo.locator('.qa-activation-demo__metric').nth(1)
+    const hoverToggle = activationDemo.getByRole('checkbox', { name: '悬停指标时自动显示入口', exact: true })
+    const neutralHeading = activationDemo.locator('h4').first()
+
+    await firstMetric.scrollIntoViewIfNeeded()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+    await firstMetric.click()
+    await expect(page.locator('.tr-quick-assist__popover textarea')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+
+    // Opt-in hover shows the trigger without stealing input focus, and can re-open the same metric after Esc or outside close.
+    await hoverToggle.check()
+    await neutralHeading.hover()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await neutralHeading.hover()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+
+    await neutralHeading.click()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+
+    await secondMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await expect(secondMetric).toHaveAttribute('aria-pressed', 'true')
+    await hoverToggle.uncheck()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
     const positionDemo = page.locator('.qa-position-demo')
     const selectPositionText = async (backward) => {
       await page.locator('#qa-position-text').scrollIntoViewIfNeeded()
@@ -416,10 +459,10 @@ try {
     const submittedContext = JSON.parse(
       await page.locator('#qa-context-text').locator('..').locator('pre').textContent(),
     )
-    expect(submittedContext.上下文.text).toBe('[已脱敏]')
-    expect(submittedContext.上下文.selection.text).toBe('[已脱敏]')
-    expect(submittedContext.上下文.nearbyText).toContain('[已脱敏]')
-    expect(submittedContext.上下文.businessContext.tenantId).toBe('[已脱敏]')
+    expect(submittedContext.context.text).toBe('[已脱敏]')
+    expect(submittedContext.context.selection.text).toBe('[已脱敏]')
+    expect(submittedContext.context.nearbyText).toContain('[已脱敏]')
+    expect(submittedContext.context.businessContext.tenantId).toBe('[已脱敏]')
     expect(JSON.stringify(submittedContext)).not.toContain('tenant-demo-4812')
     const sensitiveText = page.locator('#qa-context-text [data-sensitive]')
     await sensitiveText.evaluate((element) => {
