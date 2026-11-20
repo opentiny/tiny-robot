@@ -12,6 +12,8 @@ jobs:
   build-job:
     name: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -42,6 +44,11 @@ jobs:
 
       - name: Test kit
         run: pnpm -F @opentiny/tiny-robot-kit test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Test vanilla theme scripts
+        run: pnpm -F @opentiny/tiny-robot test:vanilla-theme
 
       - name: Build components
         run: pnpm build

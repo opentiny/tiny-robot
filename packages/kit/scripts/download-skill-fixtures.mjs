@@ -7,6 +7,7 @@ const cacheDirectory = join(__dirname, '../src/skills/test/.cache')
 const maxRetries = 5
 const retryBaseDelay = 200
 const requestTimeout = 30_000
+const githubToken = process.env.GITHUB_TOKEN?.trim()
 
 const fixtures = [
   {
@@ -86,6 +87,7 @@ const fetchJson = async (url) => {
       headers: {
         accept: 'application/vnd.github+json',
         'user-agent': '@opentiny/tiny-robot-kit skill fixture downloader',
+        ...(githubToken ? { authorization: `Bearer ${githubToken}` } : {}),
       },
     },
     'Failed to fetch',

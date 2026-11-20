@@ -1,0 +1,481 @@
+/* Keep this rule in the shipped stylesheet so retained selection paint also
+   works on ESM hosts with a CSP that disallows inline styles. Explicit text
+   color keeps the gray selection readable on both light and dark pages. */
+::highlight(tr-quick-assist-selection-retained) {
+  background-color: #d9d9d9;
+  color: #191919;
+}
+
+/* QuickAssist is intentionally local: the host may use this file without the
+   component library's global variables.css. Every semantic value has a local
+   fallback for that use case. */
+.tr-quick-assist {
+  --tr-quick-assist-bg: var(--tr-container-bg-default, var(--tr-vanilla-default-container-bg-default));
+  --tr-quick-assist-text: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-muted: var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary));
+  --tr-quick-assist-border: var(--tr-assist-border-color, var(--tr-vanilla-default-assist-border-color));
+  --tr-quick-assist-popover-border: var(--tr-quick-assist-trigger-border);
+  --tr-quick-assist-popover-bg: var(--tr-quick-assist-bg);
+  --tr-quick-assist-suggestion-bg: var(--tr-quick-assist-popover-bg);
+  --tr-quick-assist-trigger-border: var(
+    --tr-assist-trigger-border-color,
+    var(--tr-vanilla-default-assist-trigger-border-color)
+  );
+  --tr-quick-assist-hover-bg: var(
+    --tr-assist-suggestion-bg-hover,
+    var(--tr-vanilla-default-assist-suggestion-bg-hover)
+  );
+  --tr-quick-assist-glow-opacity: 0.16;
+  --tr-quick-assist-scrollbar-thumb: #dbdbdb;
+  --tr-quick-assist-accent: var(--tr-text-primary, var(--tr-vanilla-default-text-primary));
+  --tr-quick-assist-radius: 16px;
+  --tr-quick-assist-pill-radius: var(--tr-radius-full, 9999px);
+  --tr-quick-assist-shadow: var(--tr-assist-box-shadow, var(--tr-vanilla-default-assist-box-shadow));
+  --tr-quick-assist-z-index: var(--tr-z-index-popover, 1500);
+  position: fixed;
+  inset: 0;
+  z-index: var(--tr-quick-assist-z-index);
+  color: var(--tr-quick-assist-text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.tr-quick-assist,
+.tr-quick-assist * {
+  box-sizing: border-box;
+}
+
+.tr-quick-assist > * {
+  pointer-events: auto;
+}
+
+.tr-quick-assist button.tr-quick-assist__trigger {
+  position: fixed;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 88px;
+  min-width: 0;
+  height: 24px;
+  max-width: min(220px, calc(100vw - 16px));
+  /* The 1px border completes the 12px inset from the outer edge. */
+  padding: 2px 11px;
+  border: 1px solid var(--tr-quick-assist-trigger-border);
+  border-radius: var(--tr-quick-assist-pill-radius);
+  background: var(--tr-quick-assist-bg);
+  box-shadow: var(--tr-quick-assist-shadow);
+  color: var(--tr-quick-assist-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--tr-font-size-xs, 12px);
+  font-weight: var(--tr-font-weight-medium, 500);
+  line-height: 18px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tr-quick-assist__trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-quick-assist__trigger > .tr-quick-assist__sparkle {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.tr-quick-assist button.tr-quick-assist__trigger:hover {
+  color: var(--tr-quick-assist-muted);
+}
+
+.tr-quick-assist button.tr-quick-assist__trigger:focus-visible,
+.tr-quick-assist button.tr-quick-assist__submit:focus-visible,
+.tr-quick-assist button.tr-quick-assist__suggestion:focus-visible {
+  outline: 2px solid var(--tr-quick-assist-accent);
+  outline-offset: 2px;
+}
+
+.tr-quick-assist__sparkle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+}
+
+.tr-quick-assist__sparkle svg,
+.tr-quick-assist__send svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tr-quick-assist__sparkle .tr-quick-assist__icon--dark,
+.tr-quick-assist__send .tr-quick-assist__icon--gray,
+.tr-quick-assist__submit:disabled .tr-quick-assist__icon--black {
+  display: none;
+}
+
+.tr-quick-assist__submit:disabled .tr-quick-assist__icon--gray {
+  display: block;
+}
+
+.tr-quick-assist__send {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] .tr-quick-assist__icon--light {
+  display: none;
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] .tr-quick-assist__icon--dark {
+  display: block;
+}
+
+/* Dark mode uses the supplied gray artwork for an enabled send button. */
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] .tr-quick-assist__send .tr-quick-assist__icon--black {
+  display: none;
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] .tr-quick-assist__send .tr-quick-assist__icon--gray {
+  display: block;
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] .tr-quick-assist__submit:disabled .tr-quick-assist__icon--gray {
+  opacity: 0.55;
+}
+
+.tr-quick-assist__popover {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--tr-quick-assist-popover-width, 344px), calc(100vw - 16px));
+  min-height: 0;
+  max-height: min(440px, calc(100vh - 16px));
+  padding: 15px;
+  overflow: auto;
+  border: 1px solid var(--tr-quick-assist-popover-border);
+  border-radius: var(--tr-quick-assist-radius);
+  background: var(--tr-quick-assist-popover-bg);
+  box-shadow: var(--tr-quick-assist-shadow);
+  color: var(--tr-quick-assist-text);
+  overscroll-behavior: contain;
+  scrollbar-color: var(--tr-quick-assist-border) transparent;
+}
+
+.tr-quick-assist__composer {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 11px;
+  border: 1px solid var(--tr-quick-assist-border);
+  border-radius: 20px;
+  background: var(--tr-quick-assist-popover-bg);
+}
+
+.tr-quick-assist__composer::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -8px;
+  width: 312px;
+  /* Percentages exclude the composer's two 1px borders. */
+  max-width: calc(100% + 2px);
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff698d 22.295%, #e542bf 40.785%, #b424ff 61.102%, #0d87ff 79.873%);
+  filter: blur(40px);
+  opacity: var(--tr-quick-assist-glow-opacity);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tr-quick-assist__composer .tr-quick-assist__sparkle {
+  flex: 0 0 auto;
+}
+
+.tr-quick-assist__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tr-quick-assist__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 18px;
+  padding: 0;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* The fixed-size rail has its own reserved space and never auto-hides. */
+  scrollbar-width: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 18px;
+}
+
+.tr-quick-assist__input::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+.tr-quick-assist__scrollbar {
+  position: absolute;
+  right: 3px;
+  width: 4px;
+  touch-action: none;
+  cursor: default;
+}
+
+.tr-quick-assist__scrollbar[hidden] {
+  display: none;
+}
+
+.tr-quick-assist__scrollbar:focus-visible {
+  outline: 2px solid var(--tr-quick-assist-accent);
+  outline-offset: 2px;
+}
+
+.tr-quick-assist__scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--tr-quick-assist-scrollbar-thumb);
+}
+
+.tr-quick-assist__input::placeholder {
+  color: var(--tr-quick-assist-muted);
+}
+
+.tr-quick-assist button.tr-quick-assist__submit {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tr-quick-assist-popover-bg);
+  color: var(--tr-quick-assist-text);
+  cursor: pointer;
+}
+
+.tr-quick-assist button.tr-quick-assist__submit:hover:not(:disabled) {
+  color: var(--tr-quick-assist-accent);
+}
+
+.tr-quick-assist button.tr-quick-assist__submit:disabled {
+  color: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
+  cursor: not-allowed;
+  font-weight: 400;
+  /* Keep the immediately visible tooltip aligned with this entry. */
+  animation: none;
+  opacity: 1;
+}
+
+.tr-quick-assist__suggestions {
+  /* Keep opaque recommendation fills and borders above the composer's glow. */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tr-quick-assist__suggestions:empty {
+  display: none;
+}
+
+.tr-quick-assist button.tr-quick-assist__suggestion {
+  max-width: 100%;
+  height: 28px;
+  padding: 5px 11px;
+  overflow: hidden;
+  border: 1px solid var(--tr-quick-assist-border);
+  border-radius: var(--tr-quick-assist-pill-radius);
+  background: var(--tr-quick-assist-suggestion-bg);
+  color: var(--tr-quick-assist-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--tr-font-size-xs, 12px);
+  line-height: 16px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-quick-assist button.tr-quick-assist__suggestion:hover {
+  background: var(--tr-quick-assist-hover-bg);
+}
+
+.tr-quick-assist__status {
+  margin-top: 9px;
+  color: var(--tr-quick-assist-muted);
+  font-size: var(--tr-font-size-xs, 12px);
+}
+
+.tr-quick-assist__status[data-state='error'] {
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tr-quick-assist button.tr-quick-assist__trigger,
+  .tr-quick-assist__popover {
+    animation: tr-quick-assist-fade-in 120ms ease-out;
+  }
+}
+
+@keyframes tr-quick-assist-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tr-quick-assist__composer--multiline {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto 24px;
+  border-radius: 20px;
+}
+
+.tr-quick-assist__composer--multiline .tr-quick-assist__input {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  /* Bring the rail within 4px of the composer edge; keep 4px of padding
+     between the text and the dedicated 4px scrollbar gutter. */
+  width: calc(100% + 8px);
+  padding-right: 8px;
+}
+
+.tr-quick-assist__composer--multiline > .tr-quick-assist__sparkle {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.tr-quick-assist__counter {
+  flex: 0 0 auto;
+  color: var(--tr-quick-assist-muted);
+  white-space: nowrap;
+  line-height: 18px;
+}
+
+.tr-quick-assist__counter[hidden] {
+  display: none;
+}
+
+.tr-quick-assist__composer--multiline .tr-quick-assist__counter {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.tr-quick-assist__count--invalid {
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error));
+}
+
+.tr-quick-assist__submit-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 24px;
+  height: 24px;
+}
+
+.tr-quick-assist__composer--multiline .tr-quick-assist__submit-wrapper {
+  grid-column: 4;
+  grid-row: 2;
+}
+
+.tr-quick-assist__limit-tooltip {
+  position: fixed;
+  z-index: 1;
+  max-width: calc(100vw - 16px);
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--tr-quick-assist-popover-bg);
+  color: var(--tr-quick-assist-text);
+  box-shadow: var(--tr-quick-assist-shadow);
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tr-quick-assist__limit-tooltip[hidden] {
+  display: none;
+}
+
+/* Selection limit: match the design while retaining the normal entry geometry. */
+.tr-quick-assist button.tr-quick-assist__trigger--invalid,
+.tr-quick-assist button.tr-quick-assist__trigger--invalid:hover {
+  color: var(--tr-quick-assist-selection-disabled-text, #c4c4c4);
+  border-color: var(--tr-quick-assist-selection-disabled-border, #dbdbdb);
+  background: var(--tr-quick-assist-bg);
+  box-shadow: none;
+  cursor: not-allowed;
+  font-weight: 400;
+  /* Keep the immediately visible tooltip aligned with this entry. */
+  animation: none;
+}
+
+.tr-quick-assist__selection-tooltip {
+  position: fixed;
+  z-index: 1;
+  max-width: calc(100vw - 16px);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--tr-quick-assist-bg);
+  color: var(--tr-quick-assist-text);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 12%);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.tr-quick-assist__selection-tooltip[hidden] {
+  display: none;
+}
+
+.tr-quick-assist__selection-count {
+  color: var(--tr-quick-assist-selection-error, #f63737);
+}
+
+.tr-quick-assist[data-tr-vanilla-color-mode='dark'] {
+  --tr-quick-assist-popover-bg: #1a1a1a;
+  --tr-quick-assist-glow-opacity: 0.3;
+  --tr-quick-assist-scrollbar-thumb: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
+  --tr-quick-assist-selection-disabled-text: var(--tr-text-disabled, var(--tr-vanilla-default-text-disabled));
+  --tr-quick-assist-selection-disabled-border: var(--tr-quick-assist-trigger-border);
+  --tr-quick-assist-selection-error: var(--tr-color-error, var(--tr-vanilla-default-color-error));
+}
