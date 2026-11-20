@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [2, 3]
 ---
 
 <script setup>
@@ -12,141 +12,175 @@ if (typeof window !== 'undefined') {
 
 # QuickAssist 智能帮助
 
-QuickAssist 是一个与框架无关的智能帮助组件，可以用在需要在页面中进行轻量AI交互的场景。当前提供了“划词”和主动 API 两种触发方式，以及输入交互，用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
+QuickAssist 是一个与框架无关的智能帮助组件，用于为页面提供轻量 AI 触发与输入交互。用户选中页面文字（或由应用主动调用 API）后，可查看推荐问题、编辑提问，并将最终问题与有限上下文（配置 `sanitizeContext` 后为脱敏上下文）交给应用已有的 AI 对话面板。
+
+快速跳转：[立即体验](#example-basic) · [安装与引入](#安装与引入) · [接入对话面板](#example-chat-panel) · [API 参考](#api) · [常见问题](#常见问题)
+
+## 概览
+
+### 适用场景
+
+- 控制台、文档页、详情页等场景，希望用户划词后直接针对所选概念向 AI 提问；
+- 指标卡片、工具按钮、代码编辑器等场景，希望由应用代码主动触发轻量提问入口；
+- 需要与框架解耦（Vue、Angular、React 或原生 HTML），并复用应用现有 AI 对话面板与模型服务。
+
+### 职责边界与支持范围
+
+::: tip 组件边界
+QuickAssist 只负责触发入口、输入浮层、推荐问题和有限上下文采集（业务脱敏需配置 `sanitizeContext`）；**不负责**展示 AI 回答、流式渲染、重试、多轮对话或模型调用，这些均由应用已有的 AI 对话面板承担。
+:::
+
+| 能力项 | 支持情况与说明 |
+| --- | --- |
+| 桌面端原生划词 | 支持鼠标拖选与键盘 `Shift` 选词（默认仅正向划词触发） |
+| 移动端 | 暂不支持移动端原生长按划词链路；程序主动调用 `activate()`（如点击按钮）不受原生划词链路限制 |
+| iframe | 父文档实例不会自动监听子 iframe 内的选区。可在子 iframe 内独立创建实例；同源场景也可由宿主传入该 iframe 的 `Document` 作为 `root`，并通过 `configureVanillaTheme(config, iframeDocument)` 同步主题。跨源 iframe 受同源策略限制 |
+| Shadow DOM | `root` 仅接受 `Document`，不接受 `ShadowRoot`；原生划词监听不穿透 Shadow DOM 选区 |
+| CSP（内容安全策略） | CDN 方式会自动动态注入 `<style>`；若页面 CSP 禁止动态样式注入，请改用 NPM 方式并显式引入 CSS |
+| 选区保留高亮 | 输入框聚焦期间的原文灰色高亮通过 CSS Custom Highlight API 绘制，不修改原文 DOM；不支持该 API 的浏览器会自动降级为无保留高亮，不影响主流程 |
 
 ## 安装与引入
+
+::: info 版本支持
+QuickAssist 自 TinyRobot **0.5.2** 版本提供，支持通过 `@opentiny/tiny-robot/vanilla` 或 `dist/vanilla/vanilla.global.js` 引入。以下 NPM 与 CDN 示例均使用 `0.5.2`。
+:::
 
 ### NPM 方式
 
 ```bash
-npm install @opentiny/tiny-robot
+npm install @opentiny/tiny-robot@0.5.2
 ```
 
-从 TinyRobot NPM 包的`/vanilla` 子路径导入，并显式加载组件样式：
+从 `@opentiny/tiny-robot/vanilla` 导入，并显式加载组件样式：
 
 ```ts
 import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
 import '@opentiny/tiny-robot/vanilla/style.css'
 ```
 
-QuickAssist 的运行时代码不依赖 Vue、Angular 等框架或其他界面组件。可以在任何技术栈项目中单独使用该组件，且产物不会包含任何框架运行时。
+QuickAssist 的 `/vanilla` 运行时代码不依赖 Vue、Angular 等框架运行时，打包产物不会包含框架代码。需要注意：`@opentiny/tiny-robot` 整包仍声明了 `vue`、`@opentiny/tiny-robot-kit`、`dompurify`、`markdown-it` 等 `peerDependencies`；在非 Vue 项目中安装时，包管理器可能会提示或按配置处理这些 peer 依赖，请按所在项目的包管理策略处理。
 
 ### CDN 方式
 
-通过 CDN 加载脚本后，使用 `window.TinyRobotVanilla` 创建组件，无需单独引入样式。将 `VERSION` 替换为包含 `vanilla.global.js` 的已发布 TinyRobot 版本号：
+通过 CDN 或自有静态目录加载 `vanilla.global.js` 后，使用全局对象 `window.TinyRobotVanilla` 创建实例，组件会自动注入样式，无需单独引入 CSS：
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@VERSION/dist/vanilla/vanilla.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.5.2/dist/vanilla/vanilla.global.js"></script>
 <script>
   const quickAssist = window.TinyRobotVanilla.createQuickAssist({
     adapter: {
       submit(request) {
-        openAssistantAndSend(request.prompt, request.context)
+        // 替换为应用自己的“打开 AI 面板并发送”逻辑，同时传入 prompt 与 context
+        console.log('QuickAssist submit:', {
+          query: request.query,
+          prompt: request.prompt,
+          context: request.context,
+        })
       },
     },
   })
 </script>
 ```
 
-也可以将 npm 包中的 `dist/vanilla/vanilla.global.js` 部署到自己的 CDN 或静态资源目录，再替换上面的脚本地址。此文件是整个无框架组件集合的入口，提供 `createQuickAssist`、`configureVanillaTheme` 等 API。
+该脚本是无框架组件集合的统一入口，导出 `createQuickAssist`、`configureVanillaTheme` 等 API。
 
-CDN 方式会在创建实例时自动注入组件样式。如果页面的内容安全策略禁止动态注入 `<style>`，可以使用 npm 方式并显式加载 CSS。
+## 快速开始
 
-## 代码示例
+<span id="代码示例"></span>
 
 ### 基础用法 {#example-basic}
 
-使用 `createQuickAssist` 可以创建选词智能帮助的UI实例。支持通过传入参数来进行各类自定义配置。  
-`adapter` 参数负责连接应用现有的 AI 对话能力，例如用户发送问题后或者点击推荐问题后显示下一步AI对话窗口。提交时应处理 `prompt` 和 `context`；只发送 `query` 会丢掉推荐问题和页面上下文。
+使用 `createQuickAssist` 创建实例并传入必填的 `adapter.submit(request)`。组件会在用户提交后先关闭划词界面，再调用 `adapter.submit`；若异步提交抛错，会通过 `onEvent` 发出 `stage: 'adapter'` 的 `error` 事件，不会重新打开界面。
 
-```ts
-import { createQuickAssist } from '@opentiny/tiny-robot/vanilla'
-import '@opentiny/tiny-robot/vanilla/style.css'
+<demo vue="../../demos/quick-assist/basic.vue" title="基础用法" description="从左向右选中文字并提交，观察 adapter.submit(request) 收到的核心字段。" />
 
-const quickAssist = createQuickAssist({
-  root: document, // 默认使用当前文档
-  include: ['#app'],
-  adapter: {
-    submit(request) {
-      // 替换为应用自己的“打开面板并自动发送”逻辑。
-      assistantPanel.open()
-      assistantChat.send({
-        content: request.prompt,
-        context: request.context,
-      })
-    },
-  },
-  onEvent(event) {
-    // 可在宿主接入埋点；事件不包含默认选区文本或完整上下文。
-    console.debug('[QuickAssist]', event.type)
-  },
-})
+::: warning 首次接入必读
+- **默认 `prompt` 规则**：默认情况下 `request.prompt` 等价于 `suggestion?.prompt ?? query`，**不会自动将选中原文 `context.text` 拼接进 `prompt`**。接入时应同时消费 `request.prompt` 与 `request.context`；若现有对话接口只接受一段文本，请通过 [`buildPrompt`](#example-build-prompt) 拼入 `context.text`。
+- **脱敏前提**：默认采集仅做内置 DOM 排除（表单、编辑器、`[data-sensitive]` 等）与限长裁剪，**不会自动识别或替换业务敏感 ID**；业务字段和文本脱敏仅在配置 [`sanitizeContext`](#example-context) 后执行。
+- **生命周期清理**：单页应用在路由离开当前页面时调用 `quickAssist.close()`，组件或页面销毁时调用 `quickAssist.destroy()`。
+:::
 
-// 单页应用在路由离开当前页面时调用 quickAssist.close()。
-// 页面/应用销毁时调用：
-// quickAssist.destroy()
-```
+### 接入对话面板 {#example-chat-panel}
 
-`adapter` 收到的 `AIRequest` 包含 `source`、`query`、`prompt` 和脱敏后的 `context`；点击推荐项时还包含 `suggestion`。组件先关闭划词界面，再调用 `adapter`；异步提交失败会通过 `error` 事件报告，不会重新打开已关闭的界面。
-
-下面的示例使用 TinyRobot 的 `TrBubbleList` 与 `TrSender` 呈现对话界面，并用本地模拟回复代替后端。QuickAssist 的 `adapter` 会打开面板，并把 `prompt` 与脱敏后的 `context` 一起交给对话函数。
+下面的示例将 QuickAssist 与 TinyRobot 的 `TrBubbleList`、`TrSender` 联动，并用本地模拟回复代替后端：选中示例正文中的文字并提交后，对话面板自动展开并发送 `prompt` 与经过 `sanitizeContext` 脱敏后的 `context`。
 
 <demo vue="../../demos/quick-assist/vue-chat.vue" title="Vue 对话面板接入" description="划词后打开 TinyRobot 对话面板，并自动提交 prompt 与脱敏上下文。" />
 
 ### HTML 接入 {#example-html}
 
-下面的 HTML 示例把请求对象安全地显示在模拟对话面板中，不连接实际模型服务。
+下面的原生 HTML 示例通过全局脚本 `window.TinyRobotVanilla` 接入，并将提交的请求对象展示在模拟对话面板中。迁移到独立项目时，在 `<head>` 中先通过 `<script src=".../vanilla.global.js"></script>` 引入构建产物或已发布 CDN 脚本即可——示例中若检测到已存在 `window.TinyRobotVanilla` 会自动跳过文档站预览加载器（也可直接删除注释第 1 段的预览适配代码）。
 
-<demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="划词后查看提交给应用的请求内容。" />
+<demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="通过全局脚本接入，划词后查看提交给应用的完整请求内容。" />
 
-### 延迟显示入口 {#example-trigger-delay}
+### 交互与上下文数据流
 
-设置 `trigger.showDelay` 可在选区稳定后延迟显示划词入口，单位为毫秒；默认 `0`，保持立即显示。连续拖选时从最后一次有效选区重新计时，并等待鼠标松开；选区失效、关闭、停用或销毁时会取消待显示的入口。延迟只影响入口，不影响点击后打开输入浮层。
+![QuickAssist 交互与上下文数据流：触发入口或直接打开输入浮层，准备上下文后手动发送或点击推荐，再构造 prompt 并交给应用对话面板。](/images/quick-assist-flow.svg)
 
-<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
+## 划词与触发
 
-### 划词方向与入口位置 {#example-direction-placement}
+### 划词范围与长度限制 {#example-selection-scope}
 
-默认仅正向划词触发入口，设置 `selection.forwardOnly: false` 可允许双向划词。方向按文档顺序判断，跨行向后选择仍视为正向，即使结束位置在起始位置左侧；键盘 Shift 选词采用相同规则。自定义 `selection.validate` 不会覆盖方向限制。此规则面向横排中文等常规阅读场景，不按 RTL 或竖排文字的视觉方向判断。
+通过 `include`、`exclude` 和 `selection` 控制可触发区域、文本有效性及最大字数上限。试着分别选中允许区域、超限整句、排除区域与范围外文字，对比效果：
 
-入口默认显示在最后一行选中文字的右下方，入口左边缘对齐文字右边缘。`top` 系列位置使用第一行，`bottom` 系列使用最后一行；同一行的多个内联文本片段合并计算。`start` 表示入口向文字左侧展开（入口右边缘对齐文字左边缘），`end` 表示入口向文字右侧展开（入口左边缘对齐文字右边缘），不带后缀则居中；`auto` 优先在末行下方居中。空间不足时会翻转到另一侧，并使用对应的首行或末行，必要时向视口内调整。
+<demo vue="../../demos/quick-assist/selection-scope.vue" title="可选择区域与长度限制" description="仅指定区域内的有效选区显示入口，超限后禁用并提供字数提示。" />
 
-点击入口后，输入浮层直接相对选区使用同一套 `placement` / `offset` 规则，默认间距为 8px；根据浮层自身尺寸进行翻转和视口避让。输入框聚焦和输入期间，原划词范围保留灰色高亮，关闭或提交后清除。高亮通过 CSS Custom Highlight API 绘制，不修改原文 DOM；不支持该 API 的浏览器仍可使用划词帮助，但不显示保留高亮。
+核心规则如下：
+
+- **生效范围（`include` / `exclude`）**：配置 `include` 后，选区中的所有文本节点都必须位于匹配区域内；`exclude` 会在内置排除规则基础上追加。
+- **内置排除区域**：默认排除 `input`、`textarea`、`select`、`option`、可编辑的 `contenteditable` 区域、Monaco（`.monaco-editor`）、CodeMirror（`.CodeMirror` / `.cm-editor`）、QuickAssist 自身界面（`.tr-quick-assist`），以及 `[data-ai-selection="false"]`、`[data-sensitive]`、`[data-secret]`、`[data-password]`。普通只读 `contenteditable="false"` 区域允许划词，但若位于可编辑祖先或其他排除区域内仍会被排除。
+- **默认文本校验与自定义校验**：内置规则默认拒绝空白、纯数字、纯标点/符号、明显 URL 和 UUID，不设最短字符限制，因此 `ECS`、`VPC`、`QoS` 等短技术词可正常触发。配置 `selection.validate(snapshot)` 可替代默认文本内容规则，但**不能绕过**最大长度、`include` / `exclude`、编辑器与敏感区域检查。
+- **划词长度上限（`selection.maxTextLength`）**：默认为 **8000**（正整数），设为 `null` 表示不限制。计数先去除首尾空白，再按 Unicode 码点计算（内部空格与换行各计 1，单个补充平面 emoji 计 1，组合 emoji 按实际码点数计数）。该上限独立于输入框的 `input.maxLength`。
+- **超限交互**：选区超出上限时，释放鼠标后仍显示置灰禁用的入口，并同步显示“划词字数超出限制 当前字数/上限”（文案可通过 `selection.maxTextLengthExceededMessage` 配置）。禁用入口不可通过点击、Enter 或程序打开，不会截断文本，也不会触发上下文或推荐请求。此规则同时适用于原生划词、`activate()` 和 `registerSource()`。
 
 ```ts
 const quickAssist = createQuickAssist({
   adapter,
-  selection: { forwardOnly: true },
-  trigger: { placement: 'bottom-end', offset: 8 },
-})
-
-// updateOptions 中提供的嵌套配置会整体替换原分组。
-quickAssist.updateOptions({
-  selection: { forwardOnly: false },
-  trigger: { placement: 'top-start' },
+  include: ['#app'],
+  exclude: ['[data-qa-ignore]', '.private-value'],
+  selection: {
+    maxTextLength: null, // 不限制划词长度（默认 8000）
+    validate: (snapshot) => snapshot.text.trim().length > 0,
+  },
 })
 ```
+
+### 划词方向与入口位置 {#example-direction-placement}
+
+切换方向限制和优先位置，跨行选中文字观察入口对齐与翻转效果：
 
 <demo vue="../../demos/quick-assist/direction-placement.vue" title="划词方向与首末行定位" description="切换方向限制和入口位置，跨行选中文字观察入口对齐。" />
 
-```ts
-createQuickAssist({
-  adapter,
-  trigger: { showDelay: 300 },
-})
-```
+- **划词方向（`selection.forwardOnly`）**：默认为 `true`，仅正向划词触发；设为 `false` 允许双向划词。方向按文档顺序判断（跨行向后选择仍视为正向，键盘 `Shift` 选词规则一致），面向横排常规阅读场景，不按 RTL 或竖排视觉方向判断；自定义 `selection.validate` 不会覆盖方向限制。
+- **定位基准与翻转（`trigger.placement` / `trigger.offset`）**：输入浮层打开后沿用同一套定位与间距规则（默认 `offset: 8` px），按各自尺寸在空间不足时自动翻转并向视口内避让。
 
-### 输入区高度、字数与预填 {#example-input}
+| `placement` 值 | 锚定行 | 水平对齐方式 |
+| --- | --- | --- |
+| `'bottom-end'`（默认） | 选中文字最后一行 | 入口左边缘对齐文字右边缘（向右下方展开） |
+| `'bottom-start'` | 选中文字最后一行 | 入口右边缘对齐文字左边缘（向左下方展开） |
+| `'bottom'` | 选中文字最后一行 | 相对末行水平居中 |
+| `'top-end'` | 选中文字第一行 | 入口左边缘对齐文字右边缘（向右上方展开） |
+| `'top-start'` | 选中文字第一行 | 入口右边缘对齐文字左边缘（向左上方展开） |
+| `'top'` | 选中文字第一行 | 相对首行水平居中 |
+| `'auto'` | 优先最后一行 | 优先在末行下方居中，空间不足时自动翻转 |
 
-<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="先配置实例并划词体验，再用三个按钮对比实例默认与单次预填覆盖。" />
+> 同一行内的多个内联文本片段会合并计算边界。调用 `updateOptions()` 修改 `selection` 或 `trigger` 时，提供的嵌套配置对象会整体替换原分组（详见 [`updateOptions`](#methods)）。
 
-`input.placeholder` 设置空输入时的提示，`input.maxLengthExceededMessage` 设置超限校验提示。输入框和发送按钮的无障碍名称分别由 `input.ariaLabel`、`input.submitLabel` 配置，`ariaLabel` 仅标识 textarea，`submitLabel` 用于图标发送按钮的无障碍名称与正常悬停标题。弹层使用 `trigger.label` 作为对话框名称，占位文案不能代替无障碍名称。
+### 延迟显示入口 {#example-trigger-delay}
 
-`input.autoFill` 是实例默认值，默认为 `false`，输入框初始留空；设为 `true` 可预填选中文字。`activate()` 的 `autoFill` 仅覆盖当前调用，不修改实例配置。无论是否预填，选中文字始终保留在请求上下文 `context.text` 中。
+设置 `trigger.showDelay`（非负整数，单位毫秒，默认 `0`）可在选区稳定后延迟显示划词入口。连续拖选时会从最后一次有效选区重新计时并等待鼠标松开；选区失效、关闭、停用或销毁会取消待显示任务。延迟仅作用于划词入口，不影响点击后打开输入浮层。
 
-`input.maxRows` 调整最多可见行数；换行和自动折行都会触发高度调整，删除内容后收缩，弹层会重新定位。
+<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
 
-默认不限制字数且不显示计数；设置 `input.maxLength` 后从空值开始显示 `0 / 上限`。按 Unicode 码点计数：中英文、换行各计 1，单个补充平面 emoji 计 1，组合 emoji 按实际码点数计数。允许粘贴超限文本，超过上限时当前字数变红、发送禁用，悬停或聚焦发送区域显示“字数超出限制”；Enter 同样不可提交。推荐问题独立提交，不受手动输入区的超限状态影响。
+## 输入与推荐
+
+### 输入区配置 {#example-input}
+
+<demo vue="../../demos/quick-assist/input.vue" title="输入区配置" description="调整实例配置并划词体验，再用下方按钮对比实例默认与单次预填覆盖。" />
+
+- **文案与无障碍**：`input.placeholder` 控制空输入占位文案；`input.maxLengthExceededMessage` 控制超限提示；`input.ariaLabel` 标识 `textarea` 的无障碍名称；`input.submitLabel` 用作图标发送按钮的无障碍名称与悬停标题；弹层对话框名称使用 `trigger.label`。
+- **预填行为（`input.autoFill`）**：实例默认 `false`（打开输入框留空），设为 `true` 时自动预填选中文字。`activate({ autoFill })` 仅覆盖当次调用，不修改实例默认配置。无论是否预填，选区原文始终保留在 `context.text` 中。
+- **自动伸缩（`input.maxRows`）**：默认 `2` 行，换行和自动折行都会动态调整高度并在删除后收缩，同时重新定位浮层；超出后内部滚动。
+- **字数限制（`input.maxLength`）**：默认不限制且不显示计数（显式设为 `null` 或省略效果相同）。配置正整数后，从空值起持续显示 `当前字数 / 上限`（按 Unicode 码点计数）；允许粘贴超限文本，超限时字数变红、发送按钮禁用且 `Enter` 不可提交，悬停或聚焦发送区域展示超限提示。推荐问题独立提交，不受手动输入超限状态影响。
 
 ```ts
 const assist = createQuickAssist({
@@ -162,45 +196,75 @@ const assist = createQuickAssist({
     maxLengthExceededMessage: '问题不能超过 10000 个字符',
   },
 })
-const text = '查看系统盘使用率'
-// 按实例配置打开：省略 autoFill，使用实例默认值。
-assist.activate({ text, anchor: element, open: 'popover' })
-// 本次预填：仅当前输入框填入选中文字。
-assist.activate({ text, anchor: element, open: 'popover', autoFill: true })
-// 本次留空：仅当前输入框留空，后续仍沿用实例配置。
-assist.activate({ text, anchor: element, open: 'popover', autoFill: false })
+
+// 单次激活可覆盖本次预填策略，不影响实例默认设置
+assist.activate({ text: '查看系统盘使用率', anchor: element, open: 'popover', autoFill: true })
 ```
 
-完整 `activate({ source: 'monaco', text, getRect, autoFill: false })` 也支持相同的单次覆盖，选区文字仍保留在请求上下文中。实例 `updateOptions({ input: { autoFill: false } })` 会替换整个 `input` 配置组，其余字段恢复默认值。
+### 静态与异步推荐 {#example-suggestions}
 
-### 推荐问题 {#example-suggestions}
+选中示例中的文字并点击入口，可以先看到静态推荐，随后合并异步返回的推荐；点击任一推荐项会直接提交，无需再次点击发送。
 
-选中示例中的文字后点击划词入口，可以先看到静态推荐，再看到异步返回的推荐；点击任一推荐可查看提交结果。
+<demo vue="../../demos/quick-assist/recommendations.vue" title="静态与异步推荐" description="查看静态推荐与异步推荐的加载、合并与直接提交效果。" />
 
-<demo vue="../../demos/quick-assist/recommendations.vue" title="静态与异步推荐" description="查看推荐加载、合并和点击后直接提交的效果。" />
+QuickAssist 支持四种推荐配置模式：
 
-通过 `suggestions` 配置的问题称为“静态问题”，可包含根据选区生成文案的模板；与组件内置的默认推荐问题区分。QuickAssist 支持四种推荐模式：
+| 配置方式 | 打开输入浮层后的行为 |
+| --- | --- |
+| 省略 `suggestions` 与 `getSuggestions` | 立即显示两个内置默认模板：`id: 'explain'`（`解释 ${text}`）和 `id: 'use-case'`（`${text}适用场景`） |
+| 仅配置 `suggestions` | 立即显示静态推荐；显式传 `[]` 表示隐藏默认模板，仅保留手动提问 |
+| 仅配置 `getSuggestions` | 不显示内置默认模板；立即打开输入区，推荐区显示加载状态，返回后展示远程结果 |
+| 两者都配置 | 先展示静态推荐，远程返回后合并；默认静态在前、远程追加，按 `id` 保留首次出现项，最后受 `maxSuggestions`（默认 `2`）裁剪 |
 
-| 配置方式                               | 打开输入浮层后的行为                                                                                                                                 |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 省略 `suggestions` 与 `getSuggestions` | 立即显示“解释”和“适用场景”两个默认模板                                                                                                               |
-| 仅配置 `suggestions`                   | 立即显示静态推荐；显式传 `[]` 表示不显示默认模板                                                                                                     |
-| 仅配置 `getSuggestions`                | 不显示内置默认模板；立即打开输入区，推荐区域显示加载状态，返回后只展示远程结果                                                                       |
-| 两者都配置                             | 先显示静态模板，再合并异步推荐；默认静态在前、远程追加，按 `id` 保留首次出现项，最后由 `maxSuggestions` 裁剪；可用 `mergeSuggestions` 自定义覆盖策略 |
+每条 `Suggestion` 包含稳定的 `id`、展示文案 `label`、提交内容 `prompt` 以及可选的 `meta` 元数据；静态项也支持使用工厂对象 `SuggestionFactory`（`id` + `getLabel(context)` + `getPrompt(context)`），在上下文准备完成（含可选 `sanitizeContext` 脱敏）后求值。点击推荐项提交时，`AIRequest.query` 为推荐项的 `label`（不受输入框内容影响），`AIRequest.suggestion` 包含被点击项；手动提交时 `query` 为去首尾空白的输入内容。
 
-`Suggestion` 包含稳定的 `id`、展示用 `label` 和提交用 `prompt`。点击推荐项会直接提交，无须再次点击发送，此时 `query` 使用推荐项的 `label`，不受输入框内容影响；手动发送时 `query` 使用去除首尾空白后的输入内容。划词原文保留在 `context.text` 中。`buildPrompt` 收到的 `query` 遵循相同规则，可用它自定义最终发送的 `prompt`。
+### 远程推荐与合并策略 {#example-remote-suggestions}
 
-#### 推荐状态文案 {#example-suggestion-messages}
+<span id="自定义合并策略-mergesuggestions"></span>
 
-`messages` 只配置推荐区的三个状态文案：
+切换策略与模拟响应后重新划词，观察加载期间静态推荐与远程返回后的合并结果。接入真实接口时，将示例中的模拟延迟替换为 `fetch(url, { signal })` 并返回 `Suggestion[]` 即可。
 
-| 字段      | 何时显示                                                                                       |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| `loading` | 推荐正在加载时                                                                                 |
-| `empty`   | 没有可显示的推荐时，包括显式配置 `suggestions: []`                                             |
-| `error`   | 推荐准备或加载失败且无可显示推荐时，包括静态工厂、上下文构建或远程推荐异常；已有静态推荐会保留 |
+<demo vue="../../demos/quick-assist/remote-recommendations.vue" title="远程推荐与覆盖策略" description="切换策略和模拟响应后重新划词，观察静态回退与合并效果。" />
 
-以下配置可加入推荐示例的创建参数：
+`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐返回并通过校验后执行：
+
+- `base`：静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；
+- `incoming`：过滤无效项后、尚未去重或裁剪的远程推荐数组；
+- `context`：本次推荐使用的上下文副本（若配置了 `sanitizeContext` 则为脱敏后的上下文）。
+
+常用合并策略：
+
+| 目标 | `mergeSuggestions` 返回值 |
+| --- | --- |
+| 静态优先，追加未重复的远程项（默认） | `[...base, ...incoming]` |
+| 远程整体替换静态问题（远程返回 `[]` 时清空） | `incoming` |
+| 远程有结果时替换，返回 `[]` 时保留静态问题 | `incoming.length ? incoming : base` |
+| 远程优先，同 `id` 覆盖静态项，同时保留其他静态项 | `[...incoming, ...base]` |
+
+回调返回后，组件仍会执行格式校验、按 `id` 保留首次出现项并应用 `maxSuggestions` 上限。远程请求失败时**不会**调用 `mergeSuggestions`，组件会保留已显示的静态推荐并触发 `stage: 'suggestions'` 的 `error` 事件；**仅当没有可显示的推荐项时**（如仅配置 `getSuggestions`），组件内部推荐区才会展示 `messages.error` 文案（示例页面下方的状态栏为宿主监听 `onEvent` 自行渲染的提示）。
+
+### 远程问题校验 {#远程问题校验-validatesuggestion}
+
+组件会先检查远程响应是否为数组，再逐项检查 `id`、`label`、`prompt` 是否为非空字符串（纯空白无效），单条无效项会被过滤且不影响同批其他有效项。静态推荐及自定义合并结果若格式无效则会报错。
+
+在此基础上，可配置同步回调 `validateSuggestion(suggestion, context): boolean` 对远程推荐进行业务规则校验（在基础校验后、合并前逐项执行）：
+
+<demo vue="../../demos/quick-assist/suggestion-validation.vue" title="远程问题校验前后对比" description="对比原始问题与最终问题，查看空白、超长、不相关问题的过滤原因，以及全部无效时的静态回退。" />
+
+- **入参与返回值**：`suggestion` 是已通过基础校验的单条推荐副本（用于判断保留与否，不用于修改内容）；`context` 为本次推荐上下文副本（若配置了 `sanitizeContext` 则为脱敏后的上下文）；返回 `true` 保留，`false` 丢弃。
+- **`meta` 克隆限制**：推荐项的 `meta` 会经过结构化深拷贝（支持 `Date`、`Map`、`Set`、TypedArray 及循环引用，不支持函数、DOM 节点、响应式代理或共享内存）。远程项 `meta` 无法克隆时按无效项过滤。
+- **整批失败与合法空结果的区别**：响应不是数组、非空响应全部被过滤、回调抛错或返回非布尔值（含 `Promise`）时，视为整批失败——不调用 `mergeSuggestions`，保留静态推荐并触发 `stage: 'suggestions'` 错误事件；接口主动返回 `[]` 则属于成功的空结果，继续走 `mergeSuggestions`。
+- 模型原始输出的 JSON 解析、字段映射与缺失 `id` 生成应在 `getSuggestions` 内完成，组件统一接收 `Suggestion[]`。
+
+### 推荐状态文案 {#example-suggestion-messages}
+
+`messages` 仅控制推荐区域的三种状态文案（输入区文案在 [`input`](#example-input) 配置；发送错误由 `onEvent` 的 `stage: 'adapter'` 通知）：
+
+| 字段 | 默认值 | 显示时机 |
+| --- | --- | --- |
+| `loading` | `'正在加载推荐…'` | 远程推荐加载中 |
+| `empty` | `'暂无推荐'` | 无可显示推荐时（包含显式配置 `suggestions: []`） |
+| `error` | `'推荐加载失败'` | 推荐准备或加载失败且无静态推荐可回退时 |
 
 ```ts
 const quickAssist = createQuickAssist({
@@ -212,67 +276,6 @@ const quickAssist = createQuickAssist({
   },
 })
 ```
-
-这些状态文案不控制输入占位、字数校验或发送失败。输入文案由 [`input`](#example-input) 配置；发送失败通过 `onEvent` 的 `stage: 'adapter'` 通知应用。自定义推荐的标题和提交内容统一使用 `suggestions` 的 `label` / `prompt` 或 `getLabel` / `getPrompt`，不提供单独重写内置标题的字段。
-
-#### 远程推荐覆盖静态问题 {#example-remote-suggestions}
-
-如果问题全部由远程接口提供，只需配置 `getSuggestions`，省略 `suggestions`，内置的“解释”和“适用场景”模板就不会显示。如果希望加载期间先显示静态问题，远程返回后整体替换，可显式提供静态模板，并通过 `mergeSuggestions` 只返回远程结果。
-
-下面的示例可切换“仅远程推荐”“远程整体替换”“空结果回退”和“远程优先”四种策略，以及成功、空数组、失败三种响应。示例用延迟模拟远程请求，无需后端即可运行；展开示例源码可查看完整配置。接入业务接口时，将 `getSuggestions` 中的模拟逻辑替换为 `fetch`，传入 `signal` 并返回 `Suggestion[]` 即可。
-
-<demo vue="../../demos/quick-assist/remote-recommendations.vue" title="远程推荐与覆盖策略" description="切换策略和响应后重新划词，观察加载期间的静态问题及远程返回后的结果。" />
-
-“远程整体替换”会在远程成功返回空数组时清空静态推荐；“空结果回退”则保留静态问题。“远程优先”示例中远程与静态的解释问题具有相同 `id`，可以观察远程问题如何覆盖静态问题，同时保留未重复的静态问题。
-
-请求失败时不会调用 `mergeSuggestions`，会保留已显示的静态问题并展示加载失败状态，同时触发 `stage: 'suggestions'` 的错误事件。仅配置远程推荐时没有静态问题可回退，用户仍可手动输入提交。
-
-#### 自定义合并策略 `mergeSuggestions` {#自定义合并策略-mergesuggestions}
-
-`mergeSuggestions(base, incoming, context)` 是同步回调，在远程推荐成功返回并通过校验后调用。`base` 是静态推荐经模板求值、按 `id` 去重并按 `maxSuggestions` 裁剪后的结果；`incoming` 是过滤无效项后、尚未去重或裁剪的远程推荐数组；`context` 是本次推荐使用的脱敏上下文。回调必须返回 `Suggestion[]`。
-
-默认策略相当于 `[...base, ...incoming]`：静态项优先，同 `id` 的远程项不会覆盖静态项；静态项占满数量上限时，远程项可能不展示。可以按业务需要返回不同顺序：
-
-| 目标                                   | 回调返回值                          |
-| -------------------------------------- | ----------------------------------- |
-| 远程整体替换静态问题                   | `incoming`                          |
-| 远程有结果时替换，否则保留静态问题     | `incoming.length ? incoming : base` |
-| 远程优先，保留未重复的静态问题         | `[...incoming, ...base]`            |
-| 静态优先，追加未重复的远程问题（默认） | `[...base, ...incoming]`            |
-
-自定义回调返回后，组件仍会校验推荐格式、按 `id` 保留首次出现项，并应用 `maxSuggestions` 上限（默认 `2`）。因此，远程优先策略也可以用来覆盖静态同 `id` 的问题。
-
-#### 远程问题校验 `validateSuggestion` {#远程问题校验-validatesuggestion}
-
-组件先检查远程响应是否为数组，再逐项检查 `id`、`label`、`prompt` 是否为非空字符串（纯空白也无效）。格式无效项会被过滤，不影响同批其他有效问题。静态问题及自定义合并结果也会进行格式校验，配置或合并结果无效时会报错。
-
-可选的同步回调 `validateSuggestion(suggestion, context): boolean` 在基础校验后、合并前逐项执行，仅用于远程问题：
-
-推荐的 `meta` 会进行结构化深拷贝，校验器修改副本或提供器在推荐被接收后修改原对象，都不会改变已接收的推荐内容。`meta` 支持 Date、Map、Set、类型化数组和循环引用，但不能包含函数、DOM 节点、响应式代理或共享内存。远程问题的 `meta` 无法克隆时，该项按无效问题过滤；非空批次全部无效时仍按推荐失败处理。
-
-| 参数或返回值          | 含义                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `suggestion`          | 已通过基础格式校验的单条推荐副本，包含 `id`、`label`、`prompt` 和可选 `meta`；该回调用于判断是否保留，不用于修改推荐内容 |
-| `context`             | 本次推荐使用的脱敏上下文，可读取 `text`、页面、附近文本和业务字段                                                        |
-| 返回 `true` / `false` | 保留 / 丢弃该问题                                                                                                        |
-
-下面的独立示例并列展示远程原始问题、逐项过滤原因和最终展示问题。选中“竞价计费”后打开智能帮助，查看同一批问题的校验结果；切换“启用业务校验”后重新划词，可对比哪些问题被保留。基础格式校验始终执行，不受该开关影响。
-
-<demo vue="../../demos/quick-assist/suggestion-validation.vue" title="远程问题校验前后对比" description="对比原始问题与最终问题，查看空白、超长、不相关问题的过滤原因，以及全部无效时的静态回退。" />
-
-示例业务规则限制标题不超过 40 字、问题不超过 1000 字，并要求问题包含选中文字，可按产品需要替换；组件本身不设置文字长度上限。切换为“全部异常问题”可观察全部无效时的静态问题回退，展开源码可查看完整的 `validateSuggestion` 配置。
-
-响应不是数组、非空响应全部被过滤、回调抛出异常或返回非布尔值（包括 `Promise`）时，整批远程推荐失败，不会调用 `mergeSuggestions`，会保留静态问题并触发 `stage: 'suggestions'` 的错误事件。仅远程模式仍可手动输入提交。接口主动返回 `[]` 则属于成功的空结果，继续按合并策略处理，与全部被过滤的情况区分。
-
-`ValidateSuggestion` 类型可从 `@opentiny/tiny-robot/vanilla` 导入。AI 原始输出的 JSON 解析、字段映射和缺失 `id` 的生成应在业务 `getSuggestions` 中完成，组件接收统一的 `Suggestion[]`。
-
-### 自定义发送内容 {#example-build-prompt}
-
-用户输入的问题通常还需要补充选中内容或业务上下文。使用同步的 `buildPrompt` 钩子可以构造最终发送的 `prompt`，同时保留用于展示的 `query`。手动发送时 `query` 是用户输入；点击推荐项时 `query` 是推荐项的 `label`，可通过 `suggestion?.prompt ?? query` 获取本次需要处理的问题。
-
-下面的示例对两种发送方式统一补充产品、业务场景和选中内容，提交后分别用只读文本块展示 `query`、完整 `prompt` 和 `context.text`。修改输入框后点击推荐项，仍会提交该推荐项对应的问题。
-
-<demo vue="../../demos/quick-assist/build-prompt.vue" title="自定义发送内容" description="对比手动输入与推荐项发送时的 query、prompt 和选中内容。" />
 
 ### 页面上下文与敏感数据 {#example-context}
 
