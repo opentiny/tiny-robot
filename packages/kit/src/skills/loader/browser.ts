@@ -1,5 +1,5 @@
 import { isTextSkillFilePath, normalizeSkillPath, stripRootDirectory, throwIfSkillLoadCancelled } from './utils'
-import type { BrowserSkillLoadOptions, LoadableSkillFile, SkillLoadContext } from './type'
+import type { BrowserSkillLoadOptions, LoadableSkillFiles, SkillLoadContext } from './type'
 
 type FileWithRelativePath = File & {
   webkitRelativePath?: string
@@ -8,9 +8,9 @@ type FileWithRelativePath = File & {
 export async function loadBrowserSkillFiles(
   options: BrowserSkillLoadOptions,
   context: SkillLoadContext,
-): Promise<LoadableSkillFile[]> {
+): Promise<LoadableSkillFiles> {
   if ('fileList' in options && options.fileList) {
-    const files: LoadableSkillFile[] = []
+    const files: LoadableSkillFiles = []
 
     for (const file of Array.from(options.fileList)) {
       if (!file) {
@@ -27,7 +27,8 @@ export async function loadBrowserSkillFiles(
     return files
   }
 
-  const result: LoadableSkillFile[] = []
+  const result: LoadableSkillFiles = []
+  const directories = new Set<string>()
 
   const walk = async (directory: FileSystemDirectoryHandle, parentPath = '') => {
     throwIfSkillLoadCancelled(context.signal)
@@ -41,6 +42,7 @@ export async function loadBrowserSkillFiles(
       const path = parentPath ? `${parentPath}/${name}` : name
 
       if (handle.kind === 'directory') {
+        if (path) directories.add(path)
         await walk(handle, path)
         continue
       }
@@ -50,6 +52,7 @@ export async function loadBrowserSkillFiles(
   }
 
   await walk(options.directoryHandle)
+  Object.defineProperty(result, 'directories', { value: [...directories].sort() })
   return result
 }
 

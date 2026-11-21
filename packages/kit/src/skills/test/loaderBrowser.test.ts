@@ -78,6 +78,7 @@ describe('browser loadSkill', () => {
       references: createDirectoryHandle({
         'usage.md': createTestFile('usage.md', '# Usage', 'text/markdown'),
       }),
+      empty: createDirectoryHandle({}),
     })
 
     const files = await loadBrowserSkillFiles(
@@ -91,6 +92,11 @@ describe('browser loadSkill', () => {
     )
 
     expect(files.map((file) => file.path)).toEqual(['SKILL.md', 'references/usage.md'])
+    const loadedSkill = await loadSkill({
+      source: 'browser',
+      directoryHandle: directoryHandle as unknown as FileSystemDirectoryHandle,
+    })
+    expect(loadedSkill.directories).toEqual(['empty'])
   })
 
   it('loads binary browser resources', async () => {

@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import SkillExtensionDetail from '../../../components/src/skill-extension-detail/index.vue'
+import type { SkillDefinition } from '../../../components/src/skill-import-form/index.type'
+import type { SkillFileAction } from '../../../components/src/skill-extension-detail/index.type'
 
 const definition = {
   name: 'tiny-genui-skill',
@@ -12,6 +15,12 @@ const definition = {
       resourceId: 'references/schema.md',
       size: 1536,
       text: '# Schema',
+    },
+    {
+      path: 'references/lazy.md',
+      kind: 'text' as const,
+      resourceId: 'references/lazy.md',
+      readText: async () => '# Lazy resource',
     },
     {
       path: 'assets/example.png',
@@ -39,14 +48,85 @@ const manyResourcesDefinition = {
     text: 'Resource content',
   })),
 }
+
+const editableDefinition = ref<SkillDefinition>({ ...definition })
+const resourceIdentityLog = computed(() =>
+  (editableDefinition.value.resources ?? []).map((resource) => `${resource.path}|${resource.resourceId}`).join('|'),
+)
+const alternateDefinition: SkillDefinition = {
+  name: 'alternate-skill',
+  description: 'Alternate Skill',
+  instructions: '# Alternate skill',
+  resources: [
+    {
+      path: 'guide.md',
+      kind: 'text',
+      resourceId: 'guide.md',
+      text: '# Guide',
+    },
+  ],
+}
+const switchableDefinition = ref<SkillDefinition>({ ...definition })
+const singleFileFolderDefinition = ref<SkillDefinition>({
+  name: 'single-file-folder-skill',
+  description: 'Skill with a directory that starts with one file.',
+  instructions: '# Single file folder skill',
+  resources: [
+    {
+      path: 'references/only.md',
+      kind: 'text',
+      resourceId: 'references/only.md',
+      text: '# Only file',
+    },
+  ],
+})
+const fileActionLog = ref<SkillFileAction[]>([])
+const singleFileFolderDirectories = computed(() => singleFileFolderDefinition.value.directories?.join('|') ?? '')
+
+const saveDefinition = (nextDefinition: SkillDefinition) => {
+  editableDefinition.value = nextDefinition
+}
+
+const handleFileAction = (action: SkillFileAction) => {
+  fileActionLog.value = [...fileActionLog.value, action]
+}
+
+const switchDefinition = () => {
+  switchableDefinition.value = alternateDefinition
+}
+
+const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
+  singleFileFolderDefinition.value = nextDefinition
+}
 </script>
 
 <template>
+  <button data-testid="switch-definition" type="button" @click="switchDefinition">切换 Skill</button>
+  <output data-testid="file-action-log">
+    {{ fileActionLog.map((action) => `${action.type}|${action.path}|${action.nextPath ?? ''}`).join('|') }}
+  </output>
+  <output data-testid="resource-identity-log">{{ resourceIdentityLog }}</output>
+  <output data-testid="single-file-folder-directories">{{ singleFileFolderDirectories }}</output>
   <SkillExtensionDetail data-testid="detail" :definition="definition" updated-at="2026-07-10" />
+  <SkillExtensionDetail data-testid="uncontrolled-detail" :definition="definition" mode="edit" />
   <SkillExtensionDetail data-testid="empty-detail" :definition="emptyDefinition" />
   <SkillExtensionDetail
     data-testid="many-resources-detail"
     :definition="manyResourcesDefinition"
-    style="--tr-skill-extension-detail-content-max-height: 320px"
+    style="--tr-skill-extension-detail-content-min-height: 360px; --tr-skill-extension-detail-content-max-height: 420px"
+  />
+  <SkillExtensionDetail
+    data-testid="editable-detail"
+    :definition="editableDefinition"
+    mode="edit"
+    @file-action="handleFileAction"
+    @save="saveDefinition"
+  />
+  <SkillExtensionDetail data-testid="switchable-detail" :definition="switchableDefinition" mode="edit" />
+  <SkillExtensionDetail
+    data-testid="single-file-folder-detail"
+    :definition="singleFileFolderDefinition"
+    mode="edit"
+    @save="saveSingleFileFolderDefinition"
   />
 </template>

@@ -85,6 +85,8 @@ export interface SkillDefinition {
    * skill 资源描述。
    */
   resources?: SkillResourceDescriptor[]
+  /** Explicit relative directories that must be preserved even when empty. */
+  directories?: string[]
   /**
    * 自定义 metadata。
    */

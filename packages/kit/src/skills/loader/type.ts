@@ -71,6 +71,10 @@ export type LoadableSkillFile = {
   metadata?: Record<string, unknown>
 }
 
+export type LoadableSkillFiles = LoadableSkillFile[] & {
+  directories?: string[]
+}
+
 export type BrowserSkillLoadOptions = SkillLoadBaseOptions &
   (
     | {

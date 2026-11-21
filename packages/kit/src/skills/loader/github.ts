@@ -1,4 +1,4 @@
-import type { GithubSkillLoadOptions, LoadableSkillFile, SkillLoadContext } from './type'
+import type { GithubSkillLoadOptions, LoadableSkillFiles, SkillLoadContext } from './type'
 import { isTextSkillFilePath, normalizeSkillPath, throwIfSkillLoadCancelled } from './utils'
 
 const userAgent = '@opentiny/tiny-robot-kit skill loader'
@@ -20,8 +20,8 @@ type GithubRepository = {
 export async function loadGithubSkillFiles(
   options: GithubSkillLoadOptions,
   context: SkillLoadContext,
-): Promise<LoadableSkillFile[]> {
-  const result: LoadableSkillFile[] = []
+): Promise<LoadableSkillFiles> {
+  const result: LoadableSkillFiles = []
   const ref = await resolveGithubRef(options, context)
   const skillRoot = normalizeRepoPath(options.path)
 
