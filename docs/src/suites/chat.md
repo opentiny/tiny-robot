@@ -389,6 +389,190 @@ const ui: ChatUIOptions = {
 
 需要自定义消息内容时，参考 [Bubble 自定义渲染器](../components/bubble#实现自定义渲染器)。渲染器也可获取当前会话、消息状态和滚动容器，见[自定义消息渲染上下文](#自定义消息渲染上下文)。
 
+#### 配置消息操作
+
+在气泡下方展示复制、编辑、重新生成、消息信息和回复完成时间，也支持添加自定义操作。消息操作默认关闭，通过 `ui.bubble.actions` 分别配置用户和助手的动作列表；数组决定展示内容和顺序，并替换该角色的默认列表，所有项统一遵循操作组的显隐规则。
+
+<demo
+  vue="../../demos/chat/bubble-actions.vue"
+  :vueFiles="['../../demos/chat/bubble-actions.vue']"
+  title="消息操作"
+  description="使用本地确定性回答，演示复制、编辑用户消息、重新生成助手回答和查看消息信息。"
+/>
+
+```ts
+const ui: ChatUIOptions = {
+  bubble: {
+    actions: {
+      display: ({ message }) => {
+        const messages = runtime.activeConversation.value?.messages ?? []
+        const latest = messages.filter((item) => item.role === message.role).at(-1)
+        return message === latest ? 'always' : 'hover'
+      },
+      user: ['copy', 'edit'],
+      assistant: ['copy', 'regenerate', 'info', 'timestamp'],
+    },
+  },
+}
+```
+
+内置动作的行为如下：
+
+| 动作 | 说明 |
+| --- | --- |
+| `copy` | 复制消息文本；数组内容只拼接其中的文本片段。可通过 `copy.getText(context)` 自定义复制内容。 |
+| `edit` | 编辑最新的纯文本用户消息。`TrChat` 会调用 Runtime 的 `actions.editMessage`，成功后关闭编辑器。 |
+| `regenerate` | 重新生成与消息关联的助手回答。请求处于错误或中止状态时，按钮文案会显示为“重试”。 |
+| `info` | 显示消息已有的模型、结束原因、时间及输入／输出／总 Token；可通过 `info.items(context)` 自定义内容，没有有效信息项时不显示。 |
+| `timestamp` | 以文本显示已完成助手回复的时间，无点击行为；通过 `timestamp.format(timestamp, { message })` 自定义格式。 |
+
+时间读取 `message.metadata.completedAt`（Unix 秒），Kit 自动写入，自定义消息需自行提供。
+
+`display` 支持 `'always'`、`'hover'` 或回调；默认使用 `'hover'`。上例通过当前 Runtime 的消息列表，让最新用户和助手消息的按钮常驻，历史消息悬停或键盘聚焦时显示；触屏下所有消息的可用按钮常驻。信息面板仅通过点击按钮展开，再次点击按钮、点击面板外部或按 Escape 关闭。使用 `visible`、`user` 和 `assistant` 可以按角色或消息上下文调整动作，函数配置会收到默认动作列表和 `ChatBubbleActionContext`。
+
+`edit` 和 `regenerate` 是否显示由 `ChatBubbleActionContext.capabilities` 决定。默认 Kit Runtime 只允许重放最新的纯文本用户回合；有附件、工具调用、处理中会话、空闲会话，或原模型已不存在或被禁用时，对应动作会隐藏。外部 Runtime 若未提供 `getMessageCapabilities`，使用 `TrChatUI` 时应自行在 `data.bubble.actions` 中提供能力映射。
+
+能力映射的键使用消息自身 ID，按 `metadata.chat_action_metadata.id`、字符串 `metadata.id`、`message.id` 的顺序解析。助手的重新生成事件优先用 `metadata.chat_action_metadata.userMessageId` 指向原用户消息；未配置关联时，受控 UI 返回助手自身 ID，由接入方解析目标。编辑入口和保存事件使用同一个用户消息 ID。`TrChat` 的 `edit-message` 是通知事件，保存结果由 Runtime 决定；`TrChatUI` 的受控接入方需要调用事件中的 `complete(accepted)` 确认结果。
+
+编辑和重新生成沿用原回合的模型与配置，并执行发送禁用检查和 `beforeSend`；回调返回 `'reject'` 或 `'handled'` 时不执行默认重放，也不改动历史消息。
+
+`useChatRuntime` 已内置消息操作状态插件。使用 `useChatRuntimeFromConversation` 接入自建 Conversation 时，需要在创建 Conversation 时注册：
+
+```ts
+import { useConversation } from '@opentiny/tiny-robot-kit'
+import { createChatActionStatePlugin, useChatRuntimeFromConversation } from '@opentiny/tiny-robot-chat'
+
+const conversation = useConversation({
+  useMessageOptions: { responseProvider, plugins: [createChatActionStatePlugin()] },
+})
+const runtime = useChatRuntimeFromConversation({ conversation, composer: { model } })
+```
+
+其中 `responseProvider` 和 `model` 为应用已有的响应提供器和模型配置。
+
+#### 自定义气泡操作按钮
+
+在 `ui.bubble.actions.user` 或 `assistant` 中配置，`TrChat` 和 `TrChatUI` 均适用：
+
+- 修改内置按钮：使用 `{ type: 'builtin', id: 'copy', label: '复制回答', icon: YourIcon }` 调整文案和图标。
+- 添加业务按钮：配置 `type: 'custom'`、唯一 `id`、`label` 和 `onClick(context)`，可选 `icon`；复用内置按钮样式，异步回调执行期间自动禁用。
+- 自定义按钮内容和样式：配置 `{ type: 'slot', id: 'source' }`，再通过 `bubble-action` 插槽渲染。
+
+<demo
+  vue="../../demos/chat/bubble-actions-custom.vue"
+  :vueFiles="['../../demos/chat/bubble-actions-custom.vue']"
+  title="自定义气泡操作按钮"
+  description="使用 custom 实现收藏，使用 bubble-action 插槽展示自定义的“查看来源”按钮。"
+/>
+
+示例通过 `(defaults) => [...defaults, ...]` 保留内置按钮、追加操作，并将 `'timestamp'` 排在最后。自定义 `id` 请避开内置动作名称；`visible` 和 `disabled` 支持布尔值或上下文回调。
+
+`onClick` 可读取 `context.message` 等消息信息。插槽参数包含 `item`、`context`、`disabled` 和 `setOpen`，需自行绑定 `disabled`；展开浮层时调用 `setOpen(true)`，关闭时调用 `setOpen(false)`，可在鼠标离开历史消息后保持动作区域可见。
+
+#### 自定义消息信息
+
+`info.title` 设置面板标题，默认是“对话信息”。不配置 `info.items` 时，按顺序展示 `metadata.model`、主 choice 的 `finish_reason`、`metadata.createdAt`（秒级时间戳）和 `metadata.usage` 中已有的三个标准 Token 字段。
+
+配置 `info.items(context)` 后，返回数组完整决定信息项、顺序和格式；返回 `[]` 时隐藏信息入口，不回退默认内容。`null`、`undefined` 会隐藏，数值 `0` 正常显示；需要占位符时返回 `'—'`。回调抛错时隐藏信息入口，不影响消息展示。
+
+```ts
+import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
+
+const ui: ChatUIOptions = {
+  bubble: {
+    actions: {
+      assistant: ['copy', 'info'],
+      info: {
+        title: '对话信息',
+        items: ({ message }) => {
+          const data = message.metadata ?? {}
+          return [
+            { id: 'model', label: '模型', value: typeof data.model === 'string' ? data.model : undefined },
+            {
+              id: 'duration',
+              label: '总耗时',
+              value: typeof data.durationMs === 'number' ? `${(data.durationMs / 1000).toFixed(2)}s` : undefined,
+              highlight: true,
+            },
+            { id: 'requestId', label: '请求编号', value: typeof data.requestId === 'string' ? data.requestId : undefined },
+          ]
+        },
+      },
+    },
+  },
+}
+```
+
+信息项类型 `ChatMessageInfoItem` 包含唯一 `id`、名称 `label`、值 `value`（字符串、数字、`null` 或 `undefined`）以及可选的 `highlight`。名称与值统一使用左右两列，长文本换行；`highlight` 使用亮暗主题对应的强调色。
+
+回调接收完整的 `ChatBubbleActionContext`：`message` 是当前气泡组最后一条同角色消息，`messages` 是该组消息集合，还可读取 `conversationId`、`messageId`、`messageKey`、`isLatest`、`turnState` 和 `capabilities`。回调应只读取数据并返回信息项。
+
+模型层的 `mapUsage` 负责统一不同模型的 Token 数据，配置位置、参数及转换示例见[模型用量映射](#model-usage-mapping)。展示层的 `info.items` 负责选择和格式化内容，替代原来的 `actions.usage.resolve`。动作名称同步由 `usage` 改为 `info`。
+
+示例中的 `durationMs` 和 `requestId` 由接入方写入消息 `metadata`。信息面板不会自动采集耗时或保存原始响应分片；未写入消息的数据无法在 `items` 中读取。仅含统计信息且没有 choice 的分片，当前运行时主要保存其中的 `usage`。
+
+#### 模型用量映射 {#model-usage-mapping}
+
+标准用量位于响应顶层的 `usage` 中，格式为 `{"usage":{"prompt_tokens":100,"completion_tokens":20,"total_tokens":120}}`。
+
+| 字段 | 含义 |
+| --- | --- |
+| `prompt_tokens` | 输入 Token 数 |
+| `completion_tokens` | 输出 Token 数 |
+| `total_tokens` | 总 Token 数 |
+
+至少提供一个字段，值为非负安全整数；缺失或值为 `undefined` 的字段忽略。返回上述格式时无需配置 `mapUsage`。
+
+字段不同时，在 `modelProviders[].models[]` 中配置 `mapUsage`。以下将服务返回的 `input_tokens`、`output_tokens` 转换为标准字段：
+
+```ts
+import { useChatRuntime } from '@opentiny/tiny-robot-chat'
+
+const runtime = useChatRuntime({
+  modelProviders: [
+    {
+      type: 'openai',
+      apiUrl: 'https://example.test/v1',
+      models: [
+        {
+          id: 'my-model',
+          label: '业务模型',
+          includeUsage: true,
+          mapUsage: (usage) => {
+            if (!usage || typeof usage !== 'object') return undefined
+            const data = usage as Record<string, number>
+            return {
+              prompt_tokens: data.input_tokens,
+              completion_tokens: data.output_tokens,
+              total_tokens: data.total_tokens,
+            }
+          },
+        },
+      ],
+    },
+  ],
+})
+```
+
+替换地址、模型 `id` 和源字段即可。`includeUsage: true` 向支持的服务请求用量；不同模型可分别配置 `mapUsage`。没有用量时返回 `undefined`；数据在其他位置时，可通过第二个参数 `{ chunk }` 读取完整响应分片。
+
+转换结果按字段合并到 `message.metadata.usage`，未提供的字段保留之前的值，`undefined` 不会覆盖已有计数。运行时不会重新计算 `total_tokens`；如果输入或输出计数发生变化，映射函数需同时提供一致的总数，或始终省略总数。usage 合并独立于全局 `onCompletionChunk` 的内容处理，只有 usage 的分片也会通知插件，其 `choice` 为 `undefined`。
+
+启用 `assistant: ['info']` 即可使用默认信息面板。需要调整名称、顺序或格式时，再配置 [`info.items`](#自定义消息信息)。
+
+#### 在 TrChatUI 中接入消息操作
+
+`TrChatUI` 只展示 `data` 并触发事件，不会自动调用 Runtime。应用需要提供每条消息的能力映射，并在事件处理完成后更新消息。
+
+<demo
+  vue="../../demos/chat/bubble-actions-controlled.vue"
+  :vueFiles="['../../demos/chat/bubble-actions-controlled.vue']"
+  title="TrChatUI 消息操作"
+  description="通过 data 提供消息与操作能力，并处理编辑和重新生成事件。"
+/>
+
+编辑处理可以异步执行；完成时调用 `complete(true)`，拒绝或失败时调用 `complete(false)`。重新生成事件由应用负责请求并写回消息。
+
 #### 消息错误提示配置
 
 请求失败时，在对应的 AI 消息下显示错误提示，帮助用户了解失败原因。

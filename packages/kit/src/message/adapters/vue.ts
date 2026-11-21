@@ -70,6 +70,11 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     return toReactiveMessage(message) as T
   }
 
+  const resolveMessage = (message: ChatMessage) =>
+    messages.value.find((item) => item === message || toRaw(item) === message || toRaw(item) === toRaw(message))
+  const getMessageIndex = (message: ChatMessage) =>
+    messages.value.findIndex((item) => item === message || toRaw(item) === message || toRaw(item) === toRaw(message))
+
   const getState = () => {
     if (!initialized) {
       throw new Error('Message state adapter is not initialized')
@@ -141,6 +146,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     canStartTurn,
     initialize,
     getState,
+    resolveMessage,
+    getMessageIndex,
     createMessage,
     mutate,
     subscribe: subscriptions.subscribe,

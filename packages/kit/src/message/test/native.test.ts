@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../adapters/native'
 import { createMessageEngine } from '../core/engine'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
 import type {
   ChatMessage,
+  ChatResponseChunk,
+  ChatTokenUsage,
   CreateMessageEngineOptions,
   PublicMessageState,
   RequestProcessingState,
@@ -19,6 +21,50 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('createMessageEngine', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it.each(['content', 'usage-only', 'mixed'] as const)(
+    'preserves defined usage fields across %s chunks and accepts zero updates',
+    async (mode) => {
+      const usageSnapshots: ChatTokenUsage[] = [
+        { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
+        { prompt_tokens: undefined, completion_tokens: 2, total_tokens: undefined },
+        { prompt_tokens: 6, completion_tokens: undefined, total_tokens: undefined },
+        { prompt_tokens: undefined, completion_tokens: 0, total_tokens: undefined },
+        { prompt_tokens: undefined, completion_tokens: undefined, total_tokens: 6 },
+      ]
+      const engine = createTestMessageEngine({
+        plugins: silentDefaultPlugins,
+        responseProvider: async function* () {
+          for (const [index, usage] of usageSnapshots.entries()) {
+            yield {
+              id: 'usage-stream',
+              object: 'chat.completion.chunk',
+              created: 1,
+              model: 'test-model',
+              choices:
+                mode === 'usage-only' || (mode === 'mixed' && index % 2 === 1)
+                  ? []
+                  : [{ index: 0, delta: { content: 'part' }, finish_reason: null, logprobs: null }],
+              usage,
+            } satisfies ChatResponseChunk
+          }
+        },
+      })
+
+      await engine.sendMessage('question')
+
+      const assistant = engine.getState().messages.at(-1)!
+      expect(assistant.metadata?.usage).toEqual({ prompt_tokens: 6, completion_tokens: 0, total_tokens: 6 })
+      expect(assistant.content).toBe('part'.repeat(mode === 'content' ? 5 : mode === 'mixed' ? 3 : 0))
+      expect(usageSnapshots[1]).toEqual({
+        prompt_tokens: undefined,
+        completion_tokens: 2,
+        total_tokens: undefined,
+      })
+    },
+  )
+
   it('throws when adapter is initialized more than once', () => {
     const adapter = createNativeMessageAdapter()
 
@@ -72,6 +118,173 @@ describe('createMessageEngine', () => {
     expect(userMessage?.metadata?.updatedAt).toBeDefined()
     expect(assistantMessage?.metadata?.createdAt).toBeDefined()
     expect(assistantMessage?.metadata?.updatedAt).toBeDefined()
+    expect(assistantMessage?.metadata?.completedAt).toBeTypeOf('number')
+  })
+
+  it('sets assistant completedAt only after the response stream ends', async () => {
+    let release!: () => void
+    const streamBlocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let markFirstChunk!: () => void
+    const firstChunk = new Promise<void>((resolve) => {
+      markFirstChunk = resolve
+    })
+    const engine = createTestMessageEngine({
+      plugins: silentDefaultPlugins,
+      responseProvider: async function* () {
+        yield {
+          id: 'completion-time',
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'test-model',
+          choices: [{ index: 0, delta: { content: 'partial' }, finish_reason: null, logprobs: null }],
+        } satisfies ChatResponseChunk
+        markFirstChunk()
+        await streamBlocked
+      },
+    })
+    const pending = engine.sendMessage('question')
+
+    await firstChunk
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeUndefined()
+    release()
+    await pending
+
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
+  })
+
+  it('does not set assistant completedAt when the response provider fails', async () => {
+    const engine = createTestMessageEngine({
+      plugins: silentDefaultPlugins,
+      responseProvider: async function* () {
+        yield {
+          id: 'completion-time-error',
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'test-model',
+          choices: [{ index: 0, delta: { content: 'partial' }, finish_reason: null, logprobs: null }],
+        } satisfies ChatResponseChunk
+        throw new Error('provider failed')
+      },
+    })
+
+    await expect(engine.sendMessage('question')).rejects.toThrow('provider failed')
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeUndefined()
+  })
+
+  it('publishes the stream end time only after end hooks succeed without including plugin overhead', async () => {
+    let now = 1_800_000_000_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const observed: unknown[] = []
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          async onAfterRequest() {
+            await Promise.resolve()
+            now += 60_000
+          },
+          async onTurnEnd({ getState }) {
+            observed.push(getState().messages.at(-1)?.metadata?.completedAt)
+            await Promise.resolve()
+            now += 60_000
+          },
+          onFinally({ getState }) {
+            observed.push(getState().messages.at(-1)?.metadata?.completedAt)
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('answer'),
+    })
+    engine.subscribe('requestState', ({ requestState, messages }) => {
+      if (requestState === 'completed') observed.push(messages.at(-1)?.metadata?.completedAt)
+    })
+
+    await engine.sendMessage('question')
+
+    expect(observed).toEqual([undefined, undefined, 1_800_000_000])
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBe(1_800_000_000)
+    expect(now).toBe(1_800_000_120_000)
+  })
+
+  it('uses the final response stream time when plugins request another response', async () => {
+    let now = 1_800_000_000_000
+    let requestCount = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onAfterRequest({ requestNext }) {
+            now += 60_000
+            if (requestCount === 1) requestNext()
+          },
+        },
+      ],
+      responseProvider: async function* () {
+        requestCount++
+        now += 60_000
+        yield {
+          id: `response-${requestCount}`,
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'test-model',
+          choices: [{ index: 0, delta: { content: 'answer' }, finish_reason: 'stop', logprobs: null }],
+        } satisfies ChatResponseChunk
+      },
+    })
+
+    await engine.sendMessage('question')
+
+    expect(requestCount).toBe(2)
+    expect(engine.getState().messages[1].metadata?.completedAt).toBeUndefined()
+    expect(engine.getState().messages[2].metadata?.completedAt).toBe(1_800_000_180)
+  })
+
+  it('does not publish completedAt when an after-request hook fails', async () => {
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onAfterRequest() {
+            throw new Error('after request failed')
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('answer'),
+    })
+
+    await expect(engine.sendMessage('question')).rejects.toThrow('after request failed')
+    expect(engine.getState().requestState).toBe('error')
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeUndefined()
+  })
+
+  it('notifies message subscribers when a plugin updates the current message', async () => {
+    const updateSnapshots: unknown[] = []
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onCompletionChunk({ updateCurrentMessage }) {
+            updateCurrentMessage((message) => {
+              message.metadata = { ...message.metadata, pluginUpdated: true }
+            })
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('assistant reply'),
+    })
+    engine.subscribe('messages', ({ messages }) => {
+      const assistant = messages.at(-1)
+      if (assistant?.metadata?.pluginUpdated) {
+        updateSnapshots.push(assistant.metadata.pluginUpdated)
+      }
+    })
+
+    await engine.sendMessage('hello')
+
+    expect(updateSnapshots).toEqual([true, true])
   })
 
   it('notifies message and request state subscribers with snapshots of message updates and request state transitions during message processing', async () => {
@@ -130,7 +343,8 @@ describe('createMessageEngine', () => {
     expectedMessageSnapshots.forEach((expected, idx) => {
       expect(snapshotsForMessages[idx], `messages snapshot mismatch at index ${idx}`).toMatchObject(expected)
     })
-    expect(snapshotsForMessages).toHaveLength(expectedMessageSnapshots.length)
+    expect(snapshotsForMessages).toHaveLength(expectedMessageSnapshots.length + 1)
+    expect(snapshotsForMessages.at(-1)?.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
 
     // Expected snapshots for request state
     const expectedRequestStateSequence: [RequestState, RequestProcessingState | undefined][] = [
@@ -325,6 +539,7 @@ describe('createMessageEngine', () => {
     expect(events).toEqual(['resume', 'before-request'])
     expect(customContextAtRequest).toEqual({ marker: 'preserved' })
     expect(engine.getState()).toMatchObject({ requestState: 'completed', canStartTurn: true })
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
   })
 
   it('aborts an asynchronous command while the turn is paused', async () => {
@@ -469,6 +684,7 @@ describe('createMessageEngine', () => {
 
     expect(responseProvider).toHaveBeenCalledOnce()
     expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+    expect(engine.getState().messages.at(-1)?.metadata?.completedAt).toBeUndefined()
   })
 
   it('should handle abort correctly during message processing with delayed chunks', async () => {
@@ -489,6 +705,7 @@ describe('createMessageEngine', () => {
     expect(requestState).toBe('aborted')
     expect(messages).toHaveLength(2)
     expect(messages[1]).toMatchObject({ role: 'assistant', content: 'first chunk', loading: undefined })
+    expect(messages[1].metadata?.completedAt).toBeUndefined()
   })
 
   it('thinking plugin should update thinking state correctly', async () => {
@@ -564,6 +781,7 @@ describe('createMessageEngine', () => {
     expectedMessageSnapshots.forEach((expected, idx) => {
       expect(snapshots[idx], `messages snapshot mismatch at index ${idx}`).toMatchObject(expected)
     })
-    expect(snapshots).toHaveLength(expectedMessageSnapshots.length)
+    expect(snapshots).toHaveLength(expectedMessageSnapshots.length + 1)
+    expect(snapshots.at(-1)?.at(-1)?.metadata?.completedAt).toBeTypeOf('number')
   })
 })

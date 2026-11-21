@@ -1,4 +1,4 @@
-import type { ChatConversationInfo } from '../base'
+import type { ChatConversationInfo, ChatMessageItem } from '../base'
 import type { ChatSendPayload } from '../commands'
 import type { ChatRightAsidePanelId } from './options'
 import type {
@@ -97,6 +97,14 @@ export type ChatBubbleEventPayload = {
   readonly contentIndex: number
 }
 
+export interface ChatBubbleMessageActionPayload {
+  readonly conversationId?: string | null
+  readonly messageId?: string
+  readonly message: ChatMessageItem
+  readonly text?: string
+  readonly complete?: (accepted: boolean) => void
+}
+
 export interface ChatUIEmits {
   'update:floating-state': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragDetail]
@@ -116,6 +124,9 @@ export interface ChatUIEmits {
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
+  'edit-message': [payload: ChatBubbleMessageActionPayload]
+  'regenerate-message': [payload: ChatBubbleMessageActionPayload]
+  'bubble-action-error': [payload: { readonly actionId: string; readonly messageId?: string; readonly error: unknown }]
   'model-select': [payload: ChatModelSelectPayload]
   'model-feature-value-change': [payload: ChatModelFeatureValueChangePayload]
   'sender-drag-enter': [payload: SenderDragPayload]
