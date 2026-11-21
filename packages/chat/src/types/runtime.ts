@@ -8,6 +8,7 @@ import type {
 } from './base'
 import type { ChatSendPayload } from './commands'
 import type {
+  McpExtensionFormValue,
   ModelSelectorField,
   ModelSelectorFeatureValue,
   ModelSelectorFeatureValues,
@@ -96,6 +97,7 @@ export type ChatMcpToolState = Readonly<Partial<Record<string, readonly ChatMcpT
 export interface ChatMcpRuntime {
   servers: ChatReadable<readonly ChatMcpServerInfo[]>
   tools: ChatReadable<ChatMcpToolState>
+  registerMcpServer?: (config: McpExtensionFormValue) => Promise<string>
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void

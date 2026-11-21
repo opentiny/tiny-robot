@@ -1,5 +1,6 @@
 import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
+import type { McpExtensionFormValue } from '@opentiny/tiny-robot'
 import { useChatDraft } from './useChatDraft'
 import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
 import { canSetModelFieldValue } from '@opentiny/tiny-robot'
@@ -29,6 +30,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const activeConversationId = computed(() => activeConversation.value?.id ?? null)
   const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
+  const pendingMcpRegistration = shallowRef(false)
   const pendingModelFields = shallowReactive(new Map<ChatRuntime, ReadonlySet<string>>())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
@@ -39,6 +41,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     runtime,
     () => {
       pendingModelSelecting.value = false
+      pendingMcpRegistration.value = false
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
       emptyConversationSendSnapshots.clear()
@@ -150,6 +153,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       : undefined
     const mcpView: ChatMcpView | undefined = mcp
       ? {
+          registering: pendingMcpRegistration.value,
           servers: mcp.servers.value.map((server): ChatMcpServerView => ({
             ...server,
             icon: typeof server.icon === 'string' ? server.icon : undefined,
@@ -307,6 +311,24 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       )
   }
 
+  async function registerMcpServer(config: McpExtensionFormValue): Promise<string | undefined> {
+    const actionRuntime = runtime.value
+    const mcp = actionRuntime.composer.mcp
+    if (!mcp?.registerMcpServer) return undefined
+    if (pendingMcpRegistration.value) {
+      const error = new Error('MCP server registration is already in progress.')
+      options.onActionError({ action: 'register-mcp-server', payload: { config }, error })
+      return undefined
+    }
+
+    pendingMcpRegistration.value = true
+    try {
+      return await runAction('register-mcp-server', { config }, () => mcp.registerMcpServer!(config))
+    } finally {
+      if (runtime.value === actionRuntime) pendingMcpRegistration.value = false
+    }
+  }
+
   async function removeMcpServer(id: string) {
     const mcp = runtime.value.composer.mcp
     if (mcp)
@@ -318,7 +340,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   async function setMcpServerEnabled(id: string, enabled: boolean) {
     const mcp = runtime.value.composer.mcp
     const server = mcp?.servers.value.find((item) => item.id === id)
-    if (mcp && server && server.enabled !== enabled) {
+    if (mcp && server && (server.enabled !== enabled || (enabled && server.error))) {
       await withPending(pendingMcpServerIds, id, () =>
         runAction('set-mcp-server-enabled', { serverId: id, enabled }, () => mcp.setServerEnabled(id, enabled)),
       )
@@ -402,6 +424,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     deleteConversation,
     selectModel,
     addMcpServer,
+    registerMcpServer,
     removeMcpServer,
     setMcpServerEnabled,
     setMcpToolEnabled,

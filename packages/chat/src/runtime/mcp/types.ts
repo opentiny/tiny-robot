@@ -1,7 +1,10 @@
+export type ChatMcpTransportType = 'sse' | 'streamableHttp'
+
 export interface ChatMcpServerConfig {
   id: string
   name: string
   baseUrl: string
+  type?: ChatMcpTransportType
   installed?: boolean
   description?: string
   icon?: string

@@ -1,7 +1,16 @@
+import { computed } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import type { ChatMessage, ConversationInfo, ConversationStorageStrategy } from '@opentiny/tiny-robot-kit'
-import type { ModelSelectorField } from '@opentiny/tiny-robot'
+import type {
+  ChatCompletion,
+  ChatMessage,
+  ConversationInfo,
+  ConversationStorageStrategy,
+} from '@opentiny/tiny-robot-kit'
+import type { ChatMcpRuntime } from '../types'
+import type { UseChatRuntimeMcpAdapter } from './useChatRuntime'
 import { errorStatePlugin } from './plugins/errorStatePlugin'
+import { createWebMcpAdapter } from './mcp/createWebMcpAdapter'
+import type { ModelSelectorField } from '@opentiny/tiny-robot'
 import { CHAT_RUN_CONFIG_METADATA_KEY } from './runConfig'
 import { useChatRuntime } from './useChatRuntime'
 
@@ -74,6 +83,174 @@ describe('useChatRuntime error state', () => {
     const activeConversation = runtime.activeConversation.value
     expect(activeConversation?.requestState).toBe('error')
     expect(activeConversation?.messages.at(-1)?.state?.error).toBeUndefined()
+  })
+})
+
+describe('useChatRuntime MCP composition', () => {
+  it('composes mcpServers and a custom mcp adapter into one runtime', () => {
+    const server: ChatMcpRuntime['servers']['value'][number] = {
+      id: 'custom-tools',
+      name: 'Custom Tools',
+      installed: true,
+      enabled: true,
+    }
+    const customMcp: UseChatRuntimeMcpAdapter = {
+      runtime: {
+        servers: computed(() => [server]),
+        tools: computed(() => ({ 'custom-tools': [{ id: 'echo', name: 'echo', enabled: true }] })),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async (_serverIds, selectedToolIds) =>
+        (selectedToolIds['custom-tools'] ?? []).map((id) => ({
+          serverId: 'custom-tools',
+          id,
+          name: `custom-tools__${id}`,
+          originalName: id,
+        })),
+      callTool: async () => 'ok',
+    }
+
+    const runtime = useChatRuntime({
+      mcpServers: [
+        {
+          id: 'project-tools',
+          name: 'Project Tools',
+          baseUrl: '/mcp',
+        },
+      ],
+      mcp: customMcp,
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'test',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              system_fingerprint: null,
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'custom-tools'])
+    expect(runtime.composer.mcp?.tools.value).toEqual({ 'custom-tools': [{ id: 'echo', name: 'echo', enabled: true }] })
+  })
+
+  it('routes dynamic registration to a direct adapter that provides the hook', async () => {
+    const registerMcpServer = vi.fn().mockResolvedValue('custom-server')
+    const customMcp: UseChatRuntimeMcpAdapter = {
+      runtime: {
+        servers: computed(() => [{ id: 'custom-tools', name: 'Custom Tools', installed: true, enabled: true }]),
+        tools: computed(() => ({ 'custom-tools': [] })),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async () => [],
+      callTool: async () => 'ok',
+      registerMcpServer,
+    }
+    const runtime = useChatRuntime({
+      mcp: customMcp,
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: { responseProvider: async () => ({}) as ChatCompletion },
+      },
+    })
+
+    await expect(
+      runtime.composer.mcp?.registerMcpServer?.({
+        name: 'Dynamic',
+        type: 'streamableHttp',
+        url: 'https://mcp.example.com',
+      }),
+    ).resolves.toBe('custom-server')
+    expect(registerMcpServer).toHaveBeenCalledOnce()
+  })
+
+  it('composes a WebMCP adapter with external mcpServers', () => {
+    const webmcp = createWebMcpAdapter({
+      source: {
+        listTools: async () => [{ name: 'echo' }],
+        callTool: async () => 'ok',
+      },
+      id: 'page-webmcp',
+      name: 'Page WebMCP',
+    })
+
+    const runtime = useChatRuntime({
+      mcpServers: [{ id: 'project-tools', name: 'Project Tools', baseUrl: '/mcp' }],
+      mcp: webmcp,
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'test',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              system_fingerprint: null,
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'page-webmcp'])
+  })
+
+  it('supports the unified mcp configuration with servers and adapters', () => {
+    const webmcp = createWebMcpAdapter({
+      source: {
+        listTools: async () => [{ name: 'echo' }],
+        callTool: async () => 'ok',
+      },
+      id: 'page-webmcp',
+    })
+
+    const runtime = useChatRuntime({
+      mcp: {
+        servers: [{ id: 'project-tools', name: 'Project Tools', baseUrl: '/mcp' }],
+        adapters: [webmcp],
+      },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'test',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              system_fingerprint: null,
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'page-webmcp'])
+  })
+
+  it('rejects configuring unified mcp.servers together with legacy mcpServers', () => {
+    expect(() =>
+      useChatRuntime({
+        mcp: { servers: [] },
+        mcpServers: [],
+        conversation: {
+          storage: createMemoryStorage(),
+          useMessageOptions: { responseProvider: async () => ({}) as ChatCompletion },
+        },
+      }),
+    ).toThrow('mcp.servers and mcpServers cannot be configured at the same time')
   })
 })
 
