@@ -1,6 +1,7 @@
 export { loadSkill, loadSkillWithDetails } from './loader'
 export type {
   BrowserSkillLoadOptions,
+  ArchiveSkillLoadOptions,
   GithubSkillLoadOptions,
   SkillLoadJob,
   SkillLoadOptions,

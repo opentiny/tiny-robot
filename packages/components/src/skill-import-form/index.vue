@@ -9,6 +9,7 @@ import {
   DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT,
   formatSkillAddMaxUploadSize,
   parseSkillAddGithubUrl,
+  validateSkillAddArchive,
   validateSkillAddBrowserSelection,
 } from './validation'
 
@@ -21,6 +22,7 @@ const emit = defineEmits<SkillImportFormEmits>()
 const fileInput = ref<HTMLInputElement>()
 const githubInput = ref<HTMLInputElement>()
 const browserFiles = ref<File[]>([])
+const archiveFile = ref<File>()
 const githubUrl = ref('')
 const resolverErrorMessage = ref('')
 const resolvedDefinition = shallowRef<SkillDefinition>()
@@ -37,12 +39,19 @@ const errorId = `${componentId}-error`
 const totalSize = computed(() => browserFiles.value.reduce((total, file) => total + file.size, 0))
 const maxUploadSizeLabel = computed(() => formatSkillAddMaxUploadSize(props.maxUploadSize))
 const hasBrowserFiles = computed(() => browserFiles.value.length > 0)
+const archiveSelectionError = computed(() =>
+  props.source === 'archive' && (archiveFile.value || browserSubmitAttempted.value)
+    ? validateSkillAddArchive(archiveFile.value, props.maxUploadSize)
+    : '',
+)
 const browserSelectionError = computed(() =>
-  hasBrowserFiles.value || browserSubmitAttempted.value
+  props.source === 'local' && (hasBrowserFiles.value || browserSubmitAttempted.value)
     ? validateSkillAddBrowserSelection(browserFiles.value, { maxUploadSize: props.maxUploadSize })
     : '',
 )
-const errorMessage = computed(() => browserSelectionError.value || resolverErrorMessage.value)
+const errorMessage = computed(
+  () => archiveSelectionError.value || browserSelectionError.value || resolverErrorMessage.value,
+)
 const showBrowserSuccess = computed(
   () => hasBrowserFiles.value && !browserSelectionError.value && Boolean(resolvedDefinition.value),
 )
@@ -51,6 +60,7 @@ const browserSubmitDisabled = computed(
 )
 
 const packageName = computed(() => {
+  if (props.source === 'archive') return archiveFile.value?.name ?? 'Skill 压缩包'
   const files = browserFiles.value
   const relativePath = files.find((file) => file.webkitRelativePath)?.webkitRelativePath
   const rootName = relativePath?.split('/').filter(Boolean)[0]
@@ -152,16 +162,32 @@ const updateBrowserFiles = (files: File[]) => {
   }
 }
 
+const updateArchiveFile = (file?: File) => {
+  browserSubmitAttempted.value = false
+  archiveFile.value = file
+  browserFiles.value = file ? [file] : []
+  invalidateResolution()
+  const error = validateSkillAddArchive(file, props.maxUploadSize)
+  if (error) {
+    resolverErrorMessage.value = error
+    return
+  }
+  void resolveSkill({ source: 'archive', file: file!, maxUncompressedSize: props.maxUploadSize })
+}
+
 const handleRemoveBrowserFiles = () => {
   browserSelectionGeneration.value += 1
-  updateBrowserFiles([])
+  if (props.source === 'archive') updateArchiveFile()
+  else updateBrowserFiles([])
   void nextTick(() => fileInput.value?.focus())
 }
 
 const handleFileChange = (event: Event) => {
   browserSelectionGeneration.value += 1
   const input = event.target as HTMLInputElement
-  updateBrowserFiles(Array.from(input.files ?? []))
+  const files = Array.from(input.files ?? [])
+  if (props.source === 'archive') updateArchiveFile(files[0])
+  else updateBrowserFiles(files)
   input.value = ''
 }
 
@@ -230,7 +256,8 @@ const handleDrop = async (event: DragEvent) => {
 
   if (selectionGeneration !== browserSelectionGeneration.value) return
 
-  updateBrowserFiles(files)
+  if (props.source === 'archive') updateArchiveFile(files.find((file) => /\.(zip|tar|tar\.gz|tgz)$/i.test(file.name)))
+  else updateBrowserFiles(files)
 }
 
 const handleDragEnter = () => {
@@ -249,7 +276,7 @@ const handleGithubInput = (event: Event) => {
 
 const focusInvalidInput = () => {
   void nextTick(() => {
-    if (props.source === 'local') fileInput.value?.focus()
+    if (props.source !== 'github') fileInput.value?.focus()
     else githubInput.value?.focus()
   })
 }
@@ -257,9 +284,9 @@ const focusInvalidInput = () => {
 const handleSubmit = async () => {
   if (resolving.value) return
 
-  if (props.source === 'local') {
+  if (props.source === 'local' || props.source === 'archive') {
     browserSubmitAttempted.value = true
-    if (browserSelectionError.value) {
+    if (browserSelectionError.value || archiveSelectionError.value) {
       focusInvalidInput()
       return
     }
@@ -290,6 +317,7 @@ watch(
   () => {
     browserSelectionGeneration.value += 1
     browserFiles.value = []
+    archiveFile.value = undefined
     githubUrl.value = ''
     browserSubmitAttempted.value = false
     invalidateResolution()
@@ -300,7 +328,7 @@ watch(
 
 <template>
   <form class="skill-add" novalidate @submit.prevent="handleSubmit">
-    <template v-if="props.source === 'local'">
+    <template v-if="props.source === 'local' || props.source === 'archive'">
       <div class="skill-add__browser">
         <div class="skill-add__dropzone-wrapper">
           <label
@@ -323,9 +351,14 @@ watch(
               aria-label="Skill 包"
               :aria-describedby="errorMessage ? errorId : browserDescriptionId"
               :aria-invalid="Boolean(errorMessage)"
-              webkitdirectory
-              directory
-              multiple
+              :accept="
+                props.source === 'archive'
+                  ? '.zip,.tar,.tar.gz,.tgz,application/zip,application/gzip,application/x-tar'
+                  : undefined
+              "
+              :webkitdirectory="props.source === 'local' ? '' : undefined"
+              :directory="props.source === 'local' ? '' : undefined"
+              :multiple="props.source === 'local'"
               @change="handleFileChange"
             />
 
@@ -348,7 +381,11 @@ watch(
                 {{ resolving ? '正在校验…' : '点击或拖拽上传Skill包' }}
               </strong>
               <span :id="browserDescriptionId" class="skill-add__upload-description"
-                >技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述，{{ maxUploadSizeLabel }}M以内</span
+                >{{
+                  props.source === 'archive'
+                    ? '支持 ZIP、TAR、TAR.GZ 和 TGZ，解压后需包含 SKILL.md 文件'
+                    : '技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述'
+                }}，{{ maxUploadSizeLabel }}M以内</span
               >
             </template>
           </label>

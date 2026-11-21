@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import ExtensionAddIcon from './ExtensionAddIcon.vue'
 
-type AddAction = 'mcp' | 'skill-local' | 'skill-github'
+type AddAction = 'mcp' | 'skill-local' | 'skill-archive' | 'skill-github'
 
 const emit = defineEmits<{
   (event: 'select', action: AddAction, trigger: HTMLButtonElement): void
@@ -57,6 +57,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handlePointerD
       <button type="button" class="extension-add-menu__option" @click="select('skill-local')">
         <ExtensionAddIcon kind="skill" />
         上传Skill技能包
+      </button>
+      <button type="button" class="extension-add-menu__option" @click="select('skill-archive')">
+        <ExtensionAddIcon kind="skill" />
+        上传压缩包
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-github')">
         <ExtensionAddIcon kind="skill" />

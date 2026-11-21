@@ -4,13 +4,13 @@ outline: [1, 3]
 
 # Skill 扩展导入与详情
 
-`SkillImportForm` 提供本地文件夹和 GitHub 两种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 只读展示已取得的定义、说明和资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
+`SkillImportForm` 提供本地文件夹、ZIP/TAR 系列压缩包和 GitHub 三种 Skill 导入界面，并在解析成功后把 Skill 定义交给应用；`SkillExtensionDetail` 只读展示已取得的定义、说明和资源。应用可以将两者放在自己的页面、Dialog 或 Drawer 中，并自行决定数据来源、保存方式及容器行为。
 
 ## 概览
 
 ### 适用场景
 
-- 从本地文件夹或 GitHub 仓库路径取得一个 Skill 定义。
+- 从本地文件夹、ZIP/TAR 系列压缩包或 GitHub 仓库路径取得一个 Skill 定义。
 - 展示 Skill 的说明与资源清单，让用户了解已加载的内容。
 - 与 [ExtensionManager](./extension-manager.md) 组合时，由应用处理通用操作事件，打开对应界面并更新扩展列表。
 
@@ -73,6 +73,26 @@ description: 用于试用 Skill 导入。
   description="选择包含 SKILL.md 的文件夹，确认后查看应用收到的定义。"
 />
 
+### 导入压缩包
+
+`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz` 文件。归档可以直接包含 `SKILL.md`，也可以在唯一顶层目录中直接包含它；不会递归寻找更深层入口。`.DS_Store` 和 `__MACOSX/` 会被忽略，其他隐藏资源保留。Kit API 可独立设置压缩输入大小、解压文件总量和有效文件数上限；默认解压总量为 10 MiB、有效文件数为 10,000，压缩输入默认最多为解压上限加 10 MiB。目录和系统元数据不消耗有效资源额度，所有归档条目仍受内部 10,000 条限制。导入结果资源驻留内存，限额用于约束输入与解析峰值。ZIP 支持 Store 和 Deflate；TAR 支持 USTAR、PAX 和 GNU 长路径归档及普通文件/目录条目，并拒绝链接和设备文件。TAR.GZ/TGZ 使用运行时 `DecompressionStream` 解压。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
+
+| 格式         | 常见用途                 | 当前支持              | 说明                                                        |
+| ------------ | ------------------------ | --------------------- | ----------------------------------------------------------- |
+| ZIP          | 跨平台文件分发、应用上传 | 支持 Store 和 Deflate | 浏览器与现代 Node 可用原生流 API 解压，不需额外运行时依赖。 |
+| TAR.GZ / TGZ | 开源源码与 Linux 工具包  | 支持                  | TAR 解析与 Gzip 流解压由 Kit 完成。                         |
+| TAR          | 不压缩的归档             | 支持                  | 保留文件路径，并拒绝不支持的链接/设备条目。                 |
+| 7z           | 桌面大容量压缩           | 暂不支持              | 通常需要专用解压库，增加包体和格式维护成本。                |
+| RAR          | 桌面压缩与分卷包         | 暂不支持              | 常依赖专有格式实现或 WebAssembly 解压器。                   |
+
+Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、压缩包/展开大小限制和状态反馈；Chat 应用继续处理保存、更新列表和启用偏好。自定义 `resolve-skill` 收到 `{ source: 'archive', file, maxUncompressedSize }`，可调用 kit 的 `loadSkillWithDetails({ source: 'archive', ... })`，随后仍通过原有 `submit` 流程交付定义。
+
+<demo
+  vue="../../demos/skill-import-form/archive-import.vue"
+  title="导入压缩包 Skill 包"
+  description="选择一个 ZIP 或 TAR 系列归档并查看解出的 Skill 定义。"
+/>
+
 ### 观察加载、失败与重试
 
 `source="github"` 接受带 Skill 子目录的 HTTPS GitHub `tree` 地址，或直接指向 `SKILL.md` 的 `blob` 地址。点击“导入”后，组件先把规范化的 `url` 和 `owner/repo` 形式的 `repo` 交给解析器；成功时直接触发 `submit`，失败时在组件内显示错误。默认解析器会查询仓库真实的分支和标签，按最长匹配确定 `ref` 与目录边界，也支持 40 位 commit SHA。自定义解析器若需要 `ref` 和目录，必须自行解析，或调用 kit 的加载能力。示例用手动完成的本地 Promise 展示加载、成功和失败，并可再次导入或重置。
@@ -112,7 +132,7 @@ description: 用于试用 Skill 导入。
 | 属性名            | 说明                                                                                           | 类型                    | 默认值              | 必填 |
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------- | ------------------- | ---- |
 | `source`          | 导入来源；切换时重置组件内的草稿、解析结果和错误。                                             | `SkillImportFormSource` | `'local'`           | 否   |
-| `max-upload-size` | 本地文件夹允许的文件总字节数，超过时不调用解析器。                                             | `number`                | `10485760`（10 MB） | 否   |
+| `max-upload-size` | 文件夹的文件总字节数、归档文件大小和解包后文件总字节数上限。                                   | `number`                | `10485760`（10 MB） | 否   |
 | `resolve-timeout` | 解析超时毫秒数；`0` 表示不超时。超时不取消在途请求，但组件会忽略其晚到结果。                   | `number`                | `30000`（30 秒）    | 否   |
 | `resolve-skill`   | 自定义异步解析器；未提供时使用 kit 默认解析器，并在线解析 GitHub URL 中的真实 ref 与目录边界。 | `SkillResolver`         | kit 默认解析器      | 否   |
 
@@ -132,16 +152,16 @@ description: 用于试用 Skill 导入。
 
 #### Types
 
-| 类型名                    | 类型或签名 | 说明                                                      |
-| ------------------------- | ---------- | --------------------------------------------------------- |
-| `SkillFileKind`           | union      | `'text' \| 'binary'`。                                    |
-| `SkillResourceDescriptor` | union      | 资源路径、标识、元数据及按种类区分的内容读取方式。        |
-| `SkillDefinition`         | interface  | 解析完成的 Skill 定义。                                   |
-| `SkillImportFormSource`   | union      | `'local' \| 'github'`。                                   |
-| `SkillImportFormInput`    | union      | 解析器收到的本地文件，或 GitHub URL 与仓库标识。          |
-| `SkillResolver`           | function   | 接收 `SkillImportFormInput`，异步返回 `SkillDefinition`。 |
-| `SkillImportFormProps`    | interface  | 导入组件的公开 Props。                                    |
-| `SkillImportFormEmits`    | interface  | `submit` 和 `cancel` 的公开事件签名。                     |
+| 类型名                    | 类型或签名 | 说明                                                       |
+| ------------------------- | ---------- | ---------------------------------------------------------- |
+| `SkillFileKind`           | union      | `'text' \| 'binary'`。                                     |
+| `SkillResourceDescriptor` | union      | 资源路径、标识、元数据及按种类区分的内容读取方式。         |
+| `SkillDefinition`         | interface  | 解析完成的 Skill 定义。                                    |
+| `SkillImportFormSource`   | union      | `'local' \| 'archive' \| 'github'`。                       |
+| `SkillImportFormInput`    | union      | 解析器收到的本地文件、归档文件，或 GitHub URL 与仓库标识。 |
+| `SkillResolver`           | function   | 接收 `SkillImportFormInput`，异步返回 `SkillDefinition`。  |
+| `SkillImportFormProps`    | interface  | 导入组件的公开 Props。                                     |
+| `SkillImportFormEmits`    | interface  | `submit` 和 `cancel` 的公开事件签名。                      |
 
 以下是 `SkillDefinition`、`SkillImportFormInput` 与 `SkillResolver` 的完整定义：
 
@@ -154,7 +174,10 @@ interface SkillDefinition {
   metadata?: Record<string, unknown>
 }
 
-type SkillImportFormInput = { source: 'local'; files: File[] } | { source: 'github'; url: string; repo: string }
+type SkillImportFormInput =
+  | { source: 'local'; files: File[] }
+  | { source: 'archive'; file: File; maxUncompressedSize: number }
+  | { source: 'github'; url: string; repo: string }
 
 type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 ```

@@ -48,6 +48,15 @@ export function validateSkillAddBrowserSelection(
   return ''
 }
 
+export function validateSkillAddArchive(file: File | undefined, maxUploadSize = DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE) {
+  if (!file) return '请选择要上传的 Skill 压缩包'
+  if (!/\.(zip|tar|tar\.gz|tgz)$/i.test(file.name)) return '目前仅支持 ZIP、TAR、TAR.GZ 和 TGZ 格式压缩包'
+  if (file.size > maxUploadSize) {
+    return `Skill 压缩包大小不能超过 ${formatSkillAddMaxUploadSize(maxUploadSize)} MB`
+  }
+  return ''
+}
+
 interface SkillAddGithubLink {
   url: string
   repo: string
