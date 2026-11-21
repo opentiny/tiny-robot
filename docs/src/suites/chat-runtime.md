@@ -727,7 +727,7 @@ const history = useChatHistoryData({
 | `ChatRequestState`       | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`                                                                                                                                                                                                                                                                                |
 | `ChatProcessingState`    | `'requesting' \| 'completing' \| string`                                                                                                                                                                                                                                                                                                                   |
 
-消息对象和服务端 ID 都可能变化时，请提供稳定的 `renderKey`。显式 `streamState` 优先；自动流状态仅在请求起点可识别且确认新增助手消息属于当前请求时标记为 `streaming`。请求进行中无法确定归属时为 `unknown`，`loading` 不决定流状态。暂停期间保留本轮身份，结束或切换会话后清理；中途挂载且无法重建归属时使用 `unknown`。自定义渲染器的接入见 [Renderer 上下文](./chat#自定义-renderer-上下文)。
+消息对象和服务端 ID 都可能变化时，请提供稳定的 `renderKey`。显式 `streamState` 优先；自动流状态仅在请求起点可识别且确认新增助手消息属于当前请求时标记为 `streaming`。请求进行中无法确定归属时为 `unknown`，`loading` 不决定流状态。暂停期间保留本轮身份，结束或切换会话后清理；中途挂载且无法重建归属时使用 `unknown`。自定义渲染器的接入见 [Renderer 上下文](./chat#自定义消息渲染上下文)。
 
 #### 模型与 MCP
 
