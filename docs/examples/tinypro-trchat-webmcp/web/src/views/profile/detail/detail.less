@@ -1,0 +1,87 @@
+.project-detail-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.detail-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.detail-card {
+  padding: 20px 24px;
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  position: relative;
+  padding-left: 10px;
+  color: #191919;
+  font-size: 15px;
+  font-weight: 600;
+
+  &::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 3px;
+    height: 14px;
+    background-color: #1476ff;
+    content: '';
+    transform: translateY(-50%);
+  }
+}
+
+.card-desc {
+  margin-bottom: 20px;
+  color: #595959;
+  font-size: 13px;
+}
+
+.project-steps {
+  padding: 8px 0;
+}
+
+.detail-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 24px;
+
+  .tiny-form-item {
+    margin-bottom: 8px;
+  }
+
+  :deep(.tiny-input),
+  :deep(.tiny-select),
+  :deep(.tiny-date-editor),
+  :deep(.tiny-numeric) {
+    width: 100%;
+    color: #191919;
+  }
+}
+
+// 窄屏下减少列数，避免标签和取值被截断
+@media (max-width: 768px) {
+  .detail-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

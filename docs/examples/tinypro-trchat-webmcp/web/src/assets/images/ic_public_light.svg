@@ -1,0 +1,18 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32.000000" height="32.000000" fill="none" customFrame="#000000">
+	<defs>
+		<clipPath id="clipPath_106">
+			<rect width="24.000000" height="24.000000" x="4.000000" y="4.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+	</defs>
+	<rect id="ic_public_light" width="32.000000" height="32.000004" x="0.000000" y="0.000000" />
+	<g id="组合 2688">
+		<g id="ic_public_sun" clip-path="url(#clipPath_106)" customFrame="url(#clipPath_106)">
+			<rect id="ic_public_sun" width="24.000000" height="24.000000" x="4.000000" y="4.000000" />
+			<g id="组合 4694">
+				<circle id="ic_public_sun_2_3" cx="16" cy="16" r="6.5" fill="rgb(255,255,255)" fill-opacity="0" />
+				<circle id="ic_public_sun_2_3" cx="16" cy="16" r="6.5" stroke="rgb(25,25,25)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />
+				<path id="ic_public_sun_2_4" d="M25 16L26.5 16M5.5 16L7 16M16 25L16 26.5M16 5.5L16 7M9.63604 22.364L8.57538 23.4246M23.4246 8.57538L22.364 9.63604M9.63604 9.63604L8.57538 8.57538M23.4246 23.4246L22.364 22.364" stroke="rgb(25,25,25)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />
+			</g>
+		</g>
+	</g>
+</svg>
