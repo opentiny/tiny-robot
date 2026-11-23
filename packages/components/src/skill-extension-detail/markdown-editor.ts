@@ -76,6 +76,11 @@ const ListItem = Node.create({
   defining: true,
   parseHTML: () => [{ tag: 'li' }],
   renderHTML: ({ HTMLAttributes }) => ['li', mergeAttributes(HTMLAttributes), 0],
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => this.editor.commands.splitListItem(this.name),
+    }
+  },
 })
 
 const BulletList = Node.create({
@@ -304,23 +309,18 @@ const serializeInline = (node: MarkdownNode): string => {
 
 const escapeTablePipes = (value: string) => {
   let result = ''
-  let codeFence = ''
-
-  for (let index = 0; index < value.length;) {
-    if (value[index] === '`') {
-      const fenceStart = index
-      while (value[index] === '`') index += 1
-      const fence = value.slice(fenceStart, index)
-      if (!codeFence) codeFence = fence
-      else if (codeFence === fence) codeFence = ''
-      result += fence
-      continue
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    let backslashCount = 0
+    for (let previousIndex = index - 1; previousIndex >= 0 && value[previousIndex] === '\\'; previousIndex -= 1) {
+      backslashCount += 1
     }
 
-    const character = value[index]
-    if (character === '|' && !codeFence && value[index - 1] !== '\\') result += '\\'
+    // Markdown table columns are split before inline code is parsed, so code spans
+    // must escape their pipes too. Only an odd number of preceding backslashes
+    // already escapes the pipe.
+    if (character === '|' && backslashCount % 2 === 0) result += '\\'
     result += character
-    index += 1
   }
 
   return result

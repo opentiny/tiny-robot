@@ -84,9 +84,13 @@ export const isSkillPathTaken = (
     [...getResourceDirectoryPaths(resources)].some(
       (folderPath) => pathKey(folderPath) === normalizedPath && pathKey(folderPath) !== normalizedIgnoredPath,
     ) ||
-    directories.some(
-      (folderPath) => pathKey(folderPath) === normalizedPath && pathKey(folderPath) !== normalizedIgnoredPath,
-    )
+    directories.some((folderPath) => {
+      const normalizedFolderPath = pathKey(folderPath)
+      return (
+        (normalizedFolderPath === normalizedPath || normalizedFolderPath.startsWith(normalizedPath + '/')) &&
+        normalizedFolderPath !== normalizedIgnoredPath
+      )
+    })
   )
 }
 

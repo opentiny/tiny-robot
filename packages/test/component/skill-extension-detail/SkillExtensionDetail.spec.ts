@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import SkillExtensionDetailFixture from './SkillExtensionDetail.fixture.vue'
-import { serializeMarkdown } from '../../../components/src/skill-extension-detail/markdown-editor'
+import { markdownToHtml, serializeMarkdown } from '../../../components/src/skill-extension-detail/markdown-editor'
+import { isSkillPathTaken } from '../../../components/src/skill-extension-detail/skillFileOperations'
 
 test.describe('SkillExtensionDetail', () => {
   test('renders a file browser and previews Markdown files', async ({ mount }) => {
@@ -120,6 +121,25 @@ test.describe('SkillExtensionDetail', () => {
     await expect(detail).toContainText('Edited visually')
   })
 
+  test('creates a new list item when pressing Enter in visual mode', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    const visualEditor = detail.locator('.tiptap[contenteditable="true"]')
+    await visualEditor.press('ControlOrMeta+A')
+    await visualEditor.press('Backspace')
+    await detail.getByRole('button', { name: '无序列表' }).click()
+    await visualEditor.pressSequentially('第一项')
+    await visualEditor.press('Enter')
+    await visualEditor.pressSequentially('第二项')
+
+    const items = visualEditor.locator('ul > li')
+    await expect(items).toHaveCount(2)
+    await expect(items.nth(0)).toHaveText('第一项')
+    await expect(items.nth(1)).toHaveText('第二项')
+  })
+
   test('preserves table code and list paragraph boundaries when serializing Markdown', () => {
     const markdown = serializeMarkdown({
       type: 'doc',
@@ -159,8 +179,14 @@ test.describe('SkillExtensionDetail', () => {
       ],
     })
 
-    expect(markdown).toContain('| `a | b` |')
+    expect(markdown).toContain('| `a \\| b` |')
+    expect(markdownToHtml(markdown)).toContain('<code>a | b</code>')
     expect(markdown).toContain('- first paragraph\n\n  second paragraph')
+  })
+
+  test('treats explicit directory ancestors as occupied paths', () => {
+    expect(isSkillPathTaken('drafts.md', [], ['drafts.md/empty'])).toBe(true)
+    expect(isSkillPathTaken('drafts.md/other', [], ['drafts.md/empty'])).toBe(false)
   })
 
   test('cancels edits without changing the displayed content', async ({ mount }) => {
