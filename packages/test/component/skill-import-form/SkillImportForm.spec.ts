@@ -416,7 +416,24 @@ test.describe('SkillImportForm', () => {
     await component
       .locator('input[type="file"]')
       .setInputFiles({ name: 'skill.tgz', mimeType: 'application/gzip', buffer: bytes })
-    await expect(component.getByRole('alert')).toHaveText('压缩包无法解压，请将 TAR 文件重新压缩为单段 GZIP 后重试')
+    await expect(component.getByRole('alert')).toHaveText(
+      'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试',
+    )
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+  })
+
+  test('shows a corrupt archive message for invalid gzip data in the browser', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'skill.tgz',
+      mimeType: 'application/gzip',
+      buffer: Buffer.from('invalid gzip data'),
+    })
+    await expect(component.getByRole('alert')).toHaveText(
+      'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试',
+    )
     await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
   })
 

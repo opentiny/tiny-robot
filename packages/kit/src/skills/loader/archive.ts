@@ -114,7 +114,9 @@ async function loadGzipTar(
     if (error instanceof Error && error.message.includes('limit')) {
       throw new Error(`TAR.GZ container exceeds the ${containerLimit}-byte limit, including headers and metadata.`)
     }
-    throw new Error('Could not decompress TAR.GZ skill archive. Recompress the TAR as a single gzip member and retry.')
+    throw new Error(
+      'Could not decompress TAR.GZ skill archive because it is corrupt or contains multiple GZIP members. Recompress the TAR as a single gzip member and retry.',
+    )
   }
   return loadTar(tarBytes, limit, fileLimit, context, entryFile)
 }
@@ -573,7 +575,12 @@ async function readEntry(bytes: Uint8Array, entry: ZipEntry, limit: number, cont
       result = await readBoundedStream(stream, Math.min(limit, entry.uncompressedSize), context, entry.uncompressedSize)
     } catch (error) {
       if (context.signal.aborted) throwIfSkillLoadCancelled(context.signal)
-      if (error instanceof Error && error.message.includes('limit')) throw error
+      if (error instanceof Error && error.message.includes('limit')) {
+        if (entry.uncompressedSize < limit) {
+          throw new Error(`Invalid uncompressed size for ZIP entry: ${entry.path}.`)
+        }
+        throw error
+      }
       throw new Error(`Could not decompress ZIP entry: ${entry.path}.`)
     }
   }

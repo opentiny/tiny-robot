@@ -156,6 +156,18 @@ describe('archive skill loader', () => {
     }
   })
 
+  it('reports a ZIP entry size mismatch when output exceeds its declared size but not the remaining budget', async () => {
+    const bytes = new Uint8Array(await createZip({ 'SKILL.md': skillMd }).arrayBuffer())
+    const view = new DataView(bytes.buffer)
+    const centralOffset = view.getUint32(bytes.length - 6, true)
+    view.setUint32(22, 5, true)
+    view.setUint32(centralOffset + 24, 5, true)
+
+    await expect(
+      loadSkill({ source: 'archive', file: new File([bytes], 'skill.zip'), maxUncompressedSize: 1024 }),
+    ).rejects.toThrow('Invalid uncompressed size for ZIP entry: SKILL.md.')
+  })
+
   it.each(['maxArchiveSize', 'maxUncompressedSize', 'maxFileCount'] as const)(
     'rejects invalid %s values',
     async (option) => {
@@ -845,7 +857,7 @@ describe('archive skill loader', () => {
     corrupt[corrupt.length - 8] ^= 1
     for (const content of [bytes.subarray(0, bytes.length - 5), corrupt]) {
       await expect(loadSkill({ source: 'archive', file: new File([content], `skill.${extension}`) })).rejects.toThrow(
-        'Could not decompress TAR.GZ',
+        'Could not decompress TAR.GZ skill archive because it is corrupt or contains multiple GZIP members.',
       )
     }
   })

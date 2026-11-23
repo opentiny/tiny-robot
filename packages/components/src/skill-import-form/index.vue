@@ -96,8 +96,8 @@ const githubStatusMessage = (status: number) => {
 }
 
 const toArchiveErrorMessage = (message: string) => {
-  if (message.includes('Recompress the TAR as a single gzip member')) {
-    return '压缩包无法解压，请将 TAR 文件重新压缩为单段 GZIP 后重试'
+  if (message.includes('Could not decompress TAR.GZ skill archive')) {
+    return 'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试'
   }
   if (
     /Invalid ZIP|Could not decompress ZIP|ZIP local header|Invalid (?:checksum|uncompressed size).*ZIP/.test(message)
