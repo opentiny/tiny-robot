@@ -162,6 +162,10 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     await adapter.refresh?.()
   }
 
+  async function refresh() {
+    await Promise.all(adapters.value.map((adapter) => adapter.refresh?.()))
+  }
+
   async function close() {
     await Promise.all(adapters.value.map((adapter) => adapter.close?.()))
     registrationAdapter = undefined
@@ -175,6 +179,7 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     addAdapter,
     removeAdapter,
     refreshServer,
+    refresh,
     close,
   }
 }

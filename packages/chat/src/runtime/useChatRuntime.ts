@@ -11,6 +11,7 @@ import {
 import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
 import { errorStatePlugin } from './plugins/errorStatePlugin'
 import { createMcpToolPlugin } from './plugins/mcpToolPlugin'
+import { resolveMcpRunConfig } from './runConfig'
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import { createCompositeMcpAdapter, type ChatMcpAdapter } from './mcp/compositeMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
@@ -93,7 +94,16 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   }
 
   if (resolvedMcp) {
-    builtInPlugins.push(createMcpToolPlugin(resolvedMcp.listTools, resolvedMcp.callTool))
+    builtInPlugins.push(
+      createMcpToolPlugin(resolvedMcp.listTools, resolvedMcp.callTool, {
+        refresh: resolvedMcp.refresh,
+        resolveRunConfig: (runConfig) => {
+          if (!runConfig?.mcp) return runConfig
+          const mcp = resolveMcpRunConfig(resolvedMcp.runtime)
+          return { ...runConfig, mcp }
+        },
+      }),
+    )
   }
 
   const useMessageOptions = {

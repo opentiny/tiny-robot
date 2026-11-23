@@ -20,6 +20,28 @@ export type ChatToolListTools = (
 
 export type ChatToolCallTool = (serverId: string, toolName: string, args: Record<string, unknown>) => Promise<unknown>
 
+interface ToolSnapshot {
+  runConfig?: NonNullable<ChatRunConfig['mcp']>
+  tools: readonly ChatMcpToolDefinition[]
+}
+
+interface CreateMcpToolPluginOptions {
+  refresh?: () => Promise<void> | void
+  resolveRunConfig?: (runConfig: ChatRunConfig | undefined) => ChatRunConfig | undefined
+}
+
+function readToolSnapshot(value: unknown, fallbackRunConfig?: ChatRunConfig): ToolSnapshot | undefined {
+  if (Array.isArray(value)) {
+    return { runConfig: fallbackRunConfig?.mcp, tools: value as ChatMcpToolDefinition[] }
+  }
+
+  if (value && typeof value === 'object' && 'tools' in value && Array.isArray((value as { tools?: unknown }).tools)) {
+    return value as ToolSnapshot
+  }
+
+  return undefined
+}
+
 function resolveToolCall(name: string, toolRunConfig: NonNullable<ChatRunConfig['mcp']>) {
   for (const serverId of toolRunConfig.serverIds) {
     const toolId = toolRunConfig.toolIds[serverId]?.find((candidate) => `${serverId}__${candidate}` === name)
@@ -32,10 +54,17 @@ function resolveToolCall(name: string, toolRunConfig: NonNullable<ChatRunConfig[
   return null
 }
 
-export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: ChatToolCallTool): UseMessagePlugin {
+export function createMcpToolPlugin(
+  listTools: ChatToolListTools,
+  callTool: ChatToolCallTool,
+  options: CreateMcpToolPluginOptions = {},
+): UseMessagePlugin {
   return toolPlugin({
     getTools: async ({ customContext, setCustomContext }) => {
-      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
+      await options.refresh?.()
+
+      const storedRunConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
+      const runConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
       const toolRunConfig = runConfig?.mcp
 
       if (!toolRunConfig) {
@@ -50,14 +79,18 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
         throw new Error(`Tool selection is missing for this turn: ${serverWithoutToolSelection}`)
       }
 
-      let tools = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
-
-      if (!Array.isArray(tools)) {
-        tools = (await listTools(toolRunConfig.serverIds, toolRunConfig.toolIds)).map((tool) => ({ ...tool }))
-        setCustomContext({
-          [TOOL_SNAPSHOT_CONTEXT_KEY]: tools,
-        })
-      }
+      const tools = (await listTools(toolRunConfig.serverIds, toolRunConfig.toolIds)).map((tool) => ({ ...tool }))
+      setCustomContext({
+        [TOOL_SNAPSHOT_CONTEXT_KEY]: {
+          runConfig: {
+            serverIds: [...toolRunConfig.serverIds],
+            toolIds: Object.fromEntries(
+              Object.entries(toolRunConfig.toolIds).map(([serverId, toolIds]) => [serverId, [...toolIds]]),
+            ),
+          },
+          tools,
+        } satisfies ToolSnapshot,
+      })
 
       return tools.map((tool) => ({
         type: 'function',
@@ -70,12 +103,12 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
     },
 
     callTool: async (toolCall, { customContext }) => {
-      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
-      const toolRunConfig = runConfig?.mcp
+      const storedRunConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
       const rawName = toolCall.function?.name ?? ''
+      const snapshot = readToolSnapshot(customContext[TOOL_SNAPSHOT_CONTEXT_KEY], storedRunConfig)
+      const toolRunConfig = snapshot?.runConfig
       const resolvedTool = toolRunConfig ? resolveToolCall(rawName, toolRunConfig) : null
-      const toolSnapshot = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
-      const exposedTool = Array.isArray(toolSnapshot) ? toolSnapshot.find((tool) => tool.name === rawName) : undefined
+      const exposedTool = snapshot?.tools.find((tool) => tool.name === rawName)
 
       if (
         !toolRunConfig ||

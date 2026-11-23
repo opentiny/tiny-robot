@@ -240,6 +240,117 @@ describe('useChatRuntime MCP composition', () => {
     expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'page-webmcp'])
   })
 
+  it('refreshes dynamic WebMCP tools before a follow-up request in the same turn', async () => {
+    let tools = [{ name: 'navigate' }]
+    const listeners = new Set<() => void>()
+    const callTool = vi.fn(async (name: string) => {
+      if (name === 'navigate' && !tools.some((tool) => tool.name === 'read-page')) {
+        tools = [...tools, { name: 'read-page' }]
+        listeners.forEach((listener) => listener())
+      }
+      return `${name} result`
+    })
+    const webmcp = createWebMcpAdapter({
+      source: {
+        listTools: async () => tools,
+        callTool,
+        subscribe(listener) {
+          listeners.add(listener)
+          return () => listeners.delete(listener)
+        },
+      },
+      id: 'page-webmcp',
+    })
+
+    await vi.waitFor(() => expect(webmcp.runtime.tools.value['page-webmcp']).toHaveLength(1))
+
+    const requestToolNames: string[][] = []
+    let requestCount = 0
+    const runtime = useChatRuntime({
+      mcp: { adapters: [webmcp] },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async (requestBody) => {
+            requestCount += 1
+            requestToolNames.push(
+              (requestBody.tools ?? []).flatMap((tool: { type: string; function?: { name: string } }) =>
+                tool.type === 'function' ? [tool.function?.name ?? ''] : [],
+              ),
+            )
+
+            if (requestCount === 1) {
+              return {
+                id: 'navigate-call',
+                object: 'chat.completion',
+                created: 0,
+                model: 'test',
+                choices: [
+                  {
+                    index: 0,
+                    message: {
+                      role: 'assistant',
+                      content: '',
+                      tool_calls: [
+                        {
+                          id: 'navigate-call',
+                          type: 'function',
+                          function: { name: 'page-webmcp__navigate', arguments: '{}' },
+                        },
+                      ],
+                    },
+                    finish_reason: 'tool_calls',
+                  },
+                ],
+              } as ChatCompletion
+            }
+
+            if (requestCount === 2) {
+              return {
+                id: 'read-page-call',
+                object: 'chat.completion',
+                created: 0,
+                model: 'test',
+                choices: [
+                  {
+                    index: 0,
+                    message: {
+                      role: 'assistant',
+                      content: '',
+                      tool_calls: [
+                        {
+                          id: 'read-page-call',
+                          type: 'function',
+                          function: { name: 'page-webmcp__read-page', arguments: '{}' },
+                        },
+                      ],
+                    },
+                    finish_reason: 'tool_calls',
+                  },
+                ],
+              } as ChatCompletion
+            }
+
+            return {
+              id: 'done',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'done' }, finish_reason: 'stop' }],
+            } as ChatCompletion
+          },
+        },
+      },
+    })
+
+    await runtime.actions.send({ text: 'navigate and then read the page' })
+
+    expect(requestToolNames[0]).toEqual(['page-webmcp__navigate'])
+    expect(requestToolNames[1]).toEqual(['page-webmcp__navigate', 'page-webmcp__read-page'])
+    expect(callTool).toHaveBeenNthCalledWith(1, 'navigate', {})
+    expect(callTool).toHaveBeenNthCalledWith(2, 'read-page', {})
+  })
+
   it('rejects configuring unified mcp.servers together with legacy mcpServers', () => {
     expect(() =>
       useChatRuntime({
