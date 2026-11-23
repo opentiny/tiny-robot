@@ -300,21 +300,7 @@ async function importFromInput(input: HTMLInputElement) {
 }
 ```
 
-也可以通过 `source: 'archive'` 加载 ZIP、TAR、TAR.GZ 或 TGZ。Kit 接受根目录直接含 `SKILL.md`，或唯一顶层目录直接含 `SKILL.md` 的结构；忽略 `.DS_Store` 和 `__MACOSX/`。可分别设置压缩输入大小、解压文件总量和有效文件数上限；默认解压总量为 10 MiB、有效文件数为 10,000，未指定压缩输入上限时默认为解压上限加 10 MiB。目录和系统元数据不计入有效文件数/解压资源限额，但所有归档条目受内部 10,000 条限制。结果中的资源保留内存中，输入大小和解压限制用于控制峰值风险。ZIP 支持 Store 和 Deflate；TAR 支持 USTAR、PAX、GNU 长路径及普通文件/目录条目，不解包链接或设备文件。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档不支持：
-
-```typescript
-const skill = await loadSkill({
-  source: 'archive',
-  file: zipFile,
-  maxArchiveSize: 20 * 1024 * 1024,
-  maxUncompressedSize: 10 * 1024 * 1024,
-  maxFileCount: 1000,
-})
-```
-
-浏览器入口和 `/node` 入口都支持以上归档格式；Node 侧可以传入读取归档数据的 `File` 或 `Blob`。
-
-支持 File System Access API 的浏览器也可以使用目录句柄：
+支持 File System Access API 的浏览器也可以使用目录句柄。
 
 ```typescript
 const directoryHandle = await window.showDirectoryPicker()
@@ -325,6 +311,38 @@ const skill = await loadSkill({
 ```
 
 `showDirectoryPicker()` 并非所有浏览器都支持，生产界面应保留文件 input 作为回退方式。
+
+### 归档加载
+
+通过文件选择读取 ZIP、TAR、TAR.GZ 或 TGZ，然后调用 `loadSkill`。页面提供 `<input id="skill-archive" type="file" accept=".zip,.tar,.tar.gz,.tgz">`，在选择文件后执行以下代码。
+
+```typescript
+const archiveInput = document.querySelector<HTMLInputElement>('#skill-archive')!
+const archiveFile = archiveInput.files?.[0]
+if (!archiveFile) throw new Error('请先选择 Skill 压缩包')
+
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+})
+console.log(skill.name, skill.instructions, skill.resources)
+```
+
+入口文件默认为 `SKILL.md`，也可通过 `entryFile` 配置相对路径。入口可以位于归档根目录，或唯一顶层包装目录内，按配置路径精确匹配。Kit 忽略 `.DS_Store`、`__MACOSX/` 和 TAR 中带 AppleDouble 头的 `._*` 元数据，普通 `._` 文件会保留。ZIP 支持 Store 和 Deflate。未标记编码的文件名按严格 UTF-8 解码，或使用 CRC 校验有效的 Unicode Path 扩展字段。无法可靠解码的文件名会报错。TAR 支持 USTAR、PAX、GNU 长路径及普通文件和目录条目。链接、设备文件、TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档会被拒绝。
+
+Kit API 可分别设置 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount`。默认解压总量为 10 MiB，有效文件数为 10,000，压缩输入上限默认为解压上限加 10 MiB。目录和被忽略的系统元数据不计入有效文件数及解压资源限额，所有归档条目仍受内部 10,000 条限制。资源保留在内存中，限额用于控制输入与解析峰值。以下示例独立设置三项限额。
+
+```typescript
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+  maxArchiveSize: 20 * 1024 * 1024,
+  maxUncompressedSize: 100 * 1024 * 1024,
+  maxFileCount: 1000,
+})
+```
+
+浏览器入口和 `/node` 入口都支持以上归档格式。Node 侧使用带归档文件名的 `File`，扩展名用于识别格式，完整示例见下方 Node.js 环境章节。
 
 ### GitHub 加载
 
@@ -448,6 +466,16 @@ const summaries = await storage.list()
 ```
 
 Fs storage 保持原生 skill 目录结构，因此已有的 skills 目录可以直接作为 storage root。
+
+Node.js 也可以读取命名后的归档 `File`；`File` 名称扩展名用于识别格式：
+
+```typescript
+import { readFile } from 'node:fs/promises'
+import { loadSkill } from '@opentiny/tiny-robot-kit/node'
+
+const bytes = await readFile('./weather.zip')
+const weather = await loadSkill({ source: 'archive', file: new File([bytes], 'weather.zip') })
+```
 
 下面的演示可以导入内置示例或本地目录，将 skill 保存到 storage，并通过列表查看和选择已保存的 skill。
 

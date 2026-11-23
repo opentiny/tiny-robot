@@ -37,13 +37,16 @@ export async function loadArchiveSkillFiles(
   const bytes = new Uint8Array(await options.file.arrayBuffer())
   throwIfSkillLoadCancelled(context.signal)
   const filename = options.file.name.toLowerCase()
-  if (filename.endsWith('.zip')) return loadZip(bytes, limit, fileLimit, context)
-  if (filename.endsWith('.tar')) return loadTar(bytes, limit, fileLimit, context)
+  const rawEntryFile = options.entryFile ?? 'SKILL.md'
+  const entryFile = normalizeSkillPath(rawEntryFile)
+  if (!entryFile) throw new Error(`Invalid skill entry file path: "${rawEntryFile}".`)
+  if (filename.endsWith('.zip')) return loadZip(bytes, limit, fileLimit, context, entryFile)
+  if (filename.endsWith('.tar')) return loadTar(bytes, limit, fileLimit, context, entryFile)
   if (filename.endsWith('.tar.gz') || filename.endsWith('.tgz')) {
     if (typeof DecompressionStream === 'undefined') {
       throw new Error('TAR.GZ import requires a runtime with DecompressionStream support.')
     }
-    return loadGzipTar(bytes, limit, fileLimit, context)
+    return loadGzipTar(bytes, limit, fileLimit, context, entryFile)
   }
   throw new Error('Unsupported skill archive format. Use .zip, .tar, .tar.gz, or .tgz.')
 }
@@ -52,7 +55,13 @@ function validateLimit(name: string, value: number) {
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${name} must be a non-negative safe integer.`)
 }
 
-async function loadZip(bytes: Uint8Array, limit: number, fileLimit: number, context: SkillLoadContext) {
+async function loadZip(
+  bytes: Uint8Array,
+  limit: number,
+  fileLimit: number,
+  context: SkillLoadContext,
+  entryFile: string,
+) {
   const { entries, centralOffset } = await readCentralDirectory(bytes, context)
   let totalSize = 0
   let fileCount = 0
@@ -83,10 +92,16 @@ async function loadZip(bytes: Uint8Array, limit: number, fileLimit: number, cont
     throwIfSkillLoadCancelled(context.signal)
     files.push(toLoadableFile(entry.path, data))
   }
-  return normalizeSkillArchiveStructure(files, directories)
+  return normalizeSkillArchiveStructure(files, directories, entryFile)
 }
 
-async function loadGzipTar(bytes: Uint8Array, limit: number, fileLimit: number, context: SkillLoadContext) {
+async function loadGzipTar(
+  bytes: Uint8Array,
+  limit: number,
+  fileLimit: number,
+  context: SkillLoadContext,
+  entryFile: string,
+) {
   let tarBytes: Uint8Array
   try {
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
@@ -97,10 +112,16 @@ async function loadGzipTar(bytes: Uint8Array, limit: number, fileLimit: number, 
     if (error instanceof Error && error.message.includes('limit')) throw error
     throw new Error('Could not decompress TAR.GZ skill archive.')
   }
-  return loadTar(tarBytes, limit, fileLimit, context)
+  return loadTar(tarBytes, limit, fileLimit, context, entryFile)
 }
 
-async function loadTar(bytes: Uint8Array, limit: number, fileLimit: number, context: SkillLoadContext) {
+async function loadTar(
+  bytes: Uint8Array,
+  limit: number,
+  fileLimit: number,
+  context: SkillLoadContext,
+  entryFile: string,
+) {
   const files: LoadableSkillFile[] = []
   let offset = 0
   let totalSize = 0
@@ -137,6 +158,11 @@ async function loadTar(bytes: Uint8Array, limit: number, fileLimit: number, cont
 
     if (type === 0 || type === 48) {
       if (!isMetadataFile(path)) {
+        const appleDoubleMetadata = isAppleDoubleMetadata(path, bytes.subarray(dataOffset, dataOffset + size))
+        if (appleDoubleMetadata) {
+          offset = dataOffset + paddedSize
+          continue
+        }
         if (seen.has(normalizedPath)) throw new Error(`Duplicate path in skill archive: ${normalizedPath}`)
         seen.add(normalizedPath)
         fileCount += 1
@@ -160,7 +186,7 @@ async function loadTar(bytes: Uint8Array, limit: number, fileLimit: number, cont
     offset = dataOffset + paddedSize
   }
   if (!sawEndMarker) throw new Error('Invalid TAR archive: end marker is missing.')
-  return normalizeSkillArchiveStructure(files, directories)
+  return normalizeSkillArchiveStructure(files, directories, entryFile)
 }
 
 function isValidTarHeader(header: Uint8Array) {
@@ -231,6 +257,18 @@ async function readBoundedStream(
 
 function isMetadataFile(path: string) {
   return path.split(/[\\/]/).includes('__MACOSX') || path.split(/[\\/]/).at(-1) === '.DS_Store'
+}
+
+function isAppleDoubleMetadata(path: string, data: Uint8Array) {
+  const filename = path.split(/[\\/]/).at(-1) ?? ''
+  if (!filename.startsWith('._') || data.length < 26) return false
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  const version = view.getUint32(4)
+  return (
+    view.getUint32(0) === 0x00051607 &&
+    (version === 0x00010000 || version === 0x00020000) &&
+    26 + view.getUint16(24) * 12 <= data.length
+  )
 }
 
 function toLoadableFile(path: string, data: Uint8Array): LoadableSkillFile {
@@ -504,9 +542,6 @@ function decodeZipPath(rawName: Uint8Array, extra: Uint8Array, flags: number) {
     offset += 4 + size
   }
   if (unicodePath) return unicodePath
-  if (!(flags & 0x800) && rawName.some((byte) => byte >= 0x80)) {
-    throw new Error('ZIP contains a non-ASCII filename without a valid Unicode Path field.')
-  }
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(rawName)
   } catch {
@@ -515,16 +550,20 @@ function decodeZipPath(rawName: Uint8Array, extra: Uint8Array, flags: number) {
   }
 }
 
-function normalizeSkillArchiveStructure(files: LoadableSkillFile[], directoryPaths: string[] = []) {
+function normalizeSkillArchiveStructure(
+  files: LoadableSkillFile[],
+  directoryPaths: string[] = [],
+  entryFile = 'SKILL.md',
+) {
   const paths = [...files.map((file) => file.path), ...directoryPaths]
-  if (files.some((file) => file.path === 'SKILL.md')) return files
+  if (files.some((file) => file.path === entryFile)) return files
   const roots = new Set(paths.map((path) => path.split('/')[0]).filter(Boolean))
   if (roots.size !== 1)
-    throw new Error('Invalid skill archive structure: expected SKILL.md at root or in one top-level directory.')
+    throw new Error(`Invalid skill archive structure: expected ${entryFile} at root or in one top-level directory.`)
   const [root] = roots
-  if (!root || !files.some((file) => file.path === `${root}/SKILL.md`)) {
+  if (!root || !files.some((file) => file.path === `${root}/${entryFile}`)) {
     throw new Error(
-      'Invalid skill archive structure: SKILL.md must be at root or directly inside one top-level directory.',
+      `Invalid skill archive structure: ${entryFile} must be at root or directly inside one top-level directory.`,
     )
   }
   return files.map((file) => ({ ...file, path: file.path.slice(root.length + 1) }))

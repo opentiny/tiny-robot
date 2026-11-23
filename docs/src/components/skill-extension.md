@@ -38,12 +38,12 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 
 :::
 
-下面的示例不传 `resolve-skill`，由组件使用 kit 默认解析器读取 GitHub 上的真实 Skill。复制示例地址并粘贴进 URL 输入框，点击“导入”后可查看解析出的名称、`SKILL.md` 正文和资源文件。示例需要能访问 GitHub；网络请求或限流失败时，表单会显示错误。导入结果只保存在当前页面内，刷新后不会保留。
+先使用下方归档 Demo 下载示例包，选择或拖入后等待解析成功，再点击“确定”查看 Skill 名称、正文和资源。文件夹和 GitHub 导入见后续示例，GitHub 来源需要可访问 GitHub 的网络。
 
 <demo
-  vue="../../demos/skill-import-form/basic.vue"
-  title="从 GitHub 地址导入"
-  description="使用 kit 默认解析器导入真实 Skill，并查看应用收到的定义。"
+  vue="../../demos/skill-import-form/archive-import.vue"
+  title="导入 Skill 压缩包"
+  description="下载示例压缩包，选择或拖入，解析成功后点击确定查看 Skill 定义。"
 />
 
 ## 用法示例
@@ -75,22 +75,25 @@ description: 用于试用 Skill 导入。
 
 ### 导入压缩包
 
-`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz` 文件。归档可以直接包含 `SKILL.md`，也可以在唯一顶层目录中直接包含它；不会递归寻找更深层入口。`.DS_Store` 和 `__MACOSX/` 会被忽略，其他隐藏资源保留。Kit API 可独立设置压缩输入大小、解压文件总量和有效文件数上限；默认解压总量为 10 MiB、有效文件数为 10,000，压缩输入默认最多为解压上限加 10 MiB。目录和系统元数据不消耗有效资源额度，所有归档条目仍受内部 10,000 条限制。导入结果资源驻留内存，限额用于约束输入与解析峰值。ZIP 支持 Store 和 Deflate；TAR 支持 USTAR、PAX 和 GNU 长路径归档及普通文件/目录条目，并拒绝链接和设备文件。TAR.GZ/TGZ 使用运行时 `DecompressionStream` 解压。TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 和分卷 ZIP 当前不支持。
+`source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz`。归档根目录直接包含 `SKILL.md`，或唯一顶层目录直接包含它；选择或拖入归档，解析成功后点击“确定”提交。Kit 的归档 API 和资源限制详见[Skill 工具文档](../tools/skill.md#归档加载)。默认解析器会执行 Kit 的展开大小限制；自定义 `resolve-skill` 收到 `{ source: 'archive', file, maxUncompressedSize }`，应遵守传入的解压限制。`max-upload-size` 同时限制选择的压缩文件大小，以及本地文件夹文件总大小；使用 Kit 默认解析器时，它也作为解压内容大小限制。应用收到定义后仍需自行保存。
 
-| 格式         | 常见用途                 | 当前支持              | 说明                                                        |
-| ------------ | ------------------------ | --------------------- | ----------------------------------------------------------- |
-| ZIP          | 跨平台文件分发、应用上传 | 支持 Store 和 Deflate | 浏览器与现代 Node 可用原生流 API 解压，不需额外运行时依赖。 |
-| TAR.GZ / TGZ | 开源源码与 Linux 工具包  | 支持                  | TAR 解析与 Gzip 流解压由 Kit 完成。                         |
-| TAR          | 不压缩的归档             | 支持                  | 保留文件路径，并拒绝不支持的链接/设备条目。                 |
-| 7z           | 桌面大容量压缩           | 暂不支持              | 通常需要专用解压库，增加包体和格式维护成本。                |
-| RAR          | 桌面压缩与分卷包         | 暂不支持              | 常依赖专有格式实现或 WebAssembly 解压器。                   |
+快速开始中的示例包采用单层包装目录，也可以直接将 `SKILL.md` 与资源放在压缩包根目录。
 
-Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、压缩包/展开大小限制和状态反馈；Chat 应用继续处理保存、更新列表和启用偏好。自定义 `resolve-skill` 收到 `{ source: 'archive', file, maxUncompressedSize }`，可调用 kit 的 `loadSkillWithDetails({ source: 'archive', ... })`，随后仍通过原有 `submit` 流程交付定义。
+```text
+根目录入口                  单层包装目录入口
+SKILL.md                   example-skill/
+references/说明.md           SKILL.md
+                             references/说明.md
+```
+
+### 从 GitHub 导入
+
+粘贴公开 Skill 的 GitHub 地址，点击“导入”后查看名称、正文和资源。示例需要能够访问 GitHub，网络或访问频率限制会显示在表单中。
 
 <demo
-  vue="../../demos/skill-import-form/archive-import.vue"
-  title="导入压缩包 Skill 包"
-  description="选择一个 ZIP 或 TAR 系列归档并查看解出的 Skill 定义。"
+  vue="../../demos/skill-import-form/basic.vue"
+  title="从 GitHub 地址导入"
+  description="使用 Kit 默认解析器导入 Skill，并查看应用收到的定义。"
 />
 
 ### 观察加载、失败与重试
@@ -129,19 +132,19 @@ Kit 负责从归档生成标准 `SkillDefinition`；表单负责文件选择、�
 
 #### Props
 
-| 属性名            | 说明                                                                                           | 类型                    | 默认值              | 必填 |
-| ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------- | ------------------- | ---- |
-| `source`          | 导入来源；切换时重置组件内的草稿、解析结果和错误。                                             | `SkillImportFormSource` | `'local'`           | 否   |
-| `max-upload-size` | 文件夹的文件总字节数、归档文件大小和解包后文件总字节数上限。                                   | `number`                | `10485760`（10 MB） | 否   |
-| `resolve-timeout` | 解析超时毫秒数；`0` 表示不超时。超时不取消在途请求，但组件会忽略其晚到结果。                   | `number`                | `30000`（30 秒）    | 否   |
-| `resolve-skill`   | 自定义异步解析器；未提供时使用 kit 默认解析器，并在线解析 GitHub URL 中的真实 ref 与目录边界。 | `SkillResolver`         | kit 默认解析器      | 否   |
+| 属性名            | 说明                                                                                                    | 类型                    | 默认值              | 必填 |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------- | ---- |
+| `source`          | 导入来源；切换时重置组件内的草稿、解析结果和错误。                                                      | `SkillImportFormSource` | `'local'`           | 否   |
+| `max-upload-size` | 文件夹文件总大小及所选压缩包大小上限；默认 Kit 解析器也将其作为解压内容上限。自定义解析器应遵守传入值。 | `number`                | `10485760`（10 MB） | 否   |
+| `resolve-timeout` | 解析超时毫秒数；`0` 表示不超时。超时不取消在途请求，但组件会忽略其晚到结果。                            | `number`                | `30000`（30 秒）    | 否   |
+| `resolve-skill`   | 自定义异步解析器；未提供时使用 kit 默认解析器，并在线解析 GitHub URL 中的真实 ref 与目录边界。          | `SkillResolver`         | kit 默认解析器      | 否   |
 
 #### Events
 
-| 事件名   | 触发时机                                                                           | 回调参数                                |
-| -------- | ---------------------------------------------------------------------------------- | --------------------------------------- |
-| `submit` | 本地文件夹解析成功且用户点击“确定”，或 GitHub 地址解析成功后；应用需自行保存定义。 | `(definition: SkillDefinition) => void` |
-| `cancel` | 用户在本地导入界面点击“取消”时；组件不自行关闭宿主或清空草稿。                     | `() => void`                            |
+| 事件名   | 触发时机                                                                                   | 回调参数                                |
+| -------- | ------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `submit` | 本地文件夹或压缩包解析成功且用户点击“确定”，或 GitHub 地址解析成功后；应用需自行保存定义。 | `(definition: SkillDefinition) => void` |
+| `cancel` | 用户在本地文件夹或压缩包导入界面点击“取消”时；组件不自行关闭宿主或清空草稿。               | `() => void`                            |
 
 #### CSS Variables
 

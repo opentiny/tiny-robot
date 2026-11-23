@@ -95,10 +95,41 @@ const githubStatusMessage = (status: number) => {
   return ''
 }
 
-const toSkillAddMessage = (error: unknown) => {
+const toArchiveErrorMessage = (message: string) => {
+  if (
+    /Invalid ZIP|Could not decompress ZIP|ZIP local header|Invalid (?:checksum|uncompressed size).*ZIP/.test(message)
+  ) {
+    return '压缩包已损坏或无法读取，请重新打包后重试'
+  }
+  if (/Invalid TAR|TAR entry size|Could not decompress TAR.GZ/.test(message)) {
+    return '压缩包内容不完整或已损坏，请重新打包后重试'
+  }
+  if (message.includes('Invalid skill archive structure')) {
+    return '压缩包中未找到有效的 Skill 入口，请检查目录结构后重试'
+  }
+  if (message.includes('Invalid path in skill archive')) return '压缩包包含不安全的文件路径，无法导入'
+  if (message.includes('expands beyond')) return '压缩包解包后的内容过大，请减少文件后重试'
+  if (message.includes('symbolic links') || message.includes('Unsupported TAR entry type')) {
+    return '压缩包包含不支持的链接或特殊文件，请移除后重试'
+  }
+  if (message.includes('ZIP64') || message.includes('Split ZIP') || message.includes('Encrypted ZIP')) {
+    return '暂不支持此 ZIP 格式或加密方式，请使用普通 ZIP 重新打包'
+  }
+  if (message.includes('Skill archive file is too large')) return '压缩包文件过大，请选择较小的文件后重试'
+  if (/contains more than|too many entries/.test(message)) return '压缩包中的文件或目录过多，请减少条目后重试'
+  if (message.includes('Duplicate path')) return '压缩包中存在重复文件路径，请整理文件后重新打包'
+  if (message.includes('ZIP contains a filename')) return '压缩包文件名编码无法识别，请使用 UTF-8 文件名重新打包'
+  if (message.includes('Unsupported ZIP compression method')) return '压缩包压缩方式不受支持，请使用普通 ZIP 重新打包'
+  if (message.includes('DecompressionStream')) return '当前环境无法解压此归档，请更新浏览器后重试'
+  return ''
+}
+
+const toSkillAddMessage = (error: unknown, defaultArchive = false) => {
   const message = error instanceof Error ? error.message : String(error)
 
   if (error instanceof Error && error.name === 'SkillAddTimeoutError') return '导入超时，请稍后重试'
+  const archiveMessage = defaultArchive ? toArchiveErrorMessage(message) : ''
+  if (archiveMessage) return archiveMessage
   if (message.includes('entry file "SKILL.md" is missing')) return 'Skill 包必须包含 SKILL.md 文件'
   if (message.includes('entry file "SKILL.md" must be a text file')) return 'SKILL.md 必须是文本文件'
   if (message.includes('must contain instructions')) return 'SKILL.md 必须包含技能说明'
@@ -144,7 +175,7 @@ const resolveSkill = async (input: SkillImportFormInput) => {
     return definition
   } catch (error) {
     if (generation !== resolverGeneration) return undefined
-    resolverErrorMessage.value = toSkillAddMessage(error)
+    resolverErrorMessage.value = toSkillAddMessage(error, input.source === 'archive' && !props.resolveSkill)
     return undefined
   } finally {
     if (timeoutId) clearTimeout(timeoutId)

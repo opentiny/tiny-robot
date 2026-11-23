@@ -56,11 +56,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handlePointerD
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-local')">
         <ExtensionAddIcon kind="skill" />
-        上传Skill技能包
+        上传 Skill 文件夹
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-archive')">
         <ExtensionAddIcon kind="skill" />
-        上传压缩包
+        上传 Skill 压缩包
       </button>
       <button type="button" class="extension-add-menu__option" @click="select('skill-github')">
         <ExtensionAddIcon kind="skill" />

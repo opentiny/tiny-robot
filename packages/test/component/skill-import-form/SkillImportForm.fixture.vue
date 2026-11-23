@@ -10,7 +10,7 @@ import type {
 
 type ResolverMode = 'success' | 'error' | 'network-error' | 'pending' | 'race'
 
-const props = defineProps<{ maxUploadSize?: number; resolveTimeout?: number }>()
+const props = defineProps<{ maxUploadSize?: number; resolveTimeout?: number; resolverError?: string }>()
 
 const source = ref<SkillImportFormSource>('local')
 const resolverMode = ref<ResolverMode>('success')
@@ -60,7 +60,7 @@ const resolveSkill: SkillResolver = async (input) => {
     })
   }
 
-  if (resolverMode.value === 'error') throw new Error('SKILL.md 的 YAML 格式不正确')
+  if (resolverMode.value === 'error') throw new Error(props.resolverError ?? 'SKILL.md 的 YAML 格式不正确')
   if (resolverMode.value === 'network-error') throw new TypeError('Failed to fetch')
 
   return {

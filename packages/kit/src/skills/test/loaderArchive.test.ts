@@ -2,6 +2,10 @@ import { deflateRawSync, gzipSync } from 'node:zlib'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
 import { loadSkill, loadSkillWithDetails } from '../loader'
+import { loadSkill as loadNodeSkill } from '../loader/node'
+import { createMemorySkillStorage } from '../storage'
+
+const readArchiveFixture = (name: string) => readFile(new URL(`./fixtures/archives/${name}`, import.meta.url))
 
 const createZip = (entries: Record<string, string>, method: 0 | 8 = 8) => {
   const localParts: Uint8Array[] = []
@@ -73,11 +77,11 @@ const createZip = (entries: Record<string, string>, method: 0 | 8 = 8) => {
 
 const skillMd = '---\nname: archive-skill\ndescription: ZIP skill\n---\n\n# Archive skill'
 
-const createTar = (entries: Record<string, string>) => {
+const createTar = (entries: Record<string, string | Uint8Array>) => {
   const blocks: Uint8Array[] = []
   const encoder = new TextEncoder()
   for (const [path, content] of Object.entries(entries)) {
-    const data = encoder.encode(content)
+    const data = typeof content === 'string' ? encoder.encode(content) : content
     const header = new Uint8Array(512)
     const write = (offset: number, length: number, value: string) =>
       header.set(encoder.encode(value).subarray(0, length), offset)
@@ -167,6 +171,49 @@ describe('archive skill loader', () => {
     const icon = skill.resources?.find((resource) => resource.path === 'assets/icon.bin')
     await expect(icon?.readBinary?.()).resolves.toEqual(new Uint8Array([0, 128, 255, 1]))
     expect(skill.resources?.some((resource) => resource.path === '.hidden.txt')).toBe(true)
+  })
+
+  it('accepts macOS ZIP filenames encoded as UTF-8 without the UTF-8 flag', async () => {
+    const bytes = new Uint8Array(await readArchiveFixture('macos.zip'))
+    const view = new DataView(bytes.buffer)
+    const centralOffset = view.getUint32(bytes.length - 6, true)
+    expect(view.getUint16(centralOffset + 8, true) & 0x800).toBe(0)
+    const skill = await loadSkill({ source: 'archive', file: new File([bytes], 'macos.zip') })
+    expect(skill.resources?.map((resource) => resource.path)).toContain('references/说明.md')
+  })
+
+  it.each(['zip', 'tar', 'tar.gz', 'tgz'])('uses custom entryFile in root and wrapped %s layouts', async (format) => {
+    for (const entryFile of ['ENTRY.md', 'config/ENTRY.md', '.\\config\\ENTRY.md']) {
+      for (const prefix of ['', 'skill/']) {
+        const entryPath = entryFile.replace(/\\/g, '/').replace(/^\.\//, '')
+        const entries = { [`${prefix}${entryPath}`]: skillMd, [`${prefix}references/guide.md`]: 'guide' }
+        const tar = createTar(entries)
+        const file =
+          format === 'zip' ? createZip(entries) : new File([format === 'tar' ? tar : gzipSync(tar)], `skill.${format}`)
+        const skill = await loadSkill({ source: 'archive', file, entryFile })
+        expect(skill.name).toBe('archive-skill')
+        expect(skill.resources?.map((resource) => resource.path)).toEqual(['references/guide.md'])
+      }
+    }
+  })
+
+  it.each(['', '../ENTRY.md', '/ENTRY.md', 'bad\0.md'])('rejects invalid archive entryFile %j', async (entryFile) => {
+    await expect(loadSkill({ source: 'archive', file: createZip({ 'SKILL.md': skillMd }), entryFile })).rejects.toThrow(
+      'Invalid skill entry file path',
+    )
+  })
+
+  it.each([false, true])('rejects invalid UTF-8 ZIP names with language flag %s', async (flagged) => {
+    const bytes = new Uint8Array(await createZip({ 'SKILL.md': skillMd }).arrayBuffer())
+    const view = new DataView(bytes.buffer)
+    const centralOffset = view.getUint32(bytes.length - 6, true)
+    view.setUint16(6, flagged ? 0x800 : 0, true)
+    view.setUint16(centralOffset + 8, flagged ? 0x800 : 0, true)
+    bytes[30] = 0xff
+    bytes[centralOffset + 46] = 0xff
+    await expect(loadSkill({ source: 'archive', file: new File([bytes], 'skill.zip') })).rejects.toThrow(
+      flagged ? 'not valid UTF-8' : 'cannot be reliably decoded',
+    )
   })
 
   it.each(['zip', 'tgz'])('cancels the underlying %s decompression reader while a read is pending', async (format) => {
@@ -400,7 +447,7 @@ describe('archive skill loader', () => {
     await expect(loadSkill({ source: 'archive', file: new File([zip64], 'skill.zip') })).rejects.toThrow('ZIP64')
   })
 
-  it('rejects non-ZIP archive extensions', async () => {
+  it('rejects unsupported archive extensions', async () => {
     const zip = createZip({ 'SKILL.md': skillMd })
     const tarball = new File([zip], 'skill.rar')
     await expect(loadSkill({ source: 'archive', file: tarball })).rejects.toThrow('Unsupported skill archive format')
@@ -414,11 +461,158 @@ describe('archive skill loader', () => {
     expect(skill.resources?.map((resource) => resource.path)).toEqual(['reference.md'])
   })
 
-  it('enforces the uncompressed size limit while reading gzip streams', async () => {
+  it('enforces the extracted file size limit after gzip decompression', async () => {
     const content = gzipSync(createTar({ 'SKILL.md': skillMd }))
     await expect(
       loadSkill({ source: 'archive', file: new File([content], 'skill.tgz'), maxUncompressedSize: 10 }),
     ).rejects.toThrow('expands beyond')
+  })
+
+  it.each(['deflate.zip', 'stored.zip', 'ustar.tar', 'skill.tar.gz', 'pax.tar', 'gnu.tar'])(
+    'imports an independently generated %s fixture through browser and Node loaders',
+    async (name) => {
+      const file = new File([await readArchiveFixture(name)], name)
+      for (const loader of [loadSkill, loadNodeSkill]) {
+        const skill = await loader({ source: 'archive', file })
+        expect(skill).toMatchObject({
+          name: 'archive-fixture',
+          description: 'Real archive fixture',
+          instructions: '# Import from archive',
+        })
+        const guide = skill.resources?.find((resource) => resource.path === 'references/guide.md')
+        await expect(guide?.readText?.()).resolves.toBe('Reference: 中文资源\n')
+        const image = skill.resources?.find((resource) => resource.path === 'assets/icon.png')
+        await expect(image?.readBinary?.()).resolves.toEqual(new Uint8Array([0, 137, 80, 78, 71, 255]))
+        if (name === 'pax.tar' || name === 'gnu.tar') {
+          const longPath = `references/${'long-directory/'.repeat(9)}说明.md`
+          const reference = skill.resources?.find((resource) => resource.path === longPath)
+          await expect(reference?.readText?.()).resolves.toBe('Long path reference\n')
+        }
+      }
+    },
+  )
+
+  it.each(['deflate.zip', 'ustar.tar', 'skill.tar.gz'])('persists resources imported from %s', async (name) => {
+    const storage = createMemorySkillStorage()
+    await storage.import({ source: 'archive', file: new File([await readArchiveFixture(name)], name) })
+    const saved = await storage.get('archive-fixture')
+    const guide = saved?.resources?.find((resource) => resource.path === 'references/guide.md')
+    await expect(guide?.readText?.()).resolves.toBe('Reference: 中文资源\n')
+    const image = saved?.resources?.find((resource) => resource.path === 'assets/icon.png')
+    await expect(image?.readBinary?.()).resolves.toEqual(new Uint8Array([0, 137, 80, 78, 71, 255]))
+  })
+
+  it.each(['tar', 'tar.gz', 'tgz'])(
+    'filters AppleDouble metadata before %s structure and resource limits',
+    async (format) => {
+      const metadata = new Uint8Array(38)
+      const view = new DataView(metadata.buffer)
+      view.setUint32(0, 0x00051607)
+      view.setUint32(4, 0x00020000)
+      view.setUint16(24, 1)
+      view.setUint32(26, 9)
+      view.setUint32(30, 38)
+      const tar = createTar({
+        '._技能包': metadata,
+        '技能包/SKILL.md': skillMd,
+        '技能包/._SKILL.md': metadata,
+        '技能包/._notes.txt': 'normal resource',
+      })
+      const skill = await loadSkill({
+        source: 'archive',
+        file: new File([format === 'tar' ? tar : gzipSync(tar)], `skill.${format}`),
+        maxFileCount: 2,
+        maxUncompressedSize: new TextEncoder().encode(skillMd + 'normal resource').length,
+      })
+      expect(skill.resources?.map((resource) => resource.path)).toEqual(['._notes.txt'])
+    },
+  )
+
+  it('preserves dot-underscore resources with incomplete or invalid AppleDouble headers', async () => {
+    const magicOnly = new Uint8Array([0, 5, 22, 7])
+    const invalidVersion = new Uint8Array(26)
+    invalidVersion.set(magicOnly)
+    const incompleteTable = invalidVersion.slice()
+    new DataView(incompleteTable.buffer).setUint32(4, 0x00020000)
+    new DataView(incompleteTable.buffer).setUint16(24, 1)
+    const file = new File(
+      [
+        createTar({
+          'SKILL.md': skillMd,
+          '._magic.bin': magicOnly,
+          '._version.bin': invalidVersion,
+          '._table.bin': incompleteTable,
+        }),
+      ],
+      'skill.tar',
+    )
+    const skill = await loadSkill({ source: 'archive', file })
+    expect(skill.resources).toHaveLength(3)
+  })
+
+  it('stops gzip output at the stream buffer limit before TAR parsing', async () => {
+    const limit = 1
+    const content = gzipSync(Buffer.alloc(limit + 10000 * 1024 + 10240 + 1, 65))
+    await expect(
+      loadSkill({ source: 'archive', file: new File([content], 'skill.tgz'), maxUncompressedSize: limit }),
+    ).rejects.toThrow('expands beyond')
+  })
+
+  it.each(['tar', 'tar.gz', 'tgz'])('rejects a corrupted TAR header in %s', async (extension) => {
+    const bytes = createTar({ 'SKILL.md': skillMd })
+    bytes[0] ^= 1
+    const content = extension === 'tar' ? bytes : gzipSync(bytes)
+    await expect(loadSkill({ source: 'archive', file: new File([content], `skill.${extension}`) })).rejects.toThrow(
+      'Invalid TAR archive header or checksum',
+    )
+  })
+
+  it('rejects truncated TAR file data', async () => {
+    const bytes = createTar({ 'SKILL.md': skillMd }).subarray(0, 520)
+    await expect(loadSkill({ source: 'archive', file: new File([bytes], 'skill.tar') })).rejects.toThrow(
+      'truncated entry',
+    )
+  })
+
+  it('rejects a partial TAR header after a valid skill', async () => {
+    const bytes = createTar({ 'SKILL.md': skillMd }).subarray(0, 1024 + 100)
+    bytes[1024] = 65
+    await expect(loadSkill({ source: 'archive', file: new File([bytes], 'skill.tar') })).rejects.toThrow(
+      'truncated header',
+    )
+  })
+
+  it('rejects a TAR without the required zero block end marker', async () => {
+    const valid = createTar({ 'SKILL.md': skillMd })
+    const missingEnd = valid.subarray(0, valid.length - 1024)
+    await expect(loadSkill({ source: 'archive', file: new File([missingEnd], 'skill.tar') })).rejects.toThrow(
+      'end marker is missing',
+    )
+  })
+
+  it.each(['tar.gz', 'tgz'])('rejects truncated and corrupted gzip data in %s', async (extension) => {
+    const bytes = gzipSync(createTar({ 'SKILL.md': skillMd }))
+    const corrupt = Buffer.from(bytes)
+    corrupt[corrupt.length - 8] ^= 1
+    for (const content of [bytes.subarray(0, bytes.length - 5), corrupt]) {
+      await expect(loadSkill({ source: 'archive', file: new File([content], `skill.${extension}`) })).rejects.toThrow(
+        'Could not decompress TAR.GZ',
+      )
+    }
+  })
+
+  it('accepts 10000 TAR entries and rejects the next entry', async () => {
+    const entries = Object.fromEntries(Array.from({ length: 9999 }, (_, index) => [`files/${index}.txt`, '']))
+    entries['SKILL.md'] = skillMd
+    await expect(
+      loadSkill({ source: 'archive', file: new File([createTar(entries)], 'skill.tar') }),
+    ).resolves.toMatchObject({
+      name: 'archive-skill',
+    })
+    entries['files/extra.txt'] = ''
+    await expect(loadSkill({ source: 'archive', file: new File([createTar(entries)], 'skill.tar') })).rejects.toThrow(
+      'too many entries',
+    )
   })
 
   it('rejects path traversal and unsupported TAR link entries', async () => {
