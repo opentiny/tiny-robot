@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import SkillExtensionDetailFixture from './SkillExtensionDetail.fixture.vue'
+import { serializeMarkdown } from '../../../components/src/skill-extension-detail/markdown-editor'
 
 test.describe('SkillExtensionDetail', () => {
   test('renders a file browser and previews Markdown files', async ({ mount }) => {
@@ -119,6 +120,49 @@ test.describe('SkillExtensionDetail', () => {
     await expect(detail).toContainText('Edited visually')
   })
 
+  test('preserves table code and list paragraph boundaries when serializing Markdown', () => {
+    const markdown = serializeMarkdown({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableHeader',
+                  attrs: { align: null },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'a | b', marks: [{ type: 'code' }] }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'bulletList',
+          content: [
+            {
+              type: 'listItem',
+              content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'first paragraph' }] },
+                { type: 'paragraph', content: [{ type: 'text', text: 'second paragraph' }] },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(markdown).toContain('| `a | b` |')
+    expect(markdown).toContain('- first paragraph\n\n  second paragraph')
+  })
+
   test('cancels edits without changing the displayed content', async ({ mount }) => {
     const component = await mount(SkillExtensionDetailFixture)
     const detail = component.getByTestId('editable-detail')
@@ -149,6 +193,13 @@ test.describe('SkillExtensionDetail', () => {
     await expect(duplicateEntryDialog).toContainText('该名称已存在。')
     await duplicateEntryDialog.getByRole('button', { name: '取消' }).click()
     await expect(detail.getByRole('button', { name: 'SKILL.md', exact: true })).toHaveCount(1)
+
+    await detail.getByRole('button', { name: '新增文件夹' }).click()
+    const hiddenFolderDialog = page.getByRole('dialog')
+    await hiddenFolderDialog.getByRole('textbox').fill('.drafts')
+    await hiddenFolderDialog.getByRole('button', { name: '确定' }).click()
+    await expect(hiddenFolderDialog).toContainText('名称不能以点号开头。')
+    await hiddenFolderDialog.getByRole('button', { name: '取消' }).click()
 
     await detail.getByRole('button', { name: '新增文件夹' }).click()
     const duplicateFolderDialog = page.getByRole('dialog')
@@ -231,6 +282,16 @@ test.describe('SkillExtensionDetail', () => {
     await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
     await expect(detail.getByRole('button', { name: 'archive 操作' })).toHaveCount(0)
     await expect(component.getByTestId('file-action-log')).toContainText('delete-folder|references/archive|')
+
+    await detail.getByRole('button', { name: 'example.png', exact: true }).click()
+    await detail.getByRole('button', { name: 'example.png 操作' }).click()
+    await detail.getByRole('menuitem', { name: '重命名' }).click()
+    const binaryRenameInput = detail.getByRole('textbox', { name: '重命名 example.png' })
+    await binaryRenameInput.fill('example.txt')
+    await binaryRenameInput.press('Enter')
+    await expect(binaryRenameInput).toHaveAttribute('aria-invalid', 'true')
+    await expect(binaryRenameInput).toHaveAttribute('title', '二进制文件不能重命名为文本文件。')
+    await binaryRenameInput.press('Escape')
   })
 
   test('keeps a persisted parent directory after deleting its last file', async ({ mount, page }) => {
@@ -367,6 +428,25 @@ test.describe('SkillExtensionDetail', () => {
     await expect(detail).toContainText('Unsaved content')
   })
 
+  test('drops an edit session when the host removes its resource', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('external-update-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('stale resource draft')
+
+    await component.getByTestId('remove-external-resource').click()
+
+    await expect(detail.getByRole('button', { name: 'schema.md', exact: true })).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '保存' })).toHaveCount(0)
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await expect(detail.getByRole('textbox', { name: '源码编辑 SKILL.md' })).toHaveValue(/# 使用说明/)
+  })
+
   test('discards unsaved edits before switching files', async ({ mount, page }) => {
     const component = await mount(SkillExtensionDetailFixture)
     const detail = component.getByTestId('editable-detail')
@@ -410,6 +490,7 @@ test.describe('SkillExtensionDetail', () => {
     await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('Updated schema')
     await detail.getByRole('button', { name: '保存' }).click()
     await expect(detail).toContainText('Updated schema')
+    await expect(component.getByTestId('saved-binary-text')).toHaveText('Updated schema')
 
     await detail.getByRole('button', { name: 'example.png', exact: true }).click()
     await expect(detail.getByRole('button', { name: '编辑' })).toBeDisabled()

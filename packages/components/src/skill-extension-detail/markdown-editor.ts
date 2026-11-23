@@ -302,12 +302,32 @@ const serializeInline = (node: MarkdownNode): string => {
   return (node.content || []).map(serializeInline).join('')
 }
 
+const escapeTablePipes = (value: string) => {
+  let result = ''
+  let codeFence = ''
+
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '`') {
+      const fenceStart = index
+      while (value[index] === '`') index += 1
+      const fence = value.slice(fenceStart, index)
+      if (!codeFence) codeFence = fence
+      else if (codeFence === fence) codeFence = ''
+      result += fence
+      continue
+    }
+
+    const character = value[index]
+    if (character === '|' && !codeFence && value[index - 1] !== '\\') result += '\\'
+    result += character
+    index += 1
+  }
+
+  return result
+}
+
 const serializeCell = (node: MarkdownNode) =>
-  (node.content || [])
-    .map((block) => serializeInline(block))
-    .join(' ')
-    .replace(/\s*\|\s*/g, '\\|')
-    .replace(/\r?\n/g, '<br>')
+  escapeTablePipes((node.content || []).map((block) => serializeInline(block)).join(' ')).replace(/\r?\n/g, '<br>')
 
 const serializeTable = (node: MarkdownNode) => {
   const rows = node.content || []
@@ -349,7 +369,7 @@ const serializeList = (node: MarkdownNode, indent = ''): string => {
           .map((line, lineIndex) => (lineIndex === 0 ? prefix : continuation) + line)
           .join('\n')
       })
-      .join('\n')
+      .join('\n\n')
   })
   return items.join('\n')
 }

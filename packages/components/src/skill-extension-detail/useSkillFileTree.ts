@@ -1,5 +1,8 @@
 import { computed, ref, type ComputedRef } from 'vue'
 import type { SkillDefinition, SkillResourceDescriptor } from '../skill-import-form/index.type'
+import { isSkillPathTaken, normalizePath } from './skillFileOperations'
+
+export { getParentPath, hasSupportedSkillTextExtension, normalizePath } from './skillFileOperations'
 
 export interface SkillFileNode {
   type: 'file'
@@ -36,19 +39,6 @@ export const rootFolder: SkillFolderNode = {
   path: '',
   depth: -1,
   children: [],
-}
-
-export const normalizePath = (path: string) => path.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '')
-
-export const getParentPath = (path: string) => {
-  const normalizedPath = normalizePath(path)
-  const separatorIndex = normalizedPath.lastIndexOf('/')
-  return separatorIndex === -1 ? '' : normalizedPath.slice(0, separatorIndex)
-}
-
-export const hasSupportedSkillTextExtension = (name: string) => {
-  const extension = name.slice(name.lastIndexOf('.')).toLowerCase()
-  return ['.md', '.txt', '.json'].includes(extension)
 }
 
 const makeResourceTree = (items: SkillResourceDescriptor[], extraFolders: string[] = []): SkillTreeNode[] => {
@@ -115,7 +105,6 @@ const makeResourceTree = (items: SkillResourceDescriptor[], extraFolders: string
 }
 
 export function useSkillFileTree(currentDefinition: ComputedRef<SkillDefinition>) {
-  const selectedResourceId = ref<string>()
   const collapsedFolders = ref(new Set<string>())
   const resources = computed(() => currentDefinition.value.resources ?? [])
   const directories = computed(() => currentDefinition.value.directories ?? [])
@@ -131,68 +120,34 @@ export function useSkillFileTree(currentDefinition: ComputedRef<SkillDefinition>
     appendVisible(resourceTree.value)
     return rows
   })
-  const selectedResource = computed(() =>
-    resources.value.find((resource) => resource.resourceId === selectedResourceId.value),
-  )
-  const selectedFileName = computed(() => selectedResource.value?.path ?? 'SKILL.md')
-  const resourceFolderPaths = computed(() => {
-    const paths = new Set<string>()
-
-    for (const resource of resources.value) {
-      let parentPath = getParentPath(resource.path)
-      while (parentPath) {
-        paths.add(parentPath)
-        parentPath = getParentPath(parentPath)
-      }
-    }
-
-    return paths
-  })
-
-  const createResourceId = (path: string) => {
-    const resourceIds = new Set(resources.value.map((resource) => resource.resourceId))
-    if (!resourceIds.has(path)) return path
-
-    let index = 1
-    let resourceId = `${path}#${index}`
-    while (resourceIds.has(resourceId)) {
-      index += 1
-      resourceId = `${path}#${index}`
-    }
-    return resourceId
+  const toggleFolder = (folderKey: string) => {
+    const next = new Set(collapsedFolders.value)
+    if (next.has(folderKey)) next.delete(folderKey)
+    else next.add(folderKey)
+    collapsedFolders.value = next
   }
 
-  const isPathTaken = (path: string, ignoredPath?: string) => {
-    const normalizedPath = normalizePath(path)
-    const normalizedIgnoredPath = ignoredPath ? normalizePath(ignoredPath) : undefined
-    if (normalizedPath.toLowerCase() === 'skill.md' && normalizedIgnoredPath?.toLowerCase() !== 'skill.md') {
-      return true
-    }
-
-    return (
-      resources.value.some(
-        (resource) =>
-          normalizePath(resource.path) === normalizedPath && normalizePath(resource.path) !== normalizedIgnoredPath,
-      ) ||
-      [...resourceFolderPaths.value].some(
-        (folderPath) => folderPath === normalizedPath && folderPath !== normalizedIgnoredPath,
-      ) ||
-      directories.value.some(
-        (folderPath) =>
-          normalizePath(folderPath) === normalizedPath && normalizePath(folderPath) !== normalizedIgnoredPath,
-      )
-    )
+  const expandFolder = (folderPath: string) => {
+    const next = new Set(collapsedFolders.value)
+    next.delete('folder:' + normalizePath(folderPath))
+    collapsedFolders.value = next
   }
+
+  const resetCollapsedFolders = () => {
+    collapsedFolders.value = new Set()
+  }
+
+  const isPathTaken = (path: string, ignoredPath?: string) =>
+    isSkillPathTaken(path, resources.value, directories.value, ignoredPath)
 
   return {
-    selectedResourceId,
     collapsedFolders,
     resources,
     directories,
     treeRows,
-    selectedResource,
-    selectedFileName,
-    createResourceId,
+    toggleFolder,
+    expandFolder,
+    resetCollapsedFolders,
     isPathTaken,
   }
 }

@@ -15,6 +15,7 @@ const definition = {
       resourceId: 'references/schema.md',
       size: 1536,
       text: '# Schema',
+      readBinary: async () => new TextEncoder().encode('# Schema'),
     },
     {
       path: 'references/lazy.md',
@@ -50,6 +51,10 @@ const manyResourcesDefinition = {
 }
 
 const editableDefinition = ref<SkillDefinition>({ ...definition })
+const externallyUpdatedDefinition = ref<SkillDefinition>({
+  ...definition,
+  resources: [...(definition.resources ?? [])],
+})
 const resourceIdentityLog = computed(() =>
   (editableDefinition.value.resources ?? []).map((resource) => `${resource.path}|${resource.resourceId}`).join('|'),
 )
@@ -82,9 +87,14 @@ const singleFileFolderDefinition = ref<SkillDefinition>({
 })
 const fileActionLog = ref<SkillFileAction[]>([])
 const singleFileFolderDirectories = computed(() => singleFileFolderDefinition.value.directories?.join('|') ?? '')
+const savedBinaryText = ref('')
 
 const saveDefinition = (nextDefinition: SkillDefinition) => {
   editableDefinition.value = nextDefinition
+  const schema = nextDefinition.resources?.find((resource) => resource.path === 'references/schema.md')
+  void schema?.readBinary?.().then((bytes) => {
+    savedBinaryText.value = new TextDecoder().decode(bytes)
+  })
 }
 
 const handleFileAction = (action: SkillFileAction) => {
@@ -93,6 +103,15 @@ const handleFileAction = (action: SkillFileAction) => {
 
 const switchDefinition = () => {
   switchableDefinition.value = alternateDefinition
+}
+
+const removeExternalResource = () => {
+  externallyUpdatedDefinition.value = {
+    ...externallyUpdatedDefinition.value,
+    resources: (externallyUpdatedDefinition.value.resources ?? []).filter(
+      (resource) => resource.resourceId !== 'references/schema.md',
+    ),
+  }
 }
 
 const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
@@ -107,6 +126,8 @@ const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
   </output>
   <output data-testid="resource-identity-log">{{ resourceIdentityLog }}</output>
   <output data-testid="single-file-folder-directories">{{ singleFileFolderDirectories }}</output>
+  <output data-testid="saved-binary-text">{{ savedBinaryText }}</output>
+  <button data-testid="remove-external-resource" type="button" @click="removeExternalResource">移除外部资源</button>
   <SkillExtensionDetail data-testid="detail" :definition="definition" updated-at="2026-07-10" />
   <SkillExtensionDetail data-testid="uncontrolled-detail" :definition="definition" mode="edit" />
   <SkillExtensionDetail data-testid="empty-detail" :definition="emptyDefinition" />
@@ -122,6 +143,7 @@ const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
     @file-action="handleFileAction"
     @save="saveDefinition"
   />
+  <SkillExtensionDetail data-testid="external-update-detail" :definition="externallyUpdatedDefinition" mode="edit" />
   <SkillExtensionDetail data-testid="switchable-detail" :definition="switchableDefinition" mode="edit" />
   <SkillExtensionDetail
     data-testid="single-file-folder-detail"

@@ -1,13 +1,17 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
 import type { SkillDefinition } from '../skill-import-form/index.type'
 import type { SkillFileAction } from './index.type'
 import {
+  createTextResourceDefinition,
+  deletePathDefinition,
   getParentPath,
-  hasSupportedSkillTextExtension,
   normalizePath,
-  type SkillFileNode,
-  type SkillFolderNode,
-} from './useSkillFileTree'
+  renamePathDefinition,
+  validateSkillEntryName,
+  withResources,
+  type SkillResource,
+} from './skillFileOperations'
+import type { SkillFileNode, SkillFolderNode } from './useSkillFileTree'
 
 export type SkillTreeAction = SkillFileAction['type']
 export type SkillNameAction = 'create-file' | 'create-folder'
@@ -24,23 +28,16 @@ export interface SkillDeleteDialogState {
   row: SkillFileNode | SkillFolderNode
 }
 
-type SkillResource = NonNullable<SkillDefinition['resources']>[number]
-
 interface UseSkillFileActionsOptions {
   mode: ComputedRef<'view' | 'edit' | undefined>
   currentDefinition: ComputedRef<SkillDefinition>
   resources: ComputedRef<SkillResource[]>
   directories: ComputedRef<string[]>
-  selectedResourceId: Ref<string | undefined>
-  selectedResource: ComputedRef<SkillResource | undefined>
-  collapsedFolders: Ref<Set<string>>
-  isEditing: Ref<boolean>
-  draftContent: Ref<string>
-  textContent: Ref<string>
-  createResourceId: (path: string) => string
   isPathTaken: (path: string, ignoredPath?: string) => boolean
+  expandFolder: (path: string) => void
   onSave: (definition: SkillDefinition) => void
   onFileAction: (action: SkillFileAction) => void
+  onResourceCreated: (resourceId: string) => void
 }
 
 export function useSkillFileActions(options: UseSkillFileActionsOptions) {
@@ -58,56 +55,8 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     return nameDialog.value.action === 'create-folder' ? '新增文件夹' : '新增文件'
   })
 
-  const saveDefinition = (definition: SkillDefinition) => {
-    options.onSave(definition)
-  }
-
-  const emitResourceDefinition = (
-    nextResources: SkillDefinition['resources'],
-    nextDirectories: string[] = options.directories.value,
-  ) => {
-    const resourceDirectories = new Set<string>()
-    for (const resource of nextResources ?? []) {
-      let parentPath = getParentPath(resource.path)
-      while (parentPath) {
-        resourceDirectories.add(parentPath)
-        parentPath = getParentPath(parentPath)
-      }
-    }
-
-    const normalizedDirectories = [...new Set(nextDirectories.map(normalizePath).filter(Boolean))]
-      .filter((directory) => !resourceDirectories.has(directory))
-      .sort()
-    saveDefinition({
-      ...options.currentDefinition.value,
-      resources: nextResources,
-      directories: normalizedDirectories.length ? normalizedDirectories : undefined,
-    })
-  }
-
-  const updateResourcePath = (resource: SkillResource, path: string) => ({
-    ...resource,
-    path,
-  })
-
-  const clearSelectionIfPathMatches = (path: string, includeChildren = false) => {
-    const selectedPath = options.selectedResource.value?.path
-    if (!selectedPath) return
-
-    const normalizedPath = normalizePath(path)
-    const normalizedSelectedPath = normalizePath(selectedPath)
-    if (
-      normalizedSelectedPath === normalizedPath ||
-      (includeChildren && normalizedSelectedPath.startsWith(normalizedPath + '/'))
-    ) {
-      options.selectedResourceId.value = undefined
-      options.isEditing.value = false
-    }
-  }
-
-  const selectResource = (resourceId: string | null) => {
+  const closeActionMenu = () => {
     openActionMenuKey.value = undefined
-    options.selectedResourceId.value = resourceId ?? undefined
   }
 
   const toggleActionMenu = (rowKey: string) => {
@@ -115,11 +64,7 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
   }
 
   const startInlineRename = (row: SkillFileNode | SkillFolderNode) => {
-    inlineRename.value = {
-      row,
-      value: row.name,
-      error: '',
-    }
+    inlineRename.value = { row, value: row.name, error: '' }
   }
 
   const cancelInlineRename = () => {
@@ -139,12 +84,7 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
   }
 
   const openNameDialog = (action: SkillNameAction, row: SkillFileNode | SkillFolderNode) => {
-    nameDialog.value = {
-      action,
-      row,
-      value: '',
-      error: '',
-    }
+    nameDialog.value = { action, row, value: '', error: '' }
   }
 
   const closeDeleteDialog = () => {
@@ -159,32 +99,14 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     const { action, row } = pendingDelete
     const currentPath = row.path
     const isFolder = action === 'delete-folder'
-    const normalizedPath = normalizePath(currentPath)
-    const nextResources = options.resources.value.filter((resource) => {
-      const resourcePath = normalizePath(resource.path)
-      return resourcePath !== normalizedPath && (!isFolder || !resourcePath.startsWith(normalizedPath + '/'))
-    })
-    const parentPath = getParentPath(currentPath)
-    const nextDirectories = parentPath ? [...options.directories.value, parentPath] : options.directories.value
-
-    if (isFolder) {
-      const directoriesAfterDelete = nextDirectories.filter(
-        (folderPath) =>
-          normalizePath(folderPath) !== normalizedPath && !normalizePath(folderPath).startsWith(normalizedPath + '/'),
-      )
-      emitResourceDefinition(nextResources, directoriesAfterDelete)
-    } else {
-      emitResourceDefinition(nextResources, nextDirectories)
-    }
-
-    clearSelectionIfPathMatches(currentPath, isFolder)
+    options.onSave(deletePathDefinition(options.currentDefinition.value, currentPath, isFolder))
     closeDeleteDialog()
     options.onFileAction({ type: action, target: isFolder ? 'folder' : 'file', path: currentPath })
   }
 
   const handleTreeAction = (action: SkillTreeAction, row: SkillFileNode | SkillFolderNode, providedName?: string) => {
     if (options.mode.value !== 'edit') return
-    openActionMenuKey.value = undefined
+    closeActionMenu()
 
     if (action === 'create-folder' || action === 'create-file') {
       if (row.type !== 'folder') return
@@ -200,26 +122,18 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
       }
 
       if (action === 'create-folder') {
-        emitResourceDefinition(options.resources.value, [...options.directories.value, path])
-        options.onFileAction({ type: action, target: 'folder', path })
-        options.collapsedFolders.value = new Set(
-          [...options.collapsedFolders.value].filter((folderKey) => folderKey !== 'folder:' + row.path),
+        options.onSave(
+          withResources(options.currentDefinition.value, options.resources.value, [...options.directories.value, path]),
         )
+        options.expandFolder(row.path)
+        options.onFileAction({ type: action, target: 'folder', path })
         return
       }
 
-      const resource: SkillResource = {
-        path,
-        kind: 'text',
-        resourceId: options.createResourceId(path),
-        text: '',
-      }
+      const created = createTextResourceDefinition(options.currentDefinition.value, path)
+      options.onSave(created.definition)
       options.onFileAction({ type: action, target: 'file', path })
-      emitResourceDefinition([...options.resources.value, resource])
-      options.draftContent.value = ''
-      options.textContent.value = ''
-      options.isEditing.value = false
-      selectResource(resource.resourceId)
+      options.onResourceCreated(created.resource.resourceId)
       return
     }
 
@@ -228,8 +142,7 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     const actionTarget = isFolder ? 'folder' : 'file'
 
     if (action === 'delete-file' || action === 'delete-folder') {
-      if (action === 'delete-file' && isFolder) return
-      if (action === 'delete-folder' && !isFolder) return
+      if ((action === 'delete-file' && isFolder) || (action === 'delete-folder' && !isFolder)) return
       deleteDialog.value = { action, row }
       return
     }
@@ -246,35 +159,7 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
       return
     }
 
-    if (isFolder) {
-      const normalizedPath = normalizePath(currentPath)
-      const nextResources = options.resources.value.map((resource) => {
-        const resourcePath = normalizePath(resource.path)
-        if (resourcePath === normalizedPath) return updateResourcePath(resource, nextPath)
-        if (resourcePath.startsWith(normalizedPath + '/')) {
-          return updateResourcePath(resource, nextPath + resourcePath.slice(normalizedPath.length))
-        }
-        return resource
-      })
-      const nextDirectories = options.directories.value.map((folderPath) => {
-        const folderPathValue = normalizePath(folderPath)
-        if (folderPathValue === normalizedPath) return nextPath
-        if (folderPathValue.startsWith(normalizedPath + '/')) {
-          return nextPath + folderPathValue.slice(normalizedPath.length)
-        }
-        return folderPath
-      })
-      emitResourceDefinition(nextResources, nextDirectories)
-    } else {
-      emitResourceDefinition(
-        options.resources.value.map((resource) =>
-          normalizePath(resource.path) === normalizePath(currentPath)
-            ? updateResourcePath(resource, nextPath)
-            : resource,
-        ),
-      )
-    }
-
+    options.onSave(renamePathDefinition(options.currentDefinition.value, currentPath, nextPath, isFolder))
     options.onFileAction({ type: 'rename', target: actionTarget, path: currentPath, nextPath })
   }
 
@@ -283,12 +168,13 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     if (!draft) return
 
     const name = draft.value.trim()
-    if (!name || !/^[A-Za-z0-9_.-]+$/.test(name) || name === '.' || name === '..') {
-      draft.error = '名称只能包含英文字母、数字、下划线、中划线和点号。'
-      return
-    }
-    if (draft.row.type === 'file' && draft.row.resource.kind === 'text' && !hasSupportedSkillTextExtension(name)) {
-      draft.error = '仅支持 .md、.txt、.json 文件。'
+    const error = validateSkillEntryName(name, {
+      kind: draft.row.type === 'file' ? 'file' : 'folder',
+      action: 'rename',
+      resourceKind: draft.row.type === 'file' ? draft.row.resource.kind : undefined,
+    })
+    if (error) {
+      draft.error = error
       return
     }
 
@@ -307,12 +193,12 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     if (!dialog) return
 
     const name = dialog.value.trim()
-    if (!name || !/^[A-Za-z0-9_.-]+$/.test(name) || name === '.' || name === '..') {
-      dialog.error = '名称只能包含英文字母、数字、下划线、中划线和点号。'
-      return
-    }
-    if (dialog.action === 'create-file' && !hasSupportedSkillTextExtension(name)) {
-      dialog.error = '仅支持 .md、.txt、.json 文件。'
+    const error = validateSkillEntryName(name, {
+      kind: dialog.action === 'create-file' ? 'file' : 'folder',
+      action: 'create',
+    })
+    if (error) {
+      dialog.error = error
       return
     }
 
@@ -342,6 +228,7 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     nameDialog,
     deleteDialog,
     nameDialogTitle,
+    closeActionMenu,
     toggleActionMenu,
     startInlineRename,
     cancelInlineRename,
@@ -354,6 +241,5 @@ export function useSkillFileActions(options: UseSkillFileActionsOptions) {
     submitInlineRename,
     submitNameDialog,
     getTreeActionLabel,
-    selectResource,
   }
 }

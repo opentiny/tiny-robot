@@ -15,9 +15,8 @@ import SkillFileSwitchDialog from './SkillFileSwitchDialog.vue'
 import SkillNameDialog from './SkillNameDialog.vue'
 import SkillContentViewer from './SkillContentViewer.vue'
 import { rootFolder, useSkillFileTree } from './useSkillFileTree'
-import { useSkillContent } from './useSkillContent'
+import { useSkillEditor } from './useSkillEditor'
 import { useSkillFileActions } from './useSkillFileActions'
-import { useSkillFileNavigation } from './useSkillFileNavigation'
 
 defineOptions({ name: 'SkillExtensionDetail' })
 
@@ -27,6 +26,7 @@ defineSlots<SkillExtensionDetailSlots>()
 
 const localDefinition = shallowRef<SkillDefinition | null>(null)
 const currentDefinition = computed(() => localDefinition.value ?? props.definition)
+const mode = computed(() => props.mode)
 const fileTreeId = 'skill-extension-detail-' + useStableId() + '-files'
 
 const saveDefinition = (definition: SkillDefinition) => {
@@ -35,18 +35,20 @@ const saveDefinition = (definition: SkillDefinition) => {
 }
 
 const {
-  selectedResourceId,
   collapsedFolders,
   resources,
   directories,
   treeRows,
-  selectedResource,
-  selectedFileName,
-  createResourceId,
   isPathTaken,
+  toggleFolder,
+  expandFolder,
+  resetCollapsedFolders,
 } = useSkillFileTree(currentDefinition)
 
 const {
+  selectedResourceId,
+  selectedResource,
+  selectedFileName,
   draftContent,
   isEditing,
   contentKind,
@@ -57,17 +59,19 @@ const {
   resourceUrl,
   renderedMarkdown,
   canEditSelectedFile,
-  hasUnsavedChanges,
+  switchingFile,
+  fileSwitchDialog,
   startEditing,
   updateDraftContent,
   cancelEditing,
   saveEditing,
-} = useSkillContent({
-  currentDefinition,
-  selectedResource,
-  mode: computed(() => props.mode),
-  onSave: saveDefinition,
-})
+  selectResource,
+  requestSelectResource,
+  requestTreeAction: requestEditorTreeAction,
+  handleFileSwitchDecision,
+  closeFileSwitchDialog,
+  resetEditing,
+} = useSkillEditor({ mode, currentDefinition, resources, onSave: saveDefinition })
 
 const emitFileAction = (action: SkillFileAction) => {
   emit('file-action', action)
@@ -79,6 +83,7 @@ const {
   nameDialog,
   deleteDialog,
   nameDialogTitle,
+  closeActionMenu,
   toggleActionMenu,
   cancelInlineRename,
   clearInlineRenameError,
@@ -90,69 +95,26 @@ const {
   submitInlineRename,
   submitNameDialog,
   getTreeActionLabel,
-  selectResource,
 } = useSkillFileActions({
-  mode: computed(() => props.mode),
+  mode,
   currentDefinition,
   resources,
   directories,
-  selectedResourceId,
-  selectedResource,
-  collapsedFolders,
-  isEditing,
-  draftContent,
-  textContent,
-  createResourceId,
   isPathTaken,
+  expandFolder,
   onSave: saveDefinition,
   onFileAction: emitFileAction,
+  onResourceCreated: selectResource,
 })
 
-const {
-  switchingFile,
-  fileSwitchDialog,
-  closeFileSwitchDialog,
-  requestTreeAction,
-  handleFileSwitchDecision,
-  requestSelectResource,
-} = useSkillFileNavigation({
-  mode: computed(() => props.mode),
-  selectedResourceId,
-  selectedResource,
-  resources,
-  openActionMenuKey,
-  isEditing,
-  draftContent,
-  textContent,
-  hasUnsavedChanges,
-  saveEditing,
-  selectResource,
-  handleTreeAction,
-  getTreeActionLabel,
-})
-
-const toggleFolder = (folderKey: string) => {
-  openActionMenuKey.value = undefined
-  const next = new Set(collapsedFolders.value)
-  if (next.has(folderKey)) next.delete(folderKey)
-  else next.add(folderKey)
-  collapsedFolders.value = next
+const requestTreeAction = (action: SkillFileAction['type'], row: Parameters<typeof getTreeActionLabel>[1]) => {
+  closeActionMenu()
+  requestEditorTreeAction(getTreeActionLabel(action, row), () => handleTreeAction(action, row))
 }
 
 const openRootCreateDialog = (action: 'create-file' | 'create-folder') => {
   requestTreeAction(action, rootFolder)
 }
-
-const handleModeChange = (mode: 'view' | 'edit' | undefined) => {
-  if (mode !== 'edit') {
-    openActionMenuKey.value = undefined
-    inlineRename.value = undefined
-    isEditing.value = false
-    closeFileSwitchDialog()
-  }
-}
-
-watch(() => props.mode, handleModeChange)
 
 watch(
   () => props.definition,
@@ -161,19 +123,13 @@ watch(
       localDefinition.value = null
     }
     if (nextDefinition.name !== previousDefinition?.name) {
-      collapsedFolders.value = new Set()
-      openActionMenuKey.value = undefined
+      resetCollapsedFolders()
+      closeActionMenu()
       inlineRename.value = undefined
       nameDialog.value = undefined
       deleteDialog.value = undefined
-      isEditing.value = false
+      resetEditing()
       closeFileSwitchDialog()
-    }
-    if (
-      selectedResourceId.value &&
-      !resources.value.some((resource) => resource.resourceId === selectedResourceId.value)
-    ) {
-      selectedResourceId.value = undefined
     }
   },
 )

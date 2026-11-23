@@ -2,21 +2,15 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Comp
 import type { SkillDefinition, SkillResourceDescriptor } from '../skill-import-form/index.type'
 import { getMarkdownItAndDompurify } from '../bubble/utils'
 
-type SkillContentKind = 'markdown' | 'text' | 'binary'
-type SkillEditingMode = 'visual' | 'source'
+export type SkillContentKind = 'markdown' | 'text' | 'binary'
 
 interface UseSkillContentOptions {
   currentDefinition: ComputedRef<SkillDefinition>
   selectedResource: ComputedRef<SkillResourceDescriptor | undefined>
-  mode: ComputedRef<'view' | 'edit' | undefined>
-  onSave: (definition: SkillDefinition) => void
 }
 
 export function useSkillContent(options: UseSkillContentOptions) {
-  const draftContent = ref('')
-  const isEditing = ref(false)
   const contentKind = ref<SkillContentKind>('markdown')
-  const editingMode = ref<SkillEditingMode>('visual')
   const textContent = ref('')
   const contentLoading = ref(false)
   const contentError = ref(false)
@@ -30,66 +24,12 @@ export function useSkillContent(options: UseSkillContentOptions) {
     return markdownRuntime.value.dompurify.sanitize(rendered)
   })
 
-  const canEditSelectedFile = computed(() => options.mode.value === 'edit')
-  const hasUnsavedChanges = computed(() => isEditing.value && draftContent.value !== textContent.value)
-
   const isMarkdownFile = (path: string) => /\.(md|markdown|mdx)$/i.test(path)
 
   const releaseResourceUrl = () => {
     if (!resourceUrl.value) return
     URL.revokeObjectURL(resourceUrl.value)
     resourceUrl.value = ''
-  }
-
-  const startEditing = () => {
-    if (
-      !canEditSelectedFile.value ||
-      contentLoading.value ||
-      contentError.value ||
-      options.selectedResource.value?.kind === 'binary'
-    )
-      return
-    draftContent.value = textContent.value
-    editingMode.value = contentKind.value === 'markdown' ? 'visual' : 'source'
-    isEditing.value = true
-  }
-
-  const updateDraftContent = (content: string) => {
-    draftContent.value = content
-  }
-
-  const cancelEditing = () => {
-    draftContent.value = textContent.value
-    isEditing.value = false
-  }
-
-  const saveEditing = () => {
-    if (!canEditSelectedFile.value || options.selectedResource.value?.kind === 'binary') return
-
-    const content = draftContent.value
-    const selectedResource = options.selectedResource.value
-    const resources = options.currentDefinition.value.resources ?? []
-    const definition = selectedResource
-      ? {
-          ...options.currentDefinition.value,
-          resources: resources.map((resource) =>
-            resource.resourceId === selectedResource.resourceId
-              ? {
-                  ...resource,
-                  text: content,
-                  readText: async () => content,
-                  size: new Blob([content]).size,
-                  lastModified: Date.now(),
-                }
-              : resource,
-          ),
-        }
-      : { ...options.currentDefinition.value, instructions: content }
-
-    draftContent.value = content
-    textContent.value = content
-    options.onSave(definition)
-    isEditing.value = false
   }
 
   watch(
@@ -137,20 +77,11 @@ export function useSkillContent(options: UseSkillContentOptions) {
   })
 
   return {
-    draftContent,
-    isEditing,
     contentKind,
-    editingMode,
     textContent,
     contentLoading,
     contentError,
     resourceUrl,
     renderedMarkdown,
-    canEditSelectedFile,
-    hasUnsavedChanges,
-    startEditing,
-    updateDraftContent,
-    cancelEditing,
-    saveEditing,
   }
 }
