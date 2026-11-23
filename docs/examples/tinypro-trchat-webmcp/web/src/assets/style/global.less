@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.general-card {
+  position: relative;
+  border: none;
+  border-radius: 4px;
+  transition: box-shadow 0.2s cubic-bezier(0, 0, 1, 1);
+
+  .card-head {
+    height: auto;
+    padding: 20px;
+    color: #333;
+    font-size: 16px;
+    border: none;
+  }
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+// 全局表格样式
+.tiny-grid__wrapper {
+  --tv-Grid-cell-padding-x-mini: unset;
+}
+
+.tiny-button {
+  --tv-Button-min-width: unset;
+}
+
+.tr-container {
+  z-index: 999 !important;
+}

@@ -1,0 +1,173 @@
+:deep(.tiny-grid__wrapper) {
+  --tv-Grid-cell-padding-x-mini: unset;
+}
+
+:deep(.tiny-upload) {
+  width: 100%;
+}
+
+:deep(.tiny-button) {
+  min-width: 0;
+}
+
+:deep(.tvp-search-box__form) {
+  min-width: 0;
+}
+
+.search-container-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.search-table-container {
+  flex: 1 1 auto;
+  padding: 24px;
+  background-color: #fff;
+}
+
+.tiny-select-header {
+  min-width: 200px;
+  width: 200px;
+}
+
+.search-box-container {
+  width: 100%;
+  padding-right: 8px;
+
+  :deep(.tiny-input) {
+    width: 100%;
+
+    &__inner {
+      height: 30px;
+    }
+  }
+}
+
+.button-group {
+  display: flex;
+
+  .tiny-button {
+    margin-left: 0;
+  }
+}
+
+.col {
+  width: 80%;
+  height: 70px;
+}
+
+:deep(.tiny-pager) {
+  padding: 10px;
+}
+
+:deep(.tiny-grid-button__wrapper) {
+  width: 100%;
+}
+
+:deep(.tiny-form-item__label) {
+  color: #494747;
+  font-weight: normal;
+}
+
+:deep(.tiny-grid-header__column) {
+  height: 35px;
+  color: #595959;
+}
+
+.operation {
+  color: #1475ff;
+
+  .tiny-svg {
+    font-size: 16px;
+    margin-right: 8px;
+    fill: currentColor;
+  }
+
+  .tiny-svg:nth-child(1) {
+    margin-left: 8px;
+  }
+}
+
+.btn {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 0;
+
+  .screen {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 60px;
+    text-align: center;
+    cursor: pointer;
+
+    span {
+      margin-left: 10px;
+      color: #4e5969;
+      font-size: 14px;
+    }
+  }
+}
+
+.status {
+  &-dot {
+    position: relative;
+    top: -1px;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    vertical-align: middle;
+    background-color: #1890ff;
+    border-radius: 50%;
+  }
+
+  &-closed {
+    .status-dot {
+      background-color: #d9d9d9;
+    }
+  }
+
+  &-finished {
+    .status-dot {
+      background-color: #52c41a;
+    }
+  }
+}
+
+.tiny-fullscreen {
+  height: calc(100vh - 230px);
+  overflow: hidden;
+  background: #fff;
+
+  .tiny-fullscreen-scroll {
+    height: 100%;
+
+    .tiny-fullscreen-wrapper {
+      height: 100%;
+    }
+  }
+}
+
+:deep(.tiny-dialog-box) {
+  .tiny-dialog-box__header {
+    line-height: 1.5;
+  }
+
+  .tiny-col {
+    padding-left: 0;
+    padding-right: 24px;
+  }
+
+  .tiny-button {
+    width: 96px;
+  }
+
+  .tiny-dialog-box__footer {
+    padding-top: 0;
+  }
+}

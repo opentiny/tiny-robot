@@ -60,7 +60,10 @@ const sharedSidebarItems = [
   {
     text: '最佳实践',
     base: '/best-practices/',
-    items: [{ text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' }],
+    items: [
+      { text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' },
+      { text: 'TinyPro 接入 TrChat WebMCP', link: 'tinypro-trchat-webmcp' },
+    ],
   },
   {
     text: '图标',
@@ -71,6 +74,7 @@ const sharedSidebarItems = [
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
   { text: '演示', link: '/examples/chat-tiny-robot', activeMatch: '/examples/' },
+  { text: '最佳实践', link: '/best-practices/tinypro-trchat-webmcp', activeMatch: '/best-practices/' },
   { text: '迁移指南', link: '/migration/', activeMatch: '/migration/' },
 ]
 

@@ -1,0 +1,6 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none">
+	<rect fill="none" id="看板页" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<path id="path4" d="M2.5 14L13.5 14M8 14L8 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.000000" />
+	<path id="path8" d="M4 6.66797L6.25493 6.66797L7.2947 8.66797L8.73417 4.66797L9.77393 6.66797L12.0008 6.66797" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.000000" />
+	<path id="path6" d="M8.0013 11.9987L2.64995 11.9987C1.55533 11.9987 0.667969 11.1033 0.667969 9.9987L0.667969 3.33203C0.667969 2.22746 1.55533 1.33203 2.64995 1.33203L13.3527 1.33203C14.4473 1.33203 15.3346 2.22746 15.3346 3.33203L15.3346 9.9987C15.3346 11.1033 14.4473 11.9987 13.3527 11.9987L10.0013 11.9987" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.000000" />
+</svg>

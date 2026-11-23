@@ -1,0 +1,29 @@
+<svg viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="42.000000" height="42.000000" fill="none" customFrame="#000000">
+	<mask id="mask_21" width="24.000000" height="24.000000" x="9.000000" y="9.000000" maskUnits="userSpaceOnUse">
+		<g filter="url(#pixso_custom_mask_type_alpha)">
+			<g id="clip1596_64142">
+				<rect id="线性" width="24.000000" height="24.000000" x="9.000000" y="9.000000" fill="rgb(0,0,0)" />
+			</g>
+		</g>
+	</mask>
+	<defs>
+		<clipPath id="clipPath_117">
+			<rect width="24.000000" height="24.000000" x="9.000000" y="9.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<filter id="pixso_custom_mask_type_alpha">
+			<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 " />
+		</filter>
+	</defs>
+	<g id="项目总数">
+		<circle id="椭圆 39" cx="21" cy="21" r="21" fill="rgb(245,245,245)" />
+		<g id="ic_public_doughnut_chart" clip-path="url(#clipPath_117)" customFrame="url(#clipPath_117)">
+			<rect id="ic_public_doughnut_chart" width="24.000000" height="24.000000" x="9.000000" y="9.000000" />
+			<g id="mask" mask="url(#mask_21)">
+				<g id="g">
+					<path id="path3" d="M20.995 32C26.565 32 31.165 27.865 31.895 22.5L27.835 22.5C27.15 25.645 24.35 28 20.995 28C17.13 28 13.995 24.865 13.995 21C13.995 17.645 16.35 14.845 19.5 14.16L19.5 10.1C14.13 10.83 10 15.43 10 21C10 27.075 14.925 32 20.995 32Z" fill-rule="nonzero" stroke="rgb(128,128,128)" stroke-linejoin="round" stroke-width="1.5" />
+					<path id="path4" d="M22.5 14.16C25.16 14.74 27.255 16.835 27.835 19.5L31.895 19.5C31.23 14.625 27.37 10.765 22.5 10.1L22.5 14.16Z" fill-rule="nonzero" stroke="rgb(128,128,128)" stroke-linejoin="round" stroke-width="1.5" />
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>

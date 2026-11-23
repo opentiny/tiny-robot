@@ -1,0 +1,69 @@
+.advanced-list-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.advanced-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 16px;
+  padding: 0 0 16px;
+}
+
+.search-panel,
+.table-panel {
+  padding: 20px 24px;
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px 16px;
+
+  .tiny-form-item {
+    margin-bottom: 8px;
+  }
+
+  :deep(.tiny-input),
+  :deep(.tiny-select),
+  :deep(.tiny-date-editor) {
+    width: 100%;
+  }
+}
+
+.search-form-buttons {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+
+  .tiny-button {
+    margin-left: 0;
+  }
+}
+
+.table-panel {
+  :deep(.tiny-grid-toolbar) {
+    padding: 0 0 16px;
+  }
+}
+
+.grid-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.operation {
+  color: #1476ff;
+  font-size: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
