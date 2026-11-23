@@ -24,6 +24,8 @@ export const hasSupportedSkillTextExtension = (name: string) => {
 
 export const isTextSkillFilePath = (path: string) => hasSupportedSkillTextExtension(path)
 
+const pathKey = (path: string) => normalizePath(path).toLowerCase()
+
 export const validateSkillEntryName = (
   value: string,
   options: {
@@ -71,29 +73,35 @@ export const isSkillPathTaken = (
   directories: string[],
   ignoredPath?: string,
 ) => {
-  const normalizedPath = normalizePath(path)
-  const normalizedIgnoredPath = ignoredPath ? normalizePath(ignoredPath) : undefined
-  if (normalizedPath.toLowerCase() === 'skill.md' && normalizedIgnoredPath?.toLowerCase() !== 'skill.md') return true
+  const normalizedPath = pathKey(path)
+  const normalizedIgnoredPath = ignoredPath ? pathKey(ignoredPath) : undefined
+  if (normalizedPath === 'skill.md' && normalizedIgnoredPath !== 'skill.md') return true
 
   return (
     resources.some(
-      (resource) =>
-        normalizePath(resource.path) === normalizedPath && normalizePath(resource.path) !== normalizedIgnoredPath,
+      (resource) => pathKey(resource.path) === normalizedPath && pathKey(resource.path) !== normalizedIgnoredPath,
     ) ||
     [...getResourceDirectoryPaths(resources)].some(
-      (folderPath) => folderPath === normalizedPath && folderPath !== normalizedIgnoredPath,
+      (folderPath) => pathKey(folderPath) === normalizedPath && pathKey(folderPath) !== normalizedIgnoredPath,
     ) ||
     directories.some(
-      (folderPath) =>
-        normalizePath(folderPath) === normalizedPath && normalizePath(folderPath) !== normalizedIgnoredPath,
+      (folderPath) => pathKey(folderPath) === normalizedPath && pathKey(folderPath) !== normalizedIgnoredPath,
     )
   )
 }
 
 const normalizeDirectories = (resources: SkillResource[], directories: string[]) => {
-  const resourceDirectories = getResourceDirectoryPaths(resources)
-  return [...new Set(directories.map(normalizePath).filter(Boolean))]
-    .filter((directory) => !resourceDirectories.has(directory))
+  const resourceDirectories = new Set([...getResourceDirectoryPaths(resources)].map(pathKey))
+  const normalizedDirectories = new Map<string, string>()
+  for (const directory of directories) {
+    const normalizedDirectory = normalizePath(directory)
+    if (normalizedDirectory && !normalizedDirectories.has(pathKey(normalizedDirectory))) {
+      normalizedDirectories.set(pathKey(normalizedDirectory), normalizedDirectory)
+    }
+  }
+  return [...normalizedDirectories.entries()]
+    .filter(([key]) => !resourceDirectories.has(key))
+    .map(([, directory]) => directory)
     .sort()
 }
 
@@ -111,12 +119,12 @@ export const withResources = (
 }
 
 export const createResourceId = (path: string, resources: SkillResource[]) => {
-  const resourceIds = new Set(resources.map((resource) => resource.resourceId))
-  if (!resourceIds.has(path)) return path
+  const resourceIds = new Set(resources.map((resource) => resource.resourceId.toLowerCase()))
+  if (!resourceIds.has(path.toLowerCase())) return path
 
   let index = 1
   let resourceId = `${path}#${index}`
-  while (resourceIds.has(resourceId)) {
+  while (resourceIds.has(resourceId.toLowerCase())) {
     index += 1
     resourceId = `${path}#${index}`
   }
@@ -184,6 +192,9 @@ const copyBytes = (bytes: Uint8Array) => new Uint8Array(bytes)
 
 export const updateTextContentDefinition = (definition: SkillDefinition, target: SkillEditTarget, content: string) => {
   if (target.kind === 'skill') return { ...definition, instructions: content }
+
+  const targetResource = (definition.resources ?? []).find((resource) => resource.resourceId === target.resourceId)
+  if (!targetResource || targetResource.kind !== 'text') return undefined
 
   const bytes = new TextEncoder().encode(content)
   let found = false

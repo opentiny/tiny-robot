@@ -52,7 +52,8 @@ export function useSkillEditor(options: UseSkillEditorOptions) {
     const target = editTarget.value
     if (!target) return false
     if (target.kind === 'skill') return selectedResourceId.value === undefined
-    return selectedResourceId.value === target.resourceId && isEditTargetAvailable(target, options.resources.value)
+    const resource = options.resources.value.find((item) => item.resourceId === target.resourceId)
+    return selectedResourceId.value === target.resourceId && resource?.kind === 'text'
   })
 
   const hasUnsavedChanges = computed(
@@ -183,16 +184,33 @@ export function useSkillEditor(options: UseSkillEditorOptions) {
       !selectedResourceId.value ||
       options.resources.value.some((resource) => resource.resourceId === selectedResourceId.value)
     const editTargetStillExists = isEditTargetAvailable(editTarget.value, options.resources.value)
+    const currentTarget = editTarget.value
+    const editTargetStillText =
+      currentTarget?.kind !== 'resource' ||
+      options.resources.value.some(
+        (resource) => resource.resourceId === currentTarget.resourceId && resource.kind === 'text',
+      )
 
-    if (!selectedResourceStillExists || !editTargetStillExists) {
+    if (!selectedResourceStillExists || !editTargetStillExists || !editTargetStillText) {
       if (!selectedResourceStillExists) selectedResourceId.value = undefined
       resetEditing()
       closeFileSwitchDialog()
     }
   }
 
+  const handleExternalDefinitionChange = () => {
+    resetEditing()
+    closeFileSwitchDialog()
+  }
+
   watch(
-    [() => options.resources.value.map((resource) => resource.resourceId).join('\u0000'), () => options.mode.value],
+    [
+      () =>
+        options.resources.value
+          .map((resource) => `${resource.resourceId}\u0000${resource.kind}\u0000${resource.path}`)
+          .join('\u0000'),
+      () => options.mode.value,
+    ],
     ([, mode]) => {
       if (mode !== 'edit') {
         resetEditing()
@@ -224,5 +242,6 @@ export function useSkillEditor(options: UseSkillEditorOptions) {
     handleFileSwitchDecision,
     closeFileSwitchDialog,
     resetEditing,
+    handleExternalDefinitionChange,
   }
 }

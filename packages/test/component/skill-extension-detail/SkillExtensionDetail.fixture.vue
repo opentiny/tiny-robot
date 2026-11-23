@@ -114,6 +114,22 @@ const removeExternalResource = () => {
   }
 }
 
+const refreshExternalResource = () => {
+  externallyUpdatedDefinition.value = {
+    ...externallyUpdatedDefinition.value,
+    instructions: '# Refreshed instructions',
+    resources: (externallyUpdatedDefinition.value.resources ?? []).map((resource) =>
+      resource.resourceId === 'references/schema.md'
+        ? {
+            ...resource,
+            text: '# Refreshed schema',
+            readBinary: async () => new TextEncoder().encode('# Refreshed schema'),
+          }
+        : resource,
+    ),
+  }
+}
+
 const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
   singleFileFolderDefinition.value = nextDefinition
 }
@@ -128,6 +144,7 @@ const saveSingleFileFolderDefinition = (nextDefinition: SkillDefinition) => {
   <output data-testid="single-file-folder-directories">{{ singleFileFolderDirectories }}</output>
   <output data-testid="saved-binary-text">{{ savedBinaryText }}</output>
   <button data-testid="remove-external-resource" type="button" @click="removeExternalResource">移除外部资源</button>
+  <button data-testid="refresh-external-resource" type="button" @click="refreshExternalResource">刷新外部资源</button>
   <SkillExtensionDetail data-testid="detail" :definition="definition" updated-at="2026-07-10" />
   <SkillExtensionDetail data-testid="uncontrolled-detail" :definition="definition" mode="edit" />
   <SkillExtensionDetail data-testid="empty-detail" :definition="emptyDefinition" />

@@ -71,6 +71,7 @@ const {
   handleFileSwitchDecision,
   closeFileSwitchDialog,
   resetEditing,
+  handleExternalDefinitionChange,
 } = useSkillEditor({ mode, currentDefinition, resources, onSave: saveDefinition })
 
 const emitFileAction = (action: SkillFileAction) => {
@@ -120,6 +121,7 @@ watch(
   () => props.definition,
   (nextDefinition, previousDefinition) => {
     if (nextDefinition !== previousDefinition) {
+      handleExternalDefinitionChange()
       localDefinition.value = null
     }
     if (nextDefinition.name !== previousDefinition?.name) {

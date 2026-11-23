@@ -208,6 +208,14 @@ test.describe('SkillExtensionDetail', () => {
     await expect(duplicateFolderDialog).toContainText('该名称已存在。')
     await duplicateFolderDialog.getByRole('button', { name: '取消' }).click()
 
+    await detail.getByRole('button', { name: 'references 操作' }).click()
+    await detail.getByRole('menuitem', { name: '新增文件', exact: true }).click()
+    const caseInsensitiveFileDialog = page.getByRole('dialog')
+    await caseInsensitiveFileDialog.getByRole('textbox').fill('SCHEMA.MD')
+    await caseInsensitiveFileDialog.getByRole('button', { name: '确定' }).click()
+    await expect(caseInsensitiveFileDialog).toContainText('该名称已存在。')
+    await caseInsensitiveFileDialog.getByRole('button', { name: '取消' }).click()
+
     await detail.getByRole('button', { name: '新增文件夹' }).click()
     await page.getByRole('dialog').getByRole('textbox').fill('root-folder')
     await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
@@ -445,6 +453,26 @@ test.describe('SkillExtensionDetail', () => {
     await detail.getByRole('button', { name: '编辑' }).click()
     await detail.getByRole('tab', { name: '源码编辑' }).click()
     await expect(detail.getByRole('textbox', { name: '源码编辑 SKILL.md' })).toHaveValue(/# 使用说明/)
+  })
+
+  test('resets an edit session when the host refreshes a resource with the same id', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('external-update-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('stale resource draft')
+
+    await component.getByTestId('refresh-external-resource').click()
+
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '保存' })).toHaveCount(0)
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await expect(detail.getByRole('textbox', { name: '源码编辑 references/schema.md' })).toHaveValue(
+      '# Refreshed schema',
+    )
   })
 
   test('discards unsaved edits before switching files', async ({ mount, page }) => {
