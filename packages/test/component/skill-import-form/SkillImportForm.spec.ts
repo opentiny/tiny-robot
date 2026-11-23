@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import { readFile } from 'node:fs/promises'
+import { gzipSync } from 'node:zlib'
 import type { Locator, Page } from '@playwright/test'
 import path from 'node:path'
 import SkillImportFormFixture from './SkillImportForm.fixture.vue'
@@ -369,6 +370,54 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByText('weather.zip', { exact: true })).toBeVisible()
     await component.getByRole('button', { name: '确定' }).click()
     await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-archive"')
+  })
+
+  test('revalidates expanded content after the archive upload limit changes', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, 'expanded.zip'))
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await component.update({ props: { maxUploadSize: 1200 } })
+    await expect(component.getByRole('alert')).toHaveText('压缩包解包后的内容过大，请减少文件后重试')
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.update({ props: { maxUploadSize: 10 * 1024 * 1024 } })
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"archive-skill"')
+  })
+
+  test('discards pending archive results when the new limit rejects the selected file', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('set-resolver-pending').click()
+    await component
+      .locator('input[type="file"]')
+      .setInputFiles({ name: 'skill.zip', mimeType: 'application/zip', buffer: Buffer.alloc(1024) })
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('1')
+    await component.update({ props: { maxUploadSize: 512 } })
+    await component.getByTestId('release-resolver').click()
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await expect(component.getByRole('alert')).toContainText('Skill 压缩包大小不能超过')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.getByTestId('set-resolver-success').click()
+    await component.update({ props: { maxUploadSize: 2048 } })
+    await expect(component.getByTestId('resolver-input')).toContainText('"maxUncompressedSize":2048')
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+  })
+
+  test('rejects concatenated gzip members with a recovery message in the browser', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    const tar = await readArchiveFixture('ustar.tar')
+    const bytes = Buffer.concat([gzipSync(tar.subarray(0, 512)), gzipSync(tar.subarray(512))])
+    await component
+      .locator('input[type="file"]')
+      .setInputFiles({ name: 'skill.tgz', mimeType: 'application/gzip', buffer: bytes })
+    await expect(component.getByRole('alert')).toHaveText('压缩包无法解压，请将 TAR 文件重新压缩为单段 GZIP 后重试')
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
   })
 
   test('imports real ZIP and TAR fixtures through the default Kit resolver in the browser', async ({ mount }) => {

@@ -5,6 +5,8 @@ const DEFAULT_MAX_UNCOMPRESSED_SIZE = 10 * 1024 * 1024
 const DEFAULT_MAX_ARCHIVE_EXTRA_SIZE = 10 * 1024 * 1024
 const MAX_ARCHIVE_ENTRIES = 10000
 const UTF8 = new TextDecoder()
+const CP437_HIGH_BYTES =
+  'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u00a0'
 
 type ZipEntry = {
   path: string
@@ -103,14 +105,16 @@ async function loadGzipTar(
   entryFile: string,
 ) {
   let tarBytes: Uint8Array
+  const containerLimit = Math.min(Number.MAX_SAFE_INTEGER, limit + MAX_ARCHIVE_ENTRIES * 1024 + 10240)
   try {
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
-    const containerLimit = Math.min(Number.MAX_SAFE_INTEGER, limit + MAX_ARCHIVE_ENTRIES * 1024 + 10240)
     tarBytes = await readBoundedStream(stream, containerLimit, context)
   } catch (error) {
     if (context.signal.aborted) throwIfSkillLoadCancelled(context.signal)
-    if (error instanceof Error && error.message.includes('limit')) throw error
-    throw new Error('Could not decompress TAR.GZ skill archive.')
+    if (error instanceof Error && error.message.includes('limit')) {
+      throw new Error(`TAR.GZ container exceeds the ${containerLimit}-byte limit, including headers and metadata.`)
+    }
+    throw new Error('Could not decompress TAR.GZ skill archive. Recompress the TAR as a single gzip member and retry.')
   }
   return loadTar(tarBytes, limit, fileLimit, context, entryFile)
 }
@@ -129,13 +133,18 @@ async function loadTar(
   let fileCount = 0
   const seen = new Set<string>()
   const directories: string[] = []
-  let nextPath: string | undefined
+  const globalPax = new Map<string, string>()
+  const localPax = new Map<string, string>()
   let sawEndMarker = false
   while (offset < bytes.length) {
     if (entryCount % 128 === 0) await yieldToCancellation(context)
     throwIfSkillLoadCancelled(context.signal)
     const header = bytes.subarray(offset, offset + 512)
     if (header.length === 512 && header.every((byte) => byte === 0)) {
+      const secondBlock = bytes.subarray(offset + 512, offset + 1024)
+      if (secondBlock.length !== 512 || !secondBlock.every((byte) => byte === 0)) {
+        throw new Error('Invalid TAR archive: incomplete end marker.')
+      }
       sawEndMarker = true
       break
     }
@@ -145,10 +154,13 @@ async function loadTar(
     const name = readTarString(header, 0, 100)
     const prefix = readTarString(header, 345, 155)
     const headerPath = prefix ? `${prefix}/${name}` : name
-    const path = nextPath ?? headerPath
-    nextPath = undefined
-    const size = parseTarOctal(header.subarray(124, 136))
     const type = header[156] ?? 0
+    const metadataHeader = type === 120 || type === 103 || type === 76
+    const path = metadataHeader ? headerPath : (localPax.get('path') ?? globalPax.get('path') ?? headerPath)
+    const physicalSize = parseTarOctal(header.subarray(124, 136))
+    const sizeOverride = metadataHeader ? undefined : (localPax.get('size') ?? globalPax.get('size'))
+    const size = sizeOverride === undefined ? physicalSize : parsePaxSize(sizeOverride)
+    if (!metadataHeader) localPax.clear()
     const normalizedPath = normalizeArchivePath(path, type === 53)
     const dataOffset = offset + 512
     const paddedSize = Math.ceil(size / 512) * 512
@@ -172,11 +184,11 @@ async function loadTar(
         files.push(toLoadableFile(normalizedPath, bytes.slice(dataOffset, dataOffset + size)))
       }
     } else if (type === 120 || type === 103) {
-      const metadata = UTF8.decode(bytes.subarray(dataOffset, dataOffset + size))
-      const pathRecord = /(?:^|\n)\d+ path=([^\n]+)/.exec(metadata)
-      if (pathRecord?.[1]) nextPath = pathRecord[1]
+      const records = parsePaxRecords(bytes.subarray(dataOffset, dataOffset + size))
+      const target = type === 103 ? globalPax : localPax
+      for (const [keyword, value] of records) target.set(keyword, value)
     } else if (type === 76) {
-      nextPath = readTarString(bytes.subarray(dataOffset, dataOffset + size), 0, size)
+      localPax.set('path', readTarString(bytes.subarray(dataOffset, dataOffset + size), 0, size))
     } else if (type === 53) {
       if (normalizedPath && !isMetadataFile(path)) directories.push(normalizedPath)
     } else {
@@ -187,6 +199,47 @@ async function loadTar(
   }
   if (!sawEndMarker) throw new Error('Invalid TAR archive: end marker is missing.')
   return normalizeSkillArchiveStructure(files, directories, entryFile)
+}
+
+function parsePaxRecords(bytes: Uint8Array) {
+  const records = new Map<string, string>()
+  let offset = 0
+  while (offset < bytes.length) {
+    const space = bytes.indexOf(32, offset)
+    const lengthText = UTF8.decode(bytes.subarray(offset, space < 0 ? offset : space))
+    const length = Number(lengthText)
+    const end = offset + length
+    if (
+      !/^[0-9]+$/.test(lengthText) ||
+      !Number.isSafeInteger(length) ||
+      end > bytes.length ||
+      end <= space + 2 ||
+      bytes[end - 1] !== 10
+    ) {
+      throw new Error('Invalid TAR PAX record length.')
+    }
+    const equals = bytes.indexOf(61, space + 1)
+    if (equals <= space + 1 || equals >= end - 1) throw new Error('Invalid TAR PAX record keyword.')
+    const keyword = UTF8.decode(bytes.subarray(space + 1, equals))
+    if (keyword === 'path' || keyword === 'size') {
+      let value: string
+      try {
+        value = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(equals + 1, end - 1))
+      } catch {
+        throw new Error('Invalid TAR PAX record encoding.')
+      }
+      if (keyword === 'size' && value !== '') parsePaxSize(value)
+      records.set(keyword, value)
+    }
+    offset = end
+  }
+  return records
+}
+
+function parsePaxSize(value: string) {
+  const size = Number(value)
+  if (!/^[0-9]+$/.test(value) || !Number.isSafeInteger(size)) throw new Error('Invalid TAR PAX size.')
+  return size
 }
 
 function isValidTarHeader(header: Uint8Array) {
@@ -476,15 +529,21 @@ function validateLocalEntry(bytes: Uint8Array, entry: ZipEntry, centralStart: nu
   entry.dataOffset = dataOffset
   let rangeEnd = dataEnd
   if (dataDescriptor) {
-    const descriptorOffset =
-      dataEnd + (dataEnd + 4 <= centralStart && view.getUint32(dataEnd, true) === 0x08074b50 ? 4 : 0)
-    if (
-      descriptorOffset + 12 > centralStart ||
-      view.getUint32(descriptorOffset, true) !== entry.crc32 ||
-      view.getUint32(descriptorOffset + 4, true) !== entry.compressedSize ||
-      view.getUint32(descriptorOffset + 8, true) !== entry.uncompressedSize
-    ) {
-      throw new Error(`Invalid ZIP data descriptor for ${entry.path}.`)
+    const matchesDescriptor = (offset: number) =>
+      offset + 12 <= centralStart &&
+      view.getUint32(offset, true) === entry.crc32 &&
+      view.getUint32(offset + 4, true) === entry.compressedSize &&
+      view.getUint32(offset + 8, true) === entry.uncompressedSize
+    let descriptorOffset = dataEnd
+    if (!matchesDescriptor(descriptorOffset)) {
+      descriptorOffset += 4
+      if (
+        dataEnd + 4 > centralStart ||
+        view.getUint32(dataEnd, true) !== 0x08074b50 ||
+        !matchesDescriptor(descriptorOffset)
+      ) {
+        throw new Error(`Invalid ZIP data descriptor for ${entry.path}.`)
+      }
     }
     rangeEnd = descriptorOffset + 12
   }
@@ -494,10 +553,23 @@ function validateLocalEntry(bytes: Uint8Array, entry: ZipEntry, centralStart: nu
 async function readEntry(bytes: Uint8Array, entry: ZipEntry, limit: number, context: SkillLoadContext) {
   const compressed = bytes.subarray(entry.dataOffset, entry.dataOffset + entry.compressedSize)
   let result: Uint8Array
-  if (entry.method === 0) result = compressed.slice()
-  else {
+  if (entry.method === 0) {
+    if (entry.compressedSize !== entry.uncompressedSize) {
+      throw new Error(`Invalid uncompressed size for ZIP entry: ${entry.path}.`)
+    }
+    if (entry.uncompressedSize > limit) throw new Error(`Skill archive expands beyond the ${limit}-byte limit.`)
+    result = compressed.slice()
+  } else {
+    let decompressor: DecompressionStream
     try {
-      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+      decompressor = new DecompressionStream('deflate-raw')
+    } catch {
+      throw new Error(
+        'ZIP Deflate import requires DecompressionStream deflate-raw support (Node.js 20.12+ or a compatible browser).',
+      )
+    }
+    try {
+      const stream = new Blob([compressed]).stream().pipeThrough(decompressor)
       result = await readBoundedStream(stream, Math.min(limit, entry.uncompressedSize), context, entry.uncompressedSize)
     } catch (error) {
       if (context.signal.aborted) throwIfSkillLoadCancelled(context.signal)
@@ -541,11 +613,14 @@ function decodeZipPath(rawName: Uint8Array, extra: Uint8Array, flags: number) {
     }
     offset += 4 + size
   }
-  if (unicodePath) return unicodePath
+  if (!(flags & 0x800) && unicodePath) return unicodePath
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(rawName)
   } catch {
-    if (!(flags & 0x800)) throw new Error('ZIP contains a filename that cannot be reliably decoded.')
+    if (!(flags & 0x800))
+      return Array.from(rawName, (byte) =>
+        byte < 128 ? String.fromCharCode(byte) : CP437_HIGH_BYTES[byte - 128],
+      ).join('')
     throw new Error('ZIP contains a filename that is not valid UTF-8.')
   }
 }
@@ -561,7 +636,11 @@ function normalizeSkillArchiveStructure(
   if (roots.size !== 1)
     throw new Error(`Invalid skill archive structure: expected ${entryFile} at root or in one top-level directory.`)
   const [root] = roots
-  if (!root || !files.some((file) => file.path === `${root}/${entryFile}`)) {
+  if (
+    !root ||
+    !files.some((file) => file.path === `${root}/${entryFile}`) ||
+    files.some((file) => !file.path.startsWith(`${root}/`))
+  ) {
     throw new Error(
       `Invalid skill archive structure: ${entryFile} must be at root or directly inside one top-level directory.`,
     )

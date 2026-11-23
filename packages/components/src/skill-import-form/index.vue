@@ -96,6 +96,9 @@ const githubStatusMessage = (status: number) => {
 }
 
 const toArchiveErrorMessage = (message: string) => {
+  if (message.includes('Recompress the TAR as a single gzip member')) {
+    return '压缩包无法解压，请将 TAR 文件重新压缩为单段 GZIP 后重试'
+  }
   if (
     /Invalid ZIP|Could not decompress ZIP|ZIP local header|Invalid (?:checksum|uncompressed size).*ZIP/.test(message)
   ) {
@@ -109,6 +112,8 @@ const toArchiveErrorMessage = (message: string) => {
   }
   if (message.includes('Invalid path in skill archive')) return '压缩包包含不安全的文件路径，无法导入'
   if (message.includes('expands beyond')) return '压缩包解包后的内容过大，请减少文件后重试'
+  if (message.includes('TAR.GZ container exceeds'))
+    return '压缩包展开后的 TAR 数据过大，请减少文件或系统元数据后重新打包'
   if (message.includes('symbolic links') || message.includes('Unsupported TAR entry type')) {
     return '压缩包包含不支持的链接或特殊文件，请移除后重试'
   }
@@ -205,6 +210,14 @@ const updateArchiveFile = (file?: File) => {
   }
   void resolveSkill({ source: 'archive', file: file!, maxUncompressedSize: props.maxUploadSize })
 }
+
+watch(
+  () => props.maxUploadSize,
+  () => {
+    if (props.source === 'archive' && archiveFile.value) updateArchiveFile(archiveFile.value)
+  },
+  { flush: 'sync' },
+)
 
 const handleRemoveBrowserFiles = () => {
   browserSelectionGeneration.value += 1
