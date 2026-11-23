@@ -148,6 +148,7 @@ describe('useChatRuntime MCP composition', () => {
       runtime: {
         servers: computed(() => [{ id: 'custom-tools', name: 'Custom Tools', installed: true, enabled: true }]),
         tools: computed(() => ({ 'custom-tools': [] })),
+        registerMcpServer,
         addServer: () => undefined,
         removeServer: () => undefined,
         setServerEnabled: () => undefined,
@@ -155,7 +156,6 @@ describe('useChatRuntime MCP composition', () => {
       },
       listTools: async () => [],
       callTool: async () => 'ok',
-      registerMcpServer,
     }
     const runtime = useChatRuntime({
       mcp: customMcp,
@@ -181,8 +181,7 @@ describe('useChatRuntime MCP composition', () => {
         listTools: async () => [{ name: 'echo' }],
         callTool: async () => 'ok',
       },
-      id: 'page-webmcp',
-      name: 'Page WebMCP',
+      server: { id: 'page-webmcp', name: 'Page WebMCP' },
     })
 
     const runtime = useChatRuntime({
@@ -213,7 +212,7 @@ describe('useChatRuntime MCP composition', () => {
         listTools: async () => [{ name: 'echo' }],
         callTool: async () => 'ok',
       },
-      id: 'page-webmcp',
+      server: { id: 'page-webmcp' },
     })
 
     const runtime = useChatRuntime({
@@ -240,6 +239,39 @@ describe('useChatRuntime MCP composition', () => {
     expect(runtime.composer.mcp?.servers.value.map((item) => item.id)).toEqual(['project-tools', 'page-webmcp'])
   })
 
+  it('keeps ordinary chat available when a disabled WebMCP discovery fails', async () => {
+    const listTools = vi.fn().mockRejectedValue(new Error('page tools unavailable'))
+    const webmcp = createWebMcpAdapter({
+      source: {
+        listTools,
+        callTool: async () => 'ok',
+      },
+      server: { id: 'page-webmcp' },
+    })
+
+    await vi.waitFor(() => expect(webmcp.runtime.servers.value[0]).toMatchObject({ enabled: false }))
+
+    const runtime = useChatRuntime({
+      mcp: { adapters: [webmcp] },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'ordinary-chat',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    await expect(runtime.actions.send({ text: 'hello' })).resolves.toBe(true)
+    expect(listTools).toHaveBeenCalledOnce()
+  })
+
   it('refreshes dynamic WebMCP tools before a follow-up request in the same turn', async () => {
     let tools = [{ name: 'navigate' }]
     const listeners = new Set<() => void>()
@@ -259,7 +291,7 @@ describe('useChatRuntime MCP composition', () => {
           return () => listeners.delete(listener)
         },
       },
-      id: 'page-webmcp',
+      server: { id: 'page-webmcp' },
     })
 
     await vi.waitFor(() => expect(webmcp.runtime.tools.value['page-webmcp']).toHaveLength(1))

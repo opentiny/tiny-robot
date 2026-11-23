@@ -44,7 +44,7 @@ function normalizeTool(
   return {
     serverId,
     id: originalName,
-    name: `${serverId}__${originalName}`,
+    name: createToolName(serverId, originalName),
     originalName,
     description: tool.description,
     inputSchema:
@@ -52,6 +52,22 @@ function normalizeTool(
         ? (tool.inputSchema as Record<string, unknown>)
         : { type: 'object', properties: {} },
   }
+}
+
+function createToolName(serverId: string, originalName: string) {
+  const directName = `${serverId}__${originalName}`
+  if (directName.length <= 64) return directName
+
+  let hash = 2166136261
+  for (const character of `${serverId}\0${originalName}`) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  const digest = (hash >>> 0).toString(36)
+  const prefix = `mcp_${digest}_`
+  const readableName = originalName.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64 - prefix.length)
+  return `${prefix}${readableName}`
 }
 
 function resolveServerUrl(serverId: string, baseUrl: string): URL {

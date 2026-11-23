@@ -8,7 +8,10 @@ import type {
 } from './base'
 import type { ChatSendPayload } from './commands'
 import type {
-  McpExtensionFormValue,
+  McpRuntime,
+  McpServerInfo,
+  McpToolInfo,
+  McpToolState,
   ModelSelectorField,
   ModelSelectorFeatureValue,
   ModelSelectorFeatureValues,
@@ -72,37 +75,10 @@ export interface ChatModelFeatureValueUpdate {
   value: ModelSelectorFeatureValue
 }
 
-export interface ChatMcpServerInfo {
-  id: string
-  name: string
-  description?: string
-  icon?: string
-  category?: string
-  installed: boolean
-  enabled: boolean
-  loading?: boolean
-  error?: unknown
-  metadata?: Readonly<Record<string, unknown>>
-}
-
-export interface ChatMcpToolInfo {
-  id: string
-  name: string
-  description?: string
-  enabled: boolean
-}
-
-export type ChatMcpToolState = Readonly<Partial<Record<string, readonly ChatMcpToolInfo[]>>>
-
-export interface ChatMcpRuntime {
-  servers: ChatReadable<readonly ChatMcpServerInfo[]>
-  tools: ChatReadable<ChatMcpToolState>
-  registerMcpServer?: (config: McpExtensionFormValue) => Promise<string>
-  addServer: (id: string) => Promise<void> | void
-  removeServer: (id: string) => Promise<void> | void
-  setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
-  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
-}
+export type ChatMcpServerInfo = McpServerInfo
+export type ChatMcpToolInfo = McpToolInfo
+export type ChatMcpToolState = McpToolState
+export type ChatMcpRuntime = McpRuntime
 
 export interface ChatComposerRuntime {
   disabled?: ChatReadable<boolean>

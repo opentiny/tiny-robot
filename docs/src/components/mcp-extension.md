@@ -6,6 +6,8 @@ outline: [1, 3]
 
 `McpExtensionForm` 收集一条 MCP 连接配置，支持表单和 JSON 两种输入方式；`McpExtensionDetail` 展示已加载的 MCP 信息与工具开关。两者都是可嵌入页面或弹窗的内容组件，适合在应用处理扩展管理操作后分别呈现添加和详情界面。
 
+MCP Extension 组件主要服务于基于 URL、Transport 和请求头配置的外部 MCP Server 管理。WebMCP 是 MCP 的另一种工具来源，但不使用这套连接表单；它通过 MCP Adapter 接入公共工具管理契约。公共 Adapter、WebMCP Context 和生命周期说明见 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
+
 ## 概览
 
 ### 适用场景

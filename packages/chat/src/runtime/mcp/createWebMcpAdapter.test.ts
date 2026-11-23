@@ -28,12 +28,20 @@ function createSource() {
 }
 
 describe('createWebMcpAdapter', () => {
+  it('rejects ambiguous source and context configuration', () => {
+    expect(() =>
+      createWebMcpAdapter({
+        source: { listTools: async () => [], callTool: async () => 'ok' },
+        getContext: () => undefined,
+      }),
+    ).toThrow('either source or getContext, not both')
+  })
+
   it('projects a WebMCP source into the TinyRobot MCP runtime', async () => {
     const { source } = createSource()
     const adapter = createWebMcpAdapter({
       source,
-      id: 'page-webmcp',
-      name: 'Page tools',
+      server: { id: 'page-webmcp', name: 'Page tools' },
     })
 
     await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
@@ -50,7 +58,7 @@ describe('createWebMcpAdapter', () => {
 
   it('updates tools after a WebMCP toolchange and preserves server routing', async () => {
     const { source, addTool } = createSource()
-    const adapter = createWebMcpAdapter({ source, id: 'page-webmcp' })
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
 
     await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
     addTool({ name: 'navigate' })
@@ -82,7 +90,7 @@ describe('createWebMcpAdapter', () => {
       },
     }
 
-    const adapter = createWebMcpAdapter({ source, id: 'page-webmcp' })
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
     await vi.waitFor(() => expect(listTools).toHaveBeenCalledOnce())
     tools = [...tools, { name: 'navigate' }]
     listeners.forEach((listener) => listener())
@@ -94,7 +102,7 @@ describe('createWebMcpAdapter', () => {
 
   it('supports removing and re-adding the WebMCP server without unregistering the source', async () => {
     const { source } = createSource()
-    const adapter = createWebMcpAdapter({ source, id: 'page-webmcp' })
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
 
     await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
     adapter.runtime.removeServer('page-webmcp')
@@ -124,7 +132,7 @@ describe('createWebMcpAdapter', () => {
       }),
       callTool: async () => 'ok',
     }
-    const adapter = createWebMcpAdapter({ source, id: 'page-webmcp' })
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
 
     await vi.waitFor(() => expect(source.listTools).toHaveBeenCalledOnce())
     adapter.runtime.removeServer('page-webmcp')
@@ -147,7 +155,7 @@ describe('createWebMcpAdapter', () => {
       .mockResolvedValue([{ name: 'echo' }])
     const adapter = createWebMcpAdapter({
       source: { listTools, callTool: async () => 'ok' },
-      id: 'page-webmcp',
+      server: { id: 'page-webmcp' },
     })
 
     await vi.waitFor(() => expect(adapter.runtime.servers.value[0]?.error).toEqual(new Error('offline')))
@@ -160,7 +168,7 @@ describe('createWebMcpAdapter', () => {
 
   it('retries discovery after a refresh error even when tools are cached', async () => {
     const { source, listTools, addTool } = createSource()
-    const adapter = createWebMcpAdapter({ source, id: 'page-webmcp' })
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
 
     await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
     listTools.mockRejectedValueOnce(new Error('offline'))
@@ -170,5 +178,30 @@ describe('createWebMcpAdapter', () => {
     await adapter.runtime.setServerEnabled('page-webmcp', true)
 
     expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(2)
+  })
+
+  it('aliases long WebMCP tool names without changing the source call name', async () => {
+    const originalName = 'get_current_page_state_for_the_selected_workspace_with_detailed_context'
+    const callTool = vi.fn(async (name: string) => name)
+    const adapter = createWebMcpAdapter({
+      source: {
+        listTools: async () => [{ name: originalName }],
+        callTool,
+      },
+      server: { id: 'page-webmcp-with-a-long-server-identifier' },
+    })
+
+    await vi.waitFor(() =>
+      expect(adapter.runtime.tools.value['page-webmcp-with-a-long-server-identifier']).toHaveLength(1),
+    )
+    const definitions = await adapter.listTools(['page-webmcp-with-a-long-server-identifier'], {
+      'page-webmcp-with-a-long-server-identifier': [originalName],
+    })
+
+    expect(definitions[0]?.name.length).toBeLessThanOrEqual(64)
+    await expect(adapter.callTool('page-webmcp-with-a-long-server-identifier', originalName, {})).resolves.toBe(
+      originalName,
+    )
+    expect(callTool).toHaveBeenCalledWith(originalName, {})
   })
 })

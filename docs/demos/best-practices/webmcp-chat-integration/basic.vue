@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import {
-  TrChat,
-  createWebMcpAdapter,
-  useChatRuntime,
-  type ChatRuntimeActionErrorPayload,
-} from '@opentiny/tiny-robot-chat'
+import { createWebMcpAdapter } from '@opentiny/tiny-robot'
+import { TrChat, useChatRuntime, type ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 import { createDemoPageTools } from './page-tools'
 import { modelProviders } from '../../chat/shared/modelProviders'

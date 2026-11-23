@@ -6,7 +6,7 @@ export { useChatRuntimeFromConversation } from './runtime/useChatRuntimeFromConv
 export { useChatRuntime } from './runtime/useChatRuntime'
 export { createCompositeMcpAdapter } from './runtime/mcp/compositeMcpAdapter'
 export { createWebMcpAdapter } from './runtime/mcp/createWebMcpAdapter'
-export { createWebMcpToolSource, normalizeWebMcpInputSchema, readWebMcpToolText } from './runtime/mcp/webmcpToolSource'
+export { createWebMcpToolSource } from './runtime/mcp/webmcpToolSource'
 export { ERROR_STATE_PLUGIN_NAME, errorStatePlugin } from './runtime/plugins/errorStatePlugin'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 export { useChatHistoryData, useChatHistoryItems } from './composables/useChatHistoryItems'

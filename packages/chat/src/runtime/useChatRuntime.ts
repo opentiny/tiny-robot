@@ -51,6 +51,10 @@ function isChatMcpAdapter(value: UseChatRuntimeMcp): value is UseChatRuntimeMcpA
   return 'runtime' in value && 'listTools' in value && 'callTool' in value
 }
 
+function hasMcpRegistration(adapter: ChatMcpAdapter) {
+  return Boolean(adapter.runtime.registerMcpServer ?? adapter.registerMcpServer)
+}
+
 export function useChatRuntime(options: UseChatRuntimeOptions) {
   const conversationOptions: NonNullable<UseChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
@@ -80,7 +84,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const mcpAdapters = [registryAdapter, ...customMcpAdapters].filter(
     (adapter): adapter is ChatMcpAdapter => adapter !== undefined,
   )
-  const registrationAdapter = customMcpAdapters.find((adapter) => adapter.registerMcpServer) ?? registryAdapter
+  const registrationAdapter = customMcpAdapters.find(hasMcpRegistration) ?? registryAdapter
   const resolvedMcp =
     mcpAdapters.length > 1 ? createCompositeMcpAdapter({ adapters: mcpAdapters, registrationAdapter }) : mcpAdapters[0]
   const composerOptions = options.composer ?? {}

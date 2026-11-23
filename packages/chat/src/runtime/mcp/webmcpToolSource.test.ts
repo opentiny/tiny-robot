@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createWebMcpToolSource, normalizeWebMcpInputSchema } from './webmcpToolSource'
+import { createWebMcpToolSource, normalizeWebMcpInputSchema } from '../../../../components/src/mcp/webmcpToolSource'
 import type { WebMcpContext } from './webmcpTypes'
 
 function createContext(tools: Array<{ name: string; description?: string; inputSchema?: unknown }>) {

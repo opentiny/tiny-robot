@@ -71,7 +71,30 @@ describe('createCompositeMcpAdapter', () => {
 
     expect(adapter.runtime.servers.value.map((server) => server.id)).toEqual(['remote-tools'])
 
-    await adapter.removeAdapter('remote-tools')
+    await adapter.removeAdapter(externalAdapter)
+
+    expect(close).toHaveBeenCalledOnce()
+    expect(adapter.runtime.servers.value).toEqual([])
+  })
+
+  it('removes an adapter by identity even when it currently exposes no servers', async () => {
+    const close = vi.fn()
+    const emptyAdapter: ChatMcpAdapter = {
+      runtime: {
+        servers: computed(() => []),
+        tools: computed(() => ({})),
+        addServer: vi.fn(),
+        removeServer: vi.fn(),
+        setServerEnabled: vi.fn(),
+        setToolEnabled: vi.fn(),
+      },
+      listTools: async () => [],
+      callTool: async () => 'ok',
+      close,
+    }
+    const adapter = createCompositeMcpAdapter({ adapters: [emptyAdapter] })
+
+    await adapter.removeAdapter(emptyAdapter)
 
     expect(close).toHaveBeenCalledOnce()
     expect(adapter.runtime.servers.value).toEqual([])
@@ -122,7 +145,7 @@ describe('createCompositeMcpAdapter', () => {
   it('delegates dynamic registration to the explicitly selected adapter', async () => {
     const registry = createAdapter('registry', 'one', 'one')
     const registerMcpServer = vi.fn().mockResolvedValue('dynamic-server')
-    registry.registerMcpServer = registerMcpServer
+    registry.runtime.registerMcpServer = registerMcpServer
     const adapter = createCompositeMcpAdapter({ adapters: [registry], registrationAdapter: registry })
 
     await expect(
@@ -130,7 +153,7 @@ describe('createCompositeMcpAdapter', () => {
     ).resolves.toBe('dynamic-server')
     expect(registerMcpServer).toHaveBeenCalledOnce()
 
-    await adapter.removeAdapter('registry')
+    await adapter.removeAdapter(registry)
     await expect(
       adapter.runtime.registerMcpServer?.({ name: 'Detached', type: 'streamableHttp', url: 'https://mcp.example.com' }),
     ).rejects.toThrow('MCP registration adapter is no longer attached')

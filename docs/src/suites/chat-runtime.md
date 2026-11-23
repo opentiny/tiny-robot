@@ -396,12 +396,15 @@ const runtime = useChatRuntime({
 
 `mcp.servers` 会转换为内置 Adapter，`mcp.adapters` 用于已有的 WebMCP、业务或 SDK Adapter，最后合并到同一个 MCP Runtime。旧的 `mcp: adapter` 和顶层 `mcpServers` 写法已弃用但继续兼容，分别改用 `mcp.adapters: [adapter]` 和 `mcp.servers`；不能同时提供 `mcp.servers` 与顶层 `mcpServers`。生产环境的凭证和权限应由服务端管理，服务需允许浏览器访问或通过服务端代理连接。
 
-### 接入页面 WebMCP 工具
+### 在 Chat 中接入 WebMCP Adapter
+
+WebMCP Adapter 属于 @opentiny/tiny-robot 的公共 MCP 能力，本节只说明如何将它接入 Chat Runtime。Adapter 契约、生命周期和非 Chat 用法见 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
 
 如果页面通过 `document.modelContext` 提供 WebMCP 工具，可以使用 `createWebMcpAdapter` 将页面工具接入当前 Chat Runtime：
 
 ```ts
-import { createWebMcpAdapter, useChatRuntime } from '@opentiny/tiny-robot-chat'
+import { createWebMcpAdapter } from '@opentiny/tiny-robot'
+import { useChatRuntime } from '@opentiny/tiny-robot-chat'
 
 const webmcp = createWebMcpAdapter({
   server: {
@@ -420,7 +423,7 @@ const runtime = useChatRuntime({
 })
 ```
 
-`createWebMcpAdapter` 会读取 `listTools` 或 `getTools`，将工具 Schema 归一化为模型可用的对象，并监听 `toolchange` 更新 MCP 面板。模型侧工具名使用 `${serverId}__${toolName}` 命名空间，实际调用时仍使用页面工具的原始名称。
+`createWebMcpAdapter` 会读取 `listTools` 或 `getTools`，将工具 Schema 归一化为模型可用的对象，并监听 `toolchange` 更新 MCP 面板。模型侧通常使用 `${serverId}__${toolName}` 命名空间；名称超过模型 API 限制时会生成稳定短别名，实际调用仍使用页面工具的原始名称。
 
 也可以传入实现了 `WebMcpToolSource` 的业务工具源，从而不直接依赖 `document.modelContext`：
 
@@ -431,8 +434,10 @@ const webmcp = createWebMcpAdapter({
     callTool,
     subscribe: onToolsChanged,
   },
-  id: 'custom-page-tools',
-  name: '自定义页面工具',
+  server: {
+    id: 'custom-page-tools',
+    name: '自定义页面工具',
+  },
 })
 ```
 
@@ -552,7 +557,7 @@ const adapter = useChatRuntimeAdapter({
 | `useChatRuntime`                 | `useChatRuntime(options: UseChatRuntimeOptions): ChatRuntime`                                                | 创建会话，并配置默认的请求和错误处理。                                                 |
 | `useChatRuntimeFromConversation` | `useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime`                | 将已有 Kit 会话连接到聊天组件。                                                        |
 | `useChatRuntimeAdapter`          | `useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions)`                                               | 提供 `TrChatUI` 所需的数据、输入内容和操作方法，见[返回字段](#usechatruntimeadapter)。 |
-| `createWebMcpAdapter`            | `createWebMcpAdapter(options?: CreateWebMcpAdapterOptions): UseChatRuntimeMcpAdapter`                        | 将 WebMCP 工具源接入 TinyRobot Chat Runtime。                                          |
+| `createWebMcpAdapter`            | `createWebMcpAdapter(options?: CreateWebMcpAdapterOptions): McpAdapter`                                      | 从 `@opentiny/tiny-robot` 导出的公共 WebMCP Adapter；Chat 仅保留兼容转发。                  |
 | `useChatHistoryItems`            | `useChatHistoryItems(options: UseChatHistoryItemsOptions): Readonly<ShallowRef<readonly ChatHistoryItem[]>>` | 整理未分组的会话列表。                                                                 |
 | `useChatHistoryData`             | `useChatHistoryData(options: UseChatHistoryDataOptions): Readonly<ShallowRef<ChatHistoryDisplayData>>`       | 整理未分组或已分组的会话列表。                                                         |
 | `errorStatePlugin`               | `errorStatePlugin(options?: ErrorStatePluginOptions): UseMessagePlugin`                                      | 把请求错误写入所属 assistant 消息。                                                    |

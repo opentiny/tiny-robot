@@ -3,9 +3,29 @@ outline: [1, 3]
 pageClass: demo-container-page-bg
 ---
 
-# WebMCP 页面工具接入 TrChat
+# MCP Adapter 与 WebMCP
 
-WebMCP 适合把当前页面中的业务能力提供给 Chat 使用，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。
+MCP Adapter 是 TinyRobot 的公共工具接入能力，不属于 Chat 套件专属实现。它负责把不同来源的工具转换为统一的 MCP Server/Tool 管理契约，供组件、Kit 或 Chat Runtime 复用。
+
+WebMCP 是 MCP 的一种工具来源，适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。
+
+## 包职责与公共 API
+
+| 使用场景                       | 推荐包                                          | 说明                                                    |
+| ------------------------------ | ----------------------------------------------- | ------------------------------------------------------- |
+| WebMCP Adapter 或 MCP 管理能力 | @opentiny/tiny-robot                            | 导出公共 Adapter、MCP 状态契约和组合管理器。            |
+| 自己管理消息和模型工具调用     | @opentiny/tiny-robot + @opentiny/tiny-robot-kit | 业务使用公共 Adapter，并用 Kit 完成模型工具调用。       |
+| 使用完整聊天页面               | @opentiny/tiny-robot-chat                       | Chat Runtime 复用同一个 Adapter，并负责连接界面和会话。 |
+
+公共入口包括 createWebMcpAdapter、createWebMcpToolSource、createCompositeMcpAdapter 和 McpAdapter。Chat 仍兼容从 @opentiny/tiny-robot-chat 导入 createWebMcpAdapter，但新代码建议从 @opentiny/tiny-robot 导入。
+
+普通 MCP、WebMCP、业务工具或 SDK 工具可以实现同一个 McpAdapter 契约，并通过 createCompositeMcpAdapter 合并。组合管理器负责按 Server ID 路由工具发现、调用、启用/禁用、刷新和关闭；各 Adapter 负责具体工具来源的连接和执行。
+
+WebMCP Adapter 不负责初始化 Polyfill、注册页面工具或维护业务 Schema。应用仍负责工具注册、权限校验、用户确认、业务副作用和审计。
+
+WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。本页通过 TrChat 示例展示完整 Chat 接入，公共 Adapter 契约与生命周期也在本页说明。
+
+`createWebMcpAdapter` 属于 MCP 公共能力，主入口从 `@opentiny/tiny-robot` 导出。使用完整 Chat 套件时，再将 Adapter 传给 `@opentiny/tiny-robot-chat` 的 `useChatRuntime`；不使用 Chat 时，也可以复用同一个 Adapter，交给业务自己的 Kit 工具调用链或其他 MCP Runtime。公共契约和生命周期说明见本文。
 
 本实践约定：应用负责注册页面工具、实现工具逻辑和控制权限；TinyRobot 负责把页面工具转换为 Chat Runtime 可以识别的 MCP Server/Tool，发现工具变化，并把调用结果返回给 Chat。
 
@@ -119,7 +139,7 @@ const runtime = useChatRuntime({
 - `mcp.servers` 用于配置外部 MCP Server；
 - `mcp.adapters` 用于接入 WebMCP、业务 Adapter 或 SDK Adapter；
 - TinyRobot 会把它们合并到同一个 MCP Runtime 和 MCP 面板；
-- WebMCP 工具在模型侧使用 `${serverId}__${toolName}` 命名空间，避免与其他 MCP 工具重名。
+- WebMCP 工具在模型侧通常使用 `${serverId}__${toolName}` 命名空间；名称过长时使用稳定短别名，避免超过模型 API 限制并保持原始工具调用映射。
 
 ## 接入流程
 

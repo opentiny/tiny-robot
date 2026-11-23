@@ -108,4 +108,26 @@ describe('createDefaultMcpAdapter', () => {
       }),
     ).rejects.toThrow('same transport, URL, and headers')
   })
+
+  it('aliases long tool names while calling the original MCP tool name', async () => {
+    const originalName = 'get_current_weather_for_the_selected_workspace_with_detailed_forecast_information'
+    mocks.listTools.mockResolvedValue({ tools: [{ name: originalName }] })
+    mocks.callTool.mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] })
+    const adapter = createDefaultMcpAdapter([])
+    const serverId = await adapter.runtime.registerMcpServer?.({
+      name: 'Weather',
+      type: 'streamableHttp',
+      url: 'https://mcp.example.com/mcp',
+    })
+
+    const definitions = await adapter.listTools([serverId!], { [serverId!]: [originalName] })
+
+    expect(definitions[0]?.name.length).toBeLessThanOrEqual(64)
+    expect(definitions[0]?.originalName).toBe(originalName)
+    await adapter.callTool(serverId!, originalName, { city: 'Shanghai' })
+    expect(mocks.callTool).toHaveBeenCalledWith({
+      name: originalName,
+      arguments: { city: 'Shanghai' },
+    })
+  })
 })
