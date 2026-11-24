@@ -51,7 +51,7 @@ function renderSegment(document: Document, item: NormalizedTrajectoryItem, selec
   segment.style.background = item.color
   segment.title = `${item.label} · ${item.message}`
   segment.setAttribute('aria-label', `${item.label}: ${item.message}`)
-  segment.setAttribute('aria-selected', String(selected))
+  segment.setAttribute('aria-pressed', String(selected))
   segment.classList.toggle('is-selected', selected)
   return segment
 }
@@ -76,7 +76,7 @@ function renderItem(
   row.type = 'button'
   row.dataset.trTrajectoryId = item.item.id
   row.dataset.trTrajectorySource = 'message'
-  row.setAttribute('aria-selected', String(selected))
+  row.setAttribute('aria-pressed', String(selected))
   row.classList.toggle('is-selected', selected)
 
   const label = createElement(document, 'span', 'tr-trajectory__label')
@@ -109,7 +109,6 @@ function renderItem(
 
 function renderList(document: Document, model: TrajectoryRenderModel): HTMLElement {
   const list = createElement(document, 'div', 'tr-trajectory__list')
-  list.setAttribute('role', 'listbox')
   list.classList.toggle('is-no-duration', model.durationFormat === 'none')
   for (const item of model.time.items) list.append(renderItem(document, item, model))
   return list

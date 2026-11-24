@@ -84,8 +84,12 @@ export function normalizeTrajectory(
     return { item, start, end }
   })
 
-  const itemStart = parsed.length ? Math.min(...parsed.map((entry) => entry.start)) : 0
-  const itemEnd = parsed.length ? Math.max(...parsed.map((entry) => entry.end)) : 0
+  let itemStart = parsed.length ? Infinity : 0
+  let itemEnd = parsed.length ? -Infinity : 0
+  for (const entry of parsed) {
+    if (entry.start < itemStart) itemStart = entry.start
+    if (entry.end > itemEnd) itemEnd = entry.end
+  }
   const start = axis?.startTime === undefined ? itemStart : toTimestamp(axis.startTime, 'axis startTime')
   const end = axis?.endTime === undefined ? itemEnd : toTimestamp(axis.endTime, 'axis endTime')
   if (end < start) throw new Error('Trajectory axis endTime must be >= startTime')

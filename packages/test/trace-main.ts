@@ -1,8 +1,21 @@
 import { createTrace } from '../components/src/vanilla'
-import type { TrajectoryItem } from '../components/src/vanilla'
+import { DEFAULT_LABEL_STYLES, normalizeTrajectory } from '../components/src/vanilla/trace/core/time'
+import type { TrajectoryEvent, TrajectoryInstance, TrajectoryItem } from '../components/src/vanilla'
 import '../components/src/vanilla/style.css'
 
-const base = Date.now()
+declare global {
+  interface Window {
+    traceFixture: {
+      trace: TrajectoryInstance
+      events: TrajectoryEvent[]
+      items: TrajectoryItem[]
+      resetEvents: () => void
+      normalize: (items: readonly TrajectoryItem[]) => number
+    }
+  }
+}
+
+const base = 0
 
 const items: TrajectoryItem[] = [
   {
@@ -43,13 +56,25 @@ const items: TrajectoryItem[] = [
 
 const eventElement = document.querySelector<HTMLElement>('#event')!
 
-createTrace({
+const events: TrajectoryEvent[] = []
+const trace = createTrace({
   container: document.querySelector<HTMLElement>('#trace')!,
   items,
   durationFormat: 'clock',
   onEvent: (event) => {
+    events.push(event)
     if (event.type === 'select') {
       eventElement.textContent = event.itemId ? `当前选中：${event.itemId}（来源：${event.source}）` : '当前没有选中项'
     }
   },
 })
+
+window.traceFixture = {
+  trace,
+  events,
+  items,
+  resetEvents: () => {
+    events.length = 0
+  },
+  normalize: (nextItems) => normalizeTrajectory(nextItems, undefined, DEFAULT_LABEL_STYLES).items.length,
+}

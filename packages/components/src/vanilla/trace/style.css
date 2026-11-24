@@ -53,12 +53,16 @@
 }
 
 .tr-trajectory__segment:hover,
-.tr-trajectory__segment:focus-visible,
 .tr-trajectory__segment.is-selected {
   z-index: 1;
   opacity: 1;
   box-shadow: 0 0 0 1px var(--tr-trajectory-selected-border);
-  outline: none;
+}
+
+.tr-trajectory__segment:focus-visible,
+.tr-trajectory__item:focus-visible {
+  outline: 2px solid var(--tr-trajectory-selected-border);
+  outline-offset: -2px;
 }
 
 .tr-trajectory__list {
@@ -85,10 +89,8 @@
   text-align: left;
 }
 
-.tr-trajectory__item:hover,
-.tr-trajectory__item:focus-visible {
+.tr-trajectory__item:hover {
   background: var(--tr-trajectory-hover);
-  outline: none;
 }
 
 .tr-trajectory__item.is-selected {

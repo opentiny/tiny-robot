@@ -151,11 +151,13 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         axis: partial.axis ? { ...(options.axis ?? {}), ...partial.axis } : options.axis,
         messages: partial.messages ? { ...(options.messages ?? {}), ...partial.messages } : options.messages,
       }
-      const nextSelectedId = partial.selectedId === undefined ? selectedId : partial.selectedId
-      if (nextSelectedId !== null && !hasItem(items, nextSelectedId)) return
+      const requestedSelectedId = partial.selectedId === undefined ? selectedId : partial.selectedId
+      const nextSelectedId =
+        requestedSelectedId !== null && !hasItem(items, requestedSelectedId) ? selectedId : requestedSelectedId
+      const resolvedOptions: TrajectoryOptions = { ...nextOptions, selectedId: nextSelectedId }
       try {
-        createModel(items, nextOptions, nextSelectedId ?? null)
-        options = nextOptions
+        createModel(items, resolvedOptions, nextSelectedId ?? null)
+        options = resolvedOptions
         selectedId = nextSelectedId ?? null
         render()
         emit({ type: 'update' })
