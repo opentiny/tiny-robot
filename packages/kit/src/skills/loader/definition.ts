@@ -16,7 +16,10 @@ import {
   pushWarning,
 } from './utils'
 
-export function createSkillDefinition(files: LoadableSkillFile[], options: SkillLoadBaseOptions): SkillLoadResult {
+export function createSkillDefinition(
+  { files, directories: explicitDirectories }: LoadableSkillFiles,
+  options: SkillLoadBaseOptions,
+): SkillLoadResult {
   const warnings: SkillLoadWarning[] = []
   const rawEntryFile = options.entryFile ?? 'SKILL.md'
   const entryFile = normalizeSkillPath(rawEntryFile)
@@ -57,7 +60,7 @@ export function createSkillDefinition(files: LoadableSkillFile[], options: Skill
     return [toSkillResource(file)]
   })
 
-  const directories = collectDirectories(normalizedFiles, (files as LoadableSkillFiles).directories)
+  const directories = collectDirectories(normalizedFiles, explicitDirectories)
 
   return {
     skill: {
@@ -87,7 +90,11 @@ function collectDirectories(files: LoadableSkillFile[], explicitDirectories: str
     }
   }
 
-  return [...new Set(explicitDirectories.map(normalizeSkillPath).filter(Boolean))]
+  return [
+    ...new Set(
+      explicitDirectories.map(normalizeSkillPath).filter((directory): directory is string => Boolean(directory)),
+    ),
+  ]
     .filter((directory) => !fileDirectories.has(directory))
     .sort()
 }

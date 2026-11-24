@@ -91,7 +91,9 @@ describe('browser loadSkill', () => {
       },
     )
 
-    expect(files.map((file) => file.path)).toEqual(['SKILL.md', 'references/usage.md'])
+    expect(Array.isArray(files)).toBe(false)
+    expect(files.files.map((file) => file.path)).toEqual(['SKILL.md', 'references/usage.md'])
+    expect(files.directories).toEqual(['empty', 'references'])
     const loadedSkill = await loadSkill({
       source: 'browser',
       directoryHandle: directoryHandle as unknown as FileSystemDirectoryHandle,
