@@ -14,6 +14,7 @@ import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } fr
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
 import { createDefaultChatTitle } from './defaults'
+import { createChatActionStatePlugin } from './plugins/chatActionStatePlugin'
 
 export interface UseChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
@@ -53,6 +54,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [
     errorStatePlugin(),
+    createChatActionStatePlugin(),
     createRunConfigContextPlugin(providerRuntime?.resolveModel),
   ]
 
