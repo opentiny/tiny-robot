@@ -314,7 +314,9 @@ const skill = await loadSkill({
 
 ### 归档加载
 
-通过文件选择读取 ZIP、TAR、TAR.GZ 或 TGZ，然后调用 `loadSkill`。页面提供 `<input id="skill-archive" type="file" accept=".zip,.tar,.tar.gz,.tgz">`，在选择文件后执行以下代码。
+支持 ZIP、TAR、TAR.GZ 和 TGZ。归档中的入口文件默认为 `SKILL.md`，可通过 `entryFile` 配置；入口须位于归档根目录或唯一顶层目录内。
+
+页面可通过 `<input id="skill-archive" type="file" accept=".zip,.tar,.tar.gz,.tgz">` 获取归档文件，再调用 `loadSkill`：
 
 ```typescript
 const archiveInput = document.querySelector<HTMLInputElement>('#skill-archive')!
@@ -328,11 +330,7 @@ const skill = await loadSkill({
 console.log(skill.name, skill.instructions, skill.resources)
 ```
 
-入口文件默认为 `SKILL.md`，也可通过 `entryFile` 配置相对路径。入口可以位于归档根目录，或唯一顶层包装目录内，按配置路径精确匹配。Kit 忽略 `.DS_Store`、`__MACOSX/` 和 TAR 中带 AppleDouble 头的 `._*` 元数据，普通 `._` 文件会保留。ZIP 支持 Store 和 Deflate。标记 UTF-8 的文件名使用严格 UTF-8 解码。未标记编码时，优先使用 CRC 校验有效的 Unicode Path 扩展字段，再尝试严格 UTF-8，失败后按 ZIP 传统编码 CP437 解码。TAR 支持 USTAR、PAX、GNU 长路径及普通文件和目录条目。链接、设备文件、TAR.XZ、TAR.BZ2、7z、RAR、加密 ZIP、ZIP64 与分卷归档会被拒绝。
-
-Kit API 可分别设置 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount`。默认解压总量为 10 MiB，有效文件数为 10,000，压缩输入上限默认为解压上限加 10 MiB。目录和被忽略的系统元数据不计入有效文件数及解压资源限额，所有归档条目仍受内部 10,000 条限制。资源保留在内存中，限额用于控制输入与解析峰值。以下示例独立设置三项限额。
-
-TAR.GZ 和 TGZ 还会限制 GZIP 展开后的完整 TAR 容器大小，上限为 `maxUncompressedSize + 10000 × 1024 + 10240` 字节，包含 TAR 头部、填充和系统元数据。超过该限制会返回独立的容器超限错误，可减少文件或移除系统元数据后重新打包。TAR.GZ 和 TGZ 请使用单个 GZIP member，多个 member 拼接的文件可能被浏览器拒绝，可先还原 TAR，再使用一次 `gzip` 压缩后上传。
+默认解压内容上限为 10 MiB、文件数上限为 10,000；压缩文件上限默认为解压内容上限加 10 MiB。可通过 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount` 调整：
 
 ```typescript
 const skill = await loadSkill({
@@ -344,7 +342,7 @@ const skill = await loadSkill({
 })
 ```
 
-浏览器入口和 `/node` 入口都支持以上归档格式。ZIP Deflate 解压需要运行时支持 `DecompressionStream('deflate-raw')`，Node.js 从 20.12 起支持该格式，缺少支持时 Kit 会提示运行时要求。Node 侧使用带归档文件名的 `File`，扩展名用于识别格式，完整示例见下方 Node.js 环境章节。
+浏览器入口和 `/node` 入口都支持以上归档格式。ZIP Deflate 解压需要运行时支持 `DecompressionStream('deflate-raw')`；Node.js 从 20.12 起支持。Node 侧传入带原始归档文件名的 `File`，示例见下方 Node.js 环境章节。
 
 ### GitHub 加载
 
