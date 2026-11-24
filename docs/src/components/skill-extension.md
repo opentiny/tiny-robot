@@ -77,14 +77,26 @@ description: 用于试用 Skill 导入。
 
 `source="archive"` 接受 `.zip`、`.tar`、`.tar.gz` 和 `.tgz`。归档根目录直接包含 `SKILL.md`，或唯一顶层目录直接包含它；选择或拖入归档，解析成功后点击“确定”提交。Kit 的归档 API 和资源限制详见[Skill 工具文档](../tools/skill.md#归档加载)。默认解析器会执行 Kit 的展开大小限制；自定义 `resolve-skill` 收到 `{ source: 'archive', file, maxUncompressedSize }`，应遵守传入的解压限制。`max-upload-size` 同时限制选择的压缩文件大小，以及本地文件夹文件总大小；使用 Kit 默认解析器时，它也作为解压内容大小限制。应用收到定义后仍需自行保存。
 
-快速开始中的示例包采用单层包装目录，也可以直接将 `SKILL.md` 与资源放在压缩包根目录。
+可[下载 Skill 示例压缩包](/skill-import-example.zip)体验下方 Demo。示例包采用单层包装目录，也可以直接将 `SKILL.md` 与资源放在压缩包根目录。
 
 ```text
-根目录入口                  单层包装目录入口
-SKILL.md                   example-skill/
-references/说明.md           SKILL.md
-                             references/说明.md
+根目录入口
+├── SKILL.md
+└── references/
+    └── 说明.md
+
+单层包装目录入口
+example-skill/
+├── SKILL.md
+└── references/
+    └── 说明.md
 ```
+
+<demo
+  vue="../../demos/skill-import-form/archive-import.vue"
+  title="导入 Skill 压缩包"
+  description="选择或拖入归档，解析成功后点击确定查看 Skill 定义。"
+/>
 
 ### 从 GitHub 导入
 
