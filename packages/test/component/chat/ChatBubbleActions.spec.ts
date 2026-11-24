@@ -175,15 +175,19 @@ test('default info shows cached token details and preserves zero', async ({ moun
       message: {
         role: 'assistant',
         content: 'Answer',
-        metadata: { usage: { prompt_tokens: 12, cached_tokens: 0, completion_tokens: 8, total_tokens: 20 } },
+        metadata: {
+          createdAt: new Date(2026, 10, 24, 14, 0).getTime() / 1000,
+          usage: { prompt_tokens: 12, cached_tokens: 0, completion_tokens: 8, total_tokens: 20 },
+        },
       },
     },
   })
   await component.getByRole('button', { name: '对话信息', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: '对话信息', exact: true })
 
-  await expect(dialog.locator('dt')).toHaveText(['输入 Token', '缓存命中 Token', '输出 Token', '总 Token'])
-  await expect(dialog.locator('dd')).toHaveText(['12', '0', '8', '20'])
+  await expect(dialog.locator('dt')).toHaveText(['时间', '输入 Token', '缓存命中 Token', '输出 Token', '总 Token'])
+  await expect(dialog.locator('dd')).toHaveText(['2026-11-24 14:00', '12', '0', '8', '20'])
+  await expect(dialog.locator('dd').first()).toHaveCSS('height', '20px')
 })
 
 test('info ignores hover and closes when clicking outside', async ({ mount, page }) => {

@@ -110,6 +110,11 @@ function messageText(message: ChatBubbleActionContext['message']) {
     : ''
 }
 
+function formatInfoDate(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 function defaultInfoItems(): readonly ChatMessageInfoItem[] {
   const metadata = props.context.message.metadata
   const usage = resolveChatTokenUsage(metadata?.usage)
@@ -126,7 +131,7 @@ function defaultInfoItems(): readonly ChatMessageInfoItem[] {
     {
       id: 'createdAt',
       label: '时间',
-      value: createdAt && Number.isFinite(createdAt.getTime()) ? createdAt.toLocaleString() : undefined,
+      value: createdAt && Number.isFinite(createdAt.getTime()) ? formatInfoDate(createdAt) : undefined,
     },
     { id: 'promptTokens', label: '输入 Token', value: usage?.prompt_tokens?.toLocaleString() },
     { id: 'cachedTokens', label: '缓存命中 Token', value: usage?.cached_tokens?.toLocaleString() },
