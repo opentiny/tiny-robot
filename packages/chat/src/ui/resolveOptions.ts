@@ -5,6 +5,7 @@ import type {
   ChatAsideOptions,
   ChatBrandOptions,
   ChatBubbleOptions,
+  ChatBubbleActionsOptions,
   ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
@@ -67,6 +68,7 @@ export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
 export type ResolvedChatBubbleOptions = ChatBubbleOptions & {
   autoScroll: boolean
   bubbleList: NonNullable<ChatBubbleOptions['bubbleList']>
+  actions: false | ChatBubbleActionsOptions
 }
 
 export type ResolvedChatWelcomeOptions = ChatWelcomeOptions & {
@@ -255,6 +257,7 @@ function resolveBubble(
     ...withoutUndefined(options),
     autoScroll: options?.autoScroll ?? defaults.autoScroll,
     bubbleProvider: options?.bubbleProvider ?? defaults.bubbleProvider,
+    actions: options?.actions ?? false,
     bubbleList: {
       ...defaults.bubbleList,
       ...withoutUndefined(options?.bubbleList),
