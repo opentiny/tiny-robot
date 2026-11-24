@@ -13,6 +13,7 @@ const cloneSkill = (skill: SkillDefinition): SkillDefinition => ({
   description: skill.description,
   instructions: skill.instructions,
   metadata: skill.metadata ? { ...skill.metadata } : undefined,
+  directories: skill.directories ? [...skill.directories] : undefined,
   resources: skill.resources?.map(cloneResource),
 })
 
@@ -21,6 +22,7 @@ const materializeSkill = async (skill: SkillDefinition): Promise<SkillDefinition
   description: skill.description,
   instructions: skill.instructions,
   metadata: skill.metadata ? { ...skill.metadata } : undefined,
+  directories: skill.directories ? [...skill.directories] : undefined,
   resources: skill.resources ? await Promise.all(skill.resources.map(materializeResource)) : undefined,
 })
 

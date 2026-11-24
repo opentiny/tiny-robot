@@ -8,6 +8,8 @@ Skill 以 `SKILL.md` 的任务说明（`instructions`）为核心，也可以附
 
 Kit 提供两条接入路径：新会话使用 `scope: 'session'`，由插件保存目录和加载结果；省略 `scope` 或使用 `scope: 'turn'` 保留按轮选择，由应用承载 instructions。Loader 和 Storage 为两条路径提供相同的 `SkillDefinition`。
 
+在 Vue 页面中导入、浏览或编辑 Skill 定义，参见 [Skill 导入与详情](../components/skill-extension.md)。
+
 ## 会话级接入 {#skill-session}
 
 会话流程要求模型支持工具调用，并注册 `toolPlugin`。目录是首次请求前建立的发现快照；加载某个 Skill 后，目录和加载工具继续保留。应用按业务会话保存和读取完整消息。
@@ -499,10 +501,20 @@ skillPlugin({
 
 Loader 和 Storage 都提供 `SkillDefinition`，但解决的问题不同：
 
-- **Loader** 将浏览器文件、GitHub 仓库或 Node 文件系统来源解析为一个完整 `SkillDefinition`。
+- **Loader** 将浏览器文件、归档、GitHub 仓库或 Node 文件系统来源解析为一个完整 `SkillDefinition`。
 - **Storage** 持久化和恢复已经加载的 `SkillDefinition`。`storage.import(options)` 是 `loader + add` 的快捷组合，会复用 Loader 逻辑。
 
 Storage 保存 Skill 定义与资源，不保存会话。按轮流程可保存选中名称，通过 `storage.get(name)` 解析；会话流程另由应用保存完整消息历史。
+
+一个完整的应用闭环通常是：
+
+1. 用 `loadSkill` 或 `SkillImportForm` 得到 `SkillDefinition`；
+2. 用 `SkillExtensionDetail` 浏览或编辑定义；
+3. 在 `save` 事件中调用 `storage.add(nextDefinition)`；
+4. 需要重新打开页面或刷新数据时，用 `storage.get(name)` 读取定义并传回详情组件；
+5. `directories` 会随定义一起保存，用于恢复没有文件的空目录。
+
+应用应处理 `storage.add`、`storage.get` 和导入失败，并向用户显示错误；组件不会替应用重试或决定失败后的页面状态。
 
 ### SkillDefinition
 
@@ -514,6 +526,7 @@ interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -524,7 +537,10 @@ interface SkillDefinition {
 | `description`  | UI 展示、搜索和 auto 候选摘要                 |
 | `instructions` | 当前 skill 提供给模型的核心指令               |
 | `resources`    | 可由运行时资源工具列出和读取的附加文件        |
+| `directories`  | 需要保留的相对目录路径，即使目录暂时为空      |
 | `metadata`     | 应用或 Loader 保留的扩展信息                  |
+
+`directories` 只记录需要保留的空目录，不替代 `resources` 的文件路径。浏览器目录导入、GitHub/Node Loader 和各类 Storage 会在能够识别目录项时保留它；旧定义没有该字段时按没有显式空目录处理。编辑组件通过 `save` 返回更新后的 `directories`，应用写入 Storage 后，重新 `get` 才能恢复空目录状态。
 
 ### 浏览器加载
 
@@ -545,7 +561,7 @@ async function importFromInput(input: HTMLInputElement) {
 }
 ```
 
-支持 File System Access API 的浏览器也可以使用目录句柄：
+支持 File System Access API 的浏览器也可以使用目录句柄。
 
 ```typescript
 const directoryHandle = await window.showDirectoryPicker()
@@ -556,6 +572,47 @@ const skill = await loadSkill({
 ```
 
 `showDirectoryPicker()` 并非所有浏览器都支持，生产界面应保留文件 input 作为回退方式。
+
+### 归档加载
+
+支持 ZIP、TAR、TAR.GZ 和 TGZ。归档中的入口文件默认为 `SKILL.md`，可通过 `entryFile` 配置；入口须位于归档根目录或唯一顶层目录内。
+
+页面可通过 `<input id="skill-archive" type="file" accept=".zip,.tar,.tar.gz,.tgz">` 获取归档文件，再调用 `loadSkill`：
+
+```typescript
+const archiveInput = document.querySelector<HTMLInputElement>('#skill-archive')!
+const archiveFile = archiveInput.files?.[0]
+if (!archiveFile) throw new Error('请先选择 Skill 压缩包')
+
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+})
+console.log(skill.name, skill.instructions, skill.resources)
+```
+
+默认有效文件的解压内容上限为 10 MiB、数量上限为 10,000，目录和被忽略的元数据不计入这两项限额；压缩文件上限默认为解压内容上限加 10 MiB。可通过 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount` 调整：
+
+```typescript
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+  maxArchiveSize: 20 * 1024 * 1024,
+  maxUncompressedSize: 100 * 1024 * 1024,
+  maxFileCount: 1000,
+})
+```
+
+归档另有固定的 10,000 条目上限，目录和被忽略的元数据也计入条目数，调大 `maxFileCount` 无法突破此上限。
+
+<details>
+<summary>TAR.GZ / TGZ 容器超限处理</summary>
+
+TAR.GZ 和 TGZ 的完整解压容器（含文件头、填充及元数据）另受 `maxUncompressedSize + 10000 × 1024 + 10240` 字节上限约束。因此，即使压缩文件大小、有效文件总大小和文件数均未超限，仍可能因容器超限被拒绝。遇到 `TAR.GZ container exceeds` 错误时，请移除不需要的元数据后重新打包。
+
+</details>
+
+浏览器入口和 `/node` 入口都支持以上归档格式。ZIP Deflate 解压需要运行时支持 `DecompressionStream('deflate-raw')`；Node.js 从 20.12 起支持。Node 侧传入带原始归档文件名的 `File`，示例见下方 Node.js 环境章节。
 
 ### GitHub 加载
 
@@ -679,6 +736,18 @@ const summaries = await storage.list()
 ```
 
 Fs storage 保持原生 skill 目录结构，因此已有的 skills 目录可以直接作为 storage root。
+
+Node.js 也可以读取命名后的归档 `File`；`File` 名称扩展名用于识别格式：
+
+```typescript
+import { readFile } from 'node:fs/promises'
+import { loadSkill } from '@opentiny/tiny-robot-kit/node'
+
+const bytes = await readFile('./weather.zip')
+const weather = await loadSkill({ source: 'archive', file: new File([bytes], 'weather.zip') })
+```
+
+如果编辑页面使用 `SkillExtensionDetail`，推荐在 `save` 事件中直接调用 `storage.add(nextDefinition)`，再用 `storage.get(name)` 刷新详情；不要只处理 `file-action` 而遗漏同一操作产生的新定义。
 
 下面的演示可以导入内置示例或本地目录，将 skill 保存到 storage，并通过列表查看和选择已保存的 skill。
 
@@ -812,12 +881,12 @@ interface SkillRequestContext {
 
 ### Loader
 
-| API                             | 导入入口 | 环境    | 返回值                          | 说明                       |
-| ------------------------------- | -------- | ------- | ------------------------------- | -------------------------- |
-| `loadSkill(options)`            | 包根入口 | 浏览器  | `SkillLoadJob<SkillDefinition>` | 支持 browser/GitHub source |
-| `loadSkillWithDetails(options)` | 包根入口 | 浏览器  | `SkillLoadJob<SkillLoadResult>` | 同时返回 skill 和 warnings |
-| `loadSkill(options)`            | `/node`  | Node.js | `SkillLoadJob<SkillDefinition>` | 支持 fs/GitHub source      |
-| `loadSkillWithDetails(options)` | `/node`  | Node.js | `SkillLoadJob<SkillLoadResult>` | Node 侧 details 版本       |
+| API                             | 导入入口 | 环境    | 返回值                          | 说明                               |
+| ------------------------------- | -------- | ------- | ------------------------------- | ---------------------------------- |
+| `loadSkill(options)`            | 包根入口 | 浏览器  | `SkillLoadJob<SkillDefinition>` | 支持 browser/archive/GitHub source |
+| `loadSkillWithDetails(options)` | 包根入口 | 浏览器  | `SkillLoadJob<SkillLoadResult>` | 同时返回 skill 和 warnings         |
+| `loadSkill(options)`            | `/node`  | Node.js | `SkillLoadJob<SkillDefinition>` | 支持 fs/archive/GitHub source      |
+| `loadSkillWithDetails(options)` | `/node`  | Node.js | `SkillLoadJob<SkillLoadResult>` | Node 侧 details 版本               |
 
 所有 `SkillLoadJob` 都是带 `cancel(): void` 的 Promise。通用选项包括自定义入口文件 `entryFile` 和严格模式 `strict`；`onProgress` 目前是实验性预留，Loader 尚未上报进度事件。
 
