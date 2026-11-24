@@ -1,0 +1,224 @@
+---
+outline: [1, 3]
+---
+
+# Trace 轨迹
+
+Trace 是一个与框架无关的单轴轨迹组件，使用原生 DOM 展示按时间排列的执行记录。它适合展示 Agent 执行步骤、任务流程、请求过程和操作日志等内容。
+
+组件上方是由各条记录颜色组成的时间轴，下方每条记录包含标签、消息和可选的时长。
+
+## 概览
+
+### 适用场景
+
+- 展示 Agent 或任务的执行步骤和耗时。
+- 展示请求、工具调用、数据处理等按时间排列的过程。
+- 在原生 HTML 或任意框架宿主中嵌入轻量级轨迹视图。
+
+## 安装与引入
+
+### NPM / ESM
+
+```bash
+npm install @opentiny/tiny-robot
+```
+
+```ts
+import { createTrace } from '@opentiny/tiny-robot/vanilla'
+import '@opentiny/tiny-robot/vanilla/style.css'
+```
+
+Trace 的运行时不依赖 Vue、React 或其他框架。
+
+### CDN
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@VERSION/dist/vanilla/vanilla.global.js"></script>
+<script>
+  const trace = window.TinyRobotVanilla.createTrace({
+    container: document.querySelector('#trace'),
+    items: [],
+  })
+</script>
+```
+
+UMD 脚本提供 `window.TinyRobotVanilla.createTrace` 和 `window.TinyRobotVanilla.createTrajectory`。
+
+## 用法示例
+
+### 基础用法
+
+下面的 Demo 展示最小配置和运行效果，源码面板中可以查看完整实现。
+
+<demo vue="../../demos/trace/basic.vue" title="基础轨迹" description="使用最小配置渲染两条轨迹记录。" />
+
+点击时间轴片段或消息可以查看选中状态；事件监听和程序化选中方式见 [Events](#events) 与 [Methods / Expose](#methods-expose)。
+
+数字时间使用毫秒。`Date` 和 ISO 时间字符串也可以直接传入：
+
+```ts
+{
+  startTime: new Date('2026-11-19T10:00:00.000Z'),
+  endTime: '2026-11-19T10:00:01.200Z',
+}
+```
+
+### 标签与颜色
+
+`type` 用于匹配标签类型的默认样式，组件内置 `info`、`success`、`warning`、`error` 和 `analysis` 类型。
+
+#### 默认标签颜色
+
+只配置 `type`、不配置颜色时，组件使用内置的浅色标签和时间轴颜色。
+
+<demo vue="../../demos/trace/labels-default.vue" title="默认标签颜色" description="只配置 type 时，使用组件内置的浅色标签和时间轴颜色。" />
+
+#### 自定义标签颜色
+
+可以通过 `labels` 增加新的类型，也可以为单条数据覆盖 `color` 和 `textColor`。Demo 的源码面板中可以查看完整配置。
+
+<demo vue="../../demos/trace/labels-custom.vue" title="自定义标签颜色" description="通过 labels 增加自定义类型，并支持渐变背景和渐变文字。" />
+
+#### 颜色优先级
+
+```text
+item.color / item.textColor
+  > labels[item.type].color / labels[item.type].textColor
+  > 内置类型颜色
+  > 未知类型的默认灰色
+```
+
+颜色值支持普通 CSS 颜色和 CSS 渐变。渐变文字通过 `textColor` 传入 `linear-gradient(...)` 即可。
+
+### 时间轴与时长
+
+时间轴范围默认取所有数据的最早开始时间和最晚结束时间。时间轴只展示颜色轨道，不展示时间刻度文字。
+
+#### compact 紧凑格式
+
+适合快速扫描，显示 `420ms`、`1.2s` 和 `1m 5s`。
+
+<demo vue="../../demos/trace/duration-compact.vue" title="compact" description="紧凑显示毫秒、秒和分钟。" />
+
+#### clock 时钟格式
+
+适合需要统一时分秒格式的场景，显示 `00:00:00`。
+
+<demo vue="../../demos/trace/duration-clock.vue" title="clock" description="统一显示 HH:MM:SS。" />
+
+#### none 隐藏时长
+
+适合只关注标签和消息内容的场景，隐藏右侧时长并自动拉伸消息区域。
+
+<demo vue="../../demos/trace/duration-none.vue" title="none" description="不展示时长，消息区域自动占满。" />
+
+## 可访问性与设计约束
+
+### 键盘与焦点
+
+时间轴片段和消息记录使用可聚焦按钮渲染，用户可以通过键盘聚焦并使用 Enter 或 Space 触发选中。选中状态通过 `aria-selected` 反映。
+
+### 响应式与长内容
+
+消息区域使用单行省略，标签根据内容自适应并限制最大宽度。长消息的完整内容可通过鼠标悬停查看。
+
+## API
+
+### Props
+
+Trace 是命令式 vanilla 组件，以下 Props 对应 `createTrace(options)` 的 Options。`createTrajectory` 是 `createTrace` 的同义别名。
+
+```ts
+const trace = createTrace(options)
+```
+
+| 属性名           | 说明                                          | 类型                                   | 默认值       | 必填 |
+| ---------------- | --------------------------------------------- | -------------------------------------- | ------------ | ---- |
+| `container`      | 组件挂载容器。                                | `HTMLElement`                          | -            | 是   |
+| `items`          | 要展示的轨迹记录数组。                        | `readonly TrajectoryItem[]`            | -            | 是   |
+| `labels`         | 自定义标签类型、背景色和文字颜色。            | `Record<string, TrajectoryLabelStyle>` | 内置类型     | 否   |
+| `axis`           | 指定时间轴范围。                              | `TrajectoryAxisOptions`                | 自动计算     | 否   |
+| `durationFormat` | 时长显示格式，`none` 隐藏时长列。             | `'compact' \| 'clock' \| 'none'`       | `'compact'`  | 否   |
+| `formatDuration` | 自定义时长文本，优先级高于 `durationFormat`。 | `(durationMs, item) => string`         | 内置格式化   | 否   |
+| `messages`       | 空状态文案。                                  | `{ empty?: string }`                   | `'暂无轨迹'` | 否   |
+| `selectedId`     | 初始选中的记录 ID。                           | `string \| null`                       | `null`       | 否   |
+| `onEvent`        | 监听选中、更新和错误事件。                    | `(event: TrajectoryEvent) => void`     | -            | 否   |
+
+### Events
+
+| 事件名   | 触发时机                       | 回调参数                   |
+| -------- | ------------------------------ | -------------------------- |
+| `select` | 用户或 API 改变选中记录时。    | `{ itemId, source, item }` |
+| `update` | 数据或配置更新完成时。         | `{ type: 'update' }`       |
+| `error`  | 数据校验或渲染配置发生错误时。 | `{ type: 'error', error }` |
+
+`select.source` 的值为：
+
+| 值         | 来源             |
+| ---------- | ---------------- |
+| `timeline` | 点击上方时间轴。 |
+| `message`  | 点击下方消息。   |
+| `api`      | 调用实例方法。   |
+
+### Slots
+
+Trace 是原生 DOM 组件，不提供 Vue Slots。需要扩展内容时，请通过宿主容器或 `meta` 数据实现应用层展示。
+
+### Methods / Expose
+
+| 方法名           | 说明                                             | 签名                                         |
+| ---------------- | ------------------------------------------------ | -------------------------------------------- |
+| `setItems`       | 替换记录，并重新计算时间轴范围和每条记录的时长。 | `(items: readonly TrajectoryItem[]) => void` |
+| `select`         | 选中指定记录，传入 `null` 清除选中。             | `(id: string \| null) => void`               |
+| `clearSelection` | 清除当前选中记录。                               | `() => void`                                 |
+| `getSelectedId`  | 获取当前选中的记录 ID。                          | `() => string \| null`                       |
+| `updateOptions`  | 更新配置并重新渲染。                             | `(options: TrajectoryUpdateOptions) => void` |
+| `destroy`        | 移除组件创建的 DOM 和事件监听。                  | `() => void`                                 |
+
+```ts
+trace.select('complete')
+trace.clearSelection()
+trace.setItems(nextItems)
+trace.updateOptions({ durationFormat: 'clock' })
+trace.destroy()
+```
+
+### Types
+
+以下类型从 `@opentiny/tiny-robot/vanilla` 导出。
+
+```ts
+interface TrajectoryItem {
+  id: string
+  type: string
+  label?: unknown
+  message: unknown
+  startTime: number | Date | string
+  endTime: number | Date | string
+  color?: string
+  textColor?: string
+  meta?: Record<string, unknown>
+}
+```
+
+`label` 和 `message` 支持任意值。字符串、数字和布尔值会直接显示；对象会转换为 JSON 文本。
+
+### CSS Variables
+
+| 变量名                            | 说明                 | 默认值    |
+| --------------------------------- | -------------------- | --------- |
+| `--tr-trajectory-text`            | 主文字颜色。         | `#334155` |
+| `--tr-trajectory-muted`           | 次要文字和时长颜色。 | `#64748b` |
+| `--tr-trajectory-track`           | 时间轴轨道背景。     | `#eef2f7` |
+| `--tr-trajectory-selected`        | 选中消息背景。       | `#eff6ff` |
+| `--tr-trajectory-selected-border` | 选中时间轴边框。     | `#93c5fd` |
+
+## 交互与限制
+
+- 当前版本是单轴模型，不支持并行轨道。
+- `endTime` 必须大于等于 `startTime`；相同时间点会使用最小可见宽度显示。
+- 记录按照传入数组顺序渲染，建议开发者按时间顺序传入数据。
+- 时间轴片段颜色来自单条记录或标签类型配置。
+- `none` 模式只隐藏时长列，不影响时间轴的时间计算。
+- 组件不依赖任何框架，可以直接在原生 HTML、Vue、React 或其他宿主中使用。
