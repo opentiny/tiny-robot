@@ -2,6 +2,8 @@
 import { ComputedRef, Ref } from 'vue'
 import type { BasePluginContext as CoreBasePluginContext, MutateMessageStateFn } from '../../message/types'
 import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
+import type { ChatTokenUsage } from '../../message/types'
+export type { ChatTokenUsage }
 
 export interface Tool {
   type: 'function'
@@ -28,10 +30,7 @@ export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'abo
 export type RequestProcessingState = 'requesting' | 'completing' | string
 
 // Usage information for API response
-export interface Usage {
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
+export interface Usage extends ChatTokenUsage {
   prompt_tokens_details?: {
     cached_tokens: number
   }
@@ -131,6 +130,7 @@ export interface UseMessageReturn {
   canStartTurn: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
+  rerun: (target: ChatMessage, replacement?: ChatMessage) => Promise<boolean>
   abortRequest: () => Promise<void>
   dispatchCommand: <Result = unknown>(command: string, payload?: unknown) => Promise<Result>
 }
@@ -247,6 +247,7 @@ export interface UseMessagePlugin {
       currentMessage: ChatMessage
       choice?: CompletionChoice
       chunk: ChatCompletion
+      updateCurrentMessage: (recipe: (message: ChatMessage) => void) => void
     },
   ) => void
   onError?: (context: UseMessageErrorContext) => MaybePromise<void>

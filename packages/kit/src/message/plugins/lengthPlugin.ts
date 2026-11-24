@@ -1,3 +1,4 @@
+import { AUTO_CONTINUATION_METADATA_KEY } from '../continuation'
 import type { MessageEnginePlugin } from '../types'
 
 export const lengthPlugin = (options: MessageEnginePlugin & { continueContent?: string } = {}): MessageEnginePlugin => {
@@ -11,7 +12,7 @@ export const lengthPlugin = (options: MessageEnginePlugin & { continueContent?: 
 
       if (lastChoice?.finish_reason === 'length') {
         // 输出长度达到了模型上下文长度限制，或达到了 max_tokens 的限制。自动加上 user 消息
-        appendMessage({ role: 'user', content: continueContent })
+        appendMessage({ role: 'user', content: continueContent, metadata: { [AUTO_CONTINUATION_METADATA_KEY]: true } })
         requestNext()
       }
 

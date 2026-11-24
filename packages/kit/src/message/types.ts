@@ -7,6 +7,13 @@ import {
   ChatCompletionMessageToolCall,
 } from 'openai/resources'
 import type { AsyncStreamableResult, MaybePromise } from '../types'
+import type { ChatTokenUsage } from './usage'
+
+export type { ChatTokenUsage }
+export type ChatCompletionWithUsage = Omit<ChatCompletion, 'usage'> & { usage?: ChatTokenUsage | null }
+export type ChatCompletionChunkWithUsage = Omit<ChatCompletionChunk, 'usage'> & { usage?: ChatTokenUsage | null }
+export type ChatResponseChunk = ChatCompletionWithUsage | ChatCompletionChunkWithUsage
+export type ChatResponseChoice = ChatResponseChunk['choices'][number]
 
 export type DeepReadonly<T> = T extends (...args: any[]) => any
   ? T
@@ -50,7 +57,7 @@ export interface MessageRequestBody {
   [key: string]: any
 }
 
-export type ResponseProvider<T extends ChatCompletion | ChatCompletionChunk = ChatCompletion | ChatCompletionChunk> = (
+export type ResponseProvider<T extends ChatResponseChunk = ChatResponseChunk> = (
   requestBody: MessageRequestBody,
   abortSignal: AbortSignal,
 ) => AsyncStreamableResult<T>
@@ -84,6 +91,7 @@ export interface MessageEngine {
   subscribe(kinds: MessageUpdateKinds, listener: (state: PublicMessageState) => void): () => void
   sendMessage(content: string): Promise<void>
   send(...msgs: ChatMessage[]): Promise<void>
+  rerun(target: ChatMessage, replacement?: ChatMessage): Promise<boolean>
   abort(): Promise<void>
   setResponseProvider(provider: ResponseProvider): void
   dispatchCommand<Result = unknown>(command: string, payload?: unknown): Promise<Result>
@@ -107,6 +115,8 @@ export interface MutateMessageStateFn {
 export interface MessageStateAdapter {
   initialize(initialState: InternalMessageState): void
   getState(): PublicMessageState
+  resolveMessage?(message: ChatMessage): ChatMessage | undefined
+  getMessageIndex?(message: ChatMessage): number
   /**
    * 创建一条适配当前运行时的消息对象。
    *
@@ -185,7 +195,7 @@ export interface BeforeRequestContext extends BasePluginContext {
 
 export interface AfterRequestContext extends BasePluginContext {
   currentMessage: DeepReadonly<ChatMessage>
-  lastChoice?: ChatCompletion.Choice | ChatCompletionChunk.Choice
+  lastChoice?: ChatResponseChoice
   /**
    * 使用 appendMessage 函数追加消息，可触发消息更新通知。
    */
@@ -202,8 +212,8 @@ export interface CompletionChunkContext extends BasePluginContext {
    * 使用 updateCurrentMessage 函数修改当前消息，才能正常触发消息更新通知。
    */
   updateCurrentMessage: (recipe: (message: ChatMessage) => void) => void
-  choice: ChatCompletion.Choice | ChatCompletionChunk.Choice
-  chunk: ChatCompletion | ChatCompletionChunk
+  choice: ChatResponseChoice
+  chunk: ChatResponseChunk
 }
 
 export interface MessageErrorContext extends BasePluginContext {
@@ -258,7 +268,7 @@ export interface MessageEnginePlugin {
    * 数据块处理钩子，在接收到每个响应数据块时触发。
    * 无论是流式响应（多个增量数据块）还是非流式响应（单个完整数据块），都会触发此钩子。
    */
-  onCompletionChunk?: (context: CompletionChunkContext) => void
+  onCompletionChunk?: (context: Omit<CompletionChunkContext, 'choice'> & { choice?: ChatResponseChoice }) => void
   onError?: (context: MessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**

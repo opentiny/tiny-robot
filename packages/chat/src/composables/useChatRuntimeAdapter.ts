@@ -1,9 +1,12 @@
+import { getMessageActionId, getMessageActionTarget } from '../runtime/messageActionIdentity'
 import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
 import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
 import { canSetModelFieldValue } from '@opentiny/tiny-robot'
 import type {
+  ChatBubbleActionCapabilityView,
+  ChatMessageItem,
   ChatMcpServerView,
   ChatMcpToolView,
   ChatMcpView,
@@ -15,6 +18,25 @@ import type {
   ChatSendPayload,
   ChatUIData,
 } from '../types'
+
+function buildBubbleActions(
+  messages: readonly ChatMessageItem[],
+  runtime: ChatRuntime,
+): Record<string, ChatBubbleActionCapabilityView> {
+  const actions: Record<string, ChatBubbleActionCapabilityView> = {}
+  for (const message of messages) {
+    const id = getMessageActionId(message)
+    if (!id) continue
+    const userMessageId = getMessageActionTarget(message)
+    if (!userMessageId || !runtime.actions.getMessageCapabilities) continue
+    const capability = runtime.actions.getMessageCapabilities({
+      conversationId: runtime.activeConversation.value?.id ?? '',
+      userMessageId,
+    })
+    actions[id] = { ...capability, canEdit: message.role === 'user' && capability.canEdit }
+  }
+  return actions
+}
 
 export interface UseChatRuntimeAdapterOptions {
   runtime: MaybeRefOrGetter<ChatRuntime>
@@ -166,7 +188,10 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         title: toValue(options.title) || active?.title,
         history: toValue(options.historyData),
       },
-      bubble: { messages: active?.messages ?? [] },
+      bubble: {
+        messages: active?.messages ?? [],
+        actions: active ? buildBubbleActions(active.messages, runtime.value) : undefined,
+      },
       sender: {
         loading:
           active?.requestState === 'processing' ||
