@@ -9,7 +9,7 @@ export interface MessagePart {
 export interface SchemaNode {
   componentName: string
   props?: Record<string, string | number | boolean>
-  children?: (SchemaNode | string)[] | string
+  children?: SchemaNode[] | string
 }
 
 export const components = [
@@ -105,8 +105,12 @@ export function parseSchema(source: string, complete: boolean): SchemaNode {
         result.props[key] = val as string | number | boolean
       }
     }
-    if (Array.isArray(item.children)) result.children = item.children.map((child) => node(child, depth + 1))
-    else if (item.children !== undefined) {
+    if (Array.isArray(item.children)) {
+      result.children = item.children.map((child) => {
+        const childNode = node(child, depth + 1)
+        return typeof childNode === 'string' ? { componentName: 'span', children: childNode } : childNode
+      })
+    } else if (item.children !== undefined) {
       if (typeof item.children !== 'string') throw new Error('children 必须为文本或数组')
       result.children = item.children
     }

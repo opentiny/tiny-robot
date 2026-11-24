@@ -242,10 +242,10 @@ sender: {
 - [GenUI SDK](https://github.com/opentiny/genui-sdk)。
 - [独立 Schema 渲染器](https://github.com/opentiny/tiny-schema-renderer)。
 
-[project]: https://github.com/SonyLeo/tiny-robot/tree/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration
-[app]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/App.vue
-[prompt]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/prompt.ts
-[schema]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/schema.ts
-[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/components/SchemaContent.vue
-[context]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/genui/context.ts
-[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/docs/trchat-genui-best-practice/docs/examples/genui-sdk-integration/src/schema-renderer.d.ts
+[project]: ../../examples/genui-sdk-integration/README.md
+[app]: ../../examples/genui-sdk-integration/src/App.vue
+[prompt]: ../../examples/genui-sdk-integration/src/genui/prompt.ts
+[schema]: ../../examples/genui-sdk-integration/src/genui/schema.ts
+[schema-content]: ../../examples/genui-sdk-integration/src/components/SchemaContent.vue
+[context]: ../../examples/genui-sdk-integration/src/genui/context.ts
+[renderer-types]: ../../examples/genui-sdk-integration/src/schema-renderer.d.ts
