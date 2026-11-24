@@ -15,7 +15,8 @@ type DialogContext = {
   setToolEnabled: (item: Extract<ResolvedExtension, { kind: 'mcp' }>, toolId: string, enabled: boolean) => Promise<void>
 }
 
-type Panel = 'mcp-add' | 'skill-local-add' | 'skill-github-add' | 'mcp-detail' | 'skill-detail' | null
+type Panel =
+  'mcp-add' | 'skill-local-add' | 'skill-archive-add' | 'skill-github-add' | 'mcp-detail' | 'skill-detail' | null
 
 const emptyMcpForm = (): McpExtensionFormValue => ({ name: '', type: 'streamableHttp', url: '' })
 
@@ -52,7 +53,12 @@ export const useExtensionDialog = ({ items, activeTab, message, saveDefinition, 
     selectedKey.value = key
     dialogError.value = ''
     if (nextPanel === 'mcp-add') mcpFormValue.value = emptyMcpForm()
-    if (nextPanel === 'mcp-add' || nextPanel === 'skill-local-add' || nextPanel === 'skill-github-add')
+    if (
+      nextPanel === 'mcp-add' ||
+      nextPanel === 'skill-local-add' ||
+      nextPanel === 'skill-archive-add' ||
+      nextPanel === 'skill-github-add'
+    )
       formKey.value += 1
     await nextTick()
     if (!dialogRef.value?.open) dialogRef.value?.showModal()

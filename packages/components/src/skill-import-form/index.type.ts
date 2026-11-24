@@ -52,7 +52,7 @@ export interface SkillDefinition {
   metadata?: Record<string, unknown>
 }
 
-export type SkillImportFormSource = 'local' | 'github'
+export type SkillImportFormSource = 'local' | 'archive' | 'github'
 
 export type SkillImportFormInput =
   | {
@@ -68,6 +68,11 @@ export type SkillImportFormInput =
        * 自定义 resolver 需要自行解析，或改用 kit 提供的解析能力。
        */
       repo: string
+    }
+  | {
+      source: 'archive'
+      file: File
+      maxUncompressedSize: number
     }
 
 export type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>

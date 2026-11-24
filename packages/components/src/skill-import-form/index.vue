@@ -9,6 +9,7 @@ import {
   DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT,
   formatSkillAddMaxUploadSize,
   parseSkillAddGithubUrl,
+  validateSkillAddArchive,
   validateSkillAddBrowserSelection,
 } from './validation'
 
@@ -21,6 +22,7 @@ const emit = defineEmits<SkillImportFormEmits>()
 const fileInput = ref<HTMLInputElement>()
 const githubInput = ref<HTMLInputElement>()
 const browserFiles = ref<File[]>([])
+const archiveFile = ref<File>()
 const githubUrl = ref('')
 const resolverErrorMessage = ref('')
 const resolvedDefinition = shallowRef<SkillDefinition>()
@@ -37,12 +39,19 @@ const errorId = `${componentId}-error`
 const totalSize = computed(() => browserFiles.value.reduce((total, file) => total + file.size, 0))
 const maxUploadSizeLabel = computed(() => formatSkillAddMaxUploadSize(props.maxUploadSize))
 const hasBrowserFiles = computed(() => browserFiles.value.length > 0)
+const archiveSelectionError = computed(() =>
+  props.source === 'archive' && (archiveFile.value || browserSubmitAttempted.value)
+    ? validateSkillAddArchive(archiveFile.value, props.maxUploadSize)
+    : '',
+)
 const browserSelectionError = computed(() =>
-  hasBrowserFiles.value || browserSubmitAttempted.value
+  props.source === 'local' && (hasBrowserFiles.value || browserSubmitAttempted.value)
     ? validateSkillAddBrowserSelection(browserFiles.value, { maxUploadSize: props.maxUploadSize })
     : '',
 )
-const errorMessage = computed(() => browserSelectionError.value || resolverErrorMessage.value)
+const errorMessage = computed(
+  () => archiveSelectionError.value || browserSelectionError.value || resolverErrorMessage.value,
+)
 const showBrowserSuccess = computed(
   () => hasBrowserFiles.value && !browserSelectionError.value && Boolean(resolvedDefinition.value),
 )
@@ -51,6 +60,7 @@ const browserSubmitDisabled = computed(
 )
 
 const packageName = computed(() => {
+  if (props.source === 'archive') return archiveFile.value?.name ?? 'Skill 压缩包'
   const files = browserFiles.value
   const relativePath = files.find((file) => file.webkitRelativePath)?.webkitRelativePath
   const rootName = relativePath?.split('/').filter(Boolean)[0]
@@ -85,10 +95,46 @@ const githubStatusMessage = (status: number) => {
   return ''
 }
 
-const toSkillAddMessage = (error: unknown) => {
+const toArchiveErrorMessage = (message: string) => {
+  if (message.includes('Could not decompress TAR.GZ skill archive')) {
+    return 'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试'
+  }
+  if (
+    /Invalid ZIP|Could not decompress ZIP|ZIP local header|Invalid (?:checksum|uncompressed size).*ZIP/.test(message)
+  ) {
+    return '压缩包已损坏或无法读取，请重新打包后重试'
+  }
+  if (/Invalid TAR|TAR entry size|Could not decompress TAR.GZ/.test(message)) {
+    return '压缩包内容不完整或已损坏，请重新打包后重试'
+  }
+  if (message.includes('Invalid skill archive structure')) {
+    return '压缩包中未找到有效的 Skill 入口，请检查目录结构后重试'
+  }
+  if (message.includes('Invalid path in skill archive')) return '压缩包包含不安全的文件路径，无法导入'
+  if (message.includes('expands beyond')) return '压缩包解包后的内容过大，请减少文件后重试'
+  if (message.includes('TAR.GZ container exceeds'))
+    return '压缩包展开后的 TAR 数据过大，请减少文件或系统元数据后重新打包'
+  if (message.includes('symbolic links') || message.includes('Unsupported TAR entry type')) {
+    return '压缩包包含不支持的链接或特殊文件，请移除后重试'
+  }
+  if (message.includes('ZIP64') || message.includes('Split ZIP') || message.includes('Encrypted ZIP')) {
+    return '暂不支持此 ZIP 格式或加密方式，请使用普通 ZIP 重新打包'
+  }
+  if (message.includes('Skill archive file is too large')) return '压缩包文件过大，请选择较小的文件后重试'
+  if (/contains more than|too many entries/.test(message)) return '压缩包中的文件或目录过多，请减少条目后重试'
+  if (message.includes('Duplicate path')) return '压缩包中存在重复文件路径，请整理文件后重新打包'
+  if (message.includes('ZIP contains a filename')) return '压缩包文件名编码无法识别，请使用 UTF-8 文件名重新打包'
+  if (message.includes('Unsupported ZIP compression method')) return '压缩包压缩方式不受支持，请使用普通 ZIP 重新打包'
+  if (message.includes('DecompressionStream')) return '当前环境无法解压此归档，请更新浏览器后重试'
+  return ''
+}
+
+const toSkillAddMessage = (error: unknown, defaultArchive = false) => {
   const message = error instanceof Error ? error.message : String(error)
 
   if (error instanceof Error && error.name === 'SkillAddTimeoutError') return '导入超时，请稍后重试'
+  const archiveMessage = defaultArchive ? toArchiveErrorMessage(message) : ''
+  if (archiveMessage) return archiveMessage
   if (message.includes('entry file "SKILL.md" is missing')) return 'Skill 包必须包含 SKILL.md 文件'
   if (message.includes('entry file "SKILL.md" must be a text file')) return 'SKILL.md 必须是文本文件'
   if (message.includes('must contain instructions')) return 'SKILL.md 必须包含技能说明'
@@ -134,7 +180,7 @@ const resolveSkill = async (input: SkillImportFormInput) => {
     return definition
   } catch (error) {
     if (generation !== resolverGeneration) return undefined
-    resolverErrorMessage.value = toSkillAddMessage(error)
+    resolverErrorMessage.value = toSkillAddMessage(error, input.source === 'archive' && !props.resolveSkill)
     return undefined
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
@@ -152,16 +198,40 @@ const updateBrowserFiles = (files: File[]) => {
   }
 }
 
+const updateArchiveFile = (file?: File) => {
+  browserSubmitAttempted.value = false
+  archiveFile.value = file
+  browserFiles.value = file ? [file] : []
+  invalidateResolution()
+  const error = validateSkillAddArchive(file, props.maxUploadSize)
+  if (error) {
+    resolverErrorMessage.value = error
+    return
+  }
+  void resolveSkill({ source: 'archive', file: file!, maxUncompressedSize: props.maxUploadSize })
+}
+
+watch(
+  () => props.maxUploadSize,
+  () => {
+    if (props.source === 'archive' && archiveFile.value) updateArchiveFile(archiveFile.value)
+  },
+  { flush: 'sync' },
+)
+
 const handleRemoveBrowserFiles = () => {
   browserSelectionGeneration.value += 1
-  updateBrowserFiles([])
+  if (props.source === 'archive') updateArchiveFile()
+  else updateBrowserFiles([])
   void nextTick(() => fileInput.value?.focus())
 }
 
 const handleFileChange = (event: Event) => {
   browserSelectionGeneration.value += 1
   const input = event.target as HTMLInputElement
-  updateBrowserFiles(Array.from(input.files ?? []))
+  const files = Array.from(input.files ?? [])
+  if (props.source === 'archive') updateArchiveFile(files[0])
+  else updateBrowserFiles(files)
   input.value = ''
 }
 
@@ -230,7 +300,8 @@ const handleDrop = async (event: DragEvent) => {
 
   if (selectionGeneration !== browserSelectionGeneration.value) return
 
-  updateBrowserFiles(files)
+  if (props.source === 'archive') updateArchiveFile(files.find((file) => /\.(zip|tar|tar\.gz|tgz)$/i.test(file.name)))
+  else updateBrowserFiles(files)
 }
 
 const handleDragEnter = () => {
@@ -249,7 +320,7 @@ const handleGithubInput = (event: Event) => {
 
 const focusInvalidInput = () => {
   void nextTick(() => {
-    if (props.source === 'local') fileInput.value?.focus()
+    if (props.source !== 'github') fileInput.value?.focus()
     else githubInput.value?.focus()
   })
 }
@@ -257,9 +328,9 @@ const focusInvalidInput = () => {
 const handleSubmit = async () => {
   if (resolving.value) return
 
-  if (props.source === 'local') {
+  if (props.source === 'local' || props.source === 'archive') {
     browserSubmitAttempted.value = true
-    if (browserSelectionError.value) {
+    if (browserSelectionError.value || archiveSelectionError.value) {
       focusInvalidInput()
       return
     }
@@ -290,6 +361,7 @@ watch(
   () => {
     browserSelectionGeneration.value += 1
     browserFiles.value = []
+    archiveFile.value = undefined
     githubUrl.value = ''
     browserSubmitAttempted.value = false
     invalidateResolution()
@@ -300,7 +372,7 @@ watch(
 
 <template>
   <form class="skill-add" novalidate @submit.prevent="handleSubmit">
-    <template v-if="props.source === 'local'">
+    <template v-if="props.source === 'local' || props.source === 'archive'">
       <div class="skill-add__browser">
         <div class="skill-add__dropzone-wrapper">
           <label
@@ -323,9 +395,14 @@ watch(
               aria-label="Skill 包"
               :aria-describedby="errorMessage ? errorId : browserDescriptionId"
               :aria-invalid="Boolean(errorMessage)"
-              webkitdirectory
-              directory
-              multiple
+              :accept="
+                props.source === 'archive'
+                  ? '.zip,.tar,.tar.gz,.tgz,application/zip,application/gzip,application/x-tar'
+                  : undefined
+              "
+              :webkitdirectory="props.source === 'local' ? '' : undefined"
+              :directory="props.source === 'local' ? '' : undefined"
+              :multiple="props.source === 'local'"
               @change="handleFileChange"
             />
 
@@ -348,7 +425,11 @@ watch(
                 {{ resolving ? '正在校验…' : '点击或拖拽上传Skill包' }}
               </strong>
               <span :id="browserDescriptionId" class="skill-add__upload-description"
-                >技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述，{{ maxUploadSizeLabel }}M以内</span
+                >{{
+                  props.source === 'archive'
+                    ? '支持 ZIP、TAR、TAR.GZ 和 TGZ，解压后需包含 SKILL.md 文件'
+                    : '技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述'
+                }}，{{ maxUploadSizeLabel }}M以内</span
               >
             </template>
           </label>
