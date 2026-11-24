@@ -120,16 +120,20 @@ const readCommittedResult = (message: ChatMessage, index: number, messages: read
     if (message.role !== 'user') return undefined
   } else {
     if (message.role !== 'tool') return undefined
-    const assistant = messages
-      .slice(0, index)
-      .findLast(
-        (item) =>
-          item.role === 'assistant' &&
-          item.tool_calls?.some(
-            (call) =>
-              call.id === message.tool_call_id && call.type === 'function' && call.function.name === 'load_skills',
-          ),
-      )
+    let assistant: ChatMessage | undefined
+    for (let previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+      const item = messages[previousIndex]
+      if (
+        item.role === 'assistant' &&
+        item.tool_calls?.some(
+          (call) =>
+            call.id === message.tool_call_id && call.type === 'function' && call.function.name === 'load_skills',
+        )
+      ) {
+        assistant = item
+        break
+      }
+    }
     const state = asRecord(asRecord(assistant?.state?.toolCall)?.[message.tool_call_id])
     if (state?.status !== 'success') return undefined
   }
