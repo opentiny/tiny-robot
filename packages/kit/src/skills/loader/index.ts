@@ -8,7 +8,7 @@ export type SkillLoadOptions = BrowserSkillLoadOptions | GithubSkillLoadOptions
 
 export function loadSkillWithDetails(options: SkillLoadOptions): SkillLoadJob<SkillLoadResult> {
   return createSkillLoadJob(async (context) => {
-    const files = await (async () => {
+    const loadableFiles = await (async () => {
       switch (options.source) {
         case 'browser':
           return loadBrowserSkillFiles(options, context)
@@ -20,7 +20,7 @@ export function loadSkillWithDetails(options: SkillLoadOptions): SkillLoadJob<Sk
     })()
 
     throwIfSkillLoadCancelled(context.signal)
-    return createSkillDefinition(files, options)
+    return createSkillDefinition(loadableFiles, options)
   })
 }
 
