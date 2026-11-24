@@ -48,7 +48,7 @@ for (const entry of ['esm', 'umd']) {
         await expect(page.locator(host)).toHaveAttribute('data-tr-vanilla-color-mode', mode)
         await expect(page.locator(popover)).toHaveCSS(
           'background-color',
-          mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+          mode === 'dark' ? 'rgb(26, 26, 26)' : 'rgb(255, 255, 255)',
         )
         await expect(page.locator(input)).toHaveValue('正在编辑的问题')
         await expect(page.locator(input)).toBeFocused()
@@ -326,7 +326,7 @@ for (const entry of ['esm', 'umd']) {
           await page.evaluate((colorMode) => window.themeFixture.configure({ colorMode }), mode)
           await expect(page.locator(popover)).toHaveCSS(
             'background-color',
-            mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+            mode === 'dark' ? 'rgb(26, 26, 26)' : 'rgb(255, 255, 255)',
           )
           const contrast = await page.locator(input).evaluate((element) => {
             const rgb = (value: string) =>
@@ -349,7 +349,7 @@ for (const entry of ['esm', 'umd']) {
           await page.locator('.tr-quick-assist__suggestion').first().hover()
           await expect(page.locator('.tr-quick-assist__suggestion').first()).toHaveCSS(
             'background-color',
-            mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+            mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(245, 245, 245)',
           )
           await page.screenshot({ path: testInfo.outputPath(`${width}-${mode}.png`), animations: 'disabled' })
         }

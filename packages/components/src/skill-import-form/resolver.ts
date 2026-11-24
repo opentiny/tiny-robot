@@ -16,6 +16,15 @@ export const resolveSkillWithKit: SkillResolver = async (input: SkillImportFormI
     return skill
   }
 
+  if (input.source === 'archive') {
+    const { skill } = await loadSkillWithDetails({
+      source: 'archive',
+      file: input.file,
+      maxUncompressedSize: input.maxUncompressedSize,
+    })
+    return skill
+  }
+
   const target = await resolveGithubTarget(input)
   const { skill } = await loadSkillWithDetails({
     source: 'github',

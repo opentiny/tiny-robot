@@ -7,3 +7,4 @@ export { combineDeltaData, normalizeToAsyncGenerator } from './message/utils'
 export * from './skills'
 
 export { isAutoContinuationMessage } from './message/continuation'
+export type { ArchiveSkillLoadOptions } from './skills/loader'

@@ -14,7 +14,7 @@ pageClass: demo-container-page-bg
 
 初始目录包含内置 MCP/Skill 和尚未安装的远程 MCP/Skill。切换 MCP 与 Skills 标签，尝试安装、更新、启用或禁用、卸载，再观察条目如何在“已安装”和“可安装”之间移动。
 
-点击名称会打开原生 `<dialog>` 详情弹窗。点击顶部“添加”按钮，可选择添加 MCP、上传本地 Skill 技能包或从 GitHub 导入 Skill。相应表单在弹窗中打开；点击弹窗外侧或关闭按钮可关闭。应用保存成功后才切换到详情，保存失败时仍保留表单和错误提示。点击“安装”可以看到异步进度，点击“重置示例”可恢复初始状态。示例没有真实网络请求，刷新页面也会清空内存数据。
+点击名称会打开原生 `<dialog>` 详情弹窗。点击顶部“添加”按钮，可选择添加 MCP、上传本地 Skill 文件夹或 ZIP/TAR 系列压缩包，或从 GitHub 导入 Skill。相应表单在弹窗中打开；点击弹窗外侧或关闭按钮可关闭。应用保存成功后才切换到详情，保存失败时仍保留表单和错误提示。点击“安装”可以看到异步进度，点击“重置示例”可恢复初始状态。示例没有真实网络请求，刷新页面也会清空内存数据。
 
 <demo
   vue="../../demos/best-practices/extension-manager-integration/integrated.vue"
@@ -116,4 +116,4 @@ export const skillOptions: SkillOptionsStorage = {
 
 一次“安装并启用”或“切换同名扩展”的操作，可能需要先保存目标扩展，再逐个禁用其他同名扩展。Demo 为了展示步骤，按顺序执行这些写入；如果后一步失败，前面已经成功的写入仍会保留，用户可能暂时看到两个同名扩展都处于启用状态。生产应用应优先用数据库事务一次提交全部修改；无法使用事务时，失败后要重新读取存储中的实际状态，并明确选择回滚、重试或提示用户处理。示例中的“同名扩展只启用一个”是界面和业务约定，不是权限控制。
 
-组件行为和完整 API 分别见 [ExtensionManager](/components/extension-manager)、[MCP 扩展添加与详情](/components/mcp-extension) 和 [Skill 扩展导入与详情](/components/skill-extension)。
+组件行为和完整 API 分别见 [ExtensionManager](/components/extension-manager)、[MCP 扩展添加与详情](/components/mcp-extension) 和 [Skill 扩展导入与详情](/components/skill-extension)。Skill 的 Loader、Storage 和运行时接入见 [Skill 技能接入](/tools/skill)。

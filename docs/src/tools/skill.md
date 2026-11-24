@@ -8,6 +8,8 @@ Skill 以 `SKILL.md` 中的任务说明（instructions）为核心，并可以�
 
 Kit 负责加载、保存和解析 skill，但不管理业务界面中的长期选择状态，也不会固定 instructions 的承载方式。应用负责决定展示哪些 skill、当前选中哪些 skill，以及 instructions 如何发送、是否进入消息历史。
 
+如果需要在 Vue 页面中浏览或编辑已加载的 `SkillDefinition`，请继续阅读 [Skill 导入与详情](../components/skill-extension.md)。该页面负责组件职责、导入表单、文件树编辑和 `save`/`file-action` 事件；本页负责 Loader、Storage 与运行时 `skillPlugin`。
+
 ## 快速开始
 
 下面是一个可独立运行的 Vue 侧最小示例。它使用 `manual` 模式启用一个内联 skill，通过 `onBeforeRequest` 临时修改本次请求，并由 mock provider 显示最终收到的 instructions。
@@ -259,6 +261,16 @@ Loader 和 Storage 都提供 `SkillDefinition`，但解决的问题不同：
 
 Storage 不拥有 UI 选择状态。应用通常只保存选中的名称，再通过 `storage.get(name)` 为 `skillPlugin` 提供完整定义。
 
+一个完整的应用闭环通常是：
+
+1. 用 `loadSkill` 或 `SkillImportForm` 得到 `SkillDefinition`；
+2. 用 `SkillExtensionDetail` 浏览或编辑定义；
+3. 在 `save` 事件中调用 `storage.add(nextDefinition)`；
+4. 需要重新打开页面或刷新数据时，用 `storage.get(name)` 读取定义并传回详情组件；
+5. `directories` 会随定义一起保存，用于恢复没有文件的空目录。
+
+应用应处理 `storage.add`、`storage.get` 和导入失败，并向用户显示错误；组件不会替应用重试或决定失败后的页面状态。
+
 ### SkillDefinition
 
 运行时只消费统一的 `SkillDefinition`，不关心它来自 Loader、Storage 还是应用内存：
@@ -269,17 +281,21 @@ interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 ```
 
-| 字段 | 用途 |
-| --- | --- |
-| `name` | 唯一名称，也是 selection 和 resolver 使用的键 |
-| `description` | UI 展示、搜索和 auto 候选摘要 |
-| `instructions` | 当前 skill 提供给模型的核心指令 |
-| `resources` | 可由运行时资源工具列出和读取的附加文件 |
-| `metadata` | 应用或 Loader 保留的扩展信息 |
+| 字段           | 用途                                          |
+| -------------- | --------------------------------------------- |
+| `name`         | 唯一名称，也是 selection 和 resolver 使用的键 |
+| `description`  | UI 展示、搜索和 auto 候选摘要                 |
+| `instructions` | 当前 skill 提供给模型的核心指令               |
+| `resources`    | 可由运行时资源工具列出和读取的附加文件        |
+| `directories`  | 需要保留的相对目录路径，即使目录暂时为空      |
+| `metadata`     | 应用或 Loader 保留的扩展信息                  |
+
+`directories` 只记录需要保留的空目录，不替代 `resources` 的文件路径。浏览器目录导入、GitHub/Node Loader 和各类 Storage 会在能够识别目录项时保留它；旧定义没有该字段时按没有显式空目录处理。编辑组件通过 `save` 返回更新后的 `directories`，应用写入 Storage 后，重新 `get` 才能恢复空目录状态。
 
 ### 浏览器加载
 
@@ -300,7 +316,7 @@ async function importFromInput(input: HTMLInputElement) {
 }
 ```
 
-支持 File System Access API 的浏览器也可以使用目录句柄：
+支持 File System Access API 的浏览器也可以使用目录句柄。
 
 ```typescript
 const directoryHandle = await window.showDirectoryPicker()
@@ -311,6 +327,47 @@ const skill = await loadSkill({
 ```
 
 `showDirectoryPicker()` 并非所有浏览器都支持，生产界面应保留文件 input 作为回退方式。
+
+### 归档加载
+
+支持 ZIP、TAR、TAR.GZ 和 TGZ。归档中的入口文件默认为 `SKILL.md`，可通过 `entryFile` 配置；入口须位于归档根目录或唯一顶层目录内。
+
+页面可通过 `<input id="skill-archive" type="file" accept=".zip,.tar,.tar.gz,.tgz">` 获取归档文件，再调用 `loadSkill`：
+
+```typescript
+const archiveInput = document.querySelector<HTMLInputElement>('#skill-archive')!
+const archiveFile = archiveInput.files?.[0]
+if (!archiveFile) throw new Error('请先选择 Skill 压缩包')
+
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+})
+console.log(skill.name, skill.instructions, skill.resources)
+```
+
+默认有效文件的解压内容上限为 10 MiB、数量上限为 10,000，目录和被忽略的元数据不计入这两项限额；压缩文件上限默认为解压内容上限加 10 MiB。可通过 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount` 调整：
+
+```typescript
+const skill = await loadSkill({
+  source: 'archive',
+  file: archiveFile,
+  maxArchiveSize: 20 * 1024 * 1024,
+  maxUncompressedSize: 100 * 1024 * 1024,
+  maxFileCount: 1000,
+})
+```
+
+归档另有固定的 10,000 条目上限，目录和被忽略的元数据也计入条目数，调大 `maxFileCount` 无法突破此上限。
+
+<details>
+<summary>TAR.GZ / TGZ 容器超限处理</summary>
+
+TAR.GZ 和 TGZ 的完整解压容器（含文件头、填充及元数据）另受 `maxUncompressedSize + 10000 × 1024 + 10240` 字节上限约束。因此，即使压缩文件大小、有效文件总大小和文件数均未超限，仍可能因容器超限被拒绝。遇到 `TAR.GZ container exceeds` 错误时，请移除不需要的元数据后重新打包。
+
+</details>
+
+浏览器入口和 `/node` 入口都支持以上归档格式。ZIP Deflate 解压需要运行时支持 `DecompressionStream('deflate-raw')`；Node.js 从 20.12 起支持。Node 侧传入带原始归档文件名的 `File`，示例见下方 Node.js 环境章节。
 
 ### GitHub 加载
 
@@ -435,6 +492,18 @@ const summaries = await storage.list()
 
 Fs storage 保持原生 skill 目录结构，因此已有的 skills 目录可以直接作为 storage root。
 
+Node.js 也可以读取命名后的归档 `File`；`File` 名称扩展名用于识别格式：
+
+```typescript
+import { readFile } from 'node:fs/promises'
+import { loadSkill } from '@opentiny/tiny-robot-kit/node'
+
+const bytes = await readFile('./weather.zip')
+const weather = await loadSkill({ source: 'archive', file: new File([bytes], 'weather.zip') })
+```
+
+如果编辑页面使用 `SkillExtensionDetail`，推荐在 `save` 事件中直接调用 `storage.add(nextDefinition)`，再用 `storage.get(name)` 刷新详情；不要只处理 `file-action` 而遗漏同一操作产生的新定义。
+
 下面的演示可以导入内置示例或本地目录，将 skill 保存到 storage，并通过列表查看和选择已保存的 skill。
 
 <demo
@@ -503,12 +572,12 @@ skillPlugin({
 })
 ```
 
-| 回调 | 触发时机 | 常见用途 |
-| --- | --- | --- |
-| `onSkillsResolved` | manual 解析完成；auto 模型完成选择并解析 skill 后 | 同步已启用和未解析名称 |
-| `onInstructionsResolved` | manual 解析完成；auto 进入 `selecting` 和 `ready` 时分别触发 | 将当前 instructions 同步到 UI、日志、应用状态或持久消息管理逻辑 |
-| `onSkillSelectionResolved` | auto 模型调用 `select_skills` 后、解析完整 skill 前 | 记录模型请求启用的名称 |
-| `onBeforeRequest` | 每次 request body 组装完成、发送给 provider 前 | 临时调整本次 `requestBody`，例如添加 instructions 或 provider 专用字段 |
+| 回调                       | 触发时机                                                     | 常见用途                                                               |
+| -------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `onSkillsResolved`         | manual 解析完成；auto 模型完成选择并解析 skill 后            | 同步已启用和未解析名称                                                 |
+| `onInstructionsResolved`   | manual 解析完成；auto 进入 `selecting` 和 `ready` 时分别触发 | 将当前 instructions 同步到 UI、日志、应用状态或持久消息管理逻辑        |
+| `onSkillSelectionResolved` | auto 模型调用 `select_skills` 后、解析完整 skill 前          | 记录模型请求启用的名称                                                 |
+| `onBeforeRequest`          | 每次 request body 组装完成、发送给 provider 前               | 临时调整本次 `requestBody`，例如添加 instructions 或 provider 专用字段 |
 
 `onInstructionsResolved` 发生在 request body 创建之前，适合同步应用状态；应用可以根据同步结果创建或更新持久 system/user message。只有需要临时修改本次 `requestBody` 时，才使用 `onBeforeRequest`。
 
@@ -548,18 +617,18 @@ interface SkillRequestContext {
 
 ## 常见问题
 
-| 现象 | 原因 | 处理方式 |
-| --- | --- | --- |
-| instructions 没有出现在模型请求中 | `skillPlugin` 只生成 instructions，不决定承载方式 | 选择承载策略：请求级注入可使用 `onBeforeRequest`；需要持久化时由应用创建或更新消息 |
-| manual + `skillNames` 报 resolver 错误 | 缺少 `getSkillByName` | 提供能按名称返回完整 `SkillDefinition` 的 resolver |
-| auto 在发送请求前失败 | 缺少或禁用了 `toolPlugin` | 注册一个启用的 `toolPlugin` |
-| auto 报候选来源错误 | 没有 `skills` 或 `getSkillCandidates` | 提供内存候选集合或候选摘要 provider |
-| auto 报 skill resolver 错误 | 缺少 `getSkillByName` 且没有可作为默认 resolver 的 `skills` | 提供 `getSkillByName` 或顶层 `skills` |
-| 某些名称没有启用 | resolver 失败、返回 `undefined`，或返回的 `skill.name` 不匹配 | 查看 `unresolvedSkillNames` 并检查 resolver |
-| 资源工具没有进入请求 | 没有启用 `toolPlugin`，或所选 skill 没有 resources | 注册 `toolPlugin` 并检查最终解析的 skill |
-| `read_skill_file` 返回二进制不可读错误 | 目标资源是 `kind: 'binary'` | 使用应用提供的二进制处理流程；当前工具只读取文本 |
-| `showDirectoryPicker` 不可用 | 浏览器不支持 File System Access API | 回退到 `<input type="file" webkitdirectory>` |
-| 想显示 warning，但 Loader 直接抛错 | 启用了 `strict: true` | 关闭 strict 并使用 `loadSkillWithDetails` 读取 warnings |
+| 现象                                   | 原因                                                          | 处理方式                                                                           |
+| -------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| instructions 没有出现在模型请求中      | `skillPlugin` 只生成 instructions，不决定承载方式             | 选择承载策略：请求级注入可使用 `onBeforeRequest`；需要持久化时由应用创建或更新消息 |
+| manual + `skillNames` 报 resolver 错误 | 缺少 `getSkillByName`                                         | 提供能按名称返回完整 `SkillDefinition` 的 resolver                                 |
+| auto 在发送请求前失败                  | 缺少或禁用了 `toolPlugin`                                     | 注册一个启用的 `toolPlugin`                                                        |
+| auto 报候选来源错误                    | 没有 `skills` 或 `getSkillCandidates`                         | 提供内存候选集合或候选摘要 provider                                                |
+| auto 报 skill resolver 错误            | 缺少 `getSkillByName` 且没有可作为默认 resolver 的 `skills`   | 提供 `getSkillByName` 或顶层 `skills`                                              |
+| 某些名称没有启用                       | resolver 失败、返回 `undefined`，或返回的 `skill.name` 不匹配 | 查看 `unresolvedSkillNames` 并检查 resolver                                        |
+| 资源工具没有进入请求                   | 没有启用 `toolPlugin`，或所选 skill 没有 resources            | 注册 `toolPlugin` 并检查最终解析的 skill                                           |
+| `read_skill_file` 返回二进制不可读错误 | 目标资源是 `kind: 'binary'`                                   | 使用应用提供的二进制处理流程；当前工具只读取文本                                   |
+| `showDirectoryPicker` 不可用           | 浏览器不支持 File System Access API                           | 回退到 `<input type="file" webkitdirectory>`                                       |
+| 想显示 warning，但 Loader 直接抛错     | 启用了 `strict: true`                                         | 关闭 strict 并使用 `loadSkillWithDetails` 读取 warnings                            |
 
 ## API 参考
 
@@ -567,48 +636,48 @@ interface SkillRequestContext {
 
 ### Loader
 
-| API | 导入入口 | 环境 | 返回值 | 说明 |
-| --- | --- | --- | --- | --- |
-| `loadSkill(options)` | 包根入口 | 浏览器 | `SkillLoadJob<SkillDefinition>` | 支持 browser/GitHub source |
-| `loadSkillWithDetails(options)` | 包根入口 | 浏览器 | `SkillLoadJob<SkillLoadResult>` | 同时返回 skill 和 warnings |
-| `loadSkill(options)` | `/node` | Node.js | `SkillLoadJob<SkillDefinition>` | 支持 fs/GitHub source |
-| `loadSkillWithDetails(options)` | `/node` | Node.js | `SkillLoadJob<SkillLoadResult>` | Node 侧 details 版本 |
+| API                             | 导入入口 | 环境    | 返回值                          | 说明                               |
+| ------------------------------- | -------- | ------- | ------------------------------- | ---------------------------------- |
+| `loadSkill(options)`            | 包根入口 | 浏览器  | `SkillLoadJob<SkillDefinition>` | 支持 browser/archive/GitHub source |
+| `loadSkillWithDetails(options)` | 包根入口 | 浏览器  | `SkillLoadJob<SkillLoadResult>` | 同时返回 skill 和 warnings         |
+| `loadSkill(options)`            | `/node`  | Node.js | `SkillLoadJob<SkillDefinition>` | 支持 fs/archive/GitHub source      |
+| `loadSkillWithDetails(options)` | `/node`  | Node.js | `SkillLoadJob<SkillLoadResult>` | Node 侧 details 版本               |
 
 所有 `SkillLoadJob` 都是带 `cancel(): void` 的 Promise。通用选项包括自定义入口文件 `entryFile` 和严格模式 `strict`；`onProgress` 目前是实验性预留，Loader 尚未上报进度事件。
 
 ### Storage
 
-| API | 说明 |
-| --- | --- |
-| `add(skill)` | 保存已经完整加载的 `SkillDefinition` |
-| `get(name)` | 恢复完整定义；不存在时返回 `undefined` |
-| `has(name)` | 判断 storage entry 是否存在，不验证内容能否完整读取 |
-| `delete(name)` | 删除指定 skill |
-| `list()` | 返回 `SkillSummary[]`，用于 UI 或 auto 候选摘要 |
-| `import(options)` | 执行 Loader + add，返回可取消的 `SkillImportJob` |
+| API               | 说明                                                |
+| ----------------- | --------------------------------------------------- |
+| `add(skill)`      | 保存已经完整加载的 `SkillDefinition`                |
+| `get(name)`       | 恢复完整定义；不存在时返回 `undefined`              |
+| `has(name)`       | 判断 storage entry 是否存在，不验证内容能否完整读取 |
+| `delete(name)`    | 删除指定 skill                                      |
+| `list()`          | 返回 `SkillSummary[]`，用于 UI 或 auto 候选摘要     |
+| `import(options)` | 执行 Loader + add，返回可取消的 `SkillImportJob`    |
 
-| Storage 实现 | 导入入口 | 适用环境 |
-| --- | --- | --- |
-| `createIndexedDBSkillStorage` | 包根入口 | 浏览器持久化 |
-| `createMemorySkillStorage` | 包根入口或 `/node` | 临时状态与测试 |
-| `createFsSkillStorage` | `/node` | Node.js 文件系统持久化 |
+| Storage 实现                  | 导入入口           | 适用环境               |
+| ----------------------------- | ------------------ | ---------------------- |
+| `createIndexedDBSkillStorage` | 包根入口           | 浏览器持久化           |
+| `createMemorySkillStorage`    | 包根入口或 `/node` | 临时状态与测试         |
+| `createFsSkillStorage`        | `/node`            | Node.js 文件系统持久化 |
 
 ### Vue skillPlugin
 
-| 参数 | 模式 | 必需条件/默认值 | 说明 |
-| --- | --- | --- | --- |
-| `mode` | 全部 | 默认 `manual` | 支持普通值、`ref`、`computed` |
-| `skills` | manual/auto | 可选 | manual 表示已选完整 skills；auto 表示候选并作为默认 resolver 来源 |
-| `skillNames` | manual | 使用非空 names 时需要 `getSkillByName` | 已选名称，支持响应式值 |
-| `preferredSkillNames` | auto | 可选 | 选择偏好，不是最终启用结果 |
-| `maxSelectedSkills` | auto | 默认不超过候选数量 | 限制模型最多选择的数量 |
-| `selection` | 全部 | 高级入口 | plain object 或请求级函数；覆盖顶层 `mode`、names、preference 和数量限制 |
-| `getSkillCandidates` | auto | 未提供 `skills` 时需要 | 返回候选摘要 |
-| `getSkillByName` | manual/auto | 按配置决定 | 按名称解析完整定义 |
-| `onInstructionsResolved` | manual/auto | 可选 | instructions 更新后触发，用于同步 UI、应用状态或持久消息逻辑 |
-| `onSkillsResolved` | manual/auto ready | 可选 | 完整 skill 解析后触发 |
-| `onSkillSelectionResolved` | auto | 可选 | 模型完成名称选择后触发 |
-| `onBeforeRequest` | 全部 | 需要临时修改本次请求时使用 | 继承自 message plugin，用于修改最终 request body，不会自动写回消息历史 |
+| 参数                       | 模式              | 必需条件/默认值                        | 说明                                                                     |
+| -------------------------- | ----------------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `mode`                     | 全部              | 默认 `manual`                          | 支持普通值、`ref`、`computed`                                            |
+| `skills`                   | manual/auto       | 可选                                   | manual 表示已选完整 skills；auto 表示候选并作为默认 resolver 来源        |
+| `skillNames`               | manual            | 使用非空 names 时需要 `getSkillByName` | 已选名称，支持响应式值                                                   |
+| `preferredSkillNames`      | auto              | 可选                                   | 选择偏好，不是最终启用结果                                               |
+| `maxSelectedSkills`        | auto              | 默认不超过候选数量                     | 限制模型最多选择的数量                                                   |
+| `selection`                | 全部              | 高级入口                               | plain object 或请求级函数；覆盖顶层 `mode`、names、preference 和数量限制 |
+| `getSkillCandidates`       | auto              | 未提供 `skills` 时需要                 | 返回候选摘要                                                             |
+| `getSkillByName`           | manual/auto       | 按配置决定                             | 按名称解析完整定义                                                       |
+| `onInstructionsResolved`   | manual/auto       | 可选                                   | instructions 更新后触发，用于同步 UI、应用状态或持久消息逻辑             |
+| `onSkillsResolved`         | manual/auto ready | 可选                                   | 完整 skill 解析后触发                                                    |
+| `onSkillSelectionResolved` | auto              | 可选                                   | 模型完成名称选择后触发                                                   |
+| `onBeforeRequest`          | 全部              | 需要临时修改本次请求时使用             | 继承自 message plugin，用于修改最终 request body，不会自动写回消息历史   |
 
 选择配置的说明性结构如下：
 
@@ -622,11 +691,11 @@ type SkillSelection =
 
 ### SkillRequestContext 字段
 
-| 字段 | 说明 |
-| --- | --- |
-| `skills` | 成功启用的完整 skill definitions |
-| `skillNames` | 成功启用的名称 |
-| `requestedSkillNames` | manual 或 auto 请求启用的名称 |
-| `unresolvedSkillNames` | 请求启用但未成功解析的名称 |
-| `instructions` | 当前 selection 阶段生成的 instructions |
-| `selection` | 当前模式、阶段、候选和偏好信息 |
+| 字段                   | 说明                                   |
+| ---------------------- | -------------------------------------- |
+| `skills`               | 成功启用的完整 skill definitions       |
+| `skillNames`           | 成功启用的名称                         |
+| `requestedSkillNames`  | manual 或 auto 请求启用的名称          |
+| `unresolvedSkillNames` | 请求启用但未成功解析的名称             |
+| `instructions`         | 当前 selection 阶段生成的 instructions |
+| `selection`            | 当前模式、阶段、候选和偏好信息         |

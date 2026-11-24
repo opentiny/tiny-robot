@@ -10,7 +10,7 @@
         --qa-page-bg: #f5f7fa;
         --qa-surface: #fff;
         --qa-text: #222b36;
-        --qa-muted: #536171;
+        --qa-muted: #595959;
         --qa-border: #cbd3dd;
         --qa-warning-bg: #fff4e5;
         --qa-warning-text: #744c12;
@@ -27,7 +27,7 @@
         --qa-page-bg: #1b1b1f;
         --qa-surface: #202127;
         --qa-text: #dfdfe4;
-        --qa-muted: #a2a2a8;
+        --qa-muted: #b3b3b3;
         --qa-border: #3c3f44;
         --qa-warning-bg: rgb(234 179 8 / 16%);
         --qa-warning-text: #f0ca7f;
@@ -132,21 +132,24 @@
 
     <script>
       ;(async () => {
-        const root = document.documentElement
+        // === 1. 文档站预览适配：如独立项目已通过 <script src=".../vanilla.global.js"> 引入，可整体删除本段 ===
+        const previewRoot = document.documentElement
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         let parentRoot
-        let previewUmdUrl
+        let previewGlobalUrl
         try {
           if (window.parent !== window) {
             parentRoot = window.parent.document.documentElement
-            previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
+            previewGlobalUrl = window.parent.__tinyRobotVanillaDemoGlobalUrl
           }
         } catch {
           // 跨源嵌入时不能读取父页面，使用当前系统主题。
         }
         const syncTheme = () => {
           const dark = parentRoot ? parentRoot.classList.contains('dark') : systemTheme.matches
-          root.dataset.theme = dark ? 'dark' : 'light'
+          previewRoot.dataset.theme = dark ? 'dark' : 'light'
+          // 文档预览会向 iframe 复制 TinyRobot 共享样式，保持其主题属性与自定义主题来源同步。
+          previewRoot.dataset.trColorMode = previewRoot.dataset.theme
         }
         syncTheme()
         const themeObserver = parentRoot ? new MutationObserver(syncTheme) : undefined
@@ -160,20 +163,23 @@
           },
           { once: true },
         )
+
+        // 已预先加载 window.TinyRobotVanilla 时直接复用，跳过文档预览回退脚本加载。
+        if (!window.TinyRobotVanilla) {
+          const localGlobalUrl = new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI)
+          const script = document.createElement('script')
+          script.src = previewGlobalUrl ?? localGlobalUrl.href
+          await new Promise((resolve, reject) => {
+            script.onload = resolve
+            script.onerror = () => reject(new Error('无框架组件脚本加载失败，请先通过 <script> 引入 vanilla.global.js'))
+            document.head.appendChild(script)
+          })
+        }
+
+        // === 2. QuickAssist 核心接入代码 ===
         const output = document.querySelector('#request-output')
         const panel = document.querySelector('#assistant-panel')
         const status = document.querySelector('#event-status')
-
-        // 文档预览在 iframe 中运行，资源地址由文档页面提供；单独打开此文件时从仓库构建产物加载。
-        const localUmdUrl = new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI)
-        const script = document.createElement('script')
-        script.src = previewUmdUrl ?? localUmdUrl.href
-        await new Promise((resolve, reject) => {
-          script.onload = resolve
-          script.onerror = () => reject(new Error('无框架组件脚本加载失败'))
-          document.head.appendChild(script)
-        })
-
         window.TinyRobotVanilla.configureVanillaTheme({
           source: { type: 'attribute', attribute: 'data-theme' },
         })

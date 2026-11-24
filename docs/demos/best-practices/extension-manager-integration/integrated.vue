@@ -14,7 +14,7 @@ import ExtensionAddMenu from './ExtensionAddMenu.vue'
 import { useExtensionCatalog } from './use-extension-catalog'
 import { useExtensionDialog } from './use-extension-dialog'
 
-type AddAction = 'mcp' | 'skill-local' | 'skill-github'
+type AddAction = 'mcp' | 'skill-local' | 'skill-archive' | 'skill-github'
 
 const catalog = useExtensionCatalog()
 const { activeTab, catalogError, handleAction, loadCatalog, loading, message, resetCatalog, saving, tabs } = catalog
@@ -40,7 +40,14 @@ const {
 } = useExtensionDialog(catalog)
 
 const handleAddSelect = (action: AddAction, trigger: HTMLButtonElement) => {
-  const nextPanel = action === 'mcp' ? 'mcp-add' : action === 'skill-local' ? 'skill-local-add' : 'skill-github-add'
+  const nextPanel =
+    action === 'mcp'
+      ? 'mcp-add'
+      : action === 'skill-local'
+        ? 'skill-local-add'
+        : action === 'skill-archive'
+          ? 'skill-archive-add'
+          : 'skill-github-add'
   void openDialog(nextPanel, '', trigger)
 }
 
@@ -90,12 +97,14 @@ onMounted(() => void loadCatalog())
             panel === 'mcp-add'
               ? '添加 MCP'
               : panel === 'skill-local-add'
-                ? '上传 Skill 技能包'
-                : panel === 'skill-github-add'
-                  ? '从 GitHub 导入 Skill'
-                  : panel === 'mcp-detail'
-                    ? 'MCP 详情'
-                    : 'Skill 详情'
+                ? '上传 Skill 文件夹'
+                : panel === 'skill-archive-add'
+                  ? '上传 Skill 压缩包'
+                  : panel === 'skill-github-add'
+                    ? '从 GitHub 导入 Skill'
+                    : panel === 'mcp-detail'
+                      ? 'MCP 详情'
+                      : 'Skill 详情'
           }}
         </h3>
         <TrIconButton
@@ -117,9 +126,9 @@ onMounted(() => void loadCatalog())
         @cancel="closeDialog"
       />
       <tr-skill-import-form
-        v-else-if="panel === 'skill-local-add' || panel === 'skill-github-add'"
+        v-else-if="panel === 'skill-local-add' || panel === 'skill-archive-add' || panel === 'skill-github-add'"
         :key="formKey"
-        :source="panel === 'skill-local-add' ? 'local' : 'github'"
+        :source="panel === 'skill-local-add' ? 'local' : panel === 'skill-archive-add' ? 'archive' : 'github'"
         :resolve-skill="panel === 'skill-github-add' ? resolveExampleSkill : undefined"
         @submit="handleSkillSubmit"
         @cancel="closeDialog"

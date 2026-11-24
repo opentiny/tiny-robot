@@ -25,6 +25,11 @@ const githubInput: SkillImportFormInput = {
   url: 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo',
   repo: 'opentiny/tiny-robot',
 }
+const archiveInput: SkillImportFormInput = {
+  source: 'archive',
+  file: new File(['archive'], 'skill.zip'),
+  maxUncompressedSize: 1024,
+}
 const definition: SkillDefinition = {
   name: 'demo',
   description: 'Demo skill',
@@ -48,6 +53,7 @@ void SkillImportForm
 void TrSkillImportForm
 void localInput
 void githubInput
+void archiveInput
 void props
 void compatibleDefinition
 void skillAddValidationExportsAreInternal

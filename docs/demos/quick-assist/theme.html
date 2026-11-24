@@ -66,27 +66,32 @@
     <p id="theme-status" aria-live="polite">正在加载组件…</p>
     <script>
       ;(async () => {
-        // 文档的 HTML 预览会复制宿主样式；移除副本，展示组件自带的配色。
+        // === 1. 文档站预览适配：如独立项目已通过 <script src=".../vanilla.global.js"> 引入，可整体删除本段 ===
+        // 文档的 HTML 预览会复制宿主样式；移除副本以展示组件自带的配色。
         document.querySelectorAll('style[replace="true"], link[as="style"]').forEach((element) => element.remove())
+        if (!window.TinyRobotVanilla) {
+          let previewGlobalUrl
+          try {
+            previewGlobalUrl = window.parent.__tinyRobotVanillaDemoGlobalUrl
+          } catch {
+            // 单独打开或跨源嵌入时使用本地构建产物。
+          }
+          const script = document.createElement('script')
+          script.src =
+            previewGlobalUrl ??
+            new URL('../../../packages/components/dist/vanilla/vanilla.global.js', document.baseURI).href
+          await new Promise((resolve, reject) => {
+            script.onload = resolve
+            script.onerror = () => reject(new Error('组件加载失败，请先引入 vanilla.global.js 或构建 TinyRobot'))
+            document.head.append(script)
+          })
+        }
+
+        // === 2. 主题配置与 QuickAssist 接入代码 ===
         const root = document.documentElement
         const select = document.querySelector('#theme-mode')
         const status = document.querySelector('#theme-status')
         const system = window.matchMedia('(prefers-color-scheme: dark)')
-        let previewUmdUrl
-        try {
-          previewUmdUrl = window.parent.__tinyRobotVanillaDemoUmdUrl
-        } catch {
-          // 单独打开或跨源嵌入时使用本地构建产物。
-        }
-        const script = document.createElement('script')
-        script.src =
-          previewUmdUrl ?? new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI).href
-        await new Promise((resolve, reject) => {
-          script.onload = resolve
-          script.onerror = () => reject(new Error('组件加载失败，请先构建 TinyRobot'))
-          document.head.append(script)
-        })
-
         const { configureVanillaTheme, createQuickAssist } = window.TinyRobotVanilla
         const syncPage = () => {
           const mode = select.value === 'auto' ? (system.matches ? 'dark' : 'light') : select.value

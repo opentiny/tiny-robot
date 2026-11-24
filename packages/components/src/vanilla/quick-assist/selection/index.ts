@@ -1,3 +1,4 @@
+import { DEFAULT_SELECTION } from '../defaults'
 import type { QuickAssistActivation, QuickAssistSelectionModule } from '../core/types'
 import type { QuickAssistSelectionOptions, SelectionSnapshot } from '../types'
 
@@ -27,6 +28,8 @@ export interface SelectionValidationOptions {
   include: string[]
   exclude: string[]
   maxTextLength: number
+  /** Keep eligible over-limit selections so the runtime can show a disabled entry. */
+  allowOverLimit?: boolean
   validate?: (snapshot: SelectionSnapshot) => boolean
   selection?: QuickAssistSelectionOptions
   onError?: (error: Error) => void
@@ -146,7 +149,7 @@ function hasValidGeometry(snapshot: SelectionSnapshot): boolean {
 
 export function isDefaultTextValid(text: string, maxTextLength: number): boolean {
   const trimmed = text.trim()
-  if (!trimmed || trimmed.length > maxTextLength) return false
+  if (!trimmed || Array.from(trimmed).length > maxTextLength) return false
   if (NUMERIC_RE.test(trimmed) || PUNCTUATION_RE.test(trimmed.replace(/\s+/gu, ''))) return false
   if (URL_RE.test(trimmed) || UUID_RE.test(trimmed)) return false
   return true
@@ -169,11 +172,15 @@ export function validateSelectionSelectors(root: Document, selectors: string[]):
  * and outside the exclusion boundary.
  */
 export function validateSelectionSnapshot(snapshot: SelectionSnapshot, options: SelectionValidationOptions): boolean {
-  const maxTextLength = options.selection?.maxTextLength ?? options.maxTextLength ?? 300
+  const maxTextLength =
+    options.selection?.maxTextLength === null
+      ? Infinity
+      : (options.selection?.maxTextLength ?? options.maxTextLength ?? DEFAULT_SELECTION.maxTextLength)
   const include = options.include ?? []
   const exclude = [...DEFAULT_EXCLUDE, ...(options.exclude ?? [])]
   const text = snapshot.text.trim()
-  if (!text || text.length > maxTextLength || !hasValidGeometry(snapshot)) return false
+  if (!text || (!options.allowOverLimit && Array.from(text).length > maxTextLength) || !hasValidGeometry(snapshot))
+    return false
 
   const nodes = intersectsTextNodes(snapshot.range)
   if (!nodes.length) return false
@@ -195,7 +202,7 @@ export function validateSelectionSnapshot(snapshot: SelectionSnapshot, options: 
       return false
     }
   }
-  return isDefaultTextValid(text, maxTextLength)
+  return isDefaultTextValid(text, options.allowOverLimit ? Infinity : maxTextLength)
 }
 
 function getRootSelection(root: Document): Selection | null {
@@ -293,8 +300,9 @@ export function createSelectionModule(options: SelectionModuleOptions): Selectio
         root,
         include: options.include ?? [],
         exclude: options.exclude ?? [],
-        maxTextLength: options.selection?.maxTextLength ?? 300,
+        maxTextLength: options.selection?.maxTextLength ?? DEFAULT_SELECTION.maxTextLength,
         selection: options.selection,
+        allowOverLimit: true,
         onError: options.onError,
       })
     ) {
