@@ -2,6 +2,12 @@
 import { TrSkillExtensionDetail } from '@opentiny/tiny-robot'
 import type { SkillDefinition } from '@opentiny/tiny-robot'
 
+const decodeBase64 = (value: string) => Uint8Array.from(atob(value), (character) => character.charCodeAt(0))
+
+const examplePng = decodeBase64(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+)
+
 const definition: SkillDefinition = {
   name: 'document-summary',
   description: '将长文档整理为摘要。',
@@ -26,8 +32,9 @@ const definition: SkillDefinition = {
       path: 'assets/example.png',
       kind: 'binary',
       resourceId: 'assets/example.png',
-      size: 4,
-      binary: new Uint8Array([137, 80, 78, 71]),
+      mimeType: 'image/png',
+      size: examplePng.byteLength,
+      binary: examplePng,
     },
   ],
 }
