@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { createMemorySkillStorage } from '@opentiny/tiny-robot-kit'
 import { TrSkillExtensionDetail } from '@opentiny/tiny-robot'
 import type { SkillDefinition } from '@opentiny/tiny-robot'
 
@@ -17,22 +18,32 @@ const definition = ref<SkillDefinition>({
       text: '# 写作规范\n\n使用简洁、清晰的语言。',
     },
   ],
+  directories: ['references/drafts'],
 })
 
 const saveMessage = ref('')
+const storage = createMemorySkillStorage()
 
-const handleSave = (nextDefinition: SkillDefinition) => {
-  definition.value = nextDefinition
+const handleSave = async (nextDefinition: SkillDefinition) => {
+  definition.value = await storage.add(nextDefinition)
   saveMessage.value = '已保存到当前示例状态。'
 }
+
+const reload = async () => {
+  const restored = await storage.get(definition.value.name)
+  if (restored) definition.value = restored
+  saveMessage.value = '已从 Storage 重新读取当前 Skill。'
+}
+
+void storage.add(definition.value)
 </script>
 
 <template>
   <div class="skill-editing-demo">
     <p class="skill-editing-demo__hint">
-      当前选中 <strong>SKILL.md</strong>。点击右侧文件标题栏的
-      <strong>编辑</strong>，修改后点保存；也可以先选择左侧文本资源再编辑。
+      默认会选中入口文件。可以切换左侧文件、编辑文本内容或管理文件树；保存后会写入示例 Storage。
     </p>
+    <button type="button" class="skill-editing-demo__reload" @click="reload">从 Storage 重新读取</button>
     <TrSkillExtensionDetail mode="edit" :definition="definition" @save="handleSave" />
     <p v-if="saveMessage" class="skill-editing-demo__status" role="status">{{ saveMessage }}</p>
   </div>
@@ -48,5 +59,9 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 .skill-editing-demo__status {
   margin: 12px 0 0;
+}
+
+.skill-editing-demo__reload {
+  margin-bottom: 12px;
 }
 </style>

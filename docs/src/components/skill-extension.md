@@ -16,9 +16,11 @@ outline: [1, 3]
 
 ### 职责边界
 
-导入表单管理输入、校验、解析中的加载状态和错误反馈；默认解析器由 kit 提供。**解析不等于持久化**：应用收到 Skill 定义后，仍需自行保存并更新扩展列表。详情组件只展示应用传入的定义，不读取资源内容或加载远程数据；弹窗标题、关闭和焦点管理由应用负责。
+导入表单管理输入、校验、解析中的加载状态和错误反馈；默认解析器由 kit 提供。**解析不等于持久化**：应用收到 Skill 定义后，仍需自行保存并更新扩展列表。详情组件负责读取定义提供的文本、二进制或懒加载资源，维护编辑状态并通过 `save` 输出新定义；长期持久化、弹窗标题、关闭和焦点管理由应用负责。
 
-## 快速开始
+Loader、Storage 和运行时 `skillPlugin` 的职责见 [Skill 技能接入](../tools/skill.md)；本页只说明 Vue 导入与详情组件。
+
+## 快速开始：先看一个 Skill 定义
 
 `@opentiny/tiny-robot-kit` 是组件库的 peer dependency。使用默认解析器前应安装两个包：
 
@@ -38,15 +40,17 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 
 :::
 
-下面的示例不传 `resolve-skill`，由组件使用 kit 默认解析器读取 GitHub 上的真实 Skill。复制示例地址并粘贴进 URL 输入框，点击“导入”后可查看解析出的名称、`SKILL.md` 正文和资源文件。示例需要能访问 GitHub；网络请求或限流失败时，表单会显示错误。导入结果只保存在当前页面内，刷新后不会保留。
+最小接入可以先直接准备一个内联 `SkillDefinition`，理解 `instructions`、`resources` 与详情组件之间的关系；这个示例不需要 GitHub 网络。
 
 <demo
   vue="../../demos/skill-import-form/basic.vue"
-  title="从 GitHub 地址导入"
-  description="使用 kit 默认解析器导入真实 Skill，并查看应用收到的定义。"
+  title="最小 Skill 定义"
+  description="使用内联 SkillDefinition 查看 SKILL.md 和文本资源，不依赖网络。"
 />
 
-## 用法示例
+实际应用通常把 `SkillDefinition` 放在应用状态或 Storage 中，再传给 `SkillExtensionDetail`。导入表单和详情组件通过 `submit` 事件连接，不由组件自动持久化。
+
+## 导入 Skill
 
 ### 导入本地文件夹
 
@@ -73,9 +77,19 @@ description: 用于试用 Skill 导入。
   description="选择包含 SKILL.md 的文件夹，确认后查看应用收到的定义。"
 />
 
-### 观察加载、失败与重试
+### 从 GitHub 导入
 
-`source="github"` 接受带 Skill 子目录的 HTTPS GitHub `tree` 地址，或直接指向 `SKILL.md` 的 `blob` 地址。点击“导入”后，组件先把规范化的 `url` 和 `owner/repo` 形式的 `repo` 交给解析器；成功时直接触发 `submit`，失败时在组件内显示错误。默认解析器会查询仓库真实的分支和标签，按最长匹配确定 `ref` 与目录边界，也支持 40 位 commit SHA。自定义解析器若需要 `ref` 和目录，必须自行解析，或调用 kit 的加载能力。示例用手动完成的本地 Promise 展示加载、成功和失败，并可再次导入或重置。
+`source="github"` 接受带 Skill 子目录的 HTTPS GitHub `tree` 地址，或直接指向 `SKILL.md` 的 `blob` 地址。默认解析器会查询仓库真实的分支和标签，按最长匹配确定 `ref` 与目录边界，也支持 40 位 commit SHA。示例需要能访问 GitHub；网络请求或限流失败时，表单会显示错误。
+
+<demo
+  vue="../../demos/skill-import-form/github-import.vue"
+  title="从 GitHub 地址导入并查看"
+  description="导入成功后直接把 SkillDefinition 传给详情组件查看正文和资源。"
+/>
+
+### 自定义解析器的状态、失败与重试
+
+点击“导入”后，组件把规范化的输入交给解析器；成功时触发 `submit`，失败时在组件内显示错误。自定义解析器若需要 `ref` 和目录边界，必须自行解析，或调用 kit 的加载能力。下面的示例用手动完成的本地 Promise 展示加载、成功和失败，不依赖真实网络，并可再次导入或重置。
 
 <demo
   vue="../../demos/skill-import-form/resolver-states.vue"
@@ -137,7 +151,7 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 `mode="view"` 控制详情是否展示编辑能力；`mode="edit"` 下，文本资源可以编辑，二进制资源仍只读。根目录 `SKILL.md` 跟随详情模式允许编辑。
 
-文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名，并通过 `file-action` 事件通知应用。应用负责处理这些事件并完成实际持久化；`SkillDefinition.directories` 用于持久化空目录。
+文件树操作由组件提供固定交互，包括新增文件、新增文件夹、删除文件、删除文件夹和重命名。每次操作都会立即更新组件状态，并通过 `save` 事件提供新的 `SkillDefinition`；同时通过 `file-action` 事件通知应用操作类型，应用通常只需要在 `save` 中统一持久化。`SkillDefinition.directories` 用于持久化空目录。
 
 文件树操作统一由 `mode="edit"` 控制；当前组件不支持自定义文件树 action 列表或 action resolver。
 
@@ -145,7 +159,7 @@ const handleSave = (nextDefinition: SkillDefinition) => {
 
 本地文件选择区支持键盘访问；移除文件夹后焦点回到上传入口。GitHub 地址无效时输入框会标记错误并获得焦点，解析错误以可见提示呈现。解析期间提交按钮不可用，用户可以在失败后修改输入并重试。
 
-查看模式下，文件树中的文件和文件夹按钮支持键盘操作。当前文件内容位于可聚焦、可滚动的只读区域，保留原有换行和空格；光标进入后可选中、复制，按 Ctrl+A（macOS 上按 Command+A）可全选正文，长文本可以用键盘阅读。文件树和内容预览区域在自身区域内滚动，不会无限拉长详情。文件浏览区域默认最小高度为 `500px`、最大高度为 `600px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。查看模式下详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
+查看模式下，文件树中的文件和文件夹按钮支持键盘操作；内容预览区域可聚焦并在自身区域内滚动，适合阅读和复制长文本。不要把预览区域的 Ctrl+A/Command+A 当作“只选正文”的契约；需要精确编辑或全选正文时，请切换到源码编辑或文本编辑控件。文件树和内容预览区域在自身区域内滚动，不会无限拉长详情。文件浏览区域默认最小高度为 `500px`、最大高度为 `600px`，可用下方 CSS 变量调整。导入器将 YAML 头部解析为名称和描述，因此此处展示的是 `instructions` 正文。资源路径允许换行。查看模式下详情只展示内容；页面或弹窗的标题、关闭按钮、焦点返回和持久化由宿主及应用负责。
 
 ## API
 
@@ -236,7 +250,7 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | ---------------------------- | ---------- | ------------------------------------------------------------------------------------ |
 | `SkillExtensionDetailProps`  | interface  | 详情的公开 Props。                                                                   |
 | `SkillFileActionType`        | union      | `'create-file' \| 'create-folder' \| 'delete-file' \| 'delete-folder' \| 'rename'`。 |
-| `SkillFileAction`            | interface  | 文件树操作的目标类型、原路径和可选的新路径。                                         |
+| `SkillFileAction`            | interface  | 文件树操作的完整载荷：`type`、`target`、`path` 和可选的 `nextPath`。                 |
 | `SkillResourceDescriptor`    | union      | 资源文件描述，区分文本/二进制内容，并支持直接或懒加载读取。                              |
 | `SkillExtensionDetailSlots`  | interface  | Skill 详情组件插槽的类型。                                                           |
 | `SkillVisualEditorSlotProps` | interface  | 可视化编辑器插槽接收的草稿、当前文件路径和更新方法。                                 |
@@ -246,6 +260,27 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | 插槽名          | 说明                                                           | 作用域参数                   |
 | --------------- | -------------------------------------------------------------- | ---------------------------- |
 | `visual-editor` | 自定义 Markdown 可视化编辑器；未提供时使用内置 Tiptap 编辑器。 | `SkillVisualEditorSlotProps` |
+
+`visual-editor` 插槽参数：
+
+```ts
+interface SkillVisualEditorSlotProps {
+  content: string
+  filePath: string
+  updateContent: (content: string) => void
+}
+```
+
+文件树操作事件的载荷示例：
+
+```ts
+type SkillFileAction =
+  | { type: 'create-file'; target: 'file'; path: string }
+  | { type: 'create-folder'; target: 'folder'; path: string }
+  | { type: 'delete-file'; target: 'file'; path: string }
+  | { type: 'delete-folder'; target: 'folder'; path: string }
+  | { type: 'rename'; target: 'file' | 'folder'; path: string; nextPath: string }
+```
 
 #### Events
 
