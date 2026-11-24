@@ -27,6 +27,13 @@ export interface ChatHistoryGroup {
 
 export interface ChatBubbleView {
   readonly messages?: readonly ChatMessageItem[]
+  readonly actions?: Readonly<Record<string, ChatBubbleActionCapabilityView>>
+}
+
+export interface ChatBubbleActionCapabilityView {
+  readonly canEdit: boolean
+  readonly canRegenerate: boolean
+  readonly turnState: ChatRequestState | 'unknown'
 }
 
 export interface ChatSenderView {

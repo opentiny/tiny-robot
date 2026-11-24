@@ -1,9 +1,10 @@
 import { computed, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
-import type { ChatRequestState } from '../types'
-import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
+import type { ChatMessageItem, ChatRequestState, ChatBeforeSend } from '../types'
+import { CHAT_ACTION_METADATA_KEY, useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
 import { useChatRuntimeAdapter } from '../composables/useChatRuntimeAdapter'
+import { CHAT_RUN_CONFIG_METADATA_KEY } from './runConfig'
 
 function createConversation(id: string, canStart = true) {
   return {
@@ -12,7 +13,7 @@ function createConversation(id: string, canStart = true) {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     engine: {
-      messages: ref([]),
+      messages: ref<ChatMessageItem[]>([]),
       requestState: ref<ChatRequestState>('idle'),
       processingState: ref<string | undefined>(),
       canStartTurn: ref(canStart),
@@ -56,7 +57,358 @@ function createHarness(initialId = 'a', canStart = true) {
   return { api, items, activeConversationId }
 }
 
+function createReplayHarness(beforeSend?: ChatBeforeSend) {
+  const harness = createHarness()
+  const engine = harness.items.get('a')!.engine
+  engine.messages.value = [
+    {
+      role: 'user',
+      content: 'original',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'model-a', featureValues: { reasoning: 'high' } },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    },
+    {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    },
+  ]
+  engine.requestState.value = 'completed'
+  const rerun = vi.fn().mockResolvedValue(true)
+  harness.api.rerunMessage = rerun
+  const disabled = ref(false)
+  const submitDisabled = ref(false)
+  const modelOptions = ref([
+    { id: 'model-a', label: 'Original' },
+    { id: 'model-b', label: 'Selected' },
+  ])
+  const runtime = useChatRuntimeFromConversation({
+    conversation: harness.api,
+    beforeSend,
+    composer: {
+      disabled,
+      submitDisabled,
+      model: { options: modelOptions, selectedId: ref('model-b'), select: vi.fn() },
+    },
+  })
+  return { ...harness, engine, rerun, runtime, disabled, submitDisabled, modelOptions }
+}
+
 describe('useChatRuntimeFromConversation', () => {
+  it.each([null, 1, 'invalid', {}])('rejects malformed tool IDs without throwing: %j', (toolIds) => {
+    const { engine, runtime } = createReplayHarness()
+    engine.messages.value[0].metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
+      modelId: 'model-a',
+      mcp: { serverIds: ['server'], toolIds: { server: toolIds } },
+    }
+    expect(runtime.actions.getMessageCapabilities!({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+  })
+
+  it('allows empty attachments and rejects tools anywhere in the answer', () => {
+    const { engine, runtime } = createReplayHarness()
+    ;(engine.messages.value[0] as ChatMessageItem & { externalPayloads?: unknown[] }).externalPayloads = []
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+    expect(runtime.actions.getMessageCapabilities!(target).canEdit).toBe(true)
+    engine.messages.value.push({
+      role: 'assistant',
+      content: '',
+      tool_calls: [{ id: 'call', type: 'function', function: { name: 'search', arguments: '{}' } }],
+    })
+    expect(runtime.actions.getMessageCapabilities!(target).canEdit).toBe(false)
+    engine.messages.value.splice(2, 1, { role: 'tool', content: 'result' })
+    expect(runtime.actions.getMessageCapabilities!(target).canRegenerate).toBe(false)
+  })
+
+  it.each(['metadata', 'message'] as const)(
+    'uses the same fallback %s ID for capability and replay',
+    async (source) => {
+      const { engine, runtime, rerun } = createReplayHarness()
+      const user = engine.messages.value[0]
+      delete user.metadata![CHAT_ACTION_METADATA_KEY]
+      if (source === 'metadata') user.metadata!.id = 'user-1'
+      else {
+        user.metadata!.id = 42
+        user.id = 'user-1'
+      }
+      engine.messages.value.unshift({ role: 'user', content: 'older', metadata: { id: 'older' } })
+      await expect(
+        runtime.actions.editMessage!({ conversationId: 'a', userMessageId: 'user-1', text: 'edited' }),
+      ).resolves.toBe(true)
+      expect(rerun).toHaveBeenCalledWith('a', user, expect.objectContaining({ content: 'edited' }))
+    },
+  )
+
+  it('does not give assistant entries edit capability through the adapter', () => {
+    const { runtime } = createReplayHarness()
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
+    expect(adapter.data.value.bubble?.actions?.['user-1']?.canEdit).toBe(true)
+    expect(adapter.data.value.bubble?.actions?.['assistant-1']).toMatchObject({ canEdit: false, canRegenerate: true })
+  })
+
+  it.each(['reject', 'handled'] as const)(
+    'preserves history when beforeSend returns %s during replay',
+    async (result) => {
+      const beforeSend = vi.fn().mockResolvedValue(result)
+      const { runtime, rerun, engine } = createReplayHarness(beforeSend)
+      const snapshot = JSON.stringify(engine.messages.value)
+      const target = { conversationId: 'a', userMessageId: 'user-1' }
+
+      await expect(runtime.actions.editMessage!({ ...target, text: 'revised' })).resolves.toBe(result === 'handled')
+      await expect(runtime.actions.regenerateMessage!(target)).resolves.toBe(result === 'handled')
+
+      expect(beforeSend).toHaveBeenCalledTimes(2)
+      expect(rerun).not.toHaveBeenCalled()
+      expect(JSON.stringify(engine.messages.value)).toBe(snapshot)
+    },
+  )
+
+  it('checks replay against its original model and config without changing the selected model', async () => {
+    const beforeSend = vi.fn()
+    const { runtime, rerun } = createReplayHarness(beforeSend)
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+
+    await expect(runtime.actions.editMessage!({ ...target, text: '  revised  ' })).resolves.toBe(true)
+    expect(beforeSend).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        payload: { text: 'revised' },
+        model: { id: 'model-a', label: 'Original' },
+        runConfig: expect.objectContaining({ modelId: 'model-a', featureValues: { reasoning: 'high' } }),
+      }),
+    )
+    expect(rerun).toHaveBeenLastCalledWith('a', expect.anything(), expect.objectContaining({ content: 'revised' }))
+    await expect(runtime.actions.regenerateMessage!(target)).resolves.toBe(true)
+    expect(beforeSend).toHaveBeenLastCalledWith(expect.objectContaining({ payload: { text: 'original' } }))
+    expect(runtime.composer.model?.selectedId.value).toBe('model-b')
+  })
+
+  it.each(['disabled', 'submitDisabled'] as const)('blocks replay when %s is set', async (flag) => {
+    const beforeSend = vi.fn()
+    const harness = createReplayHarness(beforeSend)
+    harness[flag].value = true
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+
+    expect(harness.runtime.actions.getMessageCapabilities!(target)).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+    await expect(harness.runtime.actions.editMessage!({ ...target, text: 'revised' })).resolves.toBe(false)
+    await expect(harness.runtime.actions.regenerateMessage!(target)).resolves.toBe(false)
+    expect(beforeSend).not.toHaveBeenCalled()
+    expect(harness.rerun).not.toHaveBeenCalled()
+  })
+
+  it.each(['navigation', 'disabled', 'engine', 'message', 'config', 'model', 'answer', 'answer-content'] as const)(
+    'rejects replay if %s changes while beforeSend is pending',
+    async (change) => {
+      let finish!: (value: 'continue') => void
+      const beforeSend = vi.fn(
+        () =>
+          new Promise<'continue'>((resolve) => {
+            finish = resolve
+          }),
+      )
+      const harness = createReplayHarness(beforeSend)
+      const target = { conversationId: 'a', userMessageId: 'user-1' }
+      const pending = harness.runtime.actions.editMessage!({ ...target, text: 'revised' })
+      expect(beforeSend).toHaveBeenCalledOnce()
+      if (change === 'navigation') {
+        harness.activeConversationId.value = null
+        harness.activeConversationId.value = 'a'
+      } else if (change === 'disabled') harness.disabled.value = true
+      else if (change === 'engine') harness.items.get('a')!.engine = createConversation('a').engine
+      else if (change === 'message') harness.engine.messages.value = []
+      else if (change === 'answer') harness.engine.messages.value[1] = { ...harness.engine.messages.value[1] }
+      else if (change === 'answer-content') harness.engine.messages.value[1].content = 'new answer'
+      else if (change === 'config')
+        harness.engine.messages.value[0].metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-b' }
+      else harness.modelOptions.value = [{ id: 'model-b', label: 'Selected' }]
+      const snapshot = JSON.stringify(harness.engine.messages.value)
+      finish('continue')
+
+      await expect(pending).resolves.toBe(false)
+      expect(harness.rerun).not.toHaveBeenCalled()
+      expect(JSON.stringify(harness.engine.messages.value)).toBe(snapshot)
+    },
+  )
+
+  it('releases the replay lock after a failing beforeSend and rejects empty edits', async () => {
+    const beforeSend = vi.fn().mockRejectedValueOnce(new Error('denied')).mockResolvedValue(undefined)
+    const { runtime, rerun } = createReplayHarness(beforeSend)
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+    await expect(runtime.actions.editMessage!({ ...target, text: '   ' })).resolves.toBe(false)
+    expect(beforeSend).not.toHaveBeenCalled()
+    await expect(runtime.actions.editMessage!({ ...target, text: 'revised' })).rejects.toThrow('denied')
+    expect(rerun).not.toHaveBeenCalled()
+    await expect(runtime.actions.regenerateMessage!(target)).resolves.toBe(true)
+    expect(rerun).toHaveBeenCalledOnce()
+  })
+
+  it('edits and regenerates only the latest recoverable plain-text turn and shares the send lock', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'original',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'model-a' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    let finishRerun!: (value: boolean) => void
+    const pendingRerun = new Promise<boolean>((resolve) => {
+      finishRerun = resolve
+    })
+    const kitRerun = vi.fn().mockReturnValueOnce(pendingRerun).mockResolvedValue(true)
+    ;(harness.api as unknown as { rerunMessage: typeof kitRerun }).rerunMessage = kitRerun
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    const edit = runtime.actions.editMessage!
+    const regenerate = runtime.actions.regenerateMessage!
+    const target = { conversationId: 'a', userMessageId: 'user-1' }
+
+    expect(runtime.actions.getMessageCapabilities?.(target)).toMatchObject({ canEdit: true, canRegenerate: true })
+    const pending = edit({ ...target, text: 'revised' })
+    await Promise.resolve()
+    await expect(regenerate(target)).resolves.toBe(false)
+    await expect(runtime.actions.send({ text: 'blocked while re-running' })).resolves.toBe(false)
+    expect(kitRerun).toHaveBeenCalledWith(
+      'a',
+      expect.objectContaining({ role: 'user', content: 'original' }),
+      expect.objectContaining({ content: 'revised' }),
+    )
+    finishRerun(true)
+    await expect(pending).resolves.toBe(true)
+
+    expect(
+      runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).toMatchObject({
+      canEdit: false,
+      canRegenerate: true,
+    })
+    await expect(regenerate({ conversationId: 'a', userMessageId: 'assistant-1' })).resolves.toBe(true)
+    expect(kitRerun).toHaveBeenLastCalledWith('a', expect.objectContaining({ content: 'original' }), undefined)
+  })
+
+  it('does not expose edit or regenerate for turns without recoverable config or with attachments', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem & { externalPayloads?: unknown[] } = {
+      role: 'user',
+      content: 'plain',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'user-1' } },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+
+    const reactiveUser = harness.items.get('a')!.engine.messages.value[0]
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'model-a' }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })?.canEdit).toBe(
+      true,
+    )
+    ;(reactiveUser as ChatMessageItem & { externalPayloads?: unknown[] }).externalPayloads = [{ source: 'attachment' }]
+    expect(
+      runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+  })
+
+  it('rejects replay for unavailable models and configured tools without changing message state', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'plain',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'removed-model' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    const runtime = useChatRuntimeFromConversation({
+      conversation: harness.api,
+      composer: {
+        model: {
+          options: ref([{ id: 'current-model', label: 'Current' }]),
+          selectedId: ref('current-model'),
+          select: vi.fn(),
+        },
+      },
+    })
+
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+
+    const reactiveUser = harness.items.get('a')!.engine.messages.value[0]
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = { modelId: 'current-model' }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })?.canEdit).toBe(
+      true,
+    )
+    reactiveUser.metadata![CHAT_RUN_CONFIG_METADATA_KEY] = {
+      modelId: 'current-model',
+      mcp: { serverIds: ['tools'], toolIds: { tools: ['search'] } },
+    }
+    expect(runtime.actions.getMessageCapabilities?.({ conversationId: 'a', userMessageId: 'user-1' })).toMatchObject({
+      canEdit: false,
+      canRegenerate: false,
+    })
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+  })
+
+  it('keeps the original turn metadata when Kit rejects replay', async () => {
+    const harness = createHarness()
+    const user: ChatMessageItem = {
+      role: 'user',
+      content: 'plain',
+      metadata: {
+        [CHAT_RUN_CONFIG_METADATA_KEY]: { modelId: 'model-a' },
+        [CHAT_ACTION_METADATA_KEY]: { id: 'user-1', turnState: 'completed' },
+      },
+    }
+    const assistant: ChatMessageItem = {
+      role: 'assistant',
+      content: 'answer',
+      metadata: { [CHAT_ACTION_METADATA_KEY]: { id: 'assistant-1', userMessageId: 'user-1', turnState: 'completed' } },
+    }
+    harness.items.get('a')!.engine.messages.value = [user, assistant]
+    harness.items.get('a')!.engine.requestState.value = 'completed'
+    ;(harness.api as unknown as { rerunMessage: () => Promise<boolean> }).rerunMessage = vi.fn(async () => false)
+    const runtime = useChatRuntimeFromConversation({ conversation: harness.api })
+
+    await expect(
+      runtime.actions.regenerateMessage?.({ conversationId: 'a', userMessageId: 'assistant-1' }),
+    ).resolves.toBe(false)
+    expect(user.metadata?.[CHAT_ACTION_METADATA_KEY]).toMatchObject({ turnState: 'completed' })
+  })
+
   it('starts a new conversation only when a non-empty first message is sent', async () => {
     const harness = createHarness('existing')
     const runtime = useChatRuntimeFromConversation({ conversation: harness.api })

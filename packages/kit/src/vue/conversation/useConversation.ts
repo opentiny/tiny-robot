@@ -380,6 +380,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     return activeConversation.value?.engine.sendMessage(content) ?? Promise.resolve()
   }
 
+  const rerunMessage = (id: string, target: ChatMessage, replacement?: ChatMessage): Promise<boolean> => {
+    const engine = workingEngines.get(id)
+    if (!engine) return Promise.resolve(false)
+    return engine.rerun(target, replacement)
+  }
+
   /**
    * Convenience method: abort request of active conversation.
    */
@@ -398,6 +404,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     clear,
     updateConversationTitle,
     saveMessages,
+    rerunMessage,
 
     sendMessage,
     abortActiveRequest,
