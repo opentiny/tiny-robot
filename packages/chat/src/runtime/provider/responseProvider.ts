@@ -2,6 +2,21 @@ import { sseStreamToGenerator } from '@opentiny/tiny-robot-kit'
 import type { MessageRequestBody, ResponseProvider } from '@opentiny/tiny-robot-kit'
 import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './requestPlugin'
 import type { ChatResolvedProviderModel } from './types'
+import { isChatTokenUsage } from '../usage'
+
+const usageKeys = ['prompt_tokens', 'cached_tokens', 'completion_tokens', 'total_tokens'] as const
+
+function normalizeMappedUsage(mapped: unknown) {
+  if (!mapped || typeof mapped !== 'object' || Array.isArray(mapped)) return undefined
+  const counters = mapped as Record<string, unknown>
+  const usage = Object.fromEntries(
+    usageKeys.flatMap((key) => {
+      const value = counters[key]
+      return value !== undefined && isChatTokenUsage({ [key]: value }) ? [[key, value]] : []
+    }),
+  )
+  return Object.keys(usage).length > 0 ? usage : undefined
+}
 
 export function createProviderResponseProvider(
   resolveModel: (modelId: string) => ChatResolvedProviderModel | undefined,
@@ -46,6 +61,14 @@ export function createProviderResponseProvider(
           ...providerRequestBody,
           model: currentModel.id,
           stream: true,
+          ...(currentModel.includeUsage
+            ? {
+                stream_options: {
+                  ...(providerRequestBody.stream_options as Record<string, unknown> | undefined),
+                  include_usage: true,
+                },
+              }
+            : {}),
         }),
         signal: requestSignal,
       })
@@ -57,7 +80,27 @@ export function createProviderResponseProvider(
 
       return (async function* () {
         try {
-          yield* sseStreamToGenerator(response, { signal: requestSignal })
+          for await (const rawChunk of sseStreamToGenerator(response, { signal: requestSignal })) {
+            if (!currentModel.mapUsage) {
+              yield rawChunk
+              continue
+            }
+
+            const chunk = rawChunk as unknown as Record<string, unknown>
+            const { usage, ...rest } = chunk
+            try {
+              const mapped = normalizeMappedUsage(
+                currentModel.mapUsage(usage, { modelId: currentModel.id, chunk: rawChunk }),
+              )
+              yield {
+                ...rest,
+                ...(mapped ? { usage: mapped } : {}),
+              } as typeof rawChunk
+            } catch (error) {
+              console.warn(`[ChatProvider] Failed to map usage for model "${currentModel.id}".`, error)
+              yield rest as typeof rawChunk
+            }
+          }
         } finally {
           if (timeoutId !== undefined) clearTimeout(timeoutId)
         }
