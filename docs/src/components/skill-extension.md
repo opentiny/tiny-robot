@@ -38,12 +38,12 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 
 :::
 
-先使用下方归档 Demo 下载示例包，选择或拖入后等待解析成功，再点击“确定”查看 Skill 名称、正文和资源。文件夹和 GitHub 导入见后续示例，GitHub 来源需要可访问 GitHub 的网络。
+可先[下载 Skill 示例压缩包](/skill-import-example.zip)，或按归档根目录与单层包装目录布局自行打包。选择或拖入后等待解析成功，再点击“确定”查看 Skill 名称、正文和资源。文件夹和 GitHub 导入见后续示例，GitHub 来源需要可访问 GitHub 的网络。
 
 <demo
   vue="../../demos/skill-import-form/archive-import.vue"
   title="导入 Skill 压缩包"
-  description="下载示例压缩包，选择或拖入，解析成功后点击确定查看 Skill 定义。"
+  description="选择或拖入归档，解析成功后点击确定查看 Skill 定义。"
 />
 
 ## 用法示例
