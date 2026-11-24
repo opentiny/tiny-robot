@@ -29,6 +29,7 @@ const cancel = () => {
   <TinyModal
     v-model="visible"
     :title="props.title"
+    width="min(560px, calc(100vw - 32px))"
     :show-footer="true"
     :show-close="true"
     :mask-closable="true"

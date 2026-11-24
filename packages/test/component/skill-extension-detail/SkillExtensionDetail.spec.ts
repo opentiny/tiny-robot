@@ -121,6 +121,144 @@ test.describe('SkillExtensionDetail', () => {
     await expect(detail).toContainText('Edited visually')
   })
 
+  test('keeps edit actions visible and naturally wraps them when needed', async ({ mount, page }) => {
+    await page.setViewportSize({ width: 360, height: 800 })
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+
+    const heading = detail.locator('.skill-extension-detail__viewer-heading')
+    const measure = () =>
+      heading.evaluate((element) => {
+        const headingRect = element.getBoundingClientRect()
+        const fileNameRect = element.querySelector<HTMLElement>(':scope > span')?.getBoundingClientRect()
+        const actionsRect = element
+          .querySelector<HTMLElement>('.skill-extension-detail__edit-actions')
+          ?.getBoundingClientRect()
+        const buttons = Array.from(element.querySelectorAll('button')).map((button) => {
+          const rect = button.getBoundingClientRect()
+          return { label: (button.textContent ?? '').trim(), left: rect.left, right: rect.right }
+        })
+        return {
+          left: headingRect.left,
+          right: headingRect.right,
+          bottom: headingRect.bottom,
+          fileNameBottom: fileNameRect?.bottom ?? 0,
+          actionsTop: actionsRect?.top ?? 0,
+          actionsBottom: actionsRect?.bottom ?? 0,
+          buttons,
+        }
+      })
+
+    const layout = await measure()
+
+    expect(layout.buttons).toHaveLength(2)
+    expect(layout.buttons.every((button) => button.left >= layout.left && button.right <= layout.right)).toBe(true)
+    const save = layout.buttons.find((button) => button.label === '保存')
+    const cancel = layout.buttons.find((button) => button.label === '取消')
+    const initiallyWrapped = layout.actionsTop > layout.fileNameBottom + 1
+    expect(initiallyWrapped ? save?.left : cancel?.left).toBeLessThan(
+      initiallyWrapped ? (cancel?.left ?? Infinity) : (save?.left ?? Infinity),
+    )
+
+    await heading.evaluate((element) => {
+      element.style.width = '200px'
+    })
+    await expect
+      .poll(async () => {
+        const next = await measure()
+        return next.actionsTop > next.fileNameBottom + 1
+      })
+      .toBe(true)
+    await expect(heading.locator('.skill-extension-detail__edit-actions')).toHaveClass(/is-actions-wrapped/)
+    const wrapped = await measure()
+    const wrappedSave = wrapped.buttons.find((button) => button.label === '保存')
+    const wrappedCancel = wrapped.buttons.find((button) => button.label === '取消')
+    expect(wrappedSave?.left).toBeLessThan(wrappedCancel?.left ?? Infinity)
+    expect(wrapped.bottom - wrapped.actionsBottom).toBeGreaterThanOrEqual(8)
+    await expect(heading.getByRole('button', { name: '取消' })).toBeVisible()
+    await expect(heading.getByRole('button', { name: '保存' })).toBeVisible()
+  })
+
+  test('resets the wrapped action layout after cancelling and editing again', async ({ mount, page }) => {
+    await page.setViewportSize({ width: 360, height: 800 })
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+    const heading = detail.locator('.skill-extension-detail__viewer-heading')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('button', { name: '取消' }).click()
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await detail.getByRole('button', { name: '编辑' }).click()
+
+    const layout = await heading.evaluate((element) => {
+      const fileName = element.querySelector<HTMLElement>(':scope > span')?.getBoundingClientRect()
+      const actions = element
+        .querySelector<HTMLElement>('.skill-extension-detail__edit-actions')
+        ?.getBoundingClientRect()
+      return {
+        wrapped: element.classList.contains('is-actions-wrapped'),
+        naturallyWrapped: Boolean(fileName && actions && actions.top > fileName.bottom + 1),
+      }
+    })
+
+    expect(layout.wrapped).toBe(layout.naturallyWrapped)
+  })
+
+  test('keeps every visual editor toolbar action reachable on a narrow viewport', async ({ mount, page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+
+    const toolbar = detail.getByRole('toolbar', { name: 'Markdown 格式工具' })
+    const layout = await toolbar.evaluate((element) => {
+      const toolbarRect = element.getBoundingClientRect()
+      const buttons = Array.from(element.querySelectorAll('button')).map((button) => {
+        const rect = button.getBoundingClientRect()
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+      })
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        height: toolbarRect.height,
+        buttons,
+        right: toolbarRect.right,
+      }
+    })
+
+    expect(layout.buttons).toHaveLength(11)
+    expect(layout.scrollWidth).toBe(layout.clientWidth)
+    expect(layout.height).toBeGreaterThan(40)
+    expect(layout.buttons.every((button) => button.left >= 0 && button.right <= layout.right + 1)).toBe(true)
+    await expect(toolbar.getByRole('button', { name: '撤销' })).toBeVisible()
+    await expect(toolbar.getByRole('button', { name: '重做' })).toBeVisible()
+  })
+
+  test('keeps the unsaved switch dialog and actions inside a narrow viewport', async ({ mount, page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 SKILL.md' }).fill('Unsaved content')
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+
+    const dialog = page.getByRole('dialog')
+    const rect = await dialog.evaluate((element) => {
+      const bounds = element.getBoundingClientRect()
+      return { left: bounds.left, right: bounds.right }
+    })
+    expect(rect.left).toBeGreaterThanOrEqual(0)
+    expect(rect.right).toBeLessThanOrEqual(390)
+    await expect(dialog.getByRole('button', { name: '取消' })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: '放弃修改' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: '保存并切换' })).toBeVisible()
+  })
+
   test('creates a new list item when pressing Enter in visual mode', async ({ mount }) => {
     const component = await mount(SkillExtensionDetailFixture)
     const detail = component.getByTestId('editable-detail')

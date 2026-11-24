@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { TinyButton } from '@opentiny/vue'
 import { IconFile } from '@opentiny/tiny-robot-svgs'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { SkillResourceDescriptor } from '../skill-import-form/index.type'
 import SkillMarkdownEditor from './SkillMarkdownEditor.vue'
 
@@ -28,6 +29,72 @@ const emit = defineEmits<{
   updateEditingMode: [mode: 'visual' | 'source']
 }>()
 
+const viewerHeading = ref<HTMLElement>()
+const fileNameElement = ref<HTMLElement>()
+const editActions = ref<HTMLElement>()
+const actionsWrapped = ref(false)
+let actionsLayoutObserver: ResizeObserver | undefined
+let layoutFrame: number | undefined
+let measuringNaturalLayout = false
+let lastMeasuredWidth = -1
+
+const applyActionsLayout = () => {
+  const fileNameRect = fileNameElement.value?.getBoundingClientRect()
+  const actionsRect = editActions.value?.getBoundingClientRect()
+  if (!fileNameRect || !actionsRect || !viewerHeading.value) return
+  actionsWrapped.value = actionsRect.top > fileNameRect.bottom + 1
+  measuringNaturalLayout = false
+}
+
+const updateActionsLayout = (force = false) => {
+  if (!viewerHeading.value) return
+  const width = viewerHeading.value.clientWidth
+  if (!force && width === lastMeasuredWidth) return
+  lastMeasuredWidth = width
+  if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame)
+
+  if (!actionsWrapped.value) {
+    applyActionsLayout()
+    return
+  }
+
+  measuringNaturalLayout = true
+  actionsWrapped.value = false
+  void nextTick(() => {
+    layoutFrame = requestAnimationFrame(() => {
+      layoutFrame = undefined
+      if (measuringNaturalLayout) applyActionsLayout()
+    })
+  })
+}
+
+onMounted(() => {
+  actionsLayoutObserver = new ResizeObserver(() => updateActionsLayout())
+  if (viewerHeading.value) actionsLayoutObserver.observe(viewerHeading.value)
+  updateActionsLayout(true)
+})
+
+watch(
+  () => [props.selectedFileName, props.isEditing, props.canEditSelectedFile],
+  () => {
+    if (!props.isEditing) {
+      if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame)
+      layoutFrame = undefined
+      measuringNaturalLayout = false
+      actionsWrapped.value = false
+      lastMeasuredWidth = -1
+      return
+    }
+    lastMeasuredWidth = -1
+    updateActionsLayout(true)
+  },
+)
+
+onBeforeUnmount(() => {
+  actionsLayoutObserver?.disconnect()
+  if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame)
+})
+
 defineSlots<{
   'visual-editor'?: (props: { content: string; filePath: string; updateContent: (content: string) => void }) => unknown
 }>()
@@ -39,38 +106,73 @@ const updateDraftContent = (event: Event) => {
 
 <template>
   <section class="skill-extension-detail__viewer" :aria-label="props.selectedFileName">
-    <div class="skill-extension-detail__viewer-heading">
+    <div
+      ref="viewerHeading"
+      class="skill-extension-detail__viewer-heading"
+      :class="{ 'is-actions-wrapped': actionsWrapped }"
+    >
       <IconFile
         v-if="!props.selectedResource || props.selectedResource.kind === 'text'"
         class="skill-extension-detail__file-icon"
         aria-hidden="true"
       />
-      <span>{{ props.selectedFileName }}</span>
-      <div class="skill-extension-detail__edit-actions">
+      <span ref="fileNameElement">{{ props.selectedFileName }}</span>
+      <div
+        ref="editActions"
+        class="skill-extension-detail__edit-actions"
+        :class="{ 'is-actions-wrapped': actionsWrapped }"
+      >
         <template v-if="props.isEditing">
-          <TinyButton
-            v-if="props.canEditSelectedFile"
-            class="skill-extension-detail__action-button"
-            type="default"
-            size="small"
-            round
-            :reset-time="0"
-            :disabled="props.switchingFile"
-            @click="emit('cancelEditing')"
-          >
-            取消
-          </TinyButton>
-          <TinyButton
-            class="skill-extension-detail__action-button"
-            type="primary"
-            size="small"
-            round
-            :reset-time="0"
-            :disabled="props.switchingFile"
-            @click="emit('saveEditing')"
-          >
-            保存
-          </TinyButton>
+          <template v-if="actionsWrapped">
+            <TinyButton
+              class="skill-extension-detail__action-button"
+              type="primary"
+              size="small"
+              round
+              :reset-time="0"
+              :disabled="props.switchingFile"
+              @click="emit('saveEditing')"
+            >
+              保存
+            </TinyButton>
+            <TinyButton
+              v-if="props.canEditSelectedFile"
+              class="skill-extension-detail__action-button"
+              type="default"
+              size="small"
+              round
+              :reset-time="0"
+              :disabled="props.switchingFile"
+              @click="emit('cancelEditing')"
+            >
+              取消
+            </TinyButton>
+          </template>
+          <template v-else>
+            <TinyButton
+              v-if="props.canEditSelectedFile"
+              class="skill-extension-detail__action-button"
+              type="default"
+              size="small"
+              round
+              :reset-time="0"
+              :disabled="props.switchingFile"
+              @click="emit('cancelEditing')"
+            >
+              取消
+            </TinyButton>
+            <TinyButton
+              class="skill-extension-detail__action-button"
+              type="primary"
+              size="small"
+              round
+              :reset-time="0"
+              :disabled="props.switchingFile"
+              @click="emit('saveEditing')"
+            >
+              保存
+            </TinyButton>
+          </template>
         </template>
         <template v-else>
           <a
@@ -200,6 +302,7 @@ const updateDraftContent = (event: Event) => {
   min-height: 42px;
   flex-shrink: 0;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 20px;
   border-bottom: 1px solid color-mix(in srgb, var(--tr-border-color-default) 55%, transparent);
@@ -207,6 +310,16 @@ const updateDraftContent = (event: Event) => {
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
+}
+
+.skill-extension-detail__viewer-heading > span {
+  min-width: min-content;
+  flex: 0 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.skill-extension-detail__viewer-heading.is-actions-wrapped {
+  padding-block: 8px;
 }
 
 .skill-extension-detail__file-icon {
@@ -222,9 +335,17 @@ const updateDraftContent = (event: Event) => {
 
 .skill-extension-detail__edit-actions {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+
+.skill-extension-detail__edit-actions.is-actions-wrapped {
+  flex-basis: 100%;
+  justify-content: flex-start;
+  margin-left: 0;
+  row-gap: 6px;
 }
 
 .skill-extension-detail__action-button {

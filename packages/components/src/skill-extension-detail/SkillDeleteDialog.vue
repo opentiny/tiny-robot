@@ -31,6 +31,7 @@ const confirm = () => {
   <TinyModal
     v-model="visible"
     :title="title"
+    width="min(560px, calc(100vw - 32px))"
     :show-footer="true"
     :show-close="true"
     :mask-closable="true"

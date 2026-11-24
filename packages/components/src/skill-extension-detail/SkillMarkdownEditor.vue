@@ -217,7 +217,9 @@ watch(
   min-height: 40px;
   flex: 0 0 auto;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
+  align-content: center;
   padding: 4px 8px;
   border-bottom: 1px solid var(--tr-border-color-default);
 }
@@ -273,7 +275,8 @@ watch(
 }
 
 .skill-markdown-editor__spacer {
-  flex: 1;
+  min-width: 16px;
+  flex: 1 1 0;
 }
 
 .skill-markdown-editor__code-label {
