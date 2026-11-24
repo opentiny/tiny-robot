@@ -12,10 +12,10 @@ function normalizeMappedUsage(mapped: unknown) {
   const usage = Object.fromEntries(
     usageKeys.flatMap((key) => {
       const value = counters[key]
-      return value === undefined ? [] : [[key, value]]
+      return value !== undefined && isChatTokenUsage({ [key]: value }) ? [[key, value]] : []
     }),
   )
-  return isChatTokenUsage(usage) ? usage : undefined
+  return Object.keys(usage).length > 0 ? usage : undefined
 }
 
 export function createProviderResponseProvider(

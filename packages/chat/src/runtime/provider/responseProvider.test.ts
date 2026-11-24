@@ -105,6 +105,24 @@ describe('createProviderResponseProvider usage mapping', () => {
     expect(chunks).toEqual([{ choices: [], usage: { prompt_tokens: 12, cached_tokens: 5 } }])
   })
 
+  it('keeps valid mapped counters when another counter is invalid', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => responseFor([{ choices: [], usage: { input_tokens: 12 } }])),
+    )
+    const provider = createProviderResponseProvider(() =>
+      model(() => ({ prompt_tokens: 12, cached_tokens: -1, completion_tokens: 0 })),
+    )
+    const result = await provider(
+      { [CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]: 'model-a', messages: [] },
+      new AbortController().signal,
+    )
+    const chunks = []
+    for await (const chunk of result as AsyncIterable<unknown>) chunks.push(chunk)
+
+    expect(chunks).toEqual([{ choices: [], usage: { prompt_tokens: 12, completion_tokens: 0 } }])
+  })
+
   it('removes invalid or throwing mapped usage without dropping content', async () => {
     vi.stubGlobal(
       'fetch',
