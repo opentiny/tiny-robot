@@ -23,7 +23,7 @@ const props = defineProps<{
   streamState?: ChatMessageItem['streamState']
 }>()
 const emit = defineEmits<{
-  editStart: [context: ChatBubbleActionContext]
+  editStart: [context: ChatBubbleActionContext, trigger: HTMLButtonElement]
   regenerate: []
   error: [payload: { actionId: string; messageId?: string; error: unknown }]
 }>()
@@ -53,6 +53,9 @@ const displayMode = computed(() =>
   typeof props.options.display === 'function'
     ? props.options.display(props.context)
     : (props.options.display ?? 'hover'),
+)
+const isProcessing = computed(
+  () => props.role === 'assistant' && (props.context.turnState === 'processing' || props.streamState === 'streaming'),
 )
 const items = computed<readonly ChatBubbleActionItem[]>(() => {
   const configured = props.options[props.role as 'user' | 'assistant']
@@ -126,6 +129,7 @@ function defaultInfoItems(): readonly ChatMessageInfoItem[] {
       value: createdAt && Number.isFinite(createdAt.getTime()) ? createdAt.toLocaleString() : undefined,
     },
     { id: 'promptTokens', label: '输入 Token', value: usage?.prompt_tokens?.toLocaleString() },
+    { id: 'cachedTokens', label: '缓存命中 Token', value: usage?.cached_tokens?.toLocaleString() },
     { id: 'completionTokens', label: '输出 Token', value: usage?.completion_tokens?.toLocaleString() },
     { id: 'totalTokens', label: '总 Token', value: usage?.total_tokens?.toLocaleString(), highlight: true },
   ]
@@ -147,7 +151,7 @@ const infoEligible = computed(
   () =>
     !props.editing &&
     condition(props.options.visible) &&
-    !(props.role === 'assistant' && props.context.turnState === 'processing') &&
+    !isProcessing.value &&
     items.value.some((item) => actionId(item) === 'info' && visible(item) && !disabled(item)),
 )
 watch(infoEligible, (eligible) => {
@@ -199,7 +203,7 @@ async function activate(item: ChatBubbleActionItem, event: MouseEvent) {
   const id = actionId(item)
   if (!visible(item) || disabled(item) || busyIds.value.has(id)) return
   if (id === 'edit') {
-    emit('editStart', props.context)
+    emit('editStart', props.context, event.currentTarget as HTMLButtonElement)
     return
   }
   if (id === 'regenerate') return emit('regenerate')
@@ -250,7 +254,7 @@ function setSlotOpen(id: string, open: boolean) {
     class="tr-chat-bubble-actions"
     :class="{
       'is-latest': context.isLatest,
-      'is-processing': role === 'assistant' && context.turnState === 'processing',
+      'is-processing': isProcessing,
       'is-open': infoOpen || slotOpenIds.size > 0,
       'is-editing': editing,
       'is-always': displayMode === 'always',

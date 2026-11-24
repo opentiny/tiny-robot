@@ -4,6 +4,7 @@ import ChatBubbleActionsFloatingFixture from './ChatBubbleActionsFloating.fixtur
 import ChatMessageInfoFixture from './ChatMessageInfo.fixture.vue'
 import ChatBubbleActionSlotFixture from './ChatBubbleActionSlot.fixture.vue'
 import ChatMessageEditFixture from './ChatMessageEdit.fixture.vue'
+import ChatStreamingActionsFixture from './ChatStreamingActions.fixture.vue'
 
 for (const standalone of [true, false]) {
   test(`${standalone ? 'TrChatUI' : 'TrChat'} forwards bubble action slot context, disabled and open state`, async ({
@@ -52,6 +53,30 @@ test('bubble actions are opt-in and edit cancel leaves the original message unch
   await component.getByTestId('user-actions').getByRole('button', { name: '取消' }).click()
   await expect(component.getByTestId('original-message')).toHaveText('Original question')
   await expect(component.getByTestId('user-actions').getByRole('textbox', { name: '编辑消息' })).toHaveCount(0)
+})
+
+test('Escape restores focus to the edit action after cancelling', async ({ mount }) => {
+  const component = await mount(ChatBubbleActionsFixture)
+  const section = component.getByTestId('user-actions')
+  const editButton = section.getByRole('button', { name: '编辑', exact: true })
+  await editButton.focus()
+  await editButton.press('Enter')
+
+  const editor = section.getByRole('textbox', { name: '编辑消息' })
+  await expect(editor).toBeFocused()
+  await editor.press('Escape')
+
+  await expect(editButton).toBeFocused()
+  await expect(editor).toHaveCount(0)
+})
+
+test('controlled assistant actions stay hidden while its message is streaming', async ({ mount }) => {
+  const component = await mount(ChatStreamingActionsFixture)
+  const copy = component.getByRole('button', { name: '复制', exact: true })
+
+  await expect(copy).not.toBeVisible()
+  await component.getByRole('button', { name: 'Finish response' }).click()
+  await expect(copy).toBeVisible()
 })
 
 test('latest actions remain visible for omitted roles and assistant groups ending in a tool message', async ({
@@ -128,6 +153,7 @@ test('assistant info action opens the normalized token information', async ({ mo
   await infoButton.click()
   const dialog = page.getByRole('dialog', { name: '对话信息', exact: true })
   await expect(dialog).toContainText('输入 Token')
+  await expect(dialog.locator('dt')).toHaveText(['输入 Token', '输出 Token', '总 Token'])
   await expect(dialog).toContainText('7')
   await expect(dialog).toContainText('3')
   await expect(dialog).toContainText('10')
@@ -141,6 +167,23 @@ test('assistant info action opens the normalized token information', async ({ mo
   await dialog.press('Escape')
   await expect(infoButton).toBeFocused()
   await expect(dialog).toHaveCount(0)
+})
+
+test('default info shows cached token details and preserves zero', async ({ mount, page }) => {
+  const component = await mount(ChatMessageInfoFixture, {
+    props: {
+      message: {
+        role: 'assistant',
+        content: 'Answer',
+        metadata: { usage: { prompt_tokens: 12, cached_tokens: 0, completion_tokens: 8, total_tokens: 20 } },
+      },
+    },
+  })
+  await component.getByRole('button', { name: '对话信息', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '对话信息', exact: true })
+
+  await expect(dialog.locator('dt')).toHaveText(['输入 Token', '缓存命中 Token', '输出 Token', '总 Token'])
+  await expect(dialog.locator('dd')).toHaveText(['12', '0', '8', '20'])
 })
 
 test('info ignores hover and closes when clicking outside', async ({ mount, page }) => {

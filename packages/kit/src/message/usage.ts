@@ -1,5 +1,6 @@
 export interface ChatTokenUsage {
   prompt_tokens?: number
+  cached_tokens?: number
   completion_tokens?: number
   total_tokens?: number
 }
@@ -7,7 +8,7 @@ export interface ChatTokenUsage {
 export function isChatTokenUsage(value: unknown): value is ChatTokenUsage {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const usage = value as Record<string, unknown>
-  const keys = ['prompt_tokens', 'completion_tokens', 'total_tokens'] as const
+  const keys = ['prompt_tokens', 'cached_tokens', 'completion_tokens', 'total_tokens'] as const
   let hasValue = false
 
   for (const key of keys) {

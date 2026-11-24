@@ -26,6 +26,7 @@ import {
   createTurnId,
 } from '../utils'
 import { runRequestBodyFinalizers } from './requestFinalizers'
+import { isChatTokenUsage } from '../usage'
 
 type ChatCompletionChoice = ChatResponseChoice
 
@@ -568,7 +569,14 @@ export const createMessageEngine = (
           assistantMessage.metadata ??= {}
           assistantMessage.metadata.usage = {
             ...(assistantMessage.metadata.usage as Record<string, unknown> | undefined),
-            ...Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== undefined)),
+            ...Object.fromEntries(
+              Object.entries(usage).filter(
+                ([key, value]) =>
+                  value !== undefined &&
+                  (!['prompt_tokens', 'cached_tokens', 'completion_tokens', 'total_tokens'].includes(key) ||
+                    isChatTokenUsage({ [key]: value })),
+              ),
+            ),
           }
           assistantMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
         })

@@ -4,6 +4,7 @@ import { isChatTokenUsage, resolveChatTokenUsage } from './usage'
 describe('chat token usage', () => {
   it('accepts partial integer snapshots including zero', () => {
     expect(isChatTokenUsage({ prompt_tokens: 0 })).toBe(true)
+    expect(isChatTokenUsage({ cached_tokens: 0 })).toBe(true)
     expect(isChatTokenUsage({ prompt_tokens: 4, completion_tokens: 2, total_tokens: undefined })).toBe(true)
     expect(resolveChatTokenUsage({ prompt_tokens: undefined, completion_tokens: 0 })).toMatchObject({
       completion_tokens: 0,
@@ -24,6 +25,7 @@ describe('chat token usage', () => {
     { completion_tokens: Infinity },
     { total_tokens: '2' },
     { total_tokens: Number.MAX_SAFE_INTEGER + 1 },
+    { cached_tokens: -1 },
   ])('rejects invalid usage %j', (value) => {
     expect(isChatTokenUsage(value)).toBe(false)
     expect(resolveChatTokenUsage(value)).toBeUndefined()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, h, mergeProps, provide, ref, shallowRef, watch } from 'vue'
+import { computed, getCurrentInstance, h, mergeProps, nextTick, provide, ref, shallowRef, watch } from 'vue'
 import {
   BubbleRenderers,
   TrBubbleList,
@@ -70,10 +70,12 @@ const fallbackAiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
 const fallbackUserAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
 const editingMessageKey = shallowRef<string | null>(null)
 const editSession = shallowRef(0)
+let editTrigger: HTMLButtonElement | null = null
 watch(
   () => props.conversationId,
   () => {
     editingMessageKey.value = null
+    editTrigger = null
   },
 )
 
@@ -297,7 +299,14 @@ function handleStateChange(payload: ChatBubbleStateChangePayload) {
   const sourceMessage = props.messages[payload.messageIndex]
   const messageKey = message?.renderKey
   if (payload.key === 'chat-edit:cancel') {
-    if (editingMessageKey.value === messageKey) editingMessageKey.value = null
+    if (editingMessageKey.value === messageKey) {
+      editingMessageKey.value = null
+      const trigger = editTrigger
+      editTrigger = null
+      void nextTick(() => {
+        if (trigger?.isConnected) trigger.focus({ preventScroll: true })
+      })
+    }
     return
   }
   if (payload.key === 'chat-edit:save' && sourceMessage && messageKey) {
@@ -324,10 +333,11 @@ function handleStateChange(payload: ChatBubbleStateChangePayload) {
   emit('bubbleStateChange', payload)
 }
 
-function handleEditStart(context: ChatBubbleActionContext) {
+function handleEditStart(context: ChatBubbleActionContext, trigger: HTMLButtonElement) {
   if (context.capabilities.canEdit) {
     editSession.value++
     editingMessageKey.value = context.messageKey
+    editTrigger = trigger
   }
 }
 

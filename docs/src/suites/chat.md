@@ -471,7 +471,7 @@ const runtime = useChatRuntimeFromConversation({ conversation, composer: { model
 
 #### 自定义消息信息
 
-`info.title` 设置面板标题，默认是“对话信息”。不配置 `info.items` 时，按顺序展示 `metadata.model`、主 choice 的 `finish_reason`、`metadata.createdAt`（秒级时间戳）和 `metadata.usage` 中已有的三个标准 Token 字段。
+`info.title` 设置面板标题，默认是“对话信息”。不配置 `info.items` 时，按顺序展示 `metadata.model`、主 choice 的 `finish_reason`、`metadata.createdAt`（秒级时间戳）和 `metadata.usage` 中已有的标准 Token 字段；缓存命中 Token 有值时紧随输入 Token 展示。
 
 配置 `info.items(context)` 后，返回数组完整决定信息项、顺序和格式；返回 `[]` 时隐藏信息入口，不回退默认内容。`null`、`undefined` 会隐藏，数值 `0` 正常显示；需要占位符时返回 `'—'`。回调抛错时隐藏信息入口，不影响消息展示。
 
@@ -540,9 +540,18 @@ const runtime = useChatRuntime({
           includeUsage: true,
           mapUsage: (usage) => {
             if (!usage || typeof usage !== 'object') return undefined
-            const data = usage as Record<string, number>
+            const data = usage as {
+              input_tokens?: number
+              output_tokens?: number
+              total_tokens?: number
+              cached_tokens?: number
+              prompt_tokens_details?: { cached_tokens?: number }
+              prompt_cache_hit_tokens?: number
+            }
             return {
               prompt_tokens: data.input_tokens,
+              cached_tokens:
+                data.cached_tokens ?? data.prompt_tokens_details?.cached_tokens ?? data.prompt_cache_hit_tokens,
               completion_tokens: data.output_tokens,
               total_tokens: data.total_tokens,
             }
@@ -556,7 +565,7 @@ const runtime = useChatRuntime({
 
 替换地址、模型 `id` 和源字段即可。`includeUsage: true` 向支持的服务请求用量；不同模型可分别配置 `mapUsage`。没有用量时返回 `undefined`；数据在其他位置时，可通过第二个参数 `{ chunk }` 读取完整响应分片。
 
-转换结果按字段合并到 `message.metadata.usage`，未提供的字段保留之前的值，`undefined` 不会覆盖已有计数。运行时不会重新计算 `total_tokens`；如果输入或输出计数发生变化，映射函数需同时提供一致的总数，或始终省略总数。usage 合并独立于全局 `onCompletionChunk` 的内容处理，只有 usage 的分片也会通知插件，其 `choice` 为 `undefined`。
+转换结果按字段合并到 `message.metadata.usage`，未提供或无效的计数保留之前的值；缓存命中数使用标准字段 `cached_tokens`，可在 `mapUsage` 中映射模型提供的缓存统计。运行时不会重新计算 `total_tokens`；如果输入或输出计数发生变化，映射函数需同时提供一致的总数，或始终省略总数。usage 合并独立于全局 `onCompletionChunk` 的内容处理，只有 usage 的分片也会通知插件，其 `choice` 为 `undefined`。
 
 启用 `assistant: ['info']` 即可使用默认信息面板。需要调整名称、顺序或格式时，再配置 [`info.items`](#自定义消息信息)。
 

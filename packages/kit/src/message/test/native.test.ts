@@ -27,7 +27,7 @@ describe('createMessageEngine', () => {
     'preserves defined usage fields across %s chunks and accepts zero updates',
     async (mode) => {
       const usageSnapshots: ChatTokenUsage[] = [
-        { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
+        { prompt_tokens: 4, cached_tokens: 2, completion_tokens: 3, total_tokens: 7 },
         { prompt_tokens: undefined, completion_tokens: 2, total_tokens: undefined },
         { prompt_tokens: 6, completion_tokens: undefined, total_tokens: undefined },
         { prompt_tokens: undefined, completion_tokens: 0, total_tokens: undefined },
@@ -55,7 +55,12 @@ describe('createMessageEngine', () => {
       await engine.sendMessage('question')
 
       const assistant = engine.getState().messages.at(-1)!
-      expect(assistant.metadata?.usage).toEqual({ prompt_tokens: 6, completion_tokens: 0, total_tokens: 6 })
+      expect(assistant.metadata?.usage).toEqual({
+        prompt_tokens: 6,
+        cached_tokens: 2,
+        completion_tokens: 0,
+        total_tokens: 6,
+      })
       expect(assistant.content).toBe('part'.repeat(mode === 'content' ? 5 : mode === 'mixed' ? 3 : 0))
       expect(usageSnapshots[1]).toEqual({
         prompt_tokens: undefined,
@@ -64,6 +69,27 @@ describe('createMessageEngine', () => {
       })
     },
   )
+
+  it('keeps the last valid usage counter when a later chunk reports null', async () => {
+    const engine = createTestMessageEngine({
+      plugins: silentDefaultPlugins,
+      responseProvider: async function* () {
+        yield { choices: [], usage: { prompt_tokens: 12 } } as ChatResponseChunk
+        yield {
+          choices: [],
+          usage: { prompt_tokens: null, completion_tokens: 8, total_tokens: 20 },
+        } as unknown as ChatResponseChunk
+      },
+    })
+
+    await engine.sendMessage('question')
+
+    expect(engine.getState().messages.at(-1)?.metadata?.usage).toEqual({
+      prompt_tokens: 12,
+      completion_tokens: 8,
+      total_tokens: 20,
+    })
+  })
 
   it('throws when adapter is initialized more than once', () => {
     const adapter = createNativeMessageAdapter()

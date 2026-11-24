@@ -4,7 +4,7 @@ import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './requestPlugin'
 import type { ChatResolvedProviderModel } from './types'
 import { isChatTokenUsage } from '../usage'
 
-const usageKeys = ['prompt_tokens', 'completion_tokens', 'total_tokens'] as const
+const usageKeys = ['prompt_tokens', 'cached_tokens', 'completion_tokens', 'total_tokens'] as const
 
 function normalizeMappedUsage(mapped: unknown) {
   if (!mapped || typeof mapped !== 'object' || Array.isArray(mapped)) return undefined
