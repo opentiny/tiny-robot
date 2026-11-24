@@ -330,7 +330,7 @@ const skill = await loadSkill({
 console.log(skill.name, skill.instructions, skill.resources)
 ```
 
-默认解压内容上限为 10 MiB、文件数上限为 10,000；压缩文件上限默认为解压内容上限加 10 MiB。可通过 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount` 调整：
+默认有效文件的解压内容上限为 10 MiB、数量上限为 10,000，目录和被忽略的元数据不计入这两项限额；压缩文件上限默认为解压内容上限加 10 MiB。可通过 `maxArchiveSize`、`maxUncompressedSize` 和 `maxFileCount` 调整：
 
 ```typescript
 const skill = await loadSkill({
@@ -341,6 +341,15 @@ const skill = await loadSkill({
   maxFileCount: 1000,
 })
 ```
+
+归档另有固定的 10,000 条目上限，目录和被忽略的元数据也计入条目数，调大 `maxFileCount` 无法突破此上限。
+
+<details>
+<summary>TAR.GZ / TGZ 容器超限处理</summary>
+
+TAR.GZ 和 TGZ 的完整解压容器（含文件头、填充及元数据）另受 `maxUncompressedSize + 10000 × 1024 + 10240` 字节上限约束。因此，即使压缩文件大小、有效文件总大小和文件数均未超限，仍可能因容器超限被拒绝。遇到 `TAR.GZ container exceeds` 错误时，请移除不需要的元数据后重新打包。
+
+</details>
 
 浏览器入口和 `/node` 入口都支持以上归档格式。ZIP Deflate 解压需要运行时支持 `DecompressionStream('deflate-raw')`；Node.js 从 20.12 起支持。Node 侧传入带原始归档文件名的 `File`，示例见下方 Node.js 环境章节。
 
