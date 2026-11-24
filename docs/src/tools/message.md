@@ -225,18 +225,18 @@ type ResponseProvider<T = ChatCompletion> = (
 
 #### skillPlugin
 
-`skillPlugin` 根据应用选择的 Skill 生成当前请求的 instructions，并可向 `toolPlugin` 提供 Skill 资源工具。它不会默认安装，也不会自行决定 instructions 在具体 Provider 请求中的承载位置。选择模式、响应式配置和资源工具的完整说明见 [Skill](./skill#vue-skillplugin)。
+使用 Skill 时，在 `plugins` 中注册 `skillPlugin`。采用 [会话级接入](./skill#skill-session) 时，Kit 维护 Skill 目录和加载记录，并组装发给模型的上下文。已有 [按轮接入](./skill#skill-turn) 的应用继续读取当前轮的 instructions，并决定如何传给 Provider。
 
 #### toolPlugin
 
-`toolPlugin` 需要显式传入 `plugins`。`getTools` 提供工具 schema，`callTool` 执行没有本地 handler 的 function tool；`skillPlugin` 也可以向同一轮请求贡献 Skill 资源工具。
+`toolPlugin` 需要显式传入 `plugins`。`getTools` 提供工具 schema，`callTool` 执行没有本地 handler 的 function tool。会话级 `skillPlugin` 可提供 `load_skills` 和资源工具。
 
 | 配置项                            | 类型                                                                              | 必填 | 默认值                               | 说明                                                                                       |
 | --------------------------------- | --------------------------------------------------------------------------------- | ---- | ------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `getTools`                        | `(context) => MaybePromise<ToolProviderItem[]>`                                   | 是   | —                                    | 返回当前请求可用的 OpenAI tool schema 或带本地 handler 的 runtime tool。                   |
 | `callTool`                        | `(toolCall, context) => MaybeStreamableResult<string \| Record<string, unknown>>` | 是   | —                                    | 执行普通 function tool。结果写入对应 tool 消息；上下文包含 `toolMessage` 和 `toolSource`。 |
 | `beforeCallTools`                 | `(toolCalls, context) => Promise<void>`                                           | 否   | —                                    | 执行一批工具前进行校验、鉴权或遥测。                                                       |
-| `shouldPauseToolCall`             | `(toolCall, context) => boolean \| Promise<boolean>`                              | 否   | —                                    | 返回 `true` 时暂停当前工具；AskUser 只暂停对应调用，同批其他工具仍按普通流程执行。            |
+| `shouldPauseToolCall`             | `(toolCall, context) => boolean \| Promise<boolean>`                              | 否   | —                                    | 返回 `true` 时暂停当前工具；AskUser 只暂停对应调用，同批其他工具仍按普通流程执行。         |
 | `maxToolRounds`                   | `number`                                                                          | 否   | 不限制                               | 单个用户回合允许的工具调用批次数；必须为非负整数，`0` 表示不执行工具。                     |
 | `onLimitExceeded`                 | `(toolCalls, context) => MaybePromise<void>`                                      | 否   | —                                    | 下一批超过轮次上限时调用；不能放行超限工具。                                               |
 | `onToolCallStart`                 | `(toolCall, context) => void`                                                     | 否   | —                                    | tool 消息已追加、实际执行前调用。                                                          |
@@ -321,7 +321,9 @@ await message.dispatchCommand(TOOL_REJECT_COMMAND, {
 })
 ```
 
-两个命令每次只处理一个 `toolCallId`，并返回 `ToolCallCommandResult`。恢复会执行该工具并继续回合；拒绝会把状态标记为 `denied`，但不会直接中止整个回合。
+两个命令每次只处理一个 `toolCallId`，并返回 `ToolCallCommandResult`。拒绝会把该工具标记为 `denied`，回合可以继续处理其他调用。恢复时会重新检查工具是否可用。若工具已不可用，命令仍可返回 `resumed`，工具状态则是 `denied`。从发起调用的 assistant 消息读取 `state.toolCall[toolCallId].status`，可查看实际执行结果。
+
+Vue 的 `useMessage` 通过 `toolPlugin` 的 `getTools` 和 `callTool` 接入应用工具。直接使用 `@opentiny/tiny-robot-kit/core` 的消息引擎时，也可以在 `plugins` 中注册实现了 `ToolProvider` 的插件。给插件对象设置稳定的 `name`，重建引擎后可核对工具来源。具名插件被禁用、移除或改名后，原工具调用会被拒绝。匿名插件按工具名恢复，由当前提供该工具的匿名插件处理。原来的 runtime tool 不可用时，审批不会改用应用的 `callTool`。
 
 一个工具调用轮次是一条包含一个或多个 `tool_calls` 的 assistant 响应。同一响应中的多个调用只计一轮。下一批超过 `maxToolRounds` 时，该批工具不会执行；插件补充取消结果后发起不允许再次调用工具的关闭请求。
 
@@ -346,7 +348,8 @@ await message.dispatchCommand(TOOL_REJECT_COMMAND, {
 | `UseMessageToolLimitExceededContext`                    | 工具上下文  | 工具轮次超限上下文。                                  |
 | `UseMessageToolCallContext`                             | 工具上下文  | 单个工具开始、结束与暂停判断的上下文。                |
 | `ToolCallCommandPayload` / `ToolCallCommandResult`      | 命令        | 工具确认和拒绝命令的参数与结果。                      |
-| `UseMessageSkillPluginOptions`                          | Skill 配置  | Vue `skillPlugin` 的响应式配置。                      |
+| `UseMessageSkillPluginOptions`                          | Skill 配置  | Vue 按轮 Skill 配置，保留 interface 扩展能力。        |
+| `UseMessageSessionSkillPluginOptions`                   | Skill 配置  | Vue 会话级 Skill 配置。                               |
 | `SkillRequestContext` / `SkillSelection`                | Skill 状态  | 当前请求的 Skill 解析结果和选择模式。                 |
 | `Tool` / `ToolCall`                                     | 工具模型    | 请求工具定义和消息中的工具调用结构。                  |
 | `Choice` / `DeltaChoice` / `Usage`                      | 响应模型    | 完整选择、增量选择和 token 使用量。                   |

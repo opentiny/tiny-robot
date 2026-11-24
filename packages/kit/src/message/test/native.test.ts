@@ -19,6 +19,25 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('createMessageEngine', () => {
+  it('reports a dependency AbortError when the turn itself is still active', async () => {
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          async onTurnStart() {
+            throw new DOMException('Dependency cancelled', 'AbortError')
+          },
+          onError({ error, appendMessage }) {
+            appendMessage({ role: 'assistant', content: error instanceof Error ? error.message : String(error) })
+          },
+        },
+      ],
+    })
+    await expect(engine.sendMessage('hello')).rejects.toThrow('Dependency cancelled')
+    expect(engine.getState()).toMatchObject({ requestState: 'error' })
+    expect(engine.getState().messages.at(-1)?.content).toBe('Dependency cancelled')
+  })
+
   it('throws when adapter is initialized more than once', () => {
     const adapter = createNativeMessageAdapter()
 

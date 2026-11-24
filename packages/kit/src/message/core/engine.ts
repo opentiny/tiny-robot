@@ -327,6 +327,11 @@ export const createMessageEngine = (
         }
       }
     } catch (error) {
+      // A turn may be cancelled while asynchronous plugins prepare its first request.
+      if (ac.signal.aborted) {
+        setRequestState('aborted')
+        return
+      }
       setRequestState('error')
 
       const context = getBaseContext(ac.signal)

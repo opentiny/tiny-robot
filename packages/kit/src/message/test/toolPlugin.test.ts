@@ -72,6 +72,145 @@ const assistantCompletion = (content: string, finishReason: 'stop' | 'length' = 
 })
 
 describe('toolPlugin', () => {
+  it.each([
+    { name: undefined, leadingDisabled: true, sourceDisabled: false, result: 'anonymous result' },
+    { name: undefined, leadingDisabled: false, sourceDisabled: true, result: 'Tool call disabled.' },
+    { name: '', leadingDisabled: true, sourceDisabled: false, result: 'anonymous result' },
+  ])(
+    'identifies an anonymous source independently of other unnamed plugins: %j',
+    async ({ name, leadingDisabled, sourceDisabled, result }) => {
+      let disabled = false
+      let round = 0
+      const source: MessageEnginePlugin & ToolProvider = {
+        name,
+        disabled: () => disabled,
+        provideTools: () => [
+          { tool: { type: 'function', function: { name: 'lookup' } }, handler: () => 'anonymous result' },
+        ],
+      }
+      const engine = createTestMessageEngine({
+        plugins: [
+          ...silentDefaultPlugins,
+          { name, disabled: leadingDisabled },
+          toolPlugin({
+            getTools: () => [],
+            callTool: () => 'fallback',
+            beforeCallTools: async () => {
+              disabled = sourceDisabled
+            },
+          }),
+          source,
+        ],
+        responseProvider: async () => (round++ === 0 ? toolCallCompletion('anonymous') : assistantCompletion('done')),
+      })
+      await engine.sendMessage('lookup')
+      expect(engine.getState().messages.find((message) => message.role === 'tool')?.content).toBe(result)
+    },
+  )
+
+  it('denies a plain tool if its named provider withdraws its declaration before approval', async () => {
+    let offered = true
+    const provider: MessageEnginePlugin & ToolProvider = {
+      name: 'business',
+      provideTools: () => (offered ? [{ type: 'function', function: { name: 'lookup' } }] : []),
+    }
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({ getTools: () => [], callTool: () => 'fallback', shouldPauseToolCall: () => true }),
+        provider,
+      ],
+      responseProvider: async (body) =>
+        body.messages.at(-1)?.role === 'user' ? toolCallCompletion('approval') : assistantCompletion('done'),
+    })
+    await engine.sendMessage('lookup')
+    expect(engine.getState().requestState).toBe('paused')
+    offered = false
+    await engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'approval' })
+    expect(engine.getState().messages.find((message) => message.role === 'tool')?.content).toBe('Tool call disabled.')
+    expect(engine.getState().messages.find((message) => message.role === 'assistant')?.state).toMatchObject({
+      toolCall: { approval: { status: 'denied' } },
+    })
+  })
+
+  it.each([
+    { availability: 'available', result: 'business result', status: 'success' },
+    { availability: 'disabled', result: 'Tool call disabled.', status: 'denied' },
+    { availability: 'removed', result: 'Tool call disabled.', status: 'denied' },
+  ])('restores anonymous business tool approval when $availability', async ({ availability, result, status }) => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    })
+    try {
+      const provider = (disabled = false): MessageEnginePlugin & ToolProvider => ({
+        disabled,
+        provideTools: () => [
+          { tool: { type: 'function', function: { name: 'lookup' } }, handler: () => 'business result' },
+        ],
+      })
+      const first = createTestMessageEngine({
+        plugins: [
+          ...silentDefaultPlugins,
+          toolPlugin({ getTools: () => [], callTool: () => 'fallback', shouldPauseToolCall: () => true }),
+          provider(),
+        ],
+        responseProvider: async () => toolCallCompletion('approval'),
+      })
+      await first.sendMessage('lookup')
+      const restored = createTestMessageEngine({
+        initialMessages: JSON.parse(JSON.stringify(first.getState().messages)),
+        plugins: [
+          ...silentDefaultPlugins,
+          toolPlugin({ getTools: () => [], callTool: () => 'fallback' }),
+          ...(availability === 'removed' ? [] : [provider(availability === 'disabled')]),
+        ],
+        responseProvider: async () => assistantCompletion('done'),
+      })
+      await restored.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'approval' })
+      expect(restored.getState().messages.find((message) => message.role === 'tool')?.content).toBe(result)
+      expect(restored.getState().messages.find((message) => message.role === 'assistant')?.state).toMatchObject({
+        toolCall: { approval: { status } },
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('denies a provider disabled during tool preparation instead of executing its cached handler', async () => {
+    let disabled = false
+    let round = 0
+    const provider: MessageEnginePlugin & ToolProvider = {
+      name: 'runtime-provider',
+      disabled: () => disabled,
+      provideTools: () => [
+        { tool: { type: 'function', function: { name: 'lookup' } }, handler: () => 'cached result' },
+      ],
+    }
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: () => [],
+          callTool: () => 'fallback result',
+          beforeCallTools: async () => {
+            disabled = true
+          },
+        }),
+        provider,
+      ],
+      responseProvider: async () =>
+        round++ === 0 ? toolCallCompletion('disabled-call') : assistantCompletion('completed'),
+    })
+    await engine.sendMessage('lookup')
+    expect(engine.getState().messages.find((message) => message.role === 'tool')).toMatchObject({
+      content: 'Tool call disabled.',
+    })
+    expect(engine.getState().messages.at(-1)?.content).toBe('completed')
+  })
+
   it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
     'rejects invalid maxToolRounds value %s',
     (maxToolRounds) => {
