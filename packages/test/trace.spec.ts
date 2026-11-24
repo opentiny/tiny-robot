@@ -36,6 +36,19 @@ test.describe('Trace vanilla component', () => {
     await expect(page.locator('.tr-trajectory__duration')).toHaveCount(0)
     await expect(page.locator('.tr-trajectory__list.is-no-duration')).toHaveCount(1)
 
+    const formatterCalls = await page.evaluate(() => {
+      let calls = 0
+      window.traceFixture.trace.updateOptions({
+        durationFormat: 'none',
+        formatDuration: () => {
+          calls += 1
+          return 'should not be rendered'
+        },
+      })
+      return calls
+    })
+    expect(formatterCalls).toBe(0)
+
     await page.evaluate(() =>
       window.traceFixture.trace.updateOptions({
         durationFormat: 'compact',

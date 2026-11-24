@@ -47,7 +47,6 @@ function createModel(
   const time = normalizeTrajectory(items, options.axis, labels)
   return {
     time,
-    axis: options.axis,
     selectedId,
     durationFormat: options.durationFormat ?? 'compact',
     messages: { ...DEFAULT_MESSAGES, ...(options.messages ?? {}) },

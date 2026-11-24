@@ -27,8 +27,6 @@ export interface TrajectoryLabelStyle {
 export interface TrajectoryAxisOptions {
   readonly startTime?: TrajectoryTime
   readonly endTime?: TrajectoryTime
-  readonly tickCount?: number
-  readonly formatTime?: (timestamp: number, startTime: number, endTime: number) => string
 }
 
 export type TrajectoryFormatDuration = (durationMs: number, item: TrajectoryItem) => string

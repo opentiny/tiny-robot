@@ -1,14 +1,8 @@
 import type { NormalizedTrajectoryItem, TrajectoryTimeModel } from '../core/time'
-import type {
-  TrajectoryAxisOptions,
-  TrajectoryDurationFormat,
-  TrajectoryMessages,
-  TrajectorySelectSource,
-} from '../types'
+import type { TrajectoryDurationFormat, TrajectoryMessages, TrajectorySelectSource } from '../types'
 
 export interface TrajectoryRenderModel {
   readonly time: TrajectoryTimeModel
-  readonly axis: TrajectoryAxisOptions | undefined
   readonly selectedId: string | null
   readonly durationFormat: TrajectoryDurationFormat
   readonly messages: TrajectoryMessages
@@ -99,11 +93,12 @@ function renderItem(
   const message = createElement(document, 'span', 'tr-trajectory__message')
   setText(message, item.message)
 
-  const duration = createElement(document, 'span', 'tr-trajectory__duration')
-  setText(duration, model.formatDuration(item.duration, item.item))
-
   row.append(label, message)
-  if (model.durationFormat !== 'none') row.append(duration)
+  if (model.durationFormat !== 'none') {
+    const duration = createElement(document, 'span', 'tr-trajectory__duration')
+    setText(duration, model.formatDuration(item.duration, item.item))
+    row.append(duration)
+  }
   return row
 }
 
