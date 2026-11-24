@@ -237,7 +237,7 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | `SkillExtensionDetailProps`  | interface  | 详情的公开 Props。                                                                   |
 | `SkillFileActionType`        | union      | `'create-file' \| 'create-folder' \| 'delete-file' \| 'delete-folder' \| 'rename'`。 |
 | `SkillFileAction`            | interface  | 文件树操作的目标类型、原路径和可选的新路径。                                         |
-| `SkillResourceDescriptor`    | union      | 资源文件描述，支持逐文件配置 `editable`。                                            |
+| `SkillResourceDescriptor`    | union      | 资源文件描述，区分文本/二进制内容，并支持直接或懒加载读取。                              |
 | `SkillExtensionDetailSlots`  | interface  | Skill 详情组件插槽的类型。                                                           |
 | `SkillVisualEditorSlotProps` | interface  | 可视化编辑器插槽接收的草稿、当前文件路径和更新方法。                                 |
 
@@ -251,10 +251,10 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 
 | 事件名        | 什么时候触发                                                                                             | 参数                                    |
 | ------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `save`        | 用户在编辑状态下点击“保存”时；应用应保存定义并更新传入的 `definition`。                                  | `(definition: SkillDefinition) => void` |
-| `file-action` | 用户执行新增、删除或重命名文件/文件夹后。文件操作同时会触发 `save`；文件夹操作可由应用根据此事件持久化。 | `(action: SkillFileAction) => void`     |
+| `save`        | 编辑内容或文件树操作产生新定义时；应用应保存定义并更新传入的 `definition`。                                | `(definition: SkillDefinition) => void` |
+| `file-action` | 用户执行新增、删除或重命名文件/文件夹后触发；组件同时通过 `save` 提供更新后的定义，应用可据此完成持久化。 | `(action: SkillFileAction) => void`     |
 
-文件树中的文件夹支持新增文件夹、新增文件、删除和重命名；文件支持删除和重命名。名称只能包含英文字母、数字、下划线、中划线和点号；新增文本文件及文本文件重命名仅支持 `.md`、`.txt`、`.json` 后缀。删除操作会显示危险色菜单项，根目录 `SKILL.md` 不提供这些操作。文件变更会立即反映在组件的文件树中，并通过 `save` 事件交给业务持久化；文件夹操作通过 `file-action` 事件通知业务。`directories` 用于保留没有文件的空目录，删除目录中的最后一个文件不会自动删除该目录。
+文件树中的文件夹支持新增文件夹、新增文件、删除和重命名；文件支持删除和重命名。名称只能包含英文字母、数字、下划线、中划线和点号；新增文本文件及文本文件重命名仅支持 `.md`、`.txt`、`.json` 后缀。删除操作会显示危险色菜单项，根目录 `SKILL.md` 不提供这些操作。文件树操作会立即反映在组件中，并通过 `save` 事件提供更新后的定义，同时通过 `file-action` 事件通知业务。`directories` 用于保留没有文件的空目录，删除目录中的最后一个文件不会自动删除该目录。
 
 `updated-at` 只展示传入文本，不自行格式化日期。选择资源文件时，组件会读取定义提供的内容；Markdown 文本按格式化内容显示，其他文本显示为纯文本，图片可预览，其他二进制文件提供下载。
 

@@ -162,6 +162,21 @@ test.describe('SkillExtensionDetail', () => {
                 },
               ],
             },
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: { align: null },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'a \\| b', marks: [{ type: 'code' }] }],
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
@@ -180,13 +195,17 @@ test.describe('SkillExtensionDetail', () => {
     })
 
     expect(markdown).toContain('| `a \\| b` |')
+    expect(markdown).toContain('| `a \\\\| b` |')
     expect(markdownToHtml(markdown)).toContain('<code>a | b</code>')
+    expect(markdownToHtml(markdown)).toContain('<code>a \\| b</code>')
     expect(markdown).toContain('- first paragraph\n\n  second paragraph')
   })
 
   test('treats explicit directory ancestors as occupied paths', () => {
     expect(isSkillPathTaken('drafts.md', [], ['drafts.md/empty'])).toBe(true)
     expect(isSkillPathTaken('drafts.md/other', [], ['drafts.md/empty'])).toBe(false)
+    expect(isSkillPathTaken('Drafts.md', [], ['drafts.md/empty'], 'drafts.md')).toBe(false)
+    expect(isSkillPathTaken('archive', [], ['archive/empty'], 'drafts.md')).toBe(true)
   })
 
   test('cancels edits without changing the displayed content', async ({ mount }) => {

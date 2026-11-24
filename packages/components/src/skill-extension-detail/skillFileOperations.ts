@@ -75,20 +75,26 @@ export const isSkillPathTaken = (
 ) => {
   const normalizedPath = pathKey(path)
   const normalizedIgnoredPath = ignoredPath ? pathKey(ignoredPath) : undefined
+  const isIgnoredPath = (candidatePath: string) =>
+    normalizedIgnoredPath !== undefined &&
+    (candidatePath === normalizedIgnoredPath ||
+      (normalizedPath === normalizedIgnoredPath && candidatePath.startsWith(normalizedIgnoredPath + '/')))
   if (normalizedPath === 'skill.md' && normalizedIgnoredPath !== 'skill.md') return true
 
   return (
-    resources.some(
-      (resource) => pathKey(resource.path) === normalizedPath && pathKey(resource.path) !== normalizedIgnoredPath,
-    ) ||
-    [...getResourceDirectoryPaths(resources)].some(
-      (folderPath) => pathKey(folderPath) === normalizedPath && pathKey(folderPath) !== normalizedIgnoredPath,
-    ) ||
+    resources.some((resource) => {
+      const resourcePath = pathKey(resource.path)
+      return resourcePath === normalizedPath && !isIgnoredPath(resourcePath)
+    }) ||
+    [...getResourceDirectoryPaths(resources)].some((folderPath) => {
+      const normalizedFolderPath = pathKey(folderPath)
+      return normalizedFolderPath === normalizedPath && !isIgnoredPath(normalizedFolderPath)
+    }) ||
     directories.some((folderPath) => {
       const normalizedFolderPath = pathKey(folderPath)
       return (
         (normalizedFolderPath === normalizedPath || normalizedFolderPath.startsWith(normalizedPath + '/')) &&
-        normalizedFolderPath !== normalizedIgnoredPath
+        !isIgnoredPath(normalizedFolderPath)
       )
     })
   )
@@ -135,7 +141,10 @@ export const createResourceId = (path: string, resources: SkillResource[]) => {
   return resourceId
 }
 
-export const createTextResourceDefinition = (definition: SkillDefinition, path: string) => {
+export const createTextResourceDefinition = (
+  definition: SkillDefinition,
+  path: string,
+): { resource: SkillResourceDescriptor; definition: SkillDefinition } => {
   const resources = definition.resources ?? []
   const resource: SkillResource = {
     path,

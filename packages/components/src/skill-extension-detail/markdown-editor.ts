@@ -311,15 +311,10 @@ const escapeTablePipes = (value: string) => {
   let result = ''
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index]
-    let backslashCount = 0
-    for (let previousIndex = index - 1; previousIndex >= 0 && value[previousIndex] === '\\'; previousIndex -= 1) {
-      backslashCount += 1
-    }
 
-    // Markdown table columns are split before inline code is parsed, so code spans
-    // must escape their pipes too. Only an odd number of preceding backslashes
-    // already escapes the pipe.
-    if (character === '|' && backslashCount % 2 === 0) result += '\\'
+    // Markdown table parsing consumes one backslash before a pipe. Add one layer
+    // regardless of existing backslashes so the cell text survives round-trips.
+    if (character === '|') result += '\\'
     result += character
   }
 
