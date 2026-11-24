@@ -166,6 +166,14 @@ export function createTemplateTestHelper(page: Page) {
       expect(handled).toBe(true)
     },
 
+    /** 精确定位到模板块右侧，避免依赖行尾和按键步数。 */
+    async focusAfterTemplate(index: number) {
+      const positioned = await page.evaluate((templateIndex) => {
+        return window.__senderTestApi?.moveCursorAfterTemplate(templateIndex) ?? false
+      }, index)
+      expect(positioned).toBe(true)
+    },
+
     /**
      * 聚焦到模板块内容末尾
      */

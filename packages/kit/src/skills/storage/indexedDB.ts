@@ -21,6 +21,7 @@ interface IndexedDBSkillStorageSkillRecord {
   description: string
   instructions: string
   metadata?: Record<string, unknown>
+  directories?: string[]
   resources?: IndexedDBSkillStorageResourceMetadata[]
 }
 
@@ -190,6 +191,7 @@ export class IndexedDBSkillStorage<TImportOptions = SkillImportOptions> implemen
       description: record.description,
       instructions: record.instructions,
       metadata: record.metadata ? { ...record.metadata } : undefined,
+      directories: record.directories ? [...record.directories] : undefined,
       resources: record.resources?.map((resource) => this.toSkillResource(record.name, resource)),
     }
   }
@@ -278,6 +280,7 @@ function toSkillRecord(skill: SkillDefinition): IndexedDBSkillStorageSkillRecord
     description: skill.description,
     instructions: skill.instructions,
     metadata: skill.metadata ? { ...skill.metadata } : undefined,
+    directories: skill.directories ? [...skill.directories] : undefined,
     resources: skill.resources?.map((resource) => ({
       path: resource.path,
       kind: resource.kind,

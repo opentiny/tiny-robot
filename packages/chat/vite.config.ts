@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'vue',
+        '@floating-ui/dom',
         '@opentiny/tiny-robot',
         '@opentiny/tiny-robot-kit',
         '@opentiny/tiny-robot-svgs',

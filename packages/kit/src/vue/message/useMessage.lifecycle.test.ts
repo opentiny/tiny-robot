@@ -21,6 +21,26 @@ const completion = (content: string): ChatCompletion => ({
 })
 
 describe('useMessage lifecycle', () => {
+  it('stores usage from a final chunk without choices', async () => {
+    const responseProvider: ResponseProvider = async function* () {
+      yield completion('answer')
+      yield {
+        ...completion(''),
+        choices: [],
+        usage: { prompt_tokens: 12, completion_tokens: 7, total_tokens: 19 },
+      }
+    }
+    const engine = useMessage({ responseProvider })
+
+    await engine.sendMessage('question')
+
+    expect(engine.messages.value.at(-1)?.metadata?.usage).toEqual({
+      prompt_tokens: 12,
+      completion_tokens: 7,
+      total_tokens: 19,
+    })
+  })
+
   it('exposes reactive lifecycle context and plugin-produced messages to consumers', async () => {
     let requestBody: MessageRequestBody | undefined
     let turnId: string | null = null

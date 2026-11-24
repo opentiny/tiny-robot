@@ -84,6 +84,19 @@ test.describe('Sender TemplateBlock deletion matrix', () => {
     await expect(component.getByTestId('editor-text')).toHaveText('左侧右侧')
   })
 
+  test('BS-06A removes an empty block after repeated Backspace from its right side', async ({ mount }) => {
+    const component = await mount(SenderExtensionsFixture, { props: { kind: 'template', templateScenario: 'empty' } })
+    const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+    await component.locator('.template-block').click()
+    await editor.press('ArrowRight')
+    for (let index = 0; index < 4 && (await component.locator('.template-block').count()) > 0; index += 1) {
+      await editor.press('Backspace')
+    }
+
+    await expect(component.locator('.template-block')).toHaveCount(0)
+  })
+
   test('BS-07 deletes the ordinary character before a block without damaging the boundary', async ({ mount }) => {
     const component = await mount(SenderExtensionsFixture, { props: { kind: 'template', templateScenario: 'single' } })
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

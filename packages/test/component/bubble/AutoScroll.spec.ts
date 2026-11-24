@@ -9,7 +9,7 @@ const expectAtBottom = async (scroller: Locator) => {
   await expect.poll(() => distanceToBottom(scroller)).toBeLessThanOrEqual(1)
 }
 
-// Chromium headless may otherwise complete smooth scrolling without intermediate frames.
+// Windows may disable scroll animations; these cases need an actual smooth scroll to interrupt.
 test.use({ launchOptions: { args: ['--enable-smooth-scrolling'] } })
 
 test.describe('useAutoScroll', () => {

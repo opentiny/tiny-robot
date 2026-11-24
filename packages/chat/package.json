@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-chat",
-  "version": "0.5.1",
+  "version": "1.0.1",
   "license": "MIT",
   "description": "TinyRobot Chat application assembly package",
   "homepage": "https://docs.opentiny.design/tiny-robot/",
@@ -33,6 +33,7 @@
     "test:watch": "vitest --config vitest.config.ts"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.6.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",

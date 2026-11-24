@@ -71,6 +71,11 @@ export type LoadableSkillFile = {
   metadata?: Record<string, unknown>
 }
 
+export type LoadableSkillFiles = {
+  files: LoadableSkillFile[]
+  directories: string[]
+}
+
 export type BrowserSkillLoadOptions = SkillLoadBaseOptions &
   (
     | {
@@ -84,6 +89,17 @@ export type BrowserSkillLoadOptions = SkillLoadBaseOptions &
         fileList?: never
       }
   )
+
+export type ArchiveSkillLoadOptions = SkillLoadBaseOptions & {
+  source: 'archive'
+  file: File
+  /** Maximum compressed archive input size. Defaults to maxUncompressedSize + 10 MiB. */
+  maxArchiveSize?: number
+  /** Maximum total uncompressed file size. Defaults to 10 MiB. */
+  maxUncompressedSize?: number
+  /** Maximum number of non-directory, non-metadata files. Defaults to 10,000. */
+  maxFileCount?: number
+}
 
 export type FsSkillLoadOptions = SkillLoadBaseOptions & {
   source: 'fs'

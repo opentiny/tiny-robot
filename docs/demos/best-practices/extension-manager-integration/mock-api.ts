@@ -18,8 +18,8 @@ export const getBuiltInExtensions = (): ExtensionDefinition[] => [
         url: 'https://example.com/builtin-weather',
       },
       tools: [
-        { id: 'forecast', name: '天气预报', enabled: true },
-        { id: 'alert', name: '天气预警', enabled: true },
+        { id: 'forecast', name: '天气预报', description: '查询指定城市的实时天气和未来天气预报。', enabled: true },
+        { id: 'alert', name: '天气预警', description: '查询指定城市当前生效的天气预警信息。', enabled: true },
       ],
     },
   },
@@ -36,7 +36,7 @@ export const getBuiltInExtensions = (): ExtensionDefinition[] => [
         type: 'sse',
         url: 'https://example.com/builtin-search',
       },
-      tools: [{ id: 'search', name: '检索资料', enabled: true }],
+      tools: [{ id: 'search', name: '检索资料', description: '按关键词搜索内置资料目录。', enabled: true }],
     },
   },
   {
@@ -79,8 +79,13 @@ export const fetchRemoteExtensions = async (): Promise<ExtensionDefinition[]> =>
           url: 'https://example.com/remote-weather',
         },
         tools: [
-          { id: 'forecast', name: '天气预报', enabled: true },
-          { id: 'air-quality', name: '空气质量', enabled: true },
+          { id: 'forecast', name: '天气预报', description: '查询指定城市的实时天气和未来天气预报。', enabled: true },
+          {
+            id: 'air-quality',
+            name: '空气质量',
+            description: '查询指定城市的空气质量指数和主要污染物。',
+            enabled: true,
+          },
         ],
       },
     },

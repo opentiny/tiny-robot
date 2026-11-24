@@ -1,4 +1,4 @@
-import { ref, toRaw, watch } from 'vue'
+import { isReactive, isReadonly, ref, toRaw, watch } from 'vue'
 import { createVueMessageAdapter } from '../../message/adapters'
 import { createMessageEngine } from '../../message/core'
 import {
@@ -6,7 +6,7 @@ import {
   BasePluginContext as CoreBasePluginContext,
   BeforeRequestContext as CoreBeforeRequestContext,
   ChatMessage as CoreChatMessage,
-  CompletionChunkContext as CoreCompletionChunkContext,
+  ChatResponseChunk,
   MessageEngineInitContext as CoreMessageEngineInitContext,
   ResponseProvider as CoreResponseProvider,
   CreateMessageEngineOptions,
@@ -37,6 +37,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const adapter = createVueMessageAdapter()
 
   const resolveReactiveMessage = (message: ChatMessage) => {
+    if (isReactive(message) && !isReadonly(message)) return message
     return (adapter.messages.value.find(
       (item) => item === message || toRaw(item) === message || toRaw(item) === toRaw(message),
     ) ?? message) as ChatMessage
@@ -63,6 +64,8 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       abortSignal: context.abortSignal,
       customContext: context.customContext,
       setCustomContext: context.setCustomContext,
+      createMessage: context.createMessage,
+      mutate: context.mutate,
     }
   }
 
@@ -183,12 +186,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     }
 
     if (onCompletionChunk) {
-      corePlugin.onCompletionChunk = (context: CoreCompletionChunkContext) =>
+      corePlugin.onCompletionChunk = (context) =>
         onCompletionChunk({
           ...createVueBaseContext(context),
           currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
           choice: context.choice as CompletionChoice,
           chunk: context.chunk as ChatCompletion,
+          updateCurrentMessage: (recipe) => context.updateCurrentMessage((message) => recipe(message as ChatMessage)),
         })
     }
 
@@ -228,7 +232,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages: initialMessages as CoreChatMessage[],
     requestMessageFields,
     requestMessageFieldsExclude,
-    responseProvider: initialResponseProvider as CoreResponseProvider,
+    responseProvider: initialResponseProvider as CoreResponseProvider<ChatResponseChunk>,
     onCompletionChunk: onCompletionChunk ? onCompletionChunkHandler : undefined,
     plugins: plugins.map((plugin) => createCorePlugin(plugin)),
   })
@@ -238,7 +242,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   watch(
     responseProvider,
     (provider) => {
-      engine.setResponseProvider(provider as CoreResponseProvider)
+      engine.setResponseProvider(provider as CoreResponseProvider<ChatResponseChunk>)
     },
     { flush: 'sync' },
   )
@@ -253,6 +257,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     canStartTurn: adapter.canStartTurn,
     sendMessage: engine.sendMessage,
     send: engine.send,
+    rerun: (target, replacement) =>
+      engine.rerun(
+        toRaw(resolveReactiveMessage(target as unknown as ChatMessage)) as unknown as CoreChatMessage,
+        replacement
+          ? (toRaw(resolveReactiveMessage(replacement as unknown as ChatMessage)) as unknown as CoreChatMessage)
+          : undefined,
+      ),
     abortRequest: engine.abort,
     dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn

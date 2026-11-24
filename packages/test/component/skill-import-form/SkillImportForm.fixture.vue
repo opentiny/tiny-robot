@@ -10,7 +10,7 @@ import type {
 
 type ResolverMode = 'success' | 'error' | 'network-error' | 'pending' | 'race'
 
-const props = defineProps<{ maxUploadSize?: number; resolveTimeout?: number }>()
+const props = defineProps<{ maxUploadSize?: number; resolveTimeout?: number; resolverError?: string }>()
 
 const source = ref<SkillImportFormSource>('local')
 const resolverMode = ref<ResolverMode>('success')
@@ -23,6 +23,13 @@ let releasePending: (() => void) | undefined
 const summarizeInput = (value: SkillImportFormInput | undefined) => {
   if (!value) return ''
   if (value.source === 'github') return JSON.stringify(value)
+  if (value.source === 'archive') {
+    return JSON.stringify({
+      source: value.source,
+      file: value.file.name,
+      maxUncompressedSize: value.maxUncompressedSize,
+    })
+  }
 
   return JSON.stringify({
     source: value.source,
@@ -53,11 +60,12 @@ const resolveSkill: SkillResolver = async (input) => {
     })
   }
 
-  if (resolverMode.value === 'error') throw new Error('SKILL.md 的 YAML 格式不正确')
+  if (resolverMode.value === 'error') throw new Error(props.resolverError ?? 'SKILL.md 的 YAML 格式不正确')
   if (resolverMode.value === 'network-error') throw new TypeError('Failed to fetch')
 
   return {
-    name: input.source === 'local' ? 'resolved-local' : 'resolved-github',
+    name:
+      input.source === 'local' ? 'resolved-local' : input.source === 'archive' ? 'resolved-archive' : 'resolved-github',
     description: 'Resolved by fixture',
     instructions: '# Resolved',
     metadata: { source: input.source },
@@ -75,6 +83,7 @@ const handleSubmit = (definition: SkillDefinition) => {
 <template>
   <button data-testid="show-local" type="button" @click="source = 'local'">Show local</button>
   <button data-testid="show-github" type="button" @click="source = 'github'">Show GitHub</button>
+  <button data-testid="show-archive" type="button" @click="source = 'archive'">Show archive</button>
   <button data-testid="use-default-resolver" type="button" @click="useDefaultResolver = true">
     Use default resolver
   </button>
