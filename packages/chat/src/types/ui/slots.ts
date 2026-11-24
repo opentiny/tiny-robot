@@ -95,6 +95,13 @@ export interface ChatBubbleContentFooterSlotProps extends ChatBubbleSlotProps {
   readonly contentIndex?: number
 }
 
+export interface ChatBubbleActionSlotProps {
+  readonly item: Extract<import('./options').ChatBubbleActionItem, { type: 'slot' }>
+  readonly context: import('./options').ChatBubbleActionContext
+  readonly disabled: boolean
+  readonly setOpen: (open: boolean) => void
+}
+
 export interface ChatUISlots {
   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
@@ -118,6 +125,7 @@ export interface ChatUISlots {
   'bubble-suffix'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
+  'bubble-action'?: (props: ChatBubbleActionSlotProps) => unknown
   'sender-header'?: () => unknown
   'input-prefix'?: () => unknown
   'sender-content'?: (props: { editor: unknown }) => unknown
