@@ -484,4 +484,246 @@ test.describe('SkillExtensionDetail', () => {
     await expect(binaryRenameInput).toHaveAttribute('title', '二进制文件不能重命名为文本文件。')
     await binaryRenameInput.press('Escape')
   })
+
+  test('keeps a persisted parent directory after deleting its last file', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('single-file-folder-detail')
+
+    await detail.getByRole('button', { name: 'only.md 操作' }).click()
+    await detail.getByRole('menuitem', { name: '删除文件', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
+
+    await expect(detail.getByRole('button', { name: 'references 操作' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: 'only.md 操作' })).toHaveCount(0)
+    await expect(component.getByTestId('single-file-folder-directories')).toHaveText('references')
+  })
+
+  test('resets the edit context when creating a file while editing without changes', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('uncontrolled-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('button', { name: 'references 操作' }).click()
+    await detail.getByRole('menuitem', { name: '新增文件', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('textbox').fill('fresh.md')
+    await dialog.getByRole('button', { name: '确定' }).click()
+
+    await expect(detail.getByRole('button', { name: 'fresh.md 操作' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await expect(detail.getByRole('textbox', { name: '源码编辑 references/fresh.md' })).toHaveValue('')
+  })
+
+  test('keeps renamed and newly recreated resources independent', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: 'schema.md 操作' }).click()
+    await detail.getByRole('menuitem', { name: '重命名' }).click()
+    const renameInput = detail.getByRole('textbox', { name: '重命名 schema.md' })
+    await renameInput.fill('renamed-schema.md')
+    await renameInput.press('Enter')
+
+    await detail.getByRole('button', { name: 'references 操作' }).click()
+    await detail.getByRole('menuitem', { name: '新增文件', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('textbox').fill('schema.md')
+    await dialog.getByRole('button', { name: '确定' }).click()
+
+    await expect(component.getByTestId('resource-identity-log')).toContainText(
+      'references/renamed-schema.md|references/schema.md',
+    )
+    await expect(component.getByTestId('resource-identity-log')).toContainText(
+      'references/schema.md|references/schema.md#1',
+    )
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('New file content')
+    await detail.getByRole('button', { name: '保存' }).click()
+
+    await detail.getByRole('button', { name: 'renamed-schema.md', exact: true }).click()
+    await expect(detail.getByRole('heading', { name: 'Schema' })).toBeVisible()
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await expect(detail).toContainText('New file content')
+  })
+
+  test('shows a newly created resource immediately when the parent does not handle save', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('uncontrolled-detail')
+
+    await detail.getByRole('button', { name: 'references 操作' }).click()
+    await detail.getByRole('menuitem', { name: '新增文件', exact: true }).click()
+    await page.getByRole('dialog').getByRole('textbox').fill('instant.md')
+    await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
+
+    await expect(detail.getByRole('button', { name: 'instant.md 操作' })).toBeVisible()
+  })
+
+  test('preserves empty folders when the same Skill definition is saved', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '新增文件夹' }).click()
+    await page.getByRole('dialog').getByRole('textbox').fill('empty-folder')
+    await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
+    await expect(detail.getByRole('button', { name: 'empty-folder 操作' })).toBeVisible()
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('Updated schema')
+    await detail.getByRole('button', { name: '保存' }).click()
+
+    await expect(detail.getByRole('button', { name: 'empty-folder 操作' })).toBeVisible()
+  })
+
+  test('clears temporary folder state when the Skill definition changes', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('switchable-detail')
+
+    await detail.getByRole('button', { name: 'references 操作' }).click()
+    await detail.getByRole('menuitem', { name: '新增文件夹', exact: true }).click()
+    await page.getByRole('dialog').getByRole('textbox').fill('drafts')
+    await page.getByRole('dialog').getByRole('button', { name: '确定' }).click()
+    await expect(detail.getByRole('button', { name: 'drafts 操作' })).toBeVisible()
+
+    await component.getByTestId('switch-definition').click()
+    await expect(detail.getByRole('button', { name: 'drafts 操作' })).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: 'guide.md 操作' })).toBeVisible()
+  })
+
+  test('prompts before switching files when unsaved edits have no business guard', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('uncontrolled-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 SKILL.md' }).fill('Unsaved content')
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+
+    const switchDialog = page.getByRole('dialog')
+    await expect(switchDialog).toContainText('执行“references/schema.md”前是否保存？')
+    await expect(detail.getByRole('button', { name: 'SKILL.md' })).toHaveAttribute('aria-current', 'page')
+    await expect(detail.getByRole('textbox', { name: '源码编辑 SKILL.md' })).toBeVisible()
+
+    await switchDialog.getByRole('button', { name: '取消' }).click()
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: '保存并切换' }).click()
+
+    await expect(detail.getByRole('heading', { name: 'Schema', exact: true })).toBeVisible()
+    await detail.getByRole('button', { name: 'SKILL.md' }).click()
+    await expect(detail).toContainText('Unsaved content')
+  })
+
+  test('drops an edit session when the host removes its resource', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('external-update-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('stale resource draft')
+
+    await component.getByTestId('remove-external-resource').click()
+
+    await expect(detail.getByRole('button', { name: 'schema.md', exact: true })).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '保存' })).toHaveCount(0)
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await expect(detail.getByRole('textbox', { name: '源码编辑 SKILL.md' })).toHaveValue(/# 使用说明/)
+  })
+
+  test('resets an edit session when the host refreshes a resource with the same id', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('external-update-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('stale resource draft')
+
+    await component.getByTestId('refresh-external-resource').click()
+
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '保存' })).toHaveCount(0)
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await expect(detail.getByRole('textbox', { name: '源码编辑 references/schema.md' })).toHaveValue(
+      '# Refreshed schema',
+    )
+  })
+
+  test('discards unsaved edits before switching files', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 SKILL.md' }).fill('Unsaved content')
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+
+    await page.getByRole('dialog').getByRole('button', { name: '放弃修改' }).click()
+    await expect(detail.getByRole('heading', { name: 'Schema', exact: true })).toBeVisible()
+    await detail.getByRole('button', { name: 'SKILL.md' }).click()
+    await expect(detail).not.toContainText('Unsaved content')
+  })
+
+  test('saves through the built-in prompt before switching files', async ({ mount, page }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 SKILL.md' }).fill('Saved before switch')
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: '保存并切换' }).click()
+
+    await expect(detail.getByRole('heading', { name: 'Schema', exact: true })).toBeVisible()
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeEnabled()
+
+    await detail.getByRole('button', { name: 'SKILL.md' }).click()
+    await expect(detail).toContainText('Saved before switch')
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeEnabled()
+  })
+
+  test('edits selected text resources and keeps binary resources read-only', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('editable-detail')
+
+    await detail.getByRole('button', { name: 'schema.md', exact: true }).click()
+    await detail.getByRole('button', { name: '编辑' }).click()
+    await detail.getByRole('tab', { name: '源码编辑' }).click()
+    await detail.getByRole('textbox', { name: '源码编辑 references/schema.md' }).fill('Updated schema')
+    await detail.getByRole('button', { name: '保存' }).click()
+    await expect(detail).toContainText('Updated schema')
+    await expect(component.getByTestId('saved-binary-text')).toHaveText('Updated schema')
+
+    await detail.getByRole('button', { name: 'example.png', exact: true }).click()
+    await expect(detail.getByRole('button', { name: '编辑' })).toBeDisabled()
+  })
+
+  test('keeps the file browser within its configured maximum height', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('many-resources-detail')
+    const browser = detail.locator('.skill-extension-detail__browser')
+    const sidebar = detail.locator('.skill-extension-detail__sidebar')
+
+    await expect(browser).toHaveCSS('min-height', '360px')
+    await expect(browser).toHaveCSS('max-height', '420px')
+    expect(await sidebar.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+    await expect(detail.getByRole('button', { name: /file-12\.md/ })).toHaveCount(1)
+  })
+
+  test('uses 500px height and 600px maximum height by default', async ({ mount }) => {
+    const component = await mount(SkillExtensionDetailFixture)
+    const detail = component.getByTestId('detail')
+
+    await expect(detail.locator('.skill-extension-detail__browser')).toHaveCSS('min-height', '500px')
+    await expect(detail.locator('.skill-extension-detail__browser')).toHaveCSS('max-height', '600px')
+  })
 })
