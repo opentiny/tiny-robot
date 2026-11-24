@@ -1,13 +1,8 @@
 export type McpExtensionFormMode = 'form' | 'code'
 
-export interface McpExtensionFormValue {
-  name: string
-  description?: string
-  type: 'sse' | 'streamableHttp'
-  url: string
-  headers?: Record<string, string>
-  thumbnail?: string | null
-}
+import type { McpServerRegistrationConfig } from '../mcp/types'
+
+export type McpExtensionFormValue = McpServerRegistrationConfig
 
 export interface McpExtensionFormProps {
   modelValue: McpExtensionFormValue

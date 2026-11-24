@@ -7,6 +7,7 @@ export type {
   McpAdapter,
   McpReadable,
   McpRuntime,
+  McpServerRegistrationConfig,
   McpServerInfo,
   McpToolCallTool,
   McpToolDefinition,

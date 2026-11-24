@@ -1,6 +1,6 @@
 import { computed, nextTick, shallowReactive, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import type { McpExtensionFormValue } from '@opentiny/tiny-robot'
+import type { McpServerRegistrationConfig } from '@opentiny/tiny-robot'
 import { useChatDraft } from './useChatDraft'
 import { getChatModelFeatureValues, getChatModelFields } from '../modelFeatures'
 import { canSetModelFieldValue } from '@opentiny/tiny-robot'
@@ -311,7 +311,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       )
   }
 
-  async function registerMcpServer(config: McpExtensionFormValue): Promise<string | undefined> {
+  async function registerMcpServer(config: McpServerRegistrationConfig): Promise<string | undefined> {
     const actionRuntime = runtime.value
     const mcp = actionRuntime.composer.mcp
     if (!mcp?.registerMcpServer) return undefined

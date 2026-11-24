@@ -17,7 +17,7 @@ interface ToolSnapshot {
 }
 
 interface CreateMcpToolPluginOptions {
-  refresh?: () => Promise<void> | void
+  refresh?: (serverIds: readonly string[]) => Promise<void> | void
   resolveRunConfig?: (runConfig: ChatRunConfig | undefined) => ChatRunConfig | undefined
 }
 
@@ -41,14 +41,18 @@ export function createMcpToolPlugin(
   return toolPlugin({
     getTools: async ({ customContext, setCustomContext }) => {
       const storedRunConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
-      const runConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
-      const toolRunConfig = runConfig?.mcp
+      const initialRunConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
+      const requestedServerIds = initialRunConfig?.mcp?.serverIds ?? storedRunConfig?.mcp?.serverIds ?? []
 
-      if (!toolRunConfig) {
+      if (requestedServerIds.length === 0) {
         return []
       }
 
-      await options.refresh?.()
+      await options.refresh?.(requestedServerIds)
+
+      const runConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
+      const toolRunConfig = runConfig?.mcp
+      if (!toolRunConfig) return []
 
       const serverWithoutToolSelection = toolRunConfig.serverIds.find(
         (serverId) => !Object.prototype.hasOwnProperty.call(toolRunConfig.toolIds, serverId),

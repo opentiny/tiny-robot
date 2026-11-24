@@ -57,6 +57,33 @@ describe('createWebMcpToolSource', () => {
     expect(executeTool).toHaveBeenNthCalledWith(2, tool, '{"text":"hello"}')
   })
 
+  it('falls back when the browser reports the parse error as a generic Error', async () => {
+    const tool = { name: 'echo' }
+    const executeTool = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Failed to parse input arguments'))
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'echo:ok' }] })
+    const context: WebMcpContext = {
+      listTools: async () => [tool],
+      executeTool,
+    }
+    const source = createWebMcpToolSource({ getContext: () => context })
+
+    await expect(source.callTool('echo', { text: 'hello' })).resolves.toBe('echo:ok')
+    expect(executeTool).toHaveBeenCalledTimes(2)
+  })
+
+  it('extracts text from a JSON string result returned by the browser', async () => {
+    const tool = { name: 'echo' }
+    const context: WebMcpContext = {
+      listTools: async () => [tool],
+      executeTool: async () => JSON.stringify({ content: [{ type: 'text', text: 'echo:ok' }] }),
+    }
+    const source = createWebMcpToolSource({ getContext: () => context })
+
+    await expect(source.callTool('echo', {})).resolves.toBe('echo:ok')
+  })
+
   it('does not retry non-parse tool errors', async () => {
     const tool = { name: 'echo' }
     const error = new Error('tool execution failed')
@@ -88,6 +115,7 @@ describe('createWebMcpToolSource', () => {
 
   it('normalizes malformed schemas to an object schema', () => {
     expect(normalizeWebMcpInputSchema('{bad json')).toEqual({ type: 'object', properties: {} })
+    expect(normalizeWebMcpInputSchema({ properties: [] })).toEqual({ type: 'object', properties: {} })
     expect(normalizeWebMcpInputSchema({ properties: { q: { type: 'string' } } })).toEqual({
       type: 'object',
       properties: { q: { type: 'string' } },

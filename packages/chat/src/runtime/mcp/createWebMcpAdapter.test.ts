@@ -180,6 +180,126 @@ describe('createWebMcpAdapter', () => {
     expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(2)
   })
 
+  it('does not refresh a disabled WebMCP server after a toolchange', async () => {
+    const { source, listTools, addTool } = createSource()
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    await adapter.runtime.setServerEnabled('page-webmcp', false)
+    listTools.mockRejectedValueOnce(new Error('disabled source unavailable'))
+    addTool({ name: 'navigate' })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(listTools).toHaveBeenCalledOnce()
+    expect(adapter.runtime.servers.value[0]?.error).toBeUndefined()
+  })
+
+  it('does not discover tools for an initially disabled server', async () => {
+    const { source, listTools } = createSource()
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp', enabled: false } })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(listTools).not.toHaveBeenCalled()
+    expect(adapter.runtime.tools.value['page-webmcp']).toEqual([])
+
+    await adapter.runtime.setServerEnabled('page-webmcp', true)
+    expect(listTools).toHaveBeenCalledOnce()
+  })
+
+  it('keeps toolchange listening aligned with tool-level enablement', async () => {
+    const { source, listTools, addTool } = createSource()
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    await adapter.runtime.setServerEnabled('page-webmcp', false)
+    listTools.mockClear()
+    await adapter.runtime.setToolEnabled('page-webmcp', 'echo', true)
+    addTool({ name: 'discovered-after-tool-enable' })
+    await vi.waitFor(() =>
+      expect(adapter.runtime.tools.value['page-webmcp']).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: 'discovered-after-tool-enable', enabled: true })]),
+      ),
+    )
+
+    for (const tool of adapter.runtime.tools.value['page-webmcp'] ?? []) {
+      await adapter.runtime.setToolEnabled('page-webmcp', tool.id, false)
+    }
+
+    listTools.mockClear()
+    addTool({ name: 'ignored-after-last-tool-disabled' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(listTools).not.toHaveBeenCalled()
+  })
+
+  it('clears loading when disabling during an in-flight discovery', async () => {
+    let releaseDiscovery!: () => void
+    const discovery = new Promise<void>((resolve) => {
+      releaseDiscovery = resolve
+    })
+    const source: WebMcpToolSource = {
+      listTools: async () => {
+        await discovery
+        return [{ name: 'echo' }]
+      },
+      callTool: async () => 'ok',
+    }
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
+
+    await vi.waitFor(() => expect(adapter.runtime.servers.value[0]?.loading).toBe(true))
+    await adapter.runtime.setServerEnabled('page-webmcp', false)
+    expect(adapter.runtime.servers.value[0]?.loading).toBeUndefined()
+
+    releaseDiscovery()
+  })
+
+  it('reopens after close so a removed Adapter can be attached again', async () => {
+    const { source, listTools } = createSource()
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    await adapter.close?.()
+    expect(adapter.runtime.tools.value['page-webmcp']).toEqual([])
+    expect(adapter.runtime.servers.value[0]?.loading).toBeUndefined()
+
+    await adapter.refresh?.()
+    await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    expect(listTools).toHaveBeenCalledTimes(2)
+  })
+
+  it('starts a new discovery when reopened while the previous discovery is still pending', async () => {
+    let releaseFirst!: () => void
+    let releaseSecond!: () => void
+    const firstDiscovery = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const secondDiscovery = new Promise<void>((resolve) => {
+      releaseSecond = resolve
+    })
+    let calls = 0
+    const source: WebMcpToolSource = {
+      listTools: vi.fn(async () => {
+        const call = ++calls
+        await (call === 1 ? firstDiscovery : secondDiscovery)
+        return [{ name: call === 1 ? 'stale' : 'fresh' }]
+      }),
+      callTool: async () => 'ok',
+    }
+    const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
+
+    await vi.waitFor(() => expect(source.listTools).toHaveBeenCalledOnce())
+    await adapter.close?.()
+    const reopened = adapter.refresh?.()
+    await vi.waitFor(() => expect(source.listTools).toHaveBeenCalledTimes(2))
+
+    releaseFirst()
+    releaseSecond()
+    await reopened
+
+    expect(adapter.runtime.tools.value['page-webmcp']).toEqual([
+      expect.objectContaining({ id: 'fresh', name: 'fresh' }),
+    ])
+  })
+
   it('aliases long WebMCP tool names without changing the source call name', async () => {
     const originalName = 'get_current_page_state_for_the_selected_workspace_with_detailed_context'
     const callTool = vi.fn(async (name: string) => name)
@@ -203,5 +323,19 @@ describe('createWebMcpAdapter', () => {
       originalName,
     )
     expect(callTool).toHaveBeenCalledWith(originalName, {})
+  })
+
+  it('aliases WebMCP tool names with characters unsupported by model APIs', async () => {
+    const originalName = 'get.page.info'
+    const adapter = createWebMcpAdapter({
+      source: { listTools: async () => [{ name: originalName }], callTool: async (name) => name },
+      server: { id: 'page-webmcp' },
+    })
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    const definitions = await adapter.listTools(['page-webmcp'], { 'page-webmcp': [originalName] })
+
+    expect(definitions[0]?.name).toMatch(/^[A-Za-z0-9_-]+$/)
+    expect(definitions[0]?.originalName).toBe(originalName)
   })
 })

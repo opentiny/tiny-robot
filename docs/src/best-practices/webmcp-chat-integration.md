@@ -23,7 +23,7 @@ WebMCP 是 MCP 的一种工具来源，适合把当前页面中的业务能力�
 
 WebMCP Adapter 不负责初始化 Polyfill、注册页面工具或维护业务 Schema。应用仍负责工具注册、权限校验、用户确认、业务副作用和审计。
 
-WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。本页通过 TrChat 示例展示完整 Chat 接入，公共 Adapter 契约与生命周期也在本页说明。
+WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。本页通过 Kit 和 TrChat 示例展示完整接入，公共 Adapter 契约与生命周期也在本页说明。
 
 `createWebMcpAdapter` 属于 MCP 公共能力，主入口从 `@opentiny/tiny-robot` 导出。使用完整 Chat 套件时，再将 Adapter 传给 `@opentiny/tiny-robot-chat` 的 `useChatRuntime`；不使用 Chat 时，也可以复用同一个 Adapter，交给业务自己的 Kit 工具调用链或其他 MCP Runtime。公共契约和生命周期说明见本文。
 
@@ -58,11 +58,25 @@ WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，�
 
 ## 完整接入示例
 
-本节包含两个可独立运行的接入场景：基础 WebMCP 接入，以及 WebMCP 与外部 MCP 共存。
+本节包含三个可独立运行的接入场景：不使用 Chat 的 Kit 接入、Chat 接入，以及 WebMCP 与外部 MCP 共存。三个场景使用同一组页面工具，并通过 OpenTiny WebMCP SDK 完成初始化、注册和注销。
 
-### 示例一：基础 WebMCP 接入
+### 示例一：Kit 接入 WebMCP
 
-第一个示例模拟一个页面工具 Context，展示页面 WebMCP 的基础接入链路：
+这个示例不依赖 @opentiny/tiny-robot-chat，使用公共 WebMCP Adapter、TinyRobot 组件和 Kit 的 useMessage/toolPlugin 完成工具管理和模型调用。
+
+<demo
+  vue="../../demos/best-practices/webmcp-chat-integration/kit.vue"
+  :vueFiles="[
+    '../../demos/best-practices/webmcp-chat-integration/kit.vue',
+    '../../demos/best-practices/webmcp-chat-integration/sdk-page-tools.ts',
+  ]"
+  title="Kit 接入 WebMCP"
+  description="不依赖 Chat 套件，使用公共 Adapter、组件和 Kit 完成工具发现、启停与模型调用。"
+/>
+
+### 示例二：Chat 接入
+
+这个示例使用 OpenTiny WebMCP SDK，展示页面 WebMCP 的基础接入链路：
 
 1. 页面提供 `get-page-info` 和 `set-page-section` 两个工具；
 2. 点击按钮后动态注册 `get-demo-status`；
@@ -74,10 +88,10 @@ WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，�
   vue="../../demos/best-practices/webmcp-chat-integration/basic.vue"
   :vueFiles="[
     '../../demos/best-practices/webmcp-chat-integration/basic.vue',
-    '../../demos/best-practices/webmcp-chat-integration/page-tools.ts',
+    '../../demos/best-practices/webmcp-chat-integration/sdk-page-tools.ts',
   ]"
-  title="基础 WebMCP 接入"
-  description="模拟页面 Context，演示工具发现、动态注册、重置和 toolchange 同步。"
+  title="Chat 接入 WebMCP"
+  description="使用 OpenTiny WebMCP SDK，演示工具发现、动态注册、注销和 toolchange 同步。"
 />
 
 #### 实际接入配置
@@ -86,7 +100,6 @@ WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，�
 
 ```ts
 const webmcpAdapter = createWebMcpAdapter({
-  getContext: () => document.modelContext,
   server: {
     id: 'page-webmcp',
     name: '页面工具',
@@ -108,9 +121,9 @@ const runtime = useChatRuntime({
 - 为页面工具配置稳定且唯一的 Server ID；
 - 工具注册、权限确认和业务副作用仍由页面应用自己管理。
 
-示例中的 `page-tools.ts` 只是为了让文档 Demo 不依赖浏览器 Polyfill。实际项目可以保留相同的 Adapter 写法，只把 `getContext` 指向项目实际使用的 `document.modelContext`。
+示例中的 `sdk-page-tools.ts` 使用 OpenTiny WebMCP SDK 初始化 Polyfill，并通过 `registerTool` 注册工具；工具注销通过 `AbortController.abort()` 完成。实际项目如果已经初始化了 WebMCP Context，也可以省略 `getContext`，让 Adapter 读取默认的 `document.modelContext`。
 
-### 示例二：WebMCP 与外部 MCP 共存
+### 示例三：WebMCP 与外部 MCP 共存
 
 当页面工具和外部 MCP 都需要提供给同一个 Chat 时，使用统一的 `mcp` 配置：
 
@@ -118,7 +131,7 @@ const runtime = useChatRuntime({
   vue="../../demos/best-practices/webmcp-chat-integration/combined.vue"
   :vueFiles="[
     '../../demos/best-practices/webmcp-chat-integration/combined.vue',
-    '../../demos/best-practices/webmcp-chat-integration/page-tools.ts',
+    '../../demos/best-practices/webmcp-chat-integration/sdk-page-tools.ts',
   ]"
   title="WebMCP 与外部 MCP 共存"
   description="页面工具通过 adapters 接入，外部 MCP Server 通过 servers 接入。"
@@ -143,18 +156,26 @@ const runtime = useChatRuntime({
 
 ## 接入流程
 
-两个示例都遵循以下接入流程：
+三个示例都遵循以下接入流程；Kit 示例把“创建 Runtime”替换为创建 Kit 的 `useMessage` 和 `toolPlugin` 调用链：
 
-| 步骤            | 接入操作                                                               |
-| --------------- | ---------------------------------------------------------------------- |
-| 1. 初始化       | 注册页面工具，并确保 `document.modelContext` 或自定义 Context 已可用。 |
-| 2. 创建 Adapter | 使用 `createWebMcpAdapter` 配置 Server 的 `id`、`name` 和 Context。    |
-| 3. 创建 Runtime | 将 Adapter 放入 `useChatRuntime` 的 `mcp.adapters`。                   |
-| 4. 发现工具     | TinyRobot 读取页面工具列表，并在 MCP 面板中展示。                      |
-| 5. 同步变化     | 工具增删或更新后触发 `toolchange`，让 Chat 刷新工具列表。              |
-| 6. 执行调用     | Chat 调用工具后，由工具实现完成权限校验和具体逻辑。                    |
+| 步骤            | 接入操作                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| 1. 初始化       | 注册页面工具，并确保 `document.modelContext` 或自定义 Context 已可用。                        |
+| 2. 创建 Adapter | 使用 `createWebMcpAdapter` 配置 Server 的 `id`、`name` 和 Context。                           |
+| 3. 创建调用链   | Chat 将 Adapter 放入 `useChatRuntime` 的 `mcp.adapters`；Kit 使用 `toolPlugin` 接入 Adapter。 |
+| 4. 发现工具     | TinyRobot 读取页面工具列表，并在 MCP 面板或自定义工具面板中展示。                             |
+| 5. 同步变化     | 工具增删或更新后触发 `toolchange`，让 Chat 刷新工具列表。                                     |
+| 6. 执行调用     | Chat 或 Kit 调用工具后，由工具实现完成权限校验和具体逻辑。                                    |
 
 工具发现发生在 Adapter 初始化和后续刷新阶段。业务只需要维护工具注册和 `toolchange` 通知，不需要自行实现 Chat 侧的工具路由。
+
+### 动态 MCP Server 注册和事件兼容
+
+Chat 内置 Runtime 提供 `registerMcpServer` 时，MCP 表单提交会先交给 Runtime 完成连接和工具发现，再通过 `mcp-create-server` 通知应用已注册的 `serverId`。应用仍负责权限校验、认证信息补充、配置持久化和服务端策略。
+
+如果自定义 Runtime 没有提供 `registerMcpServer`，Chat 会继续直接触发 `mcp-create-server`，由应用接管连接、错误处理和列表更新。已有通过该事件接入 MCP 的业务可以继续使用；迁移到内置 Runtime 时，应避免重复连接同一个 Server。
+
+Adapter 的 `refreshServer` 用于按 Server 刷新。一个 Adapter 如果管理多个 Server，建议实现该方法；否则组合 Adapter 只能退回调用整个 Adapter 的 `refresh`，可能让其他禁用 Server 的刷新错误影响当前请求。
 
 ## 页面工具实现建议
 

@@ -158,4 +158,17 @@ describe('createCompositeMcpAdapter', () => {
       adapter.runtime.registerMcpServer?.({ name: 'Detached', type: 'streamableHttp', url: 'https://mcp.example.com' }),
     ).rejects.toThrow('MCP registration adapter is no longer attached')
   })
+
+  it('clears the registration route even when closing an adapter fails', async () => {
+    const registry = createAdapter('registry', 'one', 'one')
+    const registerMcpServer = vi.fn().mockResolvedValue('dynamic-server')
+    registry.runtime.registerMcpServer = registerMcpServer
+    registry.close = vi.fn().mockRejectedValue(new Error('close failed'))
+    const adapter = createCompositeMcpAdapter({ adapters: [registry], registrationAdapter: registry })
+
+    await expect(adapter.close!()).rejects.toThrow('close failed')
+    await expect(
+      adapter.runtime.registerMcpServer?.({ name: 'Detached', type: 'streamableHttp', url: 'https://mcp.example.com' }),
+    ).rejects.toThrow('MCP registration adapter is no longer attached')
+  })
 })

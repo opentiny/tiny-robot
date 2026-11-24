@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
 import { createWebMcpAdapter } from '@opentiny/tiny-robot'
 import { TrChat, useChatRuntime, type ChatMcpServers } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
-import { createDemoPageTools } from './page-tools'
+import { createSdkPageTools } from './sdk-page-tools'
 import { modelProviders } from '../../chat/shared/modelProviders'
 
-const pageTools = createDemoPageTools()
+const pageTools = createSdkPageTools()
 const webmcpAdapter = createWebMcpAdapter({
-  getContext: () => pageTools.context,
+  getContext: pageTools.context,
   server: { id: 'page-webmcp', name: '页面工具' },
 })
 
@@ -28,11 +29,19 @@ const runtime = useChatRuntime({
     adapters: [webmcpAdapter],
   },
 })
+
+const registrationError = pageTools.registrationError
+
+onBeforeUnmount(() => {
+  pageTools.dispose()
+  void webmcpAdapter.close?.()
+})
 </script>
 
 <template>
   <section class="webmcp-demo">
     <div class="webmcp-demo__hint">页面 WebMCP 与外部 MCP 位于同一个 MCP 面板中。</div>
+    <p v-if="registrationError" class="webmcp-demo__error" role="alert">页面工具注册失败：{{ registrationError }}</p>
     <div class="webmcp-demo__chat">
       <TrChat :runtime="runtime" />
     </div>
@@ -50,6 +59,12 @@ const runtime = useChatRuntime({
 
 .webmcp-demo__hint {
   color: var(--tr-text-secondary, #575d6c);
+  font-size: 13px;
+}
+
+.webmcp-demo__error {
+  margin: 0;
+  color: var(--tr-color-danger, #c0392b);
   font-size: 13px;
 }
 

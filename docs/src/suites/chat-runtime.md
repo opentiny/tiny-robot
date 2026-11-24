@@ -810,6 +810,7 @@ const history = useChatHistoryData({
 | `WebMcpToolDescriptor`     | `name: string`；`description?: string`；`inputSchema?: unknown`                                                                                                                                                                                                                                                                              |
 | `WebMcpToolSource`         | `listTools(): Promise<readonly WebMcpToolDescriptor[]>`；`callTool(name, args?): Promise<unknown>`；`subscribe?(listener): () => void`                                                                                                                                                                                                       |
 | `UseChatRuntimeMcpAdapter` | `runtime` 提供 MCP 状态与操作，`listTools` 获取本次请求使用的工具定义，`callTool` 调用指定服务中的工具；参数和返回值见下表。                                                                                                     |
+| `McpServerRegistrationConfig` | `name: string`；`description?: string`；`type: 'sse' \| 'streamableHttp'`；`url: string`；`headers?: Record<string, string>`；`thumbnail?: string \| null`。由 Runtime 注册 URL 型 MCP Server 时使用。 |
 
 `UseChatRuntimeMcpAdapter` 的三个字段均为必填：
 
@@ -818,6 +819,8 @@ const history = useChatHistoryData({
 | `runtime`   | `ChatMcpRuntime`                                                                       | 提供 MCP 服务、工具的状态与操作方法。                                              |
 | `listTools` | `(serverIds: readonly string[], toolIds: Readonly<Record<string, readonly string[]>>)` | 根据服务 ID 和每个服务选中的工具 ID 获取工具定义，返回工具定义只读数组的 Promise。 |
 | `callTool`  | `(serverId: string, toolName: string, args: Record<string, unknown>)`                  | 使用服务 ID、工具原始名称和调用参数执行工具，返回 `Promise<unknown>`。             |
+
+Adapter 还可以提供以下可选能力：`registerMcpServer` 负责注册 URL 型 MCP Server；`refreshServer(serverId)` 用于按 Server 刷新；`refresh()` 用于整体刷新；`close()` 用于释放连接和监听器。一个 Adapter 管理多个 Server 时，应优先实现 `refreshServer`，避免禁用 Server 的刷新错误影响其他 Server。
 
 `listTools` 返回的每项包含 `serverId: string`、`id: string`、`name: string`、`originalName: string`，以及可选的 `description?: string`、`inputSchema?: Record<string, unknown>`。`name` 是提供给模型的工具名称，`originalName` 是服务中的原始名称。
 

@@ -1,8 +1,16 @@
-import type { McpExtensionFormValue } from '../mcp-extension-form/index.type'
-
 /** Read-only reactive value used by MCP adapters and runtimes. */
 export interface McpReadable<T> {
   readonly value: T
+}
+
+/** Public configuration contract for registering a URL-based MCP server. */
+export interface McpServerRegistrationConfig {
+  name: string
+  description?: string
+  type: 'sse' | 'streamableHttp'
+  url: string
+  headers?: Record<string, string>
+  thumbnail?: string | null
 }
 
 export interface McpServerInfo {
@@ -30,7 +38,8 @@ export type McpToolState = Readonly<Partial<Record<string, readonly McpToolInfo[
 export interface McpRuntime {
   servers: McpReadable<readonly McpServerInfo[]>
   tools: McpReadable<McpToolState>
-  registerMcpServer?: (config: McpExtensionFormValue) => Promise<string>
+  /** Canonical registration hook for dynamically adding a URL-based MCP server. */
+  registerMcpServer?: (config: McpServerRegistrationConfig) => Promise<string>
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
@@ -57,7 +66,9 @@ export interface McpAdapter {
   runtime: McpRuntime
   listTools: McpToolListTools
   callTool: McpToolCallTool
-  registerMcpServer?: (config: McpExtensionFormValue) => Promise<string>
+  /** @deprecated Use `runtime.registerMcpServer` instead. Retained for compatibility. */
+  registerMcpServer?: (config: McpServerRegistrationConfig) => Promise<string>
+  refreshServer?: (serverId: string) => Promise<void> | void
   refresh?: () => Promise<void> | void
   close?: () => Promise<void> | void
 }
@@ -71,4 +82,5 @@ export interface CompositeMcpAdapter extends McpAdapter {
   addAdapter: (adapter: McpAdapter) => Promise<void>
   removeAdapter: (adapter: McpAdapter) => Promise<void>
   refreshServer: (id: string) => Promise<void>
+  refreshServers: (ids: readonly string[]) => Promise<void>
 }

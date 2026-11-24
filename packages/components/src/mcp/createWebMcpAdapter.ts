@@ -16,7 +16,7 @@ function hasOwn(value: object, key: PropertyKey) {
 
 function createToolName(serverId: string, originalName: string) {
   const directName = `${serverId}__${originalName}`
-  if (directName.length <= 64) return directName
+  if (directName.length <= 64 && /^[A-Za-z0-9_-]+$/.test(directName)) return directName
 
   let hash = 2166136261
   for (const character of `${serverId}\0${originalName}`) {
@@ -81,7 +81,10 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): M
   }
 
   async function refresh() {
-    if (closed) return
+    if (closed) {
+      closed = false
+      if (server.value.installed && server.value.enabled) startSubscription()
+    }
     if (refreshTask) {
       refreshRequested = true
       return refreshTask
@@ -194,11 +197,15 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): M
 
       if (enabled) {
         startSubscription()
-        if (definitions.size === 0 || server.value.error) await refresh()
+        await refresh()
         server.value = { ...server.value, enabled: true, error: undefined }
         toolStates.value = toolStates.value.map((tool) => ({ ...tool, enabled: true }))
       } else {
-        server.value = { ...server.value, enabled: false, error: undefined }
+        generation += 1
+        refreshRequested = false
+        refreshTask = undefined
+        stopSubscription()
+        server.value = { ...server.value, enabled: false, loading: undefined, error: undefined }
         toolStates.value = toolStates.value.map((tool) => ({ ...tool, enabled: false }))
       }
     },
@@ -211,9 +218,21 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): M
 
       const nextTools = toolStates.value.map((tool) => (tool.id === toolId ? { ...tool, enabled } : tool))
       toolStates.value = nextTools
+      const hasEnabledTools = nextTools.some((tool) => tool.enabled)
+
+      if (hasEnabledTools) {
+        startSubscription()
+      } else {
+        generation += 1
+        refreshRequested = false
+        refreshTask = undefined
+        stopSubscription()
+      }
+
       server.value = {
         ...server.value,
-        enabled: nextTools.some((tool) => tool.enabled),
+        enabled: hasEnabledTools,
+        loading: hasEnabledTools ? server.value.loading : undefined,
       }
     },
   }
@@ -246,18 +265,27 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): M
     return source.callTool(toolName, args)
   }
 
-  startSubscription()
-  if (server.value.installed) void refresh().catch(() => undefined)
+  if (server.value.installed && server.value.enabled) {
+    startSubscription()
+    void refresh().catch(() => undefined)
+  }
 
   return {
     runtime,
     listTools,
     callTool,
+    refreshServer(id: string) {
+      if (id !== serverId) throw new Error(`Unknown MCP server: ${id}`)
+      return refresh()
+    },
     refresh,
     close() {
       closed = true
       generation += 1
+      refreshRequested = false
+      refreshTask = undefined
       stopSubscription()
+      server.value = { ...server.value, loading: undefined }
       clearTools()
     },
   }

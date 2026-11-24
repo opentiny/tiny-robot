@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { Client } from '@modelcontextprotocol/sdk/client'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import type { McpExtensionFormValue } from '@opentiny/tiny-robot'
+import type { McpServerRegistrationConfig } from '@opentiny/tiny-robot'
 import type { ChatMcpRuntime, ChatMcpServerInfo, ChatMcpToolInfo, ChatMcpToolState } from '../../types'
 import type { ChatMcpServerConfig, ChatMcpServers } from './types'
 import type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools } from '../plugins/mcpToolPlugin'
@@ -56,7 +56,7 @@ function normalizeTool(
 
 function createToolName(serverId: string, originalName: string) {
   const directName = `${serverId}__${originalName}`
-  if (directName.length <= 64) return directName
+  if (directName.length <= 64 && /^[A-Za-z0-9_-]+$/.test(directName)) return directName
 
   let hash = 2166136261
   for (const character of `${serverId}\0${originalName}`) {
@@ -126,7 +126,7 @@ function createServerId(configById: Map<string, ChatMcpServerConfig>) {
   return id
 }
 
-function toServerConfig(id: string, value: McpExtensionFormValue): ChatMcpServerConfig {
+function toServerConfig(id: string, value: McpServerRegistrationConfig): ChatMcpServerConfig {
   const name = value.name.trim()
   const baseUrl = value.url.trim()
 
@@ -300,7 +300,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     }
   }
 
-  async function registerMcpServer(value: McpExtensionFormValue) {
+  async function registerMcpServer(value: McpServerRegistrationConfig) {
     const id = createServerId(configById)
     const config = toServerConfig(id, value)
 
@@ -407,9 +407,11 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   const listTools: ChatToolListTools = async (serverIds, selectedToolIds) => {
     const result: ToolSnapshot[] = []
     for (const serverId of serverIds) {
+      const server = getServer(serverId)
       if (!Object.prototype.hasOwnProperty.call(selectedToolIds, serverId)) {
         throw new Error(`MCP tool selection is missing for this turn: ${serverId}`)
       }
+      if (!server.installed || !server.enabled) continue
       const serverDefinitions = definitions.get(serverId) ?? (await discover(serverId))
       const selectedIds = selectedToolIds[serverId]
       if (selectedIds.length === 0) continue
@@ -421,8 +423,19 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     return result
   }
 
-  const callTool: ChatToolCallTool = (serverId, originalName, args) =>
-    withClient(serverId, (client) => client.callTool({ name: originalName, arguments: args }))
+  const callTool: ChatToolCallTool = async (serverId, originalName, args) => {
+    const server = getServer(serverId)
+    if (!server.installed || !server.enabled) throw new Error(`MCP server is not enabled: ${serverId}`)
+    return withClient(serverId, (client) => client.callTool({ name: originalName, arguments: args }))
+  }
 
-  return { runtime, listTools, callTool, registerMcpServer }
+  return {
+    runtime,
+    listTools,
+    callTool,
+    registerMcpServer,
+    async refreshServer(serverId: string) {
+      await loadTools(serverId, true)
+    },
+  }
 }

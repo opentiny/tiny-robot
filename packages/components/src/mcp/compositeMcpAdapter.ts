@@ -153,7 +153,31 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
 
   async function refreshServer(serverId: string) {
     const adapter = getAdapterForServer(adapters.value, serverId)
+    if (adapter.refreshServer) {
+      await adapter.refreshServer(serverId)
+      return
+    }
     await adapter.refresh?.()
+  }
+
+  async function refreshServers(serverIds: readonly string[]) {
+    const grouped = new Map<McpAdapter, string[]>()
+    for (const serverId of serverIds) {
+      const adapter = getAdapterForServer(adapters.value, serverId)
+      const ids = grouped.get(adapter) ?? []
+      ids.push(serverId)
+      grouped.set(adapter, ids)
+    }
+
+    await Promise.all(
+      [...grouped.entries()].map(async ([adapter, ids]) => {
+        if (adapter.refreshServer) {
+          await Promise.all(ids.map((serverId) => adapter.refreshServer!(serverId)))
+          return
+        }
+        await adapter.refresh?.()
+      }),
+    )
   }
 
   async function refresh() {
@@ -161,8 +185,11 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
   }
 
   async function close() {
-    await Promise.all(adapters.value.map((adapter) => adapter.close?.()))
-    registrationAdapter = undefined
+    try {
+      await Promise.all(adapters.value.map((adapter) => adapter.close?.()))
+    } finally {
+      registrationAdapter = undefined
+    }
   }
 
   return {
@@ -174,6 +201,7 @@ export function createCompositeMcpAdapter(options: CreateCompositeMcpAdapterOpti
     addAdapter,
     removeAdapter,
     refreshServer,
+    refreshServers,
     refresh,
     close,
   }

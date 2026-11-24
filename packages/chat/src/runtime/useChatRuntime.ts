@@ -100,7 +100,18 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   if (resolvedMcp) {
     builtInPlugins.push(
       createMcpToolPlugin(resolvedMcp.listTools, resolvedMcp.callTool, {
-        refresh: resolvedMcp.refresh,
+        refresh: async (serverIds) => {
+          if ('refreshServers' in resolvedMcp && typeof resolvedMcp.refreshServers === 'function') {
+            await resolvedMcp.refreshServers(serverIds)
+            return
+          }
+
+          if (resolvedMcp.refreshServer) {
+            await Promise.all(serverIds.map((serverId) => resolvedMcp.refreshServer!(serverId)))
+          } else {
+            await resolvedMcp.refresh?.()
+          }
+        },
         resolveRunConfig: (runConfig) => {
           if (!runConfig?.mcp) return runConfig
           const mcp = resolveMcpRunConfig(resolvedMcp.runtime)

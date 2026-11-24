@@ -272,6 +272,108 @@ describe('useChatRuntime MCP composition', () => {
     expect(listTools).toHaveBeenCalledOnce()
   })
 
+  it('refreshes only enabled MCP servers when a disabled source fails', async () => {
+    const disabledRefresh = vi.fn().mockRejectedValue(new Error('disabled source unavailable'))
+    const healthyRefresh = vi.fn()
+    const createAdapter = (
+      serverId: string,
+      enabled: boolean,
+      refreshServer: () => Promise<void> | void,
+    ): UseChatRuntimeMcpAdapter => ({
+      runtime: {
+        servers: computed(() => [{ id: serverId, name: serverId, installed: true, enabled }]),
+        tools: computed(() => ({ [serverId]: [{ id: 'echo', name: 'echo', enabled: true }] })),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async (serverIds, selectedToolIds) =>
+        (selectedToolIds[serverIds[0]] ?? []).map((id) => ({
+          serverId,
+          id,
+          name: `${serverId}__${id}`,
+          originalName: id,
+        })),
+      callTool: async () => 'ok',
+      refreshServer,
+    })
+
+    const runtime = useChatRuntime({
+      mcp: {
+        adapters: [
+          createAdapter('disabled-webmcp', false, disabledRefresh),
+          createAdapter('healthy-mcp', true, healthyRefresh),
+        ],
+      },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'healthy-chat',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    await expect(runtime.actions.send({ text: 'use healthy tools' })).resolves.toBe(true)
+    expect(healthyRefresh).toHaveBeenCalledOnce()
+    expect(disabledRefresh).not.toHaveBeenCalled()
+  })
+
+  it('refreshes a multi-server custom adapter once when it has no server-scoped refresh hook', async () => {
+    const refresh = vi.fn()
+    const serverIds = ['custom-a', 'custom-b']
+    const adapter: UseChatRuntimeMcpAdapter = {
+      runtime: {
+        servers: computed(() => serverIds.map((id) => ({ id, name: id, installed: true, enabled: true }))),
+        tools: computed(() =>
+          Object.fromEntries(serverIds.map((serverId) => [serverId, [{ id: 'echo', name: 'echo', enabled: true }]])),
+        ),
+        addServer: () => undefined,
+        removeServer: () => undefined,
+        setServerEnabled: () => undefined,
+        setToolEnabled: () => undefined,
+      },
+      listTools: async (requestedServerIds, selectedToolIds) =>
+        requestedServerIds.flatMap((serverId) =>
+          (selectedToolIds[serverId] ?? []).map((id) => ({
+            serverId,
+            id,
+            name: `${serverId}__${id}`,
+            originalName: id,
+          })),
+        ),
+      callTool: async () => 'ok',
+      refresh,
+    }
+
+    const runtime = useChatRuntime({
+      mcp: { adapters: [adapter] },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () =>
+            ({
+              id: 'custom-refresh-once',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+            }) as ChatCompletion,
+        },
+      },
+    })
+
+    await expect(runtime.actions.send({ text: 'use custom tools' })).resolves.toBe(true)
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
   it('refreshes dynamic WebMCP tools before a follow-up request in the same turn', async () => {
     let tools = [{ name: 'navigate' }]
     const listeners = new Set<() => void>()
@@ -381,6 +483,96 @@ describe('useChatRuntime MCP composition', () => {
     expect(requestToolNames[1]).toEqual(['page-webmcp__navigate', 'page-webmcp__read-page'])
     expect(callTool).toHaveBeenNthCalledWith(1, 'navigate', {})
     expect(callTool).toHaveBeenNthCalledWith(2, 'read-page', {})
+  })
+
+  it('waits for asynchronous WebMCP discovery before the follow-up request', async () => {
+    let tools = [{ name: 'navigate' }]
+    let releaseRefresh!: () => void
+    const listeners = new Set<() => void>()
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve
+    })
+    let listCalls = 0
+    const webmcp = createWebMcpAdapter({
+      source: {
+        listTools: async () => {
+          listCalls += 1
+          if (listCalls === 2) await refreshGate
+          return tools
+        },
+        callTool: async (name) => {
+          if (name === 'navigate') {
+            tools = [...tools, { name: 'read-page' }]
+            listeners.forEach((listener) => listener())
+          }
+          return name + ' result'
+        },
+        subscribe(listener) {
+          listeners.add(listener)
+          return () => listeners.delete(listener)
+        },
+      },
+      server: { id: 'page-webmcp' },
+    })
+
+    await vi.waitFor(() => expect(webmcp.runtime.tools.value['page-webmcp']).toHaveLength(1))
+    const requestToolNames: string[][] = []
+    let requestCount = 0
+    const runtime = useChatRuntime({
+      mcp: { adapters: [webmcp] },
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async (requestBody) => {
+            requestCount += 1
+            requestToolNames.push(
+              (requestBody.tools ?? []).flatMap((tool: { type: string; function?: { name: string } }) =>
+                tool.type === 'function' ? [tool.function?.name ?? ''] : [],
+              ),
+            )
+            if (requestCount === 1) {
+              return {
+                id: 'navigate-call',
+                object: 'chat.completion',
+                created: 0,
+                model: 'test',
+                choices: [
+                  {
+                    index: 0,
+                    message: {
+                      role: 'assistant',
+                      content: '',
+                      tool_calls: [
+                        {
+                          id: 'navigate-call',
+                          type: 'function',
+                          function: { name: 'page-webmcp__navigate', arguments: '{}' },
+                        },
+                      ],
+                    },
+                    finish_reason: 'tool_calls',
+                  },
+                ],
+              } as ChatCompletion
+            }
+            return {
+              id: 'done',
+              object: 'chat.completion',
+              created: 0,
+              model: 'test',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'done' }, finish_reason: 'stop' }],
+            } as ChatCompletion
+          },
+        },
+      },
+    })
+
+    const send = runtime.actions.send({ text: 'navigate and then read the page' })
+    await vi.waitFor(() => expect(listCalls).toBe(2))
+    releaseRefresh()
+    await send
+
+    expect(requestToolNames[1]).toEqual(['page-webmcp__navigate', 'page-webmcp__read-page'])
   })
 
   it('rejects configuring unified mcp.servers together with legacy mcpServers', () => {

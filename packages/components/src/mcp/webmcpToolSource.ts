@@ -11,9 +11,8 @@ function readDefaultContext(): WebMcpContext | undefined {
 }
 
 function isWebMcpInputParseError(error: unknown) {
-  const name = error instanceof Error ? error.name : (error as { name?: unknown } | null)?.name
   const message = error instanceof Error ? error.message : String(error)
-  return name === 'TypeError' && /failed to parse input arguments/i.test(message)
+  return /failed to parse input arguments/i.test(message)
 }
 
 export function normalizeWebMcpInputSchema(raw: unknown): Record<string, unknown> {
@@ -35,12 +34,23 @@ export function normalizeWebMcpInputSchema(raw: unknown): Record<string, unknown
   return {
     ...schema,
     type: typeof schema.type === 'string' ? schema.type : 'object',
-    properties: schema.properties && typeof schema.properties === 'object' ? schema.properties : {},
+    properties:
+      schema.properties && typeof schema.properties === 'object' && !Array.isArray(schema.properties)
+        ? schema.properties
+        : {},
   }
 }
 
 export function readWebMcpToolText(result: unknown): string {
-  if (typeof result === 'string') return result
+  if (typeof result === 'string') {
+    try {
+      const parsed = JSON.parse(result) as unknown
+      if (parsed !== result) return readWebMcpToolText(parsed)
+    } catch {
+      // Keep ordinary text results unchanged.
+    }
+    return result
+  }
 
   const content = (result as { content?: unknown } | null)?.content
   if (Array.isArray(content)) {

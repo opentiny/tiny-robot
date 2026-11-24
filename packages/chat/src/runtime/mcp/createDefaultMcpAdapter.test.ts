@@ -130,4 +130,56 @@ describe('createDefaultMcpAdapter', () => {
       arguments: { city: 'Shanghai' },
     })
   })
+
+  it('aliases tool names with characters unsupported by model APIs', async () => {
+    mocks.listTools.mockResolvedValue({ tools: [{ name: 'get.current.weather' }] })
+    const adapter = createDefaultMcpAdapter([])
+    const serverId = await adapter.runtime.registerMcpServer?.({
+      name: 'Weather',
+      type: 'streamableHttp',
+      url: 'https://mcp.example.com/mcp',
+    })
+
+    const definitions = await adapter.listTools([serverId!], { [serverId!]: ['get.current.weather'] })
+
+    expect(definitions[0]?.name).toMatch(/^[A-Za-z0-9_-]+$/)
+    expect(definitions[0]?.originalName).toBe('get.current.weather')
+  })
+
+  it('does not execute a tool after its MCP server is disabled', async () => {
+    const adapter = createDefaultMcpAdapter([
+      {
+        id: 'search-server',
+        name: 'Search',
+        baseUrl: 'https://mcp.example.com/mcp',
+        installed: true,
+      },
+    ])
+
+    await adapter.runtime.setServerEnabled('search-server', true)
+    await adapter.runtime.setServerEnabled('search-server', false)
+
+    await expect(adapter.callTool('search-server', 'search', {})).rejects.toThrow(
+      'MCP server is not enabled: search-server',
+    )
+    expect(mocks.callTool).not.toHaveBeenCalled()
+  })
+
+  it('does not discover tools for a disabled MCP server', async () => {
+    const adapter = createDefaultMcpAdapter([
+      {
+        id: 'search-server',
+        name: 'Search',
+        baseUrl: 'https://mcp.example.com/mcp',
+        installed: true,
+      },
+    ])
+
+    await adapter.runtime.setServerEnabled('search-server', true)
+    mocks.listTools.mockClear()
+    await adapter.runtime.setServerEnabled('search-server', false)
+
+    await expect(adapter.listTools(['search-server'], { 'search-server': ['search'] })).resolves.toEqual([])
+    expect(mocks.listTools).not.toHaveBeenCalled()
+  })
 })
