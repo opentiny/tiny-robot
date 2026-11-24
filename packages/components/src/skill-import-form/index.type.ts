@@ -47,6 +47,8 @@ export interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  /** Explicit relative directories that must be preserved even when empty. */
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 

@@ -46,6 +46,9 @@ jobs:
       - name: Test kit
         run: pnpm -F @opentiny/tiny-robot-kit test
 
+      - name: Test vanilla theme scripts
+        run: pnpm -F @opentiny/tiny-robot test:vanilla-theme
+
       - name: Build components
         run: pnpm build
 

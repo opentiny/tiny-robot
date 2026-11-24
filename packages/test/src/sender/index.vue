@@ -17,6 +17,7 @@ declare global {
   interface Window {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
+      moveCursorAfterTemplate: (index: number) => boolean
       moveCursorAtTemplate: (index: number, position: TemplateCaretPosition) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
       setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
@@ -241,7 +242,9 @@ const moveCursorAtTemplate = (index: number, position: TemplateCaretPosition) =>
 
   editor.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
     if (node.type.name === 'templateBlock') {
-      if (currentIndex === index) {
+      const matches = currentIndex === index
+      currentIndex += 1
+      if (matches) {
         const positions = {
           before: pos,
           start: pos + 1,
@@ -251,7 +254,6 @@ const moveCursorAtTemplate = (index: number, position: TemplateCaretPosition) =>
         templatePosition = positions[position]
         return false
       }
-      currentIndex += 1
     }
     return true
   })
@@ -282,6 +284,7 @@ const pressDeleteBeforeTemplate = (index: number) => {
 onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate: (index) => moveCursorAtTemplate(index, 'before'),
+    moveCursorAfterTemplate: (index) => moveCursorAtTemplate(index, 'after'),
     moveCursorAtTemplate,
     pressDeleteBeforeTemplate,
     setTemplateAppendTo,

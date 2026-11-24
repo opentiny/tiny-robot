@@ -116,4 +116,4 @@ export const skillOptions: SkillOptionsStorage = {
 
 一次“安装并启用”或“切换同名扩展”的操作，可能需要先保存目标扩展，再逐个禁用其他同名扩展。Demo 为了展示步骤，按顺序执行这些写入；如果后一步失败，前面已经成功的写入仍会保留，用户可能暂时看到两个同名扩展都处于启用状态。生产应用应优先用数据库事务一次提交全部修改；无法使用事务时，失败后要重新读取存储中的实际状态，并明确选择回滚、重试或提示用户处理。示例中的“同名扩展只启用一个”是界面和业务约定，不是权限控制。
 
-组件行为和完整 API 分别见 [ExtensionManager](/components/extension-manager)、[MCP 扩展添加与详情](/components/mcp-extension) 和 [Skill 扩展导入与详情](/components/skill-extension)。
+组件行为和完整 API 分别见 [ExtensionManager](/components/extension-manager)、[MCP 扩展添加与详情](/components/mcp-extension) 和 [Skill 扩展导入与详情](/components/skill-extension)。Skill 的 Loader、Storage 和运行时接入见 [Skill 技能接入](/tools/skill)。

@@ -1,5 +1,5 @@
 import { isTextSkillFilePath, normalizeSkillPath, throwIfSkillLoadCancelled } from './utils'
-import type { ArchiveSkillLoadOptions, LoadableSkillFile, SkillLoadContext } from './type'
+import type { ArchiveSkillLoadOptions, LoadableSkillFile, LoadableSkillFiles, SkillLoadContext } from './type'
 
 const DEFAULT_MAX_UNCOMPRESSED_SIZE = 10 * 1024 * 1024
 const DEFAULT_MAX_ARCHIVE_EXTRA_SIZE = 10 * 1024 * 1024
@@ -24,7 +24,7 @@ type ZipEntry = {
 export async function loadArchiveSkillFiles(
   options: ArchiveSkillLoadOptions,
   context: SkillLoadContext,
-): Promise<LoadableSkillFile[]> {
+): Promise<LoadableSkillFiles> {
   const limit = options.maxUncompressedSize ?? DEFAULT_MAX_UNCOMPRESSED_SIZE
   const archiveLimit =
     options.maxArchiveSize ?? Math.min(Number.MAX_SAFE_INTEGER, limit + DEFAULT_MAX_ARCHIVE_EXTRA_SIZE)
@@ -636,9 +636,9 @@ function normalizeSkillArchiveStructure(
   files: LoadableSkillFile[],
   directoryPaths: string[] = [],
   entryFile = 'SKILL.md',
-) {
+): LoadableSkillFiles {
   const paths = [...files.map((file) => file.path), ...directoryPaths]
-  if (files.some((file) => file.path === entryFile)) return files
+  if (files.some((file) => file.path === entryFile)) return { files, directories: directoryPaths }
   const roots = new Set(paths.map((path) => path.split('/')[0]).filter(Boolean))
   if (roots.size !== 1)
     throw new Error(`Invalid skill archive structure: expected ${entryFile} at root or in one top-level directory.`)
@@ -646,11 +646,15 @@ function normalizeSkillArchiveStructure(
   if (
     !root ||
     !files.some((file) => file.path === `${root}/${entryFile}`) ||
-    files.some((file) => !file.path.startsWith(`${root}/`))
+    files.some((file) => !file.path.startsWith(`${root}/`)) ||
+    directoryPaths.some((path) => path !== root && !path.startsWith(`${root}/`))
   ) {
     throw new Error(
       `Invalid skill archive structure: ${entryFile} must be at root or directly inside one top-level directory.`,
     )
   }
-  return files.map((file) => ({ ...file, path: file.path.slice(root.length + 1) }))
+  return {
+    files: files.map((file) => ({ ...file, path: file.path.slice(root.length + 1) })),
+    directories: directoryPaths.filter((path) => path !== root).map((path) => path.slice(root.length + 1)),
+  }
 }

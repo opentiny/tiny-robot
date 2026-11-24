@@ -1,7 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { createSkillDefinition } from '../loader/definition'
+import { createSkillDefinition as createSkillDefinitionFromFiles } from '../loader/definition'
+import type { LoadableSkillFile, SkillLoadBaseOptions } from '../loader/type'
+
+const createSkillDefinition = (files: LoadableSkillFile[], options: SkillLoadBaseOptions = {}) =>
+  createSkillDefinitionFromFiles({ files, directories: [] }, options)
 
 describe('createSkillDefinition', () => {
+  it('accepts loader files and directories as an explicit object', () => {
+    const loadedSkill = createSkillDefinitionFromFiles(
+      {
+        files: [
+          {
+            path: 'SKILL.md',
+            kind: 'text',
+            content: ['---', 'name: empty-folder-skill', 'description: Empty folder skill', '---', '', '# Skill'].join(
+              '\n',
+            ),
+          },
+        ],
+        directories: ['empty'],
+      },
+      {},
+    )
+
+    expect(loadedSkill.skill.directories).toEqual(['empty'])
+  })
+
   it('creates a SkillDefinition from skill entry frontmatter and instructions', () => {
     const loadedSkill = createSkillDefinition(
       [

@@ -8,6 +8,8 @@ Skill 以 `SKILL.md` 中的任务说明（instructions）为核心，并可以�
 
 Kit 负责加载、保存和解析 skill，但不管理业务界面中的长期选择状态，也不会固定 instructions 的承载方式。应用负责决定展示哪些 skill、当前选中哪些 skill，以及 instructions 如何发送、是否进入消息历史。
 
+如果需要在 Vue 页面中浏览或编辑已加载的 `SkillDefinition`，请继续阅读 [Skill 导入与详情](../components/skill-extension.md)。该页面负责组件职责、导入表单、文件树编辑和 `save`/`file-action` 事件；本页负责 Loader、Storage 与运行时 `skillPlugin`。
+
 ## 快速开始
 
 下面是一个可独立运行的 Vue 侧最小示例。它使用 `manual` 模式启用一个内联 skill，通过 `onBeforeRequest` 临时修改本次请求，并由 mock provider 显示最终收到的 instructions。
@@ -259,6 +261,16 @@ Loader 和 Storage 都提供 `SkillDefinition`，但解决的问题不同：
 
 Storage 不拥有 UI 选择状态。应用通常只保存选中的名称，再通过 `storage.get(name)` 为 `skillPlugin` 提供完整定义。
 
+一个完整的应用闭环通常是：
+
+1. 用 `loadSkill` 或 `SkillImportForm` 得到 `SkillDefinition`；
+2. 用 `SkillExtensionDetail` 浏览或编辑定义；
+3. 在 `save` 事件中调用 `storage.add(nextDefinition)`；
+4. 需要重新打开页面或刷新数据时，用 `storage.get(name)` 读取定义并传回详情组件；
+5. `directories` 会随定义一起保存，用于恢复没有文件的空目录。
+
+应用应处理 `storage.add`、`storage.get` 和导入失败，并向用户显示错误；组件不会替应用重试或决定失败后的页面状态。
+
 ### SkillDefinition
 
 运行时只消费统一的 `SkillDefinition`，不关心它来自 Loader、Storage 还是应用内存：
@@ -269,6 +281,7 @@ interface SkillDefinition {
   description: string
   instructions: string
   resources?: SkillResourceDescriptor[]
+  directories?: string[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -279,7 +292,10 @@ interface SkillDefinition {
 | `description`  | UI 展示、搜索和 auto 候选摘要                 |
 | `instructions` | 当前 skill 提供给模型的核心指令               |
 | `resources`    | 可由运行时资源工具列出和读取的附加文件        |
+| `directories`  | 需要保留的相对目录路径，即使目录暂时为空      |
 | `metadata`     | 应用或 Loader 保留的扩展信息                  |
+
+`directories` 只记录需要保留的空目录，不替代 `resources` 的文件路径。浏览器目录导入、GitHub/Node Loader 和各类 Storage 会在能够识别目录项时保留它；旧定义没有该字段时按没有显式空目录处理。编辑组件通过 `save` 返回更新后的 `directories`，应用写入 Storage 后，重新 `get` 才能恢复空目录状态。
 
 ### 浏览器加载
 
@@ -485,6 +501,8 @@ import { loadSkill } from '@opentiny/tiny-robot-kit/node'
 const bytes = await readFile('./weather.zip')
 const weather = await loadSkill({ source: 'archive', file: new File([bytes], 'weather.zip') })
 ```
+
+如果编辑页面使用 `SkillExtensionDetail`，推荐在 `save` 事件中直接调用 `storage.add(nextDefinition)`，再用 `storage.get(name)` 刷新详情；不要只处理 `file-action` 而遗漏同一操作产生的新定义。
 
 下面的演示可以导入内置示例或本地目录，将 skill 保存到 storage，并通过列表查看和选择已保存的 skill。
 
