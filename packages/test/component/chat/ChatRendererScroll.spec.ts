@@ -9,6 +9,21 @@ const settle = (root: Locator) =>
   root.evaluate(
     () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
   )
+const settleRendererRecovery = (root: Locator) =>
+  root.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let frames = 0
+        const nextFrame = () => {
+          if (++frames === 5) {
+            resolve()
+            return
+          }
+          requestAnimationFrame(nextFrame)
+        }
+        requestAnimationFrame(nextFrame)
+      }),
+  )
 const resize = (probe: Locator, action = 'expand') => probe.getByTestId(action).dispatchEvent('click')
 
 test.use({ launchOptions: { args: ['--enable-smooth-scrolling'] } })
@@ -431,10 +446,13 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
   await atBottom(second)
   await second.evaluate((el) => {
     el.scrollTop -= 200
+    el.dispatchEvent(new Event('scroll'))
   })
+  await expect.poll(() => distance(second)).toBeGreaterThanOrEqual(200)
   await settle(second)
   await resize(component.locator('.context-probe'))
   await settle(second)
+  await settleRendererRecovery(second)
   const before = await second.evaluate((el) => el.scrollTop)
   await first.evaluate((el) => {
     el.scrollTop = el.scrollHeight
@@ -447,6 +465,28 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
     el.scrollTop = el.scrollHeight
   })
   await settle(second)
+  await component.getByTestId('grow').click()
+  await atBottom(second)
+})
+
+test('changing the scroll root keeps following content growth during its first scroll', async ({ mount }) => {
+  const component = await mount(ChatRendererScroll)
+  const first = component.getByTestId('first-root')
+  const second = component.getByTestId('second-root')
+  const initialHeight = await second.evaluate((el) => el.scrollHeight)
+
+  await atBottom(first)
+  await resize(component.locator('.context-probe'))
+  await settle(first)
+  await second.evaluate((el) => {
+    el.addEventListener('scroll', () => document.querySelector<HTMLElement>('[data-testid="grow"]')!.click(), {
+      once: true,
+    })
+  })
+  await component.getByTestId('switch-root').click()
+
+  await expect.poll(() => second.evaluate((el) => el.scrollHeight)).toBeGreaterThan(initialHeight)
+  await atBottom(second)
   await component.getByTestId('grow').click()
   await atBottom(second)
 })
