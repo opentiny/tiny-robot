@@ -221,6 +221,26 @@ test.describe('Trace vanilla component', () => {
     await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('keeps a zero-duration item separate from a record starting at the same time', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([
+        { id: 'point', type: 'info', message: 'point', startTime: 5, endTime: 5 },
+        { id: 'range', type: 'success', message: 'range', startTime: 5, endTime: 10 },
+      ])
+    })
+
+    const segments = page.locator('.tr-trajectory__segment')
+    await expect(segments).toHaveCount(2)
+    expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
+      await segments.nth(1).evaluate((element) => element.style.top),
+    )
+
+    await segments.nth(0).click()
+    await expect(segments.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await segments.nth(1).click()
+    await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('renders empty and error states and emits error events', async ({ page }) => {
     await page.evaluate(() => window.traceFixture.trace.setItems([]))
     await expect(page.locator('.tr-trajectory__empty')).toHaveText('暂无轨迹')

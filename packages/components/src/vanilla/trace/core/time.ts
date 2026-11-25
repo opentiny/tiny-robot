@@ -132,8 +132,7 @@ export function normalizeTrajectory(
     const visibleEnd = Math.min(item.end, end)
     const zeroDuration = item.start === item.end
     let lane = laneEnds.findIndex(
-      (laneState) =>
-        laneState.end <= visibleStart && !(laneState.zeroDuration && zeroDuration && laneState.end === visibleStart),
+      (laneState) => laneState.end <= visibleStart && !(laneState.zeroDuration && laneState.end === visibleStart),
     )
     if (lane === -1) lane = laneEnds.length
     laneEnds[lane] = { end: visibleEnd, zeroDuration }
