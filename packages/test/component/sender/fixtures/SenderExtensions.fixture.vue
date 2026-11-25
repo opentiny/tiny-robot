@@ -446,3 +446,223 @@ onBeforeUnmount(() => {
   shadowHost.remove()
 })
 </script>
+
+<template>
+  <main>
+    <section class="fixture-controls">
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="set-template-mixed"
+        type="button"
+        @click="updateTemplate('mixed')"
+      >
+        mixed
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="set-template-empty"
+        type="button"
+        @click="updateTemplate('empty')"
+      >
+        empty
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="set-template-simple"
+        type="button"
+        @click="updateTemplate('simple')"
+      >
+        simple
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="set-template-adjacent"
+        type="button"
+        @click="updateTemplate('adjacent')"
+      >
+        adjacent
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="set-template-multiple"
+        type="button"
+        @click="updateTemplate('multiple')"
+      >
+        multiple
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="focus-first-template"
+        type="button"
+        @click="getEditor()?.commands.focusFirstTemplate?.()"
+      >
+        focus first
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-block-start"
+        type="button"
+        @click="prepareSelection('block-start')"
+      >
+        block start
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-block-end"
+        type="button"
+        @click="prepareSelection('block-end')"
+      >
+        block end
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-last-block-end"
+        type="button"
+        @click="prepareSelection('last-block-end')"
+      >
+        last block end
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-before-block"
+        type="button"
+        @click="prepareSelection('before-block')"
+      >
+        before block
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-after-block"
+        type="button"
+        @click="prepareSelection('after-block')"
+      >
+        after block
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-between-before-zero"
+        type="button"
+        @click="prepareSelection('between-before-zero')"
+      >
+        between before zero
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-between-after-zero"
+        type="button"
+        @click="prepareSelection('between-after-zero')"
+      >
+        between after zero
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-block-middle"
+        type="button"
+        @click="prepareSelection('block-middle')"
+      >
+        block middle
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-block-partial"
+        type="button"
+        @click="prepareRangeSelection('block-partial')"
+      >
+        block partial
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-cross-block"
+        type="button"
+        @click="prepareRangeSelection('cross-block')"
+      >
+        cross block
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-block-range"
+        type="button"
+        @click="prepareSelection('block-range')"
+      >
+        block range
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-before-select"
+        type="button"
+        @click="prepareSelectBoundary('before')"
+      >
+        before select
+      </button>
+      <button
+        v-if="props.kind === 'template'"
+        data-testid="select-after-select"
+        type="button"
+        @click="prepareSelectBoundary('after')"
+      >
+        after select
+      </button>
+      <button
+        v-if="props.kind === 'mention'"
+        data-testid="update-mention-ref"
+        type="button"
+        @click="updateMentionItems"
+      >
+        update mention
+      </button>
+      <button v-if="props.kind === 'mention'" data-testid="select-mention-end" type="button" @click="prepareMentionEnd">
+        mention end
+      </button>
+      <button
+        v-if="props.kind === 'suggestion'"
+        data-testid="update-suggestion-ref"
+        type="button"
+        @click="updateSuggestionItems"
+      >
+        update suggestion
+      </button>
+      <button
+        v-if="props.kind === 'suggestion'"
+        data-testid="run-suggestion-sync-sequence"
+        type="button"
+        @click="runSuggestionSyncSequence"
+      >
+        run suggestion sync sequence
+      </button>
+    </section>
+
+    <output data-testid="submit-count">{{ submitCount }}</output>
+    <output data-testid="last-submit">{{ lastSubmit }}</output>
+    <output data-testid="editor-text">{{ cleanText(modelValue) }}</output>
+    <output data-testid="raw-editor-text">{{ modelValue }}</output>
+    <output data-testid="selection">
+      {{ revision }}:{{ getEditor()?.state.selection.from ?? '' }}:{{ getEditor()?.state.selection.to ?? '' }}
+    </output>
+    <output data-testid="selection-state">{{ getSelectionState() }}</output>
+    <output data-testid="selection-block-index">{{ getSelectionBlockIndex() }}</output>
+    <output data-testid="node-summary">
+      {{ JSON.stringify(getEditor()?.getJSON?.() ?? null) }}
+    </output>
+    <output data-testid="block-texts">{{ JSON.stringify(getBlockTexts()) }}</output>
+    <output data-testid="suggestion-sync-steps">{{ JSON.stringify(suggestionSyncSteps) }}</output>
+
+    <Teleport :to="shadowSenderTarget" :disabled="props.senderLocation !== 'shadow'">
+      <Sender
+        ref="senderRef"
+        data-testid="sender-root"
+        v-model="modelValue"
+        :extensions="extensions"
+        @update:model-value="handleUpdate"
+        @submit="handleSubmit"
+      />
+    </Teleport>
+  </main>
+</template>
+
+<style scoped>
+.fixture-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>
