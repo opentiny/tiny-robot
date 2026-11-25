@@ -215,23 +215,59 @@ for (const layout of [
     const chat = page.locator('.tr-chat-ui')
     const root = chat.locator('.chat-main-scroll-host')
     const button = chat.locator('.tr-chat-scroll-to-bottom')
+    const scrollToHistory = async () => {
+      await root.evaluate((el) => {
+        el.scrollTop = 0
+        el.dispatchEvent(new Event('scroll'))
+      })
+      await expect
+        .poll(() => root.evaluate((el) => el.scrollHeight - el.clientHeight - el.scrollTop))
+        .toBeGreaterThan(80)
+      await expect(button).toBeVisible()
+    }
     await expect
       .poll(() => root.evaluate((el) => el.scrollHeight - el.clientHeight - el.scrollTop))
       .toBeLessThanOrEqual(2)
-    await root.evaluate((el) => {
-      el.scrollTop = 0
-    })
-    await expect(button).toBeVisible()
+    await scrollToHistory()
 
+    const getAlignmentDeltas = async () => {
+      return chat.evaluate((element) => {
+        const list = element.querySelector('.tr-bubble-list__content')?.getBoundingClientRect()
+        const sender = element.querySelector('.tr-sender')?.getBoundingClientRect()
+        const action = element.querySelector('.tr-chat-scroll-to-bottom')?.getBoundingClientRect()
+        const composer = element.querySelector('.chat-footer')?.getBoundingClientRect()
+        if (!list || !sender || !action || !composer) {
+          return {
+            missing: [
+              !list && 'message list',
+              !sender && 'Sender',
+              !action && 'scroll action',
+              !composer && 'footer',
+            ].filter((item): item is string => Boolean(item)),
+            deltas: null,
+          }
+        }
+        return {
+          missing: [],
+          deltas: {
+            listLeft: list.left - sender.left,
+            listRight: list.right - sender.right,
+            buttonCenter: action.left + action.width / 2 - (sender.left + sender.width / 2),
+            buttonBottomGap: composer.top - action.bottom - 8,
+          },
+        }
+      })
+    }
     const aligned = async () => {
-      const list = (await chat.locator('.tr-bubble-list__content').boundingBox())!
-      const sender = (await chat.locator('.tr-sender').boundingBox())!
-      const action = (await button.boundingBox())!
-      const composer = (await chat.locator('.chat-footer').boundingBox())!
-      expect(Math.abs(list.x - sender.x)).toBeLessThanOrEqual(1)
-      expect(Math.abs(list.x + list.width - sender.x - sender.width)).toBeLessThanOrEqual(1)
-      expect(Math.abs(action.x + action.width / 2 - (sender.x + sender.width / 2))).toBeLessThanOrEqual(1)
-      expect(Math.abs(composer.y - action.y - action.height - 8)).toBeLessThanOrEqual(1)
+      const result = await getAlignmentDeltas()
+      if (!result) throw new Error('Expected Chat to remain mounted')
+      expect(result.missing, 'Expected all aligned elements to be rendered').toEqual([])
+      if (result.missing.length || !result.deltas) return
+      const deltas = result.deltas
+      expect(Math.abs(deltas.listLeft), JSON.stringify(deltas)).toBeLessThanOrEqual(1)
+      expect(Math.abs(deltas.listRight), JSON.stringify(deltas)).toBeLessThanOrEqual(1)
+      expect(Math.abs(deltas.buttonCenter), JSON.stringify(deltas)).toBeLessThanOrEqual(1)
+      expect(Math.abs(deltas.buttonBottomGap), JSON.stringify(deltas)).toBeLessThanOrEqual(1)
     }
     await expect(aligned).toPass()
 
@@ -240,11 +276,20 @@ for (const layout of [
     await expect
       .poll(async () => (await chat.locator('.chat-footer').boundingBox())!.height)
       .toBeGreaterThan(composerHeight)
+    await expect(button).toBeVisible()
     await expect(aligned).toPass()
     if ('floating' in props) {
       await component.update({ props: { anchor: false, ...props, width: 420 } })
       await expect(chat).toHaveCSS('width', '420px')
-      await expect(aligned).toPass()
+      await scrollToHistory()
+      await expect
+        .poll(async () => {
+          const result = await getAlignmentDeltas()
+          return result && result.deltas && Object.values(result.deltas).every((delta) => Math.abs(delta) <= 1)
+            ? 'aligned'
+            : JSON.stringify(result)
+        })
+        .toBe('aligned')
     }
   })
 }

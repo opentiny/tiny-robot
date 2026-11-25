@@ -50,7 +50,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   let popup: HTMLElement | null = null
   let cleanup: (() => void) | null = null
   let stopObservingLayoutMode: (() => void) | null = null
-  let justClosed = false
+  let dismissedQuery: string | null = null
 
   /**
    * 获取当前的 suggestions（动态从 editor 的 extensionManager 中获取）
@@ -264,10 +264,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         if (meta) {
           // 关闭建议列表
           if (meta.type === 'close') {
-            justClosed = true
-            setTimeout(() => {
-              justClosed = false
-            }, 0)
+            dismissedQuery = state.query
             return {
               active: false,
               range: null,
@@ -291,13 +288,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           }
         }
 
-        // 保持关闭状态，防止立即重新打开
-        if (justClosed) {
-          return state
-        }
-
-        // 如果文档没有变化，保持状态
-        if (!tr.docChanged && !tr.selectionSet) {
+        // 文档和选区都未变化且没有 update meta 时，保持状态
+        if (!tr.docChanged && !tr.selectionSet && meta?.type !== 'update') {
           return state
         }
 
@@ -306,6 +298,11 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
 
         // 获取当前查询文本
         const query = getCurrentQuery(docQuery)
+
+        if (dismissedQuery !== null) {
+          if (query === dismissedQuery) return state
+          dismissedQuery = null
+        }
 
         // ✅ 如果输入框为空，关闭建议列表（所有模式都适用）
         if (!docQuery) {

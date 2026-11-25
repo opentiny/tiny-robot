@@ -5,6 +5,8 @@
 
 import { ref, watch, nextTick, computed, onScopeDispose, type Ref } from 'vue'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { isAndroid, isiOS } from '@tiptap/core'
+import { Selection } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/vue-3'
 import type { SenderProps, UseModeSwitchReturn, InputMode } from '../index.type'
 
@@ -63,13 +65,70 @@ export function useModeSwitch(
   const setMode = (mode: InputMode) => {
     if (currentMode.value === mode) return
 
+    const getActiveElement = () => {
+      const dom = editor.value?.view.dom
+      if (!dom) return null
+      const root = dom.getRootNode()
+      if (root instanceof ShadowRoot) {
+        // A shadow root reports no active element when focus moved to a control
+        // outside the root. Fall back to the document active element so that
+        // restoration does not steal focus from that control.
+        return root.activeElement ?? dom.ownerDocument.activeElement
+      }
+      return dom.ownerDocument.activeElement
+    }
+
+    const activeElement = getActiveElement()
+    const restoreEditorFocus = Boolean(
+      editor.value?.isFocused || (activeElement && editorRef.value?.contains(activeElement)),
+    )
+    const selectionBeforeModeSwitch = editor.value?.state.selection
+
     isAutoSwitching.value = true
     currentMode.value = mode
 
     nextTick(() => {
       if (disposed) return
       if (editor.value && !editor.value.isDestroyed) {
-        editor.value.commands.focus('end')
+        const currentActiveElement = getActiveElement()
+        const focusWasNotMovedOutside =
+          !currentActiveElement ||
+          currentActiveElement === editor.value.view.dom.ownerDocument.body ||
+          Boolean(editorRef.value?.contains(currentActiveElement))
+
+        if (restoreEditorFocus && focusWasNotMovedOutside) {
+          const currentEditor = editor.value
+          const selection =
+            selectionBeforeModeSwitch &&
+            selectionBeforeModeSwitch.$from.doc === currentEditor.state.doc &&
+            selectionBeforeModeSwitch.$to.doc === currentEditor.state.doc
+              ? selectionBeforeModeSwitch
+              : Selection.atEnd(currentEditor.state.doc)
+          if (!currentEditor.state.selection.eq(selection)) {
+            currentEditor.view.dispatch(currentEditor.state.tr.setSelection(selection))
+          }
+
+          // Tiptap focuses synchronously on mobile before its animation-frame
+          // focus because a frame-only focus can dismiss the virtual keyboard.
+          if (isiOS() || isAndroid()) {
+            currentEditor.view.dom.focus()
+          }
+
+          // Tiptap's focus command defers view.focus() to an animation frame.
+          // Recheck ownership in that frame before performing the actual focus.
+          requestAnimationFrame(() => {
+            if (disposed || currentEditor.isDestroyed) return
+            const activeElement = getActiveElement()
+            const focusStillBelongsToSender =
+              !activeElement ||
+              activeElement === currentEditor.view.dom.ownerDocument.body ||
+              Boolean(editorRef.value?.contains(activeElement))
+            if (!focusStillBelongsToSender) return
+
+            currentEditor.view.focus()
+            currentEditor.commands.scrollIntoView()
+          })
+        }
       }
       isAutoSwitching.value = false
       scheduleOverflowCheck()

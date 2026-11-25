@@ -47,22 +47,37 @@ export function setupClickOutside(
   dropdownElement: HTMLElement,
   onClose: () => void,
 ): () => void {
-  const handleClickOutside = (event: MouseEvent) => {
-    const target = event.target as Node
+  let disposed = false
+  let listenerTimer: ReturnType<typeof setTimeout> | undefined
 
-    if (!selectElement.contains(target) && !dropdownElement.contains(target)) {
+  const handleClickOutside = (event: MouseEvent) => {
+    const eventPath = event.composedPath()
+    const target = event.target as Node | null
+    const clickedInside =
+      eventPath.includes(selectElement) ||
+      eventPath.includes(dropdownElement) ||
+      Boolean(target && (selectElement.contains(target) || dropdownElement.contains(target)))
+
+    if (!clickedInside) {
       onClose()
       document.removeEventListener('click', handleClickOutside)
     }
   }
 
   // 延迟添加监听器，避免立即触发
-  setTimeout(() => {
+  listenerTimer = setTimeout(() => {
+    listenerTimer = undefined
+    if (disposed) return
     document.addEventListener('click', handleClickOutside)
   }, 0)
 
   // 返回清理函数
   return () => {
+    disposed = true
+    if (listenerTimer !== undefined) {
+      clearTimeout(listenerTimer)
+      listenerTimer = undefined
+    }
     document.removeEventListener('click', handleClickOutside)
   }
 }

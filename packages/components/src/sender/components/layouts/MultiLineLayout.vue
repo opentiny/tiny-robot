@@ -2,18 +2,19 @@
 import { useSenderContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
 import type { SenderSlotScope } from '../../types/slots'
+import type { Editor } from '@tiptap/vue-3'
 import EditorContent from '../editor-content/index.vue'
 import Footer from '../footer/index.vue'
 import SenderHeader from './SenderHeader.vue'
 
-const context = useSenderContext()
+const { editor } = useSenderContext()
 const slotScope = useSlotScope()
 
 defineSlots<{
   header?: () => unknown
   prefix?: () => unknown
   'input-prefix'?: () => unknown
-  content?: (props: { editor: unknown }) => unknown
+  content?: (props: { editor: Editor | undefined }) => unknown
   'actions-inline'?: (scope: SenderSlotScope) => unknown
   footer?: (scope: SenderSlotScope) => unknown
   'footer-right'?: (scope: SenderSlotScope) => unknown
@@ -36,7 +37,7 @@ defineSlots<{
 
       <!-- 编辑器内容 -->
       <div class="tr-sender-content">
-        <slot name="content" :editor="context.editor">
+        <slot name="content" :editor="editor">
           <EditorContent>
             <template v-if="$slots['input-prefix']" #input-prefix>
               <slot name="input-prefix" />
