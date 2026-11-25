@@ -25,6 +25,20 @@ test.describe('Trace vanilla component', () => {
     await expect(rows.nth(2)).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('preserves keyboard focus after selecting a timeline segment', async ({ page }) => {
+    const firstSegment = page.locator('.tr-trajectory__segment').first()
+    await firstSegment.focus()
+    await page.keyboard.press('Enter')
+
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-tr-trajectory-id')))
+      .toBe('prepare')
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-tr-trajectory-id')))
+      .toBe('load')
+  })
+
   test('supports compact, clock, none, and custom duration formats', async ({ page }) => {
     const duration = page.locator('.tr-trajectory__duration')
 
@@ -145,6 +159,26 @@ test.describe('Trace vanilla component', () => {
     expect(result.background).toBe('rgb(254, 243, 199)')
   })
 
+  test('renders overlapping timeline items on separate clickable lanes', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([
+        { id: 'outer', type: 'info', message: 'outer', startTime: 0, endTime: 100 },
+        { id: 'inner', type: 'success', message: 'inner', startTime: 25, endTime: 75 },
+      ])
+    })
+
+    const segments = page.locator('.tr-trajectory__segment')
+    await expect(segments).toHaveCount(2)
+    expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
+      await segments.nth(1).evaluate((element) => element.style.top),
+    )
+
+    await segments.nth(0).click()
+    await expect(segments.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await segments.nth(1).click()
+    await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('renders empty and error states and emits error events', async ({ page }) => {
     await page.evaluate(() => window.traceFixture.trace.setItems([]))
     await expect(page.locator('.tr-trajectory__empty')).toHaveText('暂无轨迹')
@@ -175,6 +209,119 @@ test.describe('Trace vanilla component', () => {
     expect(result.invalidTimeEvents).toEqual(['error'])
     expect(result.duplicateMessage).toContain('Duplicate trajectory item id')
     expect(result.invalidTimeMessage).toContain('endTime must be >= startTime')
+  })
+
+  test('keeps the previous state when a candidate render fails', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      window.traceFixture.trace.select('prepare')
+      window.traceFixture.trace.updateOptions({
+        formatDuration: (_duration, item) => {
+          if (item.id === 'bad') throw new Error('duration formatter failed')
+          return 'ok'
+        },
+      })
+      window.traceFixture.resetEvents()
+      window.traceFixture.trace.setItems([{ id: 'bad', type: 'error', message: 'bad', startTime: 0, endTime: 1 }])
+      return {
+        selectedId: window.traceFixture.trace.getSelectedId(),
+        events: window.traceFixture.events.map((event) => event.type),
+      }
+    })
+
+    expect(result.selectedId).toBe('prepare')
+    expect(result.events).toEqual(['error'])
+    await expect(page.locator('.tr-trajectory__error')).toHaveText('duration formatter failed')
+
+    await page.evaluate(() => window.traceFixture.trace.updateOptions({ formatDuration: undefined }))
+    await expect(page.locator('[data-tr-trajectory-id="prepare"]').first()).toBeVisible()
+    expect(await page.evaluate(() => window.traceFixture.trace.getSelectedId())).toBe('prepare')
+
+    const updateResult = await page.evaluate(() => {
+      window.traceFixture.trace.setItems([{ id: 'bad', type: 'error', message: 'bad', startTime: 0, endTime: 1 }])
+      window.traceFixture.trace.select('bad')
+      window.traceFixture.resetEvents()
+      window.traceFixture.trace.updateOptions({
+        formatDuration: () => {
+          throw new Error('option formatter failed')
+        },
+      })
+      return {
+        selectedId: window.traceFixture.trace.getSelectedId(),
+        events: window.traceFixture.events.map((event) => event.type),
+      }
+    })
+
+    expect(updateResult.selectedId).toBe('bad')
+    expect(updateResult.events).toEqual(['error'])
+    await expect(page.locator('.tr-trajectory__error')).toHaveText('option formatter failed')
+    await page.evaluate(() => window.traceFixture.trace.updateOptions({ formatDuration: undefined }))
+    await expect(page.locator('[data-tr-trajectory-id="bad"]').first()).toBeVisible()
+  })
+
+  test('omits timeline segments outside the explicit axis and supports a one-sided empty axis', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.updateOptions({ axis: { startTime: 10, endTime: 20 } })
+      window.traceFixture.trace.setItems([
+        { id: 'before', type: 'info', message: 'before', startTime: 0, endTime: 5 },
+        { id: 'after', type: 'success', message: 'after', startTime: 30, endTime: 40 },
+      ])
+    })
+
+    await expect(page.locator('.tr-trajectory__segment')).toHaveCount(0)
+    await expect(page.locator('.tr-trajectory__item')).toHaveCount(2)
+
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([])
+      window.traceFixture.trace.updateOptions({ axis: { startTime: 10, endTime: undefined } })
+    })
+    await expect(page.locator('.tr-trajectory__empty')).toBeVisible()
+    await expect(page.locator('.tr-trajectory__error')).toHaveCount(0)
+  })
+
+  test('handles clicks from an iframe-owned document', async ({ page }) => {
+    const selectedId = await page.evaluate(() => {
+      const iframe = document.createElement('iframe')
+      document.body.append(iframe)
+      const iframeDocument = iframe.contentDocument!
+      const container = iframeDocument.createElement('div')
+      iframeDocument.body.append(container)
+      const instance = window.traceFixture.createTrace({
+        container,
+        items: [{ id: 'iframe-item', type: 'info', message: 'iframe', startTime: 0, endTime: 1 }],
+      })
+      container.querySelector<HTMLElement>('.tr-trajectory__item')!.click()
+      const result = instance.getSelectedId()
+      instance.destroy()
+      iframe.remove()
+      return result
+    })
+
+    expect(selectedId).toBe('iframe-item')
+  })
+
+  test('expands the selected message for touch and keyboard users', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([
+        {
+          id: 'long',
+          type: 'info',
+          message: 'This is a long message that should be readable after selection.',
+          startTime: 0,
+          endTime: 1,
+        },
+      ])
+    })
+    const row = page.locator('.tr-trajectory__item')
+    await row.click()
+    await expect(row.locator('.tr-trajectory__message')).toHaveCSS('white-space', 'normal')
+  })
+
+  test('follows the configured vanilla theme and accepts host variable overrides', async ({ page }) => {
+    await page.evaluate(() => window.traceFixture.configureTheme('dark'))
+    await expect(page.locator('.tr-trajectory')).toHaveCSS('background-color', 'rgb(38, 38, 38)')
+
+    await page.locator('#trace').evaluate((element) => element.style.setProperty('--tr-trajectory-bg', '#000000'))
+    await expect(page.locator('.tr-trajectory')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
   })
 
   test('keeps a visible keyboard focus indicator on message rows', async ({ page }) => {

@@ -68,30 +68,44 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
 
   const emit = (event: TrajectoryEvent): void => emitSafely(options.onEvent, event)
 
-  const render = (): void => {
+  const renderState = (
+    nextItems: readonly TrajectoryItem[],
+    nextOptions: TrajectoryOptions,
+    nextSelectedId: string | null,
+  ): void => {
     if (destroyed) return
-    const model = createModel(items, options, selectedId)
+    const model = createModel(nextItems, nextOptions, nextSelectedId)
     ui.render(model)
   }
 
-  const select = (id: string | null, source: TrajectorySelectSource): void => {
-    if (destroyed) return
-    if (id !== null && !hasItem(items, id)) return
-    if (selectedId === id) return
+  const render = (): void => renderState(items, options, selectedId)
+
+  const select = (id: string | null, source: TrajectorySelectSource): boolean => {
+    if (destroyed) return false
+    if (id !== null && !hasItem(items, id)) return false
+    if (selectedId === id) return false
+    try {
+      renderState(items, options, id)
+    } catch (error) {
+      const normalizedError = asError(error)
+      ui.renderError(normalizedError)
+      emit({ type: 'error', error: normalizedError })
+      return false
+    }
     selectedId = id
-    render()
     emit({
       type: 'select',
       itemId: selectedId,
       source,
       item: selectedId === null ? undefined : items.find((item) => item.id === selectedId),
     })
+    return true
   }
 
   const handleUISelect = (id: string, source: TrajectorySelectSource): void => {
     const previous = selectedId
-    select(id, source)
-    if (previous === id) {
+    const changed = select(id, source)
+    if (!changed && previous === id) {
       const item = items.find((candidate) => candidate.id === id)
       emit({ type: 'select', itemId: id, source, item })
     }
@@ -117,10 +131,11 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         return
       }
       try {
-        createModel(nextItems, options, selectedId)
-        items = [...nextItems]
-        if (!hasItem(items, selectedId)) selectedId = null
-        render()
+        const candidateItems = [...nextItems]
+        const candidateSelectedId = hasItem(candidateItems, selectedId) ? selectedId : null
+        renderState(candidateItems, options, candidateSelectedId)
+        items = candidateItems
+        selectedId = candidateSelectedId
         emit({ type: 'update' })
       } catch (error) {
         const normalizedError = asError(error)
@@ -155,10 +170,9 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         requestedSelectedId !== null && !hasItem(items, requestedSelectedId) ? selectedId : requestedSelectedId
       const resolvedOptions: TrajectoryOptions = { ...nextOptions, selectedId: nextSelectedId }
       try {
-        createModel(items, resolvedOptions, nextSelectedId ?? null)
+        renderState(items, resolvedOptions, nextSelectedId ?? null)
         options = resolvedOptions
         selectedId = nextSelectedId ?? null
-        render()
         emit({ type: 'update' })
       } catch (error) {
         const normalizedError = asError(error)

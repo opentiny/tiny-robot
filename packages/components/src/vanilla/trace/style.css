@@ -1,20 +1,14 @@
 .tr-trajectory {
-  --tr-trajectory-bg: #ffffff;
-  --tr-trajectory-text: #334155;
-  --tr-trajectory-muted: #64748b;
-  --tr-trajectory-border: #e5e7eb;
-  --tr-trajectory-hover: #f8fafc;
-  --tr-trajectory-selected: #eff6ff;
-  --tr-trajectory-selected-border: #93c5fd;
-  --tr-trajectory-track: #eef2f7;
-  --tr-trajectory-radius: 4px;
   display: block;
   width: 100%;
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: var(--tr-trajectory-bg);
-  color: var(--tr-trajectory-text);
+  background: var(
+    --tr-trajectory-bg,
+    var(--tr-container-bg-default, var(--tr-vanilla-default-container-bg-default, #ffffff))
+  );
+  color: var(--tr-trajectory-text, var(--tr-text-primary, var(--tr-vanilla-default-text-primary, #334155)));
   font-family: inherit;
   font-size: 13px;
   line-height: 1.4;
@@ -31,16 +25,15 @@
 
 .tr-trajectory__track {
   position: relative;
-  height: 18px;
   overflow: visible;
   border-radius: 6px;
-  background: var(--tr-trajectory-track);
+  background: var(--tr-trajectory-track, #eef2f7);
 }
 
 .tr-trajectory__segment {
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: auto;
   min-width: 4px;
   padding: 0;
   border: 0;
@@ -54,14 +47,13 @@
 
 .tr-trajectory__segment:hover,
 .tr-trajectory__segment.is-selected {
-  z-index: 1;
   opacity: 1;
-  box-shadow: 0 0 0 1px var(--tr-trajectory-selected-border);
+  box-shadow: 0 0 0 1px var(--tr-trajectory-selected-border, #93c5fd);
 }
 
 .tr-trajectory__segment:focus-visible,
 .tr-trajectory__item:focus-visible {
-  outline: 2px solid var(--tr-trajectory-selected-border);
+  outline: 2px solid var(--tr-trajectory-selected-border, #93c5fd);
   outline-offset: -2px;
 }
 
@@ -90,11 +82,11 @@
 }
 
 .tr-trajectory__item:hover {
-  background: var(--tr-trajectory-hover);
+  background: var(--tr-trajectory-hover, #f8fafc);
 }
 
 .tr-trajectory__item.is-selected {
-  background: var(--tr-trajectory-selected);
+  background: var(--tr-trajectory-selected, #eff6ff);
 }
 
 .tr-trajectory__label {
@@ -122,9 +114,16 @@
   white-space: nowrap;
 }
 
+.tr-trajectory__item.is-selected .tr-trajectory__message {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .tr-trajectory__duration {
   min-width: 48px;
-  color: var(--tr-trajectory-muted);
+  color: var(--tr-trajectory-muted, var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary, #64748b)));
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: right;

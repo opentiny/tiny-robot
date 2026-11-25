@@ -34,16 +34,32 @@ Trace 的运行时不依赖 Vue、React 或其他框架。
 ### CDN
 
 ```html
+<div id="trace"></div>
+<p id="trace-event"></p>
 <script src="https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@VERSION/dist/vanilla/vanilla.global.js"></script>
 <script>
   const trace = window.TinyRobotVanilla.createTrace({
     container: document.querySelector('#trace'),
-    items: [],
+    items: [
+      {
+        id: 'prepare',
+        type: 'info',
+        label: 'Prepare',
+        message: 'Prepare the execution environment',
+        startTime: 0,
+        endTime: 420,
+      },
+    ],
+    onEvent(event) {
+      if (event.type === 'select') {
+        document.querySelector('#trace-event').textContent = `Selected: ${event.itemId}`
+      }
+    },
   })
 </script>
 ```
 
-UMD 脚本提供 `window.TinyRobotVanilla.createTrace` 和 `window.TinyRobotVanilla.createTrajectory`。
+将 `VERSION` 替换为实际发布版本。UMD 脚本提供 `window.TinyRobotVanilla.createTrace` 和 `window.TinyRobotVanilla.createTrajectory`。
 
 ## 用法示例
 
@@ -91,6 +107,8 @@ item.color / item.textColor
 
 颜色值支持普通 CSS 颜色和 CSS 渐变。渐变文字通过 `textColor` 传入 `linear-gradient(...)` 即可。
 
+单轴允许时间区间重叠，重叠记录会自动排列到不同的时间轴层级，保证每条记录都可以从时间轴点击选中。完全位于显式轴范围之外的记录只保留在消息列表中，不显示时间轴片段。
+
 ### 时间轴与时长
 
 时间轴范围默认取所有数据的最早开始时间和最晚结束时间。时间轴只展示颜色轨道，不展示时间刻度文字。
@@ -117,11 +135,11 @@ item.color / item.textColor
 
 ### 键盘与焦点
 
-时间轴片段和消息记录使用可聚焦按钮渲染，用户可以通过键盘聚焦并使用 Enter 或 Space 触发选中。选中状态通过 `aria-selected` 反映。
+时间轴片段和消息记录使用可聚焦按钮渲染，用户可以通过键盘聚焦并使用 Enter 或 Space 触发选中。选中状态通过 `aria-pressed` 反映。选中后组件会保留当前按钮的键盘焦点，并展开消息内容。
 
 ### 响应式与长内容
 
-消息区域使用单行省略，标签根据内容自适应并限制最大宽度。长消息的完整内容可通过鼠标悬停查看。
+消息区域默认使用单行省略，标签根据内容自适应并限制最大宽度。点击或使用键盘选中消息后会展开完整内容，触屏设备不依赖鼠标悬停也可以查看全文。
 
 ## API
 
@@ -140,7 +158,7 @@ const trace = createTrace(options)
 | `labels`         | 自定义标签类型、背景色和文字颜色。            | `Record<string, TrajectoryLabelStyle>` | 内置类型     | 否   |
 | `axis`           | 指定时间轴范围。                              | `TrajectoryAxisOptions`                | 自动计算     | 否   |
 | `durationFormat` | 时长显示格式，`none` 隐藏时长列。             | `'compact' \| 'clock' \| 'none'`       | `'compact'`  | 否   |
-| `formatDuration` | 自定义时长文本，优先级高于 `durationFormat`。 | `(durationMs, item) => string`         | 内置格式化   | 否   |
+| `formatDuration` | 自定义时长文本，`none` 时不会调用。           | `(durationMs, item) => string`         | 内置格式化   | 否   |
 | `messages`       | 空状态文案。                                  | `{ empty?: string }`                   | `'暂无轨迹'` | 否   |
 | `selectedId`     | 初始选中的记录 ID。                           | `string \| null`                       | `null`       | 否   |
 | `onEvent`        | 监听选中、更新和错误事件。                    | `(event: TrajectoryEvent) => void`     | -            | 否   |
@@ -160,6 +178,13 @@ const trace = createTrace(options)
 | `timeline` | 点击上方时间轴。 |
 | `message`  | 点击下方消息。   |
 | `api`      | 调用实例方法。   |
+
+事件行为说明：
+
+- `onEvent` 的事件对象始终包含 `type`。
+- 用户重复点击当前记录时仍会触发 `select`，用于表示一次交互激活。
+- 通过 `select(id)` 选择已经选中的记录时不会重复触发事件。
+- `updateOptions({ selectedId })` 属于配置更新，成功后触发 `update`，不会额外触发 `select`。
 
 ### Slots
 
@@ -208,17 +233,20 @@ interface TrajectoryItem {
 
 | 变量名                            | 说明                 | 默认值    |
 | --------------------------------- | -------------------- | --------- |
+| `--tr-trajectory-bg`              | 组件背景颜色。       | `#ffffff` |
 | `--tr-trajectory-text`            | 主文字颜色。         | `#334155` |
 | `--tr-trajectory-muted`           | 次要文字和时长颜色。 | `#64748b` |
 | `--tr-trajectory-track`           | 时间轴轨道背景。     | `#eef2f7` |
 | `--tr-trajectory-selected`        | 选中消息背景。       | `#eff6ff` |
 | `--tr-trajectory-selected-border` | 选中时间轴边框。     | `#93c5fd` |
 
+组件会自动接入 Vanilla Theme。可以通过 `configureVanillaTheme({ colorMode: 'dark' })` 切换主题，也可以在挂载容器上覆盖上述 CSS 变量。
+
 ## 交互与限制
 
-- 当前版本是单轴模型，不支持并行轨道。
+- 当前版本是单轴模型；重叠记录会在同一时间轴内分层显示，不支持独立的多轴时间范围。
 - `endTime` 必须大于等于 `startTime`；相同时间点会使用最小可见宽度显示。
 - 记录按照传入数组顺序渲染，建议开发者按时间顺序传入数据。
-- 时间轴片段颜色来自单条记录或标签类型配置。
+- 时间轴片段颜色来自单条记录或标签类型配置；完全位于显式轴范围之外的记录只保留在消息列表中。
 - `none` 模式只隐藏时长列，不影响时间轴的时间计算。
 - 组件不依赖任何框架，可以直接在原生 HTML、Vue、React 或其他宿主中使用。

@@ -17,6 +17,8 @@ export interface NormalizedTrajectoryItem {
   readonly start: number
   readonly end: number
   readonly duration: number
+  readonly visible: boolean
+  readonly lane: number
   readonly left: number
   readonly width: number
   readonly label: string
@@ -29,6 +31,7 @@ export interface TrajectoryTimeModel {
   readonly start: number
   readonly end: number
   readonly total: number
+  readonly laneCount: number
   readonly items: readonly NormalizedTrajectoryItem[]
 }
 
@@ -90,13 +93,16 @@ export function normalizeTrajectory(
     if (entry.start < itemStart) itemStart = entry.start
     if (entry.end > itemEnd) itemEnd = entry.end
   }
-  const start = axis?.startTime === undefined ? itemStart : toTimestamp(axis.startTime, 'axis startTime')
-  const end = axis?.endTime === undefined ? itemEnd : toTimestamp(axis.endTime, 'axis endTime')
+  const axisStart = axis?.startTime === undefined ? undefined : toTimestamp(axis.startTime, 'axis startTime')
+  const axisEnd = axis?.endTime === undefined ? undefined : toTimestamp(axis.endTime, 'axis endTime')
+  const start = axisStart ?? (parsed.length ? itemStart : (axisEnd ?? 0))
+  const end = axisEnd ?? (parsed.length ? itemEnd : (axisStart ?? 0))
   if (end < start) throw new Error('Trajectory axis endTime must be >= startTime')
 
   const total = end - start
   const scale = total > 0 ? total : 1
   const normalized = parsed.map(({ item, start: itemStartTime, end: itemEndTime }) => {
+    const visible = itemEndTime >= start && itemStartTime <= end
     const left = clamp((itemStartTime - start) / scale, 0, 1)
     const right = clamp((itemEndTime - start) / scale, 0, 1)
     const style = resolveLabelStyle(item, labels)
@@ -105,6 +111,8 @@ export function normalizeTrajectory(
       start: itemStartTime,
       end: itemEndTime,
       duration: itemEndTime - itemStartTime,
+      visible,
+      lane: 0,
       left,
       width: Math.max(0, right - left),
       message: displayValue(item.message),
@@ -112,7 +120,18 @@ export function normalizeTrajectory(
     }
   })
 
-  return { start, end, total, items: normalized }
+  const laneEnds: number[] = []
+  const laidOut = normalized.map((item) => {
+    if (!item.visible) return item
+    const visibleStart = Math.max(item.start, start)
+    const visibleEnd = Math.min(item.end, end)
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= visibleStart)
+    if (lane === -1) lane = laneEnds.length
+    laneEnds[lane] = visibleEnd
+    return { ...item, lane }
+  })
+
+  return { start, end, total, laneCount: laneEnds.length, items: laidOut }
 }
 
 function compactNumber(value: number): string {

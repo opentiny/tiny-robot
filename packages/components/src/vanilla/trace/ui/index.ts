@@ -1,5 +1,6 @@
 import type { NormalizedTrajectoryItem, TrajectoryTimeModel } from '../core/time'
 import type { TrajectoryDurationFormat, TrajectoryMessages, TrajectorySelectSource } from '../types'
+import { bindVanillaTheme } from '../../theme/service'
 
 export interface TrajectoryRenderModel {
   readonly time: TrajectoryTimeModel
@@ -40,7 +41,9 @@ function renderSegment(document: Document, item: NormalizedTrajectoryItem, selec
   segment.type = 'button'
   segment.dataset.trTrajectoryId = item.item.id
   segment.dataset.trTrajectorySource = 'timeline'
+  segment.style.top = `${item.lane * 22}px`
   segment.style.left = `${item.left * 100}%`
+  segment.style.height = '18px'
   segment.style.width = item.width > 0 ? `${item.width * 100}%` : '4px'
   segment.style.background = item.color
   segment.title = `${item.label} · ${item.message}`
@@ -55,7 +58,11 @@ function renderTimeline(document: Document, model: TrajectoryRenderModel): HTMLE
   section.setAttribute('aria-label', 'Trajectory timeline')
 
   const track = createElement(document, 'div', 'tr-trajectory__track')
-  for (const item of model.time.items) track.append(renderSegment(document, item, item.item.id === model.selectedId))
+  const laneCount = Math.max(1, model.time.laneCount)
+  track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
+  for (const item of model.time.items) {
+    if (item.visible) track.append(renderSegment(document, item, item.item.id === model.selectedId))
+  }
   section.append(track)
   return section
 }
@@ -109,17 +116,41 @@ function renderList(document: Document, model: TrajectoryRenderModel): HTMLEleme
   return list
 }
 
+function getFocusedTarget(document: Document, host: HTMLElement): { id: string; source: string } | undefined {
+  const active = document.activeElement
+  if (!active || active.nodeType !== 1 || !host.contains(active)) return undefined
+  const element = active as HTMLElement
+  const id = element.dataset.trTrajectoryId
+  const source = element.dataset.trTrajectorySource
+  return id && source ? { id, source } : undefined
+}
+
+function restoreFocus(host: HTMLElement, target: { id: string; source: string } | undefined): void {
+  if (!target) return
+  const element = Array.from(host.querySelectorAll<HTMLElement>('[data-tr-trajectory-id]')).find(
+    (candidate) =>
+      candidate.dataset.trTrajectoryId === target.id && candidate.dataset.trTrajectorySource === target.source,
+  )
+  element?.focus()
+}
+
 export function createTrajectoryUI(options: {
   document: Document
   onSelect: (id: string, source: TrajectorySelectSource) => void
 }): TrajectoryUI {
   const host = createElement(options.document, 'div', 'tr-trajectory')
   host.dataset.trTrajectory = ''
+  let releaseTheme: (() => void) | undefined
+  releaseTheme = bindVanillaTheme(host, options.document)
   let destroyed = false
 
   const handleClick = (event: MouseEvent): void => {
     if (destroyed) return
-    const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-tr-trajectory-id]') : null
+    const targetNode = event.target
+    if (!targetNode) return
+    const targetElement = targetNode as Element
+    if (targetElement.nodeType !== 1) return
+    const target = targetElement.closest<HTMLElement>('[data-tr-trajectory-id]')
     if (!target || !host.contains(target)) return
     const id = target.dataset.trTrajectoryId
     const source = target.dataset.trTrajectorySource
@@ -134,6 +165,7 @@ export function createTrajectoryUI(options: {
 
     render(model): void {
       if (destroyed) return
+      const focusedTarget = getFocusedTarget(options.document, host)
       if (!model.time.items.length) {
         const empty = createElement(options.document, 'div', 'tr-trajectory__empty')
         setText(empty, model.messages.empty)
@@ -141,6 +173,7 @@ export function createTrajectoryUI(options: {
         return
       }
       host.replaceChildren(renderTimeline(options.document, model), renderList(options.document, model))
+      restoreFocus(host, focusedTarget)
     },
 
     renderError(error): void {
@@ -154,6 +187,8 @@ export function createTrajectoryUI(options: {
       if (destroyed) return
       destroyed = true
       host.removeEventListener('click', handleClick)
+      releaseTheme?.()
+      releaseTheme = undefined
       host.remove()
     },
   }
