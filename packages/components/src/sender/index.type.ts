@@ -12,6 +12,7 @@ export type { SenderExternalPayload, SenderSubmitExtra } from './types/submit-ex
 
 // 导入插槽作用域类型
 import type { SenderSlotScope } from './types/slots'
+import type { Editor } from '@tiptap/vue-3'
 
 // 导出扩展类型（供用户使用）
 export type { MentionAttrs, MentionItem } from './extensions/mention'
@@ -363,7 +364,7 @@ export interface SenderSlots {
    * @param props - 插槽属性
    * @param props.editor - 编辑器实例
    */
-  content?: (props: { editor: unknown }) => unknown
+  content?: (props: { editor: Editor | undefined }) => unknown
 
   /**
    * 操作按钮插槽：单行模式位于默认操作按钮前，多行模式位于底部右侧。

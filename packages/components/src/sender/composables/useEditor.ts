@@ -105,8 +105,9 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
         const text = event.clipboardData?.getData('text/plain')
         if (!text) return false
 
-        // 处理文本：单行模式替换换行符，多行模式保留
-        const processedText = props.mode === 'single' ? text.replace(/\r?\n/g, ' ') : text
+        // Normalize platform line endings before applying the single-line behavior.
+        const normalizedText = text.replace(/\r\n?/g, '\n')
+        const processedText = props.mode === 'single' ? normalizedText.replace(/\n/g, ' ') : normalizedText
 
         // 插入纯文本
         const { state } = view
