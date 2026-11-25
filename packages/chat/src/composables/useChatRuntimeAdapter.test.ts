@@ -368,6 +368,51 @@ describe('useChatRuntimeAdapter MCP registration', () => {
     await expect(first).resolves.toBe('dynamic-server')
     expect(adapter.data.value.mcp?.registering).toBe(false)
   })
+
+  it('keeps a newer registration pending when an older runtime registration completes later', async () => {
+    let releaseFirst!: (serverId: string) => void
+    let releaseSecond!: (serverId: string) => void
+    const firstRegistration = new Promise<string>((resolve) => {
+      releaseFirst = resolve
+    })
+    const secondRegistration = new Promise<string>((resolve) => {
+      releaseSecond = resolve
+    })
+    const first = createRuntime('first')
+    const second = createRuntime('second')
+    const mcp: ChatMcpRuntime = {
+      servers: ref([]),
+      tools: ref({}),
+      registerMcpServer: vi.fn().mockReturnValueOnce(firstRegistration).mockReturnValueOnce(secondRegistration),
+      addServer: () => undefined,
+      removeServer: () => undefined,
+      setServerEnabled: () => undefined,
+      setToolEnabled: () => undefined,
+    }
+    first.runtime.composer.mcp = mcp
+    second.runtime.composer.mcp = mcp
+    const runtime = shallowRef(first.runtime)
+    const adapter = useChatRuntimeAdapter({
+      runtime,
+      onActionError: () => undefined,
+    })
+    const config = { name: 'Dynamic', type: 'streamableHttp' as const, url: 'https://mcp.example.com' }
+
+    const firstRequest = adapter.registerMcpServer(config)
+    await vi.waitFor(() => expect(adapter.data.value.mcp?.registering).toBe(true))
+    runtime.value = second.runtime
+    runtime.value = first.runtime
+    const secondRequest = adapter.registerMcpServer(config)
+    await vi.waitFor(() => expect(adapter.data.value.mcp?.registering).toBe(true))
+
+    releaseFirst('first-server')
+    await expect(firstRequest).resolves.toBe('first-server')
+    expect(adapter.data.value.mcp?.registering).toBe(true)
+
+    releaseSecond('second-server')
+    await expect(secondRequest).resolves.toBe('second-server')
+    expect(adapter.data.value.mcp?.registering).toBe(false)
+  })
 })
 
 describe('useChatRuntimeAdapter runtime-scoped drafts', () => {

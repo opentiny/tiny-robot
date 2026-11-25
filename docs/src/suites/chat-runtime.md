@@ -398,7 +398,7 @@ const runtime = useChatRuntime({
 
 ### 在 Chat 中接入 WebMCP Adapter
 
-WebMCP Adapter 属于 @opentiny/tiny-robot 的公共 MCP 能力，本节只说明如何将它接入 Chat Runtime。Adapter 契约、生命周期和非 Chat 用法见 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
+WebMCP Adapter 属于 @opentiny/tiny-robot 的公共 MCP 能力，本节只说明如何将它接入 Chat Runtime。Adapter 契约、生命周期和非 Chat 用法见 [MCP Adapter 公共 API](../components/mcp-extension#mcp-adapter-公共-api) 与 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
 
 如果页面通过 `document.modelContext` 提供 WebMCP 工具，可以使用 `createWebMcpAdapter` 将页面工具接入当前 Chat Runtime：
 
@@ -441,7 +441,7 @@ const webmcp = createWebMcpAdapter({
 })
 ```
 
-页面工具的注册、权限控制、用户确认、业务副作用和持久化仍由应用负责。`removeServer` 只会将服务从当前 Chat 中移除，不会注销 `document.modelContext` 中的业务工具。WebMCP polyfill 和浏览器兼容初始化也不由 Chat Runtime 自动执行。
+页面工具的注册、权限控制、用户确认、业务副作用和持久化仍由应用负责。`removeServer(id)` 会将服务设为未安装、禁用，清空工具并停止监听，之后可通过 `addServer(id)` 重新安装；它不会注销 `document.modelContext` 中的业务工具。组合 Adapter 的 `removeAdapter(adapter)` 会解除 Adapter 接入并调用 `close()`；页面卸载时应用仍需注销 SDK 工具。WebMCP polyfill 和浏览器兼容初始化也不由 Chat Runtime 自动执行。
 
 ## 高级用法
 
@@ -820,7 +820,7 @@ const history = useChatHistoryData({
 | `listTools` | `(serverIds: readonly string[], toolIds: Readonly<Record<string, readonly string[]>>)` | 根据服务 ID 和每个服务选中的工具 ID 获取工具定义，返回工具定义只读数组的 Promise。 |
 | `callTool`  | `(serverId: string, toolName: string, args: Record<string, unknown>)`                  | 使用服务 ID、工具原始名称和调用参数执行工具，返回 `Promise<unknown>`。             |
 
-Adapter 还可以提供以下可选能力：`registerMcpServer` 负责注册 URL 型 MCP Server；`refreshServer(serverId)` 用于按 Server 刷新；`refresh()` 用于整体刷新；`close()` 用于释放连接和监听器。一个 Adapter 管理多个 Server 时，应优先实现 `refreshServer`，避免禁用 Server 的刷新错误影响其他 Server。
+Adapter 还可以提供以下可选能力：`refreshServer(serverId)` 用于按 Server 刷新；`refresh()` 用于整体刷新；`close()` 用于释放连接和监听器。动态注册 URL 型 MCP Server 的正式入口是 `runtime.registerMcpServer(config)`；Adapter 顶层 `registerMcpServer` 仅为兼容旧代码保留。一个 Adapter 管理多个 Server 时，应优先实现 `refreshServer`，避免禁用 Server 的刷新错误影响其他 Server。
 
 `listTools` 返回的每项包含 `serverId: string`、`id: string`、`name: string`、`originalName: string`，以及可选的 `description?: string`、`inputSchema?: Record<string, unknown>`。`name` 是提供给模型的工具名称，`originalName` 是服务中的原始名称。
 

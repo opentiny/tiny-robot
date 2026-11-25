@@ -85,19 +85,23 @@ async function handleSubmit(text: string) {
   }
 }
 
-function handleServerToggle() {
+async function handleServerToggle() {
   const server = pageServer.value
   if (!server || server.loading) return
 
-  void adapter.runtime.setServerEnabled(server.id, !server.enabled).catch((cause) => {
+  try {
+    await adapter.runtime.setServerEnabled(server.id, !server.enabled)
+  } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
-  })
+  }
 }
 
-function handleToolToggle({ toolId, enabled }: { toolId: string; enabled: boolean }) {
-  void adapter.runtime.setToolEnabled('page-webmcp', toolId, enabled).catch((cause) => {
+async function handleToolToggle({ toolId, enabled }: { toolId: string; enabled: boolean }) {
+  try {
+    await adapter.runtime.setToolEnabled('page-webmcp', toolId, enabled)
+  } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause)
-  })
+  }
 }
 </script>
 

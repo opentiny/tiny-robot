@@ -5,9 +5,7 @@ pageClass: demo-container-page-bg
 
 # MCP Adapter 与 WebMCP
 
-MCP Adapter 是 TinyRobot 的公共工具接入能力，不属于 Chat 套件专属实现。它负责把不同来源的工具转换为统一的 MCP Server/Tool 管理契约，供组件、Kit 或 Chat Runtime 复用。
-
-WebMCP 是 MCP 的一种工具来源，适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。
+WebMCP Adapter 将页面工具接入 TinyRobot 的统一 MCP 管理接口。应用通过 WebMCP SDK 初始化 Context、注册工具并实现业务逻辑；Adapter 负责工具发现、状态同步和调用转发。
 
 ## 包职责与公共 API
 
@@ -17,20 +15,10 @@ WebMCP 是 MCP 的一种工具来源，适合把当前页面中的业务能力�
 | 自己管理消息和模型工具调用     | @opentiny/tiny-robot + @opentiny/tiny-robot-kit | 业务使用公共 Adapter，并用 Kit 完成模型工具调用。       |
 | 使用完整聊天页面               | @opentiny/tiny-robot-chat                       | Chat Runtime 复用同一个 Adapter，并负责连接界面和会话。 |
 
-公共入口包括 createWebMcpAdapter、createWebMcpToolSource、createCompositeMcpAdapter 和 McpAdapter。Chat 仍兼容从 @opentiny/tiny-robot-chat 导入 createWebMcpAdapter，但新代码建议从 @opentiny/tiny-robot 导入。
-
-普通 MCP、WebMCP、业务工具或 SDK 工具可以实现同一个 McpAdapter 契约，并通过 createCompositeMcpAdapter 合并。组合管理器负责按 Server ID 路由工具发现、调用、启用/禁用、刷新和关闭；各 Adapter 负责具体工具来源的连接和执行。
-
-WebMCP Adapter 不负责初始化 Polyfill、注册页面工具或维护业务 Schema。应用仍负责工具注册、权限校验、用户确认、业务副作用和审计。
-
-WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，例如读取当前页面状态、切换页面区域、查询当前用户可见的数据，或触发经过确认的页面操作。本页通过 Kit 和 TrChat 示例展示完整接入，公共 Adapter 契约与生命周期也在本页说明。
-
-`createWebMcpAdapter` 属于 MCP 公共能力，主入口从 `@opentiny/tiny-robot` 导出。使用完整 Chat 套件时，再将 Adapter 传给 `@opentiny/tiny-robot-chat` 的 `useChatRuntime`；不使用 Chat 时，也可以复用同一个 Adapter，交给业务自己的 Kit 工具调用链或其他 MCP Runtime。公共契约和生命周期说明见本文。
-
-本实践约定：应用负责注册页面工具、实现工具逻辑和控制权限；TinyRobot 负责把页面工具转换为 Chat Runtime 可以识别的 MCP Server/Tool，发现工具变化，并把调用结果返回给 Chat。
+公共 API 参考见 [MCP Adapter 公共 API](../components/mcp-extension#mcp-adapter-公共-api)。完整接入示例包含组件 + Kit、Chat，以及 WebMCP 与外部 MCP 共存三种场景。
 
 > [!IMPORTANT]
-> `createWebMcpAdapter` 不负责初始化 WebMCP Polyfill，也不负责注册页面工具。接入前，应用需要确保 `document.modelContext` 已经可用；如果使用自定义 WebMCP Context，则通过 `getContext` 注入。
+> `createWebMcpAdapter` 不负责初始化 WebMCP Polyfill，也不负责注册页面工具。应用需要通过 SDK 或其他方式准备 Context，并负责工具权限和业务副作用。
 
 ## 适用场景
 
@@ -41,7 +29,7 @@ WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，�
 - 工具不需要单独部署为外部 MCP 服务；
 - 工具的权限确认和业务副作用可以由页面应用控制。
 
-如果工具主要访问服务端数据、需要跨页面复用，或者需要独立的鉴权和部署边界，应优先使用外部 MCP Server。WebMCP 和外部 MCP 可以同时接入同一个 Chat Runtime。
+如果工具主要访问服务端数据、需要跨页面复用，或者需要独立的鉴权和部署边界，应优先使用外部 MCP Server。WebMCP 和外部 MCP 可以同时接入同一个工具运行时或 Chat Runtime。
 
 ## 接入边界
 
@@ -50,15 +38,51 @@ WebMCP 适合把当前页面中的业务能力提供给模型工具调用链，�
 | 页面工具       | 注册工具、实现工具逻辑和返回结果                    | 不负责注册页面工具                    |
 | 权限与副作用   | 登录态、权限校验、用户确认和业务操作                | 不替代业务鉴权                        |
 | WebMCP Context | 初始化 `document.modelContext` 或提供自定义 Context | 通过 `getContext` 接入 Context        |
-| 工具变化       | 工具增删或更新后触发 `toolchange`                   | 刷新工具列表并更新 Chat 状态          |
+| 工具变化       | 工具增删或更新后触发 `toolchange`                   | 刷新工具列表并更新运行时状态          |
 | Server 信息    | 提供稳定的 `id`、`name` 和描述                      | 在 MCP 面板中展示 Server 和 Tool 状态 |
+| 组件与 Kit     | 将 Adapter 接入 `toolPlugin` 和自定义工具面板       | 提供统一状态和调用契约                |
 | Chat 接入      | 将 Adapter 传入 `useChatRuntime`                    | 完成工具适配、路由和调用结果处理      |
 
-业务不需要在标准接入中直接实现 `ChatMcpAdapter`、工具路由或 Chat 面板状态管理。
+公共 Adapter 的完整参数和生命周期见 [MCP Adapter 公共 API](../components/mcp-extension#mcp-adapter-公共-api)。
+
+业务不需要在标准接入中直接实现工具路由；组件、Kit 和 Chat 分别负责自己的展示与调用链。
+
+## 环境准备与体验前提
+
+示例使用 `@opentiny/next-sdk@0.4.11` 初始化 WebMCP Polyfill 并注册页面工具。文档站可以直接体验工具发现、动态注册/注销、Server/Tool 开关和 `toolchange` 同步。
+
+初始化顺序是先调用 `initializeBuiltinWebMCP()`，再从 `document.modelContext` 获取 Context，通过 `context.registerTool` 注册工具；工具注册返回的 `AbortController` 信号用于注销。示例已将这段流程封装在 `sdk-page-tools.ts` 的 `createSdkPageTools` 中。
+
+```ts
+import { initializeBuiltinWebMCP } from '@opentiny/next-sdk'
+
+initializeBuiltinWebMCP()
+const context = document.modelContext
+const controller = new AbortController()
+
+context?.registerTool(
+  {
+    name: 'get-page-info',
+    description: '读取当前页面信息。',
+    inputSchema: { type: 'object', properties: {} },
+    execute: async () => ({ content: [{ type: 'text', text: document.title }] }),
+  },
+  { signal: controller.signal },
+)
+
+// 页面卸载或工具移除时注销
+controller.abort()
+```
+
+文档站当前的模型接口是演示用 Mock，默认只返回文本，不保证返回真实 `tool_calls`。要验证模型实际选择并调用页面工具，请在自己的 Vue 应用中配置支持 Tool Calling 的模型服务，并发送“读取当前页面区域”或“切换到 details”等请求，检查工具结果和页面状态。
+
+真实模型服务需要支持 OpenAI 兼容的 `tools` 请求和 `assistant.tool_calls` 响应：第一轮返回工具调用后，Kit/Chat 执行 `callTool` 并追加 `tool` 消息，再发起下一轮请求获得最终文本。
+
+共存示例中的 `api/mcp/project-knowledge` 是占位地址。接入真实外部 MCP 时，请替换为实际 SSE 或 Streamable HTTP 地址，并确保浏览器 CORS 或服务端代理、认证和权限策略已配置。
 
 ## 完整接入示例
 
-本节包含三个可独立运行的接入场景：不使用 Chat 的 Kit 接入、Chat 接入，以及 WebMCP 与外部 MCP 共存。三个场景使用同一组页面工具，并通过 OpenTiny WebMCP SDK 完成初始化、注册和注销。
+本节包含三个可在文档站查看的接入场景：不使用 Chat 的 Kit 接入、Chat 接入，以及 WebMCP 与外部 MCP 共存。三个场景使用同一组页面工具，并通过 OpenTiny WebMCP SDK 完成初始化、注册和注销；真实模型工具调用和外部 MCP 连接需要按“环境准备与体验前提”配置。
 
 ### 示例一：Kit 接入 WebMCP
 
@@ -164,10 +188,10 @@ const runtime = useChatRuntime({
 | 2. 创建 Adapter | 使用 `createWebMcpAdapter` 配置 Server 的 `id`、`name` 和 Context。                           |
 | 3. 创建调用链   | Chat 将 Adapter 放入 `useChatRuntime` 的 `mcp.adapters`；Kit 使用 `toolPlugin` 接入 Adapter。 |
 | 4. 发现工具     | TinyRobot 读取页面工具列表，并在 MCP 面板或自定义工具面板中展示。                             |
-| 5. 同步变化     | 工具增删或更新后触发 `toolchange`，让 Chat 刷新工具列表。                                     |
+| 5. 同步变化     | 工具增删或更新后触发 `toolchange`，让 Adapter 刷新工具列表。                                  |
 | 6. 执行调用     | Chat 或 Kit 调用工具后，由工具实现完成权限校验和具体逻辑。                                    |
 
-工具发现发生在 Adapter 初始化和后续刷新阶段。业务只需要维护工具注册和 `toolchange` 通知，不需要自行实现 Chat 侧的工具路由。
+工具发现发生在 Adapter 初始化和后续刷新阶段。业务只需要维护工具注册和 `toolchange` 通知，不需要自行实现 Adapter 的工具路由。
 
 ### 动态 MCP Server 注册和事件兼容
 
@@ -213,7 +237,9 @@ TinyRobot 只负责转发工具调用，不判断当前用户是否有权执行�
 
 ### 生命周期和状态
 
-`removeServer` 只会把 Server 从当前 Chat Runtime 中移除，并不会注销应用侧的页面工具。页面工具的注册和注销仍由应用代码负责。
+`removeServer(id)` 会将 Server 设为未安装、禁用，清空工具并停止监听；Server 仍保留在状态列表中，可通过 `addServer(id)` 重新安装。它不会注销应用侧的页面工具。
+
+`removeAdapter(adapter)` 会从组合 Adapter 中移除指定实例并调用其 `close()`。页面卸载时，应用还应注销 SDK 工具（例如调用 `AbortController.abort()`），再关闭 Adapter。
 
 如果业务允许用户切换页面、账号或工作区，需要同步更新工具列表和工具执行上下文，并在变化后触发 `toolchange`，避免 Chat 继续看到旧工具或使用旧业务状态。
 
@@ -236,4 +262,4 @@ TinyRobot 只负责转发工具调用，不判断当前用户是否有权执行�
 - 工具列表动态变化后触发 `toolchange`；
 - 页面工具与外部 MCP 同时接入时，统一使用 `mcp: { servers, adapters }`；
 - 未把长期凭证直接暴露在浏览器配置或工具参数中；
-- 确认 `removeServer` 只影响 Chat Runtime，不代替页面工具注销。
+- 确认 `removeServer` 与 `removeAdapter` 的作用对象不同，并在页面卸载时注销 SDK 工具和关闭 Adapter。

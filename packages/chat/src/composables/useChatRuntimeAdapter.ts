@@ -53,6 +53,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
   const pendingMcpRegistration = shallowRef(false)
+  let mcpRegistrationToken = 0
   const pendingModelFields = shallowReactive(new Map<ChatRuntime, ReadonlySet<string>>())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
@@ -63,6 +64,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     runtime,
     () => {
       pendingModelSelecting.value = false
+      mcpRegistrationToken += 1
       pendingMcpRegistration.value = false
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
@@ -346,11 +348,12 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       return undefined
     }
 
+    const operationToken = ++mcpRegistrationToken
     pendingMcpRegistration.value = true
     try {
       return await runAction('register-mcp-server', { config }, () => mcp.registerMcpServer!(config))
     } finally {
-      if (runtime.value === actionRuntime) pendingMcpRegistration.value = false
+      if (mcpRegistrationToken === operationToken) pendingMcpRegistration.value = false
     }
   }
 

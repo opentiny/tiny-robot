@@ -24,6 +24,9 @@ function createSource() {
       tools = [...tools, tool]
       listeners.forEach((listener) => listener())
     },
+    setTools(nextTools: WebMcpToolDescriptor[]) {
+      tools = nextTools
+    },
   }
 }
 
@@ -167,13 +170,13 @@ describe('createWebMcpAdapter', () => {
   })
 
   it('retries discovery after a refresh error even when tools are cached', async () => {
-    const { source, listTools, addTool } = createSource()
+    const { source, listTools, setTools } = createSource()
     const adapter = createWebMcpAdapter({ source, server: { id: 'page-webmcp' } })
 
     await vi.waitFor(() => expect(adapter.runtime.tools.value['page-webmcp']).toHaveLength(1))
     listTools.mockRejectedValueOnce(new Error('offline'))
     await expect(adapter.refresh?.()).rejects.toThrow('offline')
-    addTool({ name: 'navigate' })
+    setTools([{ name: 'echo' }, { name: 'navigate' }])
 
     await adapter.runtime.setServerEnabled('page-webmcp', true)
 
