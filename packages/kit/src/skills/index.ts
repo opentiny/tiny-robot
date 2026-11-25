@@ -24,7 +24,7 @@ export type {
 export type { SkillCandidate, SkillDefinition, SkillResourceDescriptor } from './types'
 export { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
 
-export { isSkillContextMessage } from './session/protocol'
+export { hasSkillInstructions, isSkillContextMessage } from './session/protocol'
 export type {
   SkillDeduplication,
   SessionSkillLoadResult,

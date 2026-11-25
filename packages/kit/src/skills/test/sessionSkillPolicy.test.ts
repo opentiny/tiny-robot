@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TOOL_RESUME_COMMAND } from '../../message/plugins'
+import type { MessageRequestBody } from '../../message/types'
 import { loadResults, optionsFor, reply, requestTool, sessionEngine } from './sessionTestUtils'
 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('session skill execution policy', () => {
   it.each(['catalog', 'explicit'] as const)(
-    'does not commit %s content after tools are disabled during preparation',
+    'does not commit %s content after its plugin is disabled during preparation',
     async (phase) => {
       let started!: () => void
       const loading = new Promise<void>((resolve) => {
@@ -19,6 +20,7 @@ describe('session skill execution policy', () => {
       let disabled = false
       const engine = sessionEngine(
         optionsFor({
+          disabled: () => phase === 'explicit' && disabled,
           getSkillCandidates: async () => {
             if (phase === 'catalog') {
               started()
@@ -39,12 +41,12 @@ describe('session skill execution policy', () => {
           return reply()
         },
         [],
-        { disabled: () => disabled },
+        { disabled: () => phase === 'catalog' && disabled },
       )
       const sending = engine.send({
         role: 'user',
         content: '@A',
-        metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } },
+        ...(phase === 'explicit' ? { metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } } : {}),
       })
       await loading
       disabled = true
@@ -149,14 +151,20 @@ describe('session skill execution policy', () => {
     })
   })
 
-  it('skips new injection when tools are disabled and keeps existing history', async () => {
+  it('preloads explicitly requested Skills with tools disabled and retains the first preload', async () => {
     let disabled = true
     const engine = sessionEngine(
       optionsFor(),
       async (body) => {
         expect(body.messages.map((message) => message.role)).toEqual(
-          disabled ? ['user'] : ['system', 'user', 'assistant', 'user', 'user'],
+          disabled ? ['user', 'user'] : ['system', 'user', 'user', 'assistant', 'user', 'user'],
         )
+        expect(loadResults(body.messages)).toMatchObject(
+          disabled ? [{ name: 'A', instructions: 'A instructions' }] : [{ name: 'A' }, { name: 'B' }],
+        )
+        expect(
+          body.tools?.some((tool) => tool.type === 'function' && tool.function.name === 'load_skills') ?? false,
+        ).toBe(!disabled)
         return reply()
       },
       [],
@@ -164,10 +172,33 @@ describe('session skill execution policy', () => {
     )
     await engine.send({ role: 'user', content: '@A', metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } })
     disabled = false
-    await engine.send({ role: 'user', content: '@A now', metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } })
-    expect(engine.getState().messages.find((message) => message.content === '@A now')).toMatchObject({
+    await engine.send({ role: 'user', content: '@B now', metadata: { tinyRobotSkill: { requestedSkillNames: ['B'] } } })
+    expect(engine.getState().messages.find((message) => message.content === '@A')).toMatchObject({
       metadata: { tinyRobotSkill: { preload: { result: { skills: [{ name: 'A', status: 'loaded' }] } } } },
     })
+  })
+
+  it('keeps projected model-mode requests stable across turns when tools are toggled', async () => {
+    const requests: MessageRequestBody[] = []
+    let disabled = false
+    const engine = sessionEngine(
+      optionsFor({ explicitSkillLoading: 'model' }),
+      async (body) => {
+        requests.push(structuredClone(body))
+        return reply()
+      },
+      [],
+      { disabled: () => disabled },
+    )
+    await engine.send({ role: 'user', content: '@A q1', metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } })
+    disabled = true
+    await engine.send({ role: 'user', content: '@B q2', metadata: { tinyRobotSkill: { requestedSkillNames: ['B'] } } })
+    disabled = false
+    await engine.sendMessage('q3')
+    expect(requests[0].messages.at(-1)?.content).toBe('@A q1\n\nUser-requested Skills: ["A"].')
+    expect(requests[1].messages.at(-1)?.content).toBe('@B q2\n\nUser-requested Skills: ["B"].')
+    expect(requests[1].messages.slice(0, requests[0].messages.length)).toEqual(requests[0].messages)
+    expect(requests[2].messages.slice(0, requests[1].messages.length)).toEqual(requests[1].messages)
   })
 
   it.each(['catalog', 'preload'] as const)(
@@ -190,7 +221,7 @@ describe('session skill execution policy', () => {
           },
         }),
         async (body) => {
-          expect(loadResults(body.messages)).toEqual([])
+          expect(loadResults(body.messages)).toMatchObject([{ name: 'A', instructions: 'A instructions' }])
           return reply(applicationPrepared ? 'application prepared' : 'application skipped')
         },
         [],

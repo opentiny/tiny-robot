@@ -12,7 +12,7 @@ Kit 提供两条接入路径：新会话使用 `scope: 'session'`，由插件保
 
 ## 会话级接入 {#skill-session}
 
-会话流程要求模型支持工具调用，并注册 `toolPlugin`。目录是首次请求前建立的发现快照；加载某个 Skill 后，目录和加载工具继续保留。应用按业务会话保存和读取完整消息。
+会话流程需要注册 `toolPlugin`。自动发现和按需读取资源需要模型支持工具调用，应用也可以在禁用工具的轮次直接预加载用户指定的 Skill。应用按业务会话保存和读取完整消息。
 
 ### 体验会话 Skill
 
@@ -146,6 +146,8 @@ await chat.send({
 
 两种方式都保留原 User 消息内容。用 `send(...messages)` 批量发送时，每条带 `requestedSkillNames` 的 User 消息都会单独处理。模型也可以自动加载其他 Skill。`model` 模式由模型决定是否调用工具，`deduplication` 在实际加载时生效。切换方式时重新创建插件实例。只在普通文本中输入 `@weather` 时，按普通文本发送。
 
+`preload` 在模型请求里会产生相邻的两条 User 消息。选择加载方式前，先确认模型服务接受这种请求结构。`model` 模式在同一条 User 消息中附加名称，工具停用时仍保留名称提示，恢复工具后模型可继续读取正文。
+
 预加载或工具读取时，无法解析的 Skill 会作为失败结果交给模型，其他指定项继续处理。Kit 不提供文本 `@` 解析器，也不新增全局手动/自动选择开关。
 
 ### 正文去重
@@ -180,11 +182,11 @@ const restoredChat = openChat(saved ? (JSON.parse(saved) as ChatMessage[]) : [])
 
 `sessionId` 可省略。省略时，插件直接从传入的历史恢复，也支持带有旧 ID 的记录。显式传入 `sessionId` 时，插件会标记新记录，并在历史中存在不同 ID 的 Skill 记录时抛错。
 
-同一引擎的当前历史中缺少目录时，下一轮会重新查询候选并建立目录；已有目录不随来源变化而刷新。首次候选为空时，该实例不重复查询空目录；重建引擎后可以再次查询。
+当前历史缺少目录时，每个启用工具的新轮次都会查询候选，直到首次获得非空目录。目录会插到第一条非 System 消息前，所以首次非空目录出现在会话中途时，已有请求前缀会变化一次。目录建立后保持原有快照。
 
 `isSkillContextMessage(message)` 可用于从 UI 隐藏目录，也能识别旧历史中单独保存的预加载上下文。新预加载结果存于原 User 的 metadata，原消息正常显示。保存时使用未过滤的 `chat.messages.value`，普通对话分享则只导出用户选中的可见内容。工具结果可由应用原有工具界面处理。
 
-自定义裁剪须保留 Skill 正文，或同步移除当前消息中的旧正文；Kit 不追踪任意 provider 内部的历史投影，也不自动恢复任意摘要丢失的全文。
+自定义裁剪时，使用 `hasSkillInstructions(message)` 找出保存了 Skill 正文的消息。它识别工具加载结果、User metadata 中的预加载和旧版独立预加载消息。返回 `already_loaded` 或失败结果的消息本身不含正文。保留工具正文时，还要保留配对的 assistant 调用和工具成功状态，供 Kit 恢复及去重。需要移除 User 消息的预加载正文时，可移除该消息的 `metadata.tinyRobotSkill.preload`，同时保留用户原话。
 
 ### 当前来源与资源读取
 
@@ -200,22 +202,24 @@ await storage.delete('weather')
 
 ## 会话 API 与迁移
 
-| 参数                   | 约束                                | 说明                                            |
-| ---------------------- | ----------------------------------- | ----------------------------------------------- |
-| `scope`                | 必须是 `session`                    | 显式进入新流程，省略时保持旧按轮流程            |
-| `sessionId`            | 可选，传入时须为非空字符串          | 显式配置时标记新记录，并校验已标记的历史记录    |
-| `deduplication`        | `none` / `context`，默认 `none`     | 正文重复返回策略，不是选择模式                  |
-| `explicitSkillLoading` | `preload` / `model`，默认 `preload` | @ 指定时由 Kit 预加载正文，或由模型调用工具加载 |
-| `getSkillCandidates`   | 必填                                | 提供首次目录的名称及描述                        |
-| `getSkillByName`       | 必填                                | 从当前来源解析完整定义；不可用返回 undefined    |
+| 参数                   | 约束                                | 说明                                              |
+| ---------------------- | ----------------------------------- | ------------------------------------------------- |
+| `scope`                | 必须是 `session`                    | 显式进入新流程，省略时保持旧按轮流程              |
+| `sessionId`            | 可选，传入时须为非空字符串          | 显式配置时标记新记录，并校验已标记的历史记录      |
+| `deduplication`        | `none` / `context`，默认 `none`     | 完整保留加载历史时，推荐 `context` 以减少重复正文 |
+| `explicitSkillLoading` | `preload` / `model`，默认 `preload` | @ 指定时由 Kit 预加载正文，或由模型调用工具加载   |
+| `getSkillCandidates`   | 必填                                | 提供首次目录的名称及描述                          |
+| `getSkillByName`       | 必填                                | 从当前来源解析完整定义；不可用返回 undefined      |
 
 根入口导出 Vue 工厂和 `UseMessageSessionSkillPluginOptions`；`/core` 导出 Core 工厂和 `SessionSkillPluginOptions`。共享结果类型为 `SessionSkillLoadResult`，与 Loader 的 `SkillLoadResult` 分开。普通生命周期 hook 保留；`getSkillRequestContext` 及其三个旧 Skill 专用 hook 仍只描述按轮流程。
+
+`isSkillContextMessage` 和 `hasSkillInstructions` 均可从根入口、`/core` 或 `/node` 导入。
 
 Core 的 `SkillPluginOptions` 和 Vue 的 `UseMessageSkillPluginOptions` 保留按轮配置类型，Vue 类型也可继续通过 `interface extends` 扩展。两个 `skillPlugin` 工厂分别接受对应的会话配置类型。
 
 迁移时删除原有正文投影和 `injectSkillInstructions`。会话配置不能混用 `mode`、`selection`、`skills`、`skillNames`、`preferredSkillNames`、`maxSelectedSkills` 或旧 Skill 专用 hook。新会话可采用新流程；旧会话继续按轮使用，旧应用快照不自动转为新协议。
 
-缺少 `toolPlugin` 时发送前报配置错误。本轮禁用已注册的工具插件会抑制新增目录、显式正文及工具执行，已有历史目录继续保留；该行为不等同于从请求中移除历史目录。不支持工具调用的模型继续使用现有按轮 manual 入口，由应用选择接入路径。
+缺少 `toolPlugin` 时发送前报配置错误。切换到不支持工具调用的模型时，可在 `toolPlugin.disabled` 中禁用本轮工具。Kit 会保留已有目录，跳过新目录的建立与工具执行，`preload` 继续生效。用 Skill 插件自身的 `disabled` 可以停用它的当轮准备和请求投影。
 
 ## 按轮接入（兼容旧 API） {#skill-turn}
 

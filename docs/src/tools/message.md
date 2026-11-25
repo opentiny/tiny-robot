@@ -325,6 +325,8 @@ await message.dispatchCommand(TOOL_REJECT_COMMAND, {
 
 Vue 的 `useMessage` 通过 `toolPlugin` 的 `getTools` 和 `callTool` 接入应用工具。直接使用 `@opentiny/tiny-robot-kit/core` 的消息引擎时，也可以在 `plugins` 中注册实现了 `ToolProvider` 的插件。给插件对象设置稳定的 `name`，重建引擎后可核对工具来源。具名插件被禁用、移除或改名后，原工具调用会被拒绝。匿名插件按工具名恢复，由当前提供该工具的匿名插件处理。原来的 runtime tool 不可用时，审批不会改用应用的 `callTool`。
 
+上述检查适用于 `toolPlugin` 管理的所有工具。本轮工具插件被禁用、原提供方不可用或来源发生变化时，Tool 消息会返回 `Tool call disabled.`。Kit 在 Tool 消息的 metadata 中保存来源信息，应用持久化待审批消息时应保留 metadata，恢复时由 Kit 校验原来源。
+
 一个工具调用轮次是一条包含一个或多个 `tool_calls` 的 assistant 响应。同一响应中的多个调用只计一轮。下一批超过 `maxToolRounds` 时，该批工具不会执行；插件补充取消结果后发起不允许再次调用工具的关闭请求。
 
 ### Types

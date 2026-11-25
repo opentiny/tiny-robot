@@ -7,7 +7,7 @@ import {
   type BasePluginContext,
 } from '../../core'
 import type { SkillDefinition } from '../types'
-import { isSkillContextMessage, type SkillRequestMetadata, type SkillLoadResult } from '../../index'
+import { hasSkillInstructions, isSkillContextMessage, type SkillRequestMetadata, type SkillLoadResult } from '../../index'
 
 const skill: SkillDefinition = { name: 'A', description: 'summary', instructions: 'instructions' }
 const sources = { getSkillCandidates: () => [skill], getSkillByName: () => skill }
@@ -37,6 +37,7 @@ test('preserves legacy conditionals, generic options, and public session types',
   })
   const metadata: SkillRequestMetadata = { tinyRobotSkill: { requestedSkillNames: ['A'] } }
   expectTypeOf(isSkillContextMessage({ role: 'user', metadata })).toEqualTypeOf<boolean>()
+  expectTypeOf(hasSkillInstructions({ role: 'user', metadata })).toEqualTypeOf<boolean>()
   expectTypeOf<SkillLoadResult>().toHaveProperty('skill')
 })
 

@@ -72,8 +72,8 @@ export const createSessionSkillPlugin = (options: SessionSkillPluginOptions): Me
   ]
   const skillEnabled = (context: BasePluginContext) =>
     !(typeof hooks.disabled === 'function' ? hooks.disabled(context) : hooks.disabled)
-  const active = (context: BasePluginContext) => toolsEnabled(context) && skillEnabled(context)
-  let emptyCatalogChecked = false
+  const canDiscover = (context: BasePluginContext) => toolsEnabled(context) && skillEnabled(context)
+  const modelLoadsSkills = explicitSkillLoading === 'model'
 
   return {
     ...hooks,
@@ -84,28 +84,24 @@ export const createSessionSkillPlugin = (options: SessionSkillPluginOptions): Me
     },
     async onTurnStart(context) {
       if (!getToolPlugin(context)) throw new Error('skillPlugin session mode requires a toolPlugin')
-      if (active(context)) {
-        const restored = readSessionCatalog(context.getState().messages, sessionId)
-        if (restored === undefined && !emptyCatalogChecked) {
-          const candidates = await makeAbortable(Promise.resolve(getSkillCandidates(context)), context.abortSignal)
-          context.abortSignal.throwIfAborted()
-          if (active(context)) {
-            if (candidates.length) insertInitialSkillCatalog(context, createSkillCatalogMessage(sessionId, candidates))
-            else emptyCatalogChecked = true
-          }
+      if (canDiscover(context) && readSessionCatalog(context.getState().messages, sessionId) === undefined) {
+        const candidates = await makeAbortable(Promise.resolve(getSkillCandidates(context)), context.abortSignal)
+        context.abortSignal.throwIfAborted()
+        if (candidates.length && canDiscover(context)) {
+          insertInitialSkillCatalog(context, createSkillCatalogMessage(sessionId, candidates))
         }
       }
-      if (active(context)) {
+      if (skillEnabled(context)) {
         const requests = context.currentTurn.flatMap((message) => {
           const names = readRequestedSkillNames(message)
           return names.length ? [{ message, names }] : []
         })
-        if (explicitSkillLoading === 'preload') {
+        if (!modelLoadsSkills) {
           const replacingPreloads = new Set(requests.map(({ message }) => message))
           for (const { message, names } of requests) {
             const result = await loader.load(names, context, replacingPreloads)
             context.abortSignal.throwIfAborted()
-            if (!active(context)) break
+            if (!skillEnabled(context)) break
             attachSkillPreload(context, message, sessionId, result)
             replacingPreloads.delete(message)
           }
@@ -114,13 +110,9 @@ export const createSessionSkillPlugin = (options: SessionSkillPluginOptions): Me
       if (skillEnabled(context)) await hooks.onTurnStart?.(context)
     },
     async onBeforeRequest(context) {
-      const modelLoadsSkills = explicitSkillLoading === 'model'
       if (modelLoadsSkills) await hooks.onBeforeRequest?.(context)
-      context.requestBody.messages = projectSkillMessages(
-        context.requestBody.messages,
-        sessionId,
-        modelLoadsSkills && active(context),
-      )
+      // These hints are part of the request history even when the current model cannot call tools.
+      context.requestBody.messages = projectSkillMessages(context.requestBody.messages, sessionId, modelLoadsSkills)
       if (!modelLoadsSkills) await hooks.onBeforeRequest?.(context)
     },
     provideTools(context) {

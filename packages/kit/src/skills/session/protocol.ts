@@ -21,7 +21,10 @@ export const readSkillMarker = (message: { metadata?: object }): SkillProtocolMa
   return marker as unknown as SkillProtocolMarker
 }
 
-export const isSkillContextMessage = (message: { role: string; content?: unknown; metadata?: object }): boolean => {
+type SkillMessage = { role: string; content?: unknown; metadata?: object }
+type LoadedSkillPayload = Extract<SessionSkillLoadItem, { status: 'loaded' }>
+
+export const isSkillContextMessage = (message: SkillMessage): boolean => {
   const marker = readSkillMarker(message)
   return Boolean(
     marker &&
@@ -30,14 +33,47 @@ export const isSkillContextMessage = (message: { role: string; content?: unknown
   )
 }
 
-export const readPreloadedSkillResult = (message: ChatMessage) => {
+export const readPreloadedSkillResult = (message: SkillMessage) => {
   if (message.role !== 'user' || isSkillContextMessage(message)) return undefined
-  const skill = asRecord(message.metadata?.tinyRobotSkill)
-  const record = asRecord(skill?.preload ?? message.metadata?.[legacySkillPreloadMetadataKey])
+  const metadata = asRecord(message.metadata)
+  const skill = asRecord(metadata?.tinyRobotSkill)
+  const record = asRecord(skill?.preload ?? metadata?.[legacySkillPreloadMetadataKey])
   if (record?.version !== 1 || !isOptionalSkillSessionId(record.sessionId)) return undefined
   const result = asRecord(record.result)
   if (!result || !Array.isArray(result.skills)) return undefined
   return { sessionId: record.sessionId, result }
+}
+
+const readMarkedSkillLoadResult = (message: SkillMessage, marker: SkillProtocolMarker | undefined) => {
+  if (marker?.kind !== 'load-result' || typeof message.content !== 'string') return undefined
+  if (message.role !== (marker.source === 'auto' ? 'tool' : 'user')) return undefined
+  try {
+    return asRecord(JSON.parse(message.content))
+  } catch {
+    return undefined
+  }
+}
+
+const isLoadedSkillPayload = (item: unknown): item is LoadedSkillPayload => {
+  const value = asRecord(item)
+  if (value?.status !== 'loaded' || typeof value.name !== 'string' || typeof value.instructions !== 'string') {
+    return false
+  }
+  return (
+    value.resources === undefined ||
+    (Array.isArray(value.resources) &&
+      value.resources.every((resource) => {
+        const file = asRecord(resource)
+        return typeof file?.path === 'string' && (file.kind === 'text' || file.kind === 'binary')
+      }))
+  )
+}
+
+/** Identify stored Skill instructions for context retention or compaction. This does not verify tool execution state. */
+export const hasSkillInstructions = (message: SkillMessage): boolean => {
+  const result =
+    readPreloadedSkillResult(message)?.result ?? readMarkedSkillLoadResult(message, readSkillMarker(message))
+  return Array.isArray(result?.skills) && result.skills.some(isLoadedSkillPayload)
 }
 
 const assertSession = (messages: readonly ChatMessage[], sessionId?: string) => {
@@ -114,11 +150,7 @@ const readCommittedResult = (message: ChatMessage, index: number, messages: read
   if (preload) return preload.result
 
   const marker = readSkillMarker(message)
-  if (marker?.kind !== 'load-result' || typeof message.content !== 'string') return undefined
-  if (marker.source === 'explicit') {
-    // Older histories store preloads as standalone user messages.
-    if (message.role !== 'user') return undefined
-  } else {
+  if (marker?.kind === 'load-result' && marker.source === 'auto') {
     if (message.role !== 'tool') return undefined
     let assistant: ChatMessage | undefined
     for (let previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
@@ -137,37 +169,19 @@ const readCommittedResult = (message: ChatMessage, index: number, messages: read
     const state = asRecord(asRecord(assistant?.state?.toolCall)?.[message.tool_call_id])
     if (state?.status !== 'success') return undefined
   }
-  try {
-    return asRecord(JSON.parse(message.content))
-  } catch {
-    return undefined
-  }
+  return readMarkedSkillLoadResult(message, marker)
 }
 
 export const readCommittedSkillPayloads = (
   messages: readonly ChatMessage[],
   sessionId?: string,
-): Extract<SessionSkillLoadItem, { status: 'loaded' }>[] => {
+): LoadedSkillPayload[] => {
   assertSession(messages, sessionId)
-  const payloads: Extract<SessionSkillLoadItem, { status: 'loaded' }>[] = []
+  const payloads: LoadedSkillPayload[] = []
   for (const [index, message] of messages.entries()) {
     const skills = readCommittedResult(message, index, messages)?.skills
     if (!Array.isArray(skills)) continue
-    for (const item of skills) {
-      const value = asRecord(item)
-      if (value?.status !== 'loaded' || typeof value.name !== 'string' || typeof value.instructions !== 'string')
-        continue
-      if (
-        value.resources !== undefined &&
-        (!Array.isArray(value.resources) ||
-          !value.resources.every((resource) => {
-            const file = asRecord(resource)
-            return typeof file?.path === 'string' && (file.kind === 'text' || file.kind === 'binary')
-          }))
-      )
-        continue
-      payloads.push(value as unknown as Extract<SessionSkillLoadItem, { status: 'loaded' }>)
-    }
+    for (const item of skills) if (isLoadedSkillPayload(item)) payloads.push(item)
   }
   return payloads
 }

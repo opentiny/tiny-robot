@@ -6,6 +6,25 @@ import { isSkillContextMessage } from '../session/protocol'
 import { loadResults, optionsFor, reply, requestTool, sessionEngine } from './sessionTestUtils'
 
 describe('session skill plugin', () => {
+  it('discovers new candidates after an empty turn and keeps the first nonempty snapshot', async () => {
+    let candidates: Array<{ name: string; description: string }> = []
+    const catalogs: string[] = []
+    const engine = sessionEngine(optionsFor({ getSkillCandidates: () => candidates }), async (body) => {
+      catalogs.push(String(body.messages.find((message) => message.role === 'system')?.content ?? ''))
+      return reply()
+    })
+
+    await engine.sendMessage('Before import')
+    candidates = [{ name: 'A', description: 'A summary' }]
+    await engine.sendMessage('After import')
+    candidates = [{ name: 'B', description: 'B summary' }]
+    await engine.sendMessage('After replacing candidates')
+
+    expect(catalogs[0]).toBe('')
+    expect(catalogs[1]).toContain('A summary')
+    expect(catalogs[2]).toEqual(catalogs[1])
+  })
+
   it('keeps the catalog and tools while loading A then B and preserves sent history', async () => {
     const requests: MessageRequestBody[] = []
     const engine = sessionEngine(optionsFor(), async (body) => {
