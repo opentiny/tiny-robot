@@ -152,7 +152,7 @@ export function useChatAutoScroll({
           pauseFromRenderer()
           return
         }
-        scrollToBottomInternal().then(pauseFromRenderer)
+        scrollToBottom()
       }
     },
     { flush: 'sync' },

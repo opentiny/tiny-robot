@@ -43,6 +43,22 @@ test.describe('Sender Suggestion extension', () => {
     await expect(items(page).first()).toContainText('新建议')
   })
 
+  test('SUGGESTION-04A keeps an Esc-dismissed list closed when its Ref items change', async ({ mount, page }) => {
+    const component = await mount(SenderExtensionsFixture, { props: { kind: 'suggestion' } })
+    const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+    await editor.pressSequentially('J')
+    await expect(list(page)).toBeVisible()
+    await editor.press('Escape')
+    await expect(list(page)).toHaveCount(0)
+    await component.getByTestId('update-suggestion-ref').click()
+    await expect(list(page)).toHaveCount(0)
+    await editor.press('Enter')
+
+    await expect(component.getByTestId('submit-count')).toHaveText('1')
+    await expect(component.getByTestId('editor-text')).toHaveText('J')
+  })
+
   test('SUGGESTION-05 selects the default highlighted item with Enter', async ({ mount, page }) => {
     const component = await mount(SenderExtensionsFixture, { props: { kind: 'suggestion' } })
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

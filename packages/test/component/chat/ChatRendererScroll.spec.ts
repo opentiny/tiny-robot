@@ -469,6 +469,28 @@ test('changing the scroll root invalidates pending recovery and rebinds it to th
   await atBottom(second)
 })
 
+test('changing the scroll root keeps following content growth during its first scroll', async ({ mount }) => {
+  const component = await mount(ChatRendererScroll)
+  const first = component.getByTestId('first-root')
+  const second = component.getByTestId('second-root')
+  const initialHeight = await second.evaluate((el) => el.scrollHeight)
+
+  await atBottom(first)
+  await resize(component.locator('.context-probe'))
+  await settle(first)
+  await second.evaluate((el) => {
+    el.addEventListener('scroll', () => document.querySelector<HTMLElement>('[data-testid="grow"]')!.click(), {
+      once: true,
+    })
+  })
+  await component.getByTestId('switch-root').click()
+
+  await expect.poll(() => second.evaluate((el) => el.scrollHeight)).toBeGreaterThan(initialHeight)
+  await atBottom(second)
+  await component.getByTestId('grow').click()
+  await atBottom(second)
+})
+
 for (const position of ['bottom', 'history', 'anchor'] as const) {
   test(`changing the scroll root while disabled preserves recovery at ${position}`, async ({ mount }) => {
     const component = await mount(ChatRendererScroll)
