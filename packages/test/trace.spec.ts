@@ -179,6 +179,48 @@ test.describe('Trace vanilla component', () => {
     await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('assigns lanes chronologically while preserving message order', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems(
+        Array.from({ length: 100 }, (_, index) => {
+          const startTime = (99 - index) * 2
+          return {
+            id: `item-${99 - index}`,
+            type: 'info',
+            message: `item-${99 - index}`,
+            startTime,
+            endTime: startTime + 1,
+          }
+        }),
+      )
+    })
+
+    await expect(page.locator('.tr-trajectory__segment')).toHaveCount(100)
+    await expect(page.locator('.tr-trajectory__track')).toHaveAttribute('style', /height: 18px/)
+    await expect(page.locator('.tr-trajectory__item').first()).toHaveAttribute('data-tr-trajectory-id', 'item-99')
+    await expect(page.locator('.tr-trajectory__item').last()).toHaveAttribute('data-tr-trajectory-id', 'item-0')
+  })
+
+  test('keeps coincident zero-duration timeline items separately selectable', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([
+        { id: 'zero-a', type: 'info', message: 'zero-a', startTime: 5, endTime: 5 },
+        { id: 'zero-b', type: 'success', message: 'zero-b', startTime: 5, endTime: 5 },
+      ])
+    })
+
+    const segments = page.locator('.tr-trajectory__segment')
+    await expect(segments).toHaveCount(2)
+    expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
+      await segments.nth(1).evaluate((element) => element.style.top),
+    )
+
+    await segments.nth(0).click()
+    await expect(segments.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await segments.nth(1).click()
+    await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('renders empty and error states and emits error events', async ({ page }) => {
     await page.evaluate(() => window.traceFixture.trace.setItems([]))
     await expect(page.locator('.tr-trajectory__empty')).toHaveText('暂无轨迹')

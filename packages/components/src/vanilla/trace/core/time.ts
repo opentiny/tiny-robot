@@ -120,16 +120,27 @@ export function normalizeTrajectory(
     }
   })
 
-  const laneEnds: number[] = []
-  const laidOut = normalized.map((item) => {
-    if (!item.visible) return item
+  const laneEnds: Array<{ end: number; zeroDuration: boolean }> = []
+  const laneById = new Map<string, number>()
+  const layoutOrder = normalized
+    .filter((item) => item.visible)
+    .slice()
+    .sort((left, right) => left.start - right.start || left.end - right.end)
+
+  for (const item of layoutOrder) {
     const visibleStart = Math.max(item.start, start)
     const visibleEnd = Math.min(item.end, end)
-    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= visibleStart)
+    const zeroDuration = item.start === item.end
+    let lane = laneEnds.findIndex(
+      (laneState) =>
+        laneState.end <= visibleStart && !(laneState.zeroDuration && zeroDuration && laneState.end === visibleStart),
+    )
     if (lane === -1) lane = laneEnds.length
-    laneEnds[lane] = visibleEnd
-    return { ...item, lane }
-  })
+    laneEnds[lane] = { end: visibleEnd, zeroDuration }
+    laneById.set(item.item.id, lane)
+  }
+
+  const laidOut = normalized.map((item) => (item.visible ? { ...item, lane: laneById.get(item.item.id) ?? 0 } : item))
 
   return { start, end, total, laneCount: laneEnds.length, items: laidOut }
 }
