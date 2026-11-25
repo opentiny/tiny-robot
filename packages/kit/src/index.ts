@@ -6,3 +6,5 @@ export * from './storage'
 export * from './types'
 export { extractTextFromResponse, formatMessages, handleSSEStream, sseStreamToGenerator } from './utils'
 export * from './vue'
+
+export { isAutoContinuationMessage } from './message/continuation'

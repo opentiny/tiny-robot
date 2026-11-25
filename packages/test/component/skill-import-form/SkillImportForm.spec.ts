@@ -1,12 +1,17 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
+import { readFile } from 'node:fs/promises'
+import { gzipSync } from 'node:zlib'
 import type { Locator, Page } from '@playwright/test'
 import path from 'node:path'
 import SkillImportFormFixture from './SkillImportForm.fixture.vue'
 
 const validSkillDirectory = path.join(import.meta.dirname, 'fixtures/valid-skill')
 const missingEntryDirectory = path.join(import.meta.dirname, 'fixtures/missing-skill')
+const archiveFixtureDirectory = path.join(import.meta.dirname, '../../../kit/src/skills/test/fixtures/archives')
 const githubUrl = 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo'
 const githubDownloadUrl = 'https://raw.githubusercontent.com/opentiny/tiny-robot/main/skills/demo/SKILL.md'
+const readArchiveFixture = (name: string) =>
+  readFile(new URL(`../../../kit/src/skills/test/fixtures/archives/${name}`, import.meta.url))
 
 const skillEntry = (path: string) => ({
   name: 'SKILL.md',
@@ -199,6 +204,102 @@ const dropDirectoryWhenReleased = async (dropzone: Locator, name: string) => {
 }
 
 test.describe('SkillImportForm', () => {
+  for (const name of ['root-deflate.zip', 'wrapped-deflate.zip']) {
+    test(`imports ${name} through the default Kit resolver`, async ({ mount }) => {
+      const component = await mount(SkillImportFormFixture)
+      await component.getByTestId('show-archive').click()
+      await component.getByTestId('use-default-resolver').click()
+      await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, name))
+      await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+      await component.getByRole('button', { name: '确定' }).click()
+      const output = component.getByTestId('submit-output')
+      await expect(output).toContainText('"name":"archive-skill"')
+      const definition = JSON.parse((await output.textContent())!)
+      expect(definition.instructions).toBe('# Archive skill')
+      expect(definition.resources).toHaveLength(3)
+      expect(definition.resources).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'references/说明.md', text: '# 使用说明' }),
+          expect.objectContaining({ path: 'assets/icon.bin', binary: { 0: 0, 1: 128, 2: 255, 3: 1 } }),
+        ]),
+      )
+      await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+    })
+  }
+
+  test('reports a damaged ZIP from the default Kit resolver without submitting', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'damaged.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from('damaged archive'),
+    })
+    await expect(component.getByRole('alert')).toContainText('压缩包已损坏或无法读取，请重新打包后重试')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+  })
+
+  test('maps archive structure failures to a recoverable error', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    const archive = await readArchiveFixture('root-deflate.zip')
+    const invalid = Buffer.from(archive)
+    const skillName = Buffer.from('SKILL.md')
+    let entryOffset = invalid.indexOf(skillName)
+    while (entryOffset !== -1) {
+      invalid.write('OTHER.md', entryOffset, 'ascii')
+      entryOffset = invalid.indexOf(skillName, entryOffset + skillName.length)
+    }
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'no-entry.zip',
+      mimeType: 'application/zip',
+      buffer: invalid,
+    })
+    await expect(component.getByRole('alert')).toHaveText('压缩包中未找到有效的 Skill 入口，请检查目录结构后重试')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, 'macos.zip'))
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('archive-fixture')
+  })
+
+  test('reports unsafe archive paths in Chinese', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    const invalid = Buffer.from(await readArchiveFixture('root-deflate.zip'))
+    let offset = invalid.indexOf(Buffer.from('SKILL.md'))
+    while (offset !== -1) {
+      invalid.write('../bad.m', offset, 'ascii')
+      offset = invalid.indexOf(Buffer.from('SKILL.md'), offset + 8)
+    }
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'unsafe.zip',
+      mimeType: 'application/zip',
+      buffer: invalid,
+    })
+    await expect(component.getByRole('alert')).toHaveText('压缩包包含不安全的文件路径，无法导入')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+  })
+
+  test('limits expanded content through the default resolver', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture, { props: { maxUploadSize: 1200 } })
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'expanded.zip',
+      mimeType: 'application/zip',
+      buffer: await readArchiveFixture('expanded.zip'),
+    })
+    await expect(component.getByRole('alert')).toHaveText('压缩包解包后的内容过大，请减少文件后重试')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+  })
+
   test('uses the injected resolver and emits the resolved SkillDefinition', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
 
@@ -214,6 +315,33 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByTestId('submit-output')).toContainText('"instructions":"# Resolved"')
   })
 
+  test('preserves custom archive resolver errors', async ({ mount }) => {
+    const resolverError = 'Invalid ZIP archive: custom service rejected this upload'
+    const component = await mount(SkillImportFormFixture, { props: { resolverError } })
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('set-resolver-error').click()
+    await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, 'root-deflate.zip'))
+    await expect(component.getByRole('alert')).toHaveText(resolverError)
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+  })
+
+  test('imports the downloadable documentation example after explicit confirmation', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component
+      .locator('input[type="file"]')
+      .setInputFiles(path.join(import.meta.dirname, '../../../../docs/src/public/skill-import-example.zip'))
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.getByRole('button', { name: '取消' }).click()
+    await expect(component.getByTestId('cancel-count')).toHaveText('1')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('example-skill')
+    await expect(component.getByTestId('submit-output')).toContainText('references/说明.md')
+  })
+
   test('uses the dynamically imported kit resolver by default', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
     await component.getByTestId('use-default-resolver').click()
@@ -225,6 +353,157 @@ test.describe('SkillImportForm', () => {
     await component.getByRole('button', { name: '确定' }).click()
     await expect(component.getByTestId('submit-output')).toContainText('"name":"valid-skill"')
     await expect(component.getByTestId('submit-output')).toContainText('"description":"Skill package used')
+  })
+
+  test('selects a ZIP archive, resolves it, and emits the resulting skill', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'weather.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from('zip contents'),
+    })
+
+    await expect(component.getByTestId('resolver-input')).toContainText('"source":"archive"')
+    await expect(component.getByTestId('resolver-input')).toContainText('"file":"weather.zip"')
+    await expect(component.getByTestId('resolver-input')).toContainText('"maxUncompressedSize":10485760')
+    await expect(component.getByText('weather.zip', { exact: true })).toBeVisible()
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-archive"')
+  })
+
+  test('revalidates expanded content after the archive upload limit changes', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles(path.join(archiveFixtureDirectory, 'expanded.zip'))
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await component.update({ props: { maxUploadSize: 1200 } })
+    await expect(component.getByRole('alert')).toHaveText('压缩包解包后的内容过大，请减少文件后重试')
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.update({ props: { maxUploadSize: 10 * 1024 * 1024 } })
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+    await component.getByRole('button', { name: '确定' }).click()
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"archive-skill"')
+  })
+
+  test('discards pending archive results when the new limit rejects the selected file', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('set-resolver-pending').click()
+    await component
+      .locator('input[type="file"]')
+      .setInputFiles({ name: 'skill.zip', mimeType: 'application/zip', buffer: Buffer.alloc(1024) })
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('1')
+    await component.update({ props: { maxUploadSize: 512 } })
+    await component.getByTestId('release-resolver').click()
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await expect(component.getByRole('alert')).toContainText('Skill 压缩包大小不能超过')
+    await expect(component.getByTestId('submit-output')).toHaveText('')
+    await component.getByTestId('set-resolver-success').click()
+    await component.update({ props: { maxUploadSize: 2048 } })
+    await expect(component.getByTestId('resolver-input')).toContainText('"maxUncompressedSize":2048')
+    await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+  })
+
+  test('rejects concatenated gzip members with a recovery message in the browser', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    const tar = await readArchiveFixture('ustar.tar')
+    const bytes = Buffer.concat([gzipSync(tar.subarray(0, 512)), gzipSync(tar.subarray(512))])
+    await component
+      .locator('input[type="file"]')
+      .setInputFiles({ name: 'skill.tgz', mimeType: 'application/gzip', buffer: bytes })
+    await expect(component.getByRole('alert')).toHaveText(
+      'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试',
+    )
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+  })
+
+  test('shows a corrupt archive message for invalid gzip data in the browser', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    await component.locator('input[type="file"]').setInputFiles({
+      name: 'skill.tgz',
+      mimeType: 'application/gzip',
+      buffer: Buffer.from('invalid gzip data'),
+    })
+    await expect(component.getByRole('alert')).toHaveText(
+      'TAR.GZ 压缩包已损坏或包含多个 GZIP 数据段，请检查文件或重新压缩为单段 GZIP 后重试',
+    )
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+  })
+
+  test('imports real ZIP and TAR fixtures through the default Kit resolver in the browser', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+
+    for (const name of ['deflate.zip', 'stored.zip', 'ustar.tar', 'skill.tar.gz', 'pax.tar', 'gnu.tar']) {
+      await component.locator('input[type="file"]').setInputFiles({
+        name,
+        mimeType: name.endsWith('.zip') ? 'application/zip' : 'application/gzip',
+        buffer: await readArchiveFixture(name),
+      })
+      await expect(component.getByText(name, { exact: true })).toBeVisible()
+      await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+      await component.getByRole('button', { name: '确定' }).click()
+      await expect(component.getByTestId('submit-output')).toContainText('"name":"archive-fixture"')
+      await expect(component.getByTestId('submit-output')).toContainText('"description":"Real archive fixture"')
+      await expect(component.getByTestId('submit-output')).toContainText('"path":"references/guide.md"')
+    }
+  })
+
+  test('imports ZIP and TGZ files dropped onto the upload area', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-archive').click()
+    await component.getByTestId('use-default-resolver').click()
+    const dropzone = component.getByTestId('skill-dropzone')
+
+    for (const name of ['deflate.zip', 'skill.tar.gz']) {
+      const bytes = Array.from(await readArchiveFixture(name))
+      await dropzone.evaluate(
+        (element, payload) => {
+          const transfer = new DataTransfer()
+          transfer.items.add(
+            new File([new Uint8Array(payload.bytes)], payload.name, {
+              type: payload.name.endsWith('.zip') ? 'application/zip' : 'application/gzip',
+            }),
+          )
+          element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }))
+        },
+        { name, bytes },
+      )
+      await expect(component.getByText(name, { exact: true })).toBeVisible()
+      await expect(component.getByRole('button', { name: '确定' })).toBeEnabled()
+      await component.getByRole('button', { name: '确定' }).click()
+      await expect(component.getByTestId('submit-output')).toContainText('"name":"archive-fixture"')
+    }
+  })
+
+  test('rejects unsupported archive types and oversized ZIPs before resolving', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture, { props: { maxUploadSize: 4 * 1024 * 1024 } })
+    await component.getByTestId('show-archive').click()
+    const input = component.locator('input[type="file"]')
+
+    await input.setInputFiles({
+      name: 'skill.rar',
+      mimeType: 'application/x-rar-compressed',
+      buffer: Buffer.from('rar'),
+    })
+    await expect(component.getByRole('alert')).toHaveText('目前仅支持 ZIP、TAR、TAR.GZ 和 TGZ 格式压缩包')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+
+    await input.setInputFiles({
+      name: 'skill.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.alloc(4 * 1024 * 1024 + 1),
+    })
+    await expect(component.getByRole('alert')).toHaveText('Skill 压缩包大小不能超过 4 MB')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
   })
 
   test('rejects invalid local selections before calling the resolver', async ({ mount }) => {

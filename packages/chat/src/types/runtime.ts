@@ -95,6 +95,20 @@ export interface ChatRuntimeActions {
   switchConversation: (id: string) => Promise<void> | void
   renameConversation: (id: string, title: string) => Promise<void> | void
   deleteConversation: (id: string) => Promise<void> | void
+  getMessageCapabilities?: (target: ChatMessageActionTarget) => ChatMessageCapabilities
+  editMessage?: (target: ChatMessageActionTarget & { readonly text: string }) => Promise<boolean>
+  regenerateMessage?: (target: ChatMessageActionTarget) => Promise<boolean>
+}
+
+export interface ChatMessageActionTarget {
+  readonly conversationId: string
+  readonly userMessageId: string
+}
+
+export interface ChatMessageCapabilities {
+  readonly canEdit: boolean
+  readonly canRegenerate: boolean
+  readonly turnState: ChatRequestState | 'unknown'
 }
 
 export interface ChatRuntime {

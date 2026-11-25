@@ -1,17 +1,26 @@
 import { createSkillDefinition } from './definition'
+import { loadArchiveSkillFiles } from './archive'
 import { loadFsSkillFiles } from './fs'
 import { loadGithubSkillFiles } from './github'
-import type { FsSkillLoadOptions, GithubSkillLoadOptions, SkillLoadJob, SkillLoadResult } from './type'
+import type {
+  ArchiveSkillLoadOptions,
+  FsSkillLoadOptions,
+  GithubSkillLoadOptions,
+  SkillLoadJob,
+  SkillLoadResult,
+} from './type'
 import { createSkillLoadJob, throwIfSkillLoadCancelled } from './utils'
 
-export type SkillLoadOptions = FsSkillLoadOptions | GithubSkillLoadOptions
+export type SkillLoadOptions = FsSkillLoadOptions | ArchiveSkillLoadOptions | GithubSkillLoadOptions
 
 export function loadSkillWithDetails(options: SkillLoadOptions): SkillLoadJob<SkillLoadResult> {
   return createSkillLoadJob(async (context) => {
-    const files = await (async () => {
+    const loadableFiles = await (async () => {
       switch (options.source) {
         case 'fs':
           return loadFsSkillFiles(options, context)
+        case 'archive':
+          return loadArchiveSkillFiles(options, context)
         case 'github':
           return loadGithubSkillFiles(options, context)
         default:
@@ -20,7 +29,7 @@ export function loadSkillWithDetails(options: SkillLoadOptions): SkillLoadJob<Sk
     })()
 
     throwIfSkillLoadCancelled(context.signal)
-    return createSkillDefinition(files, options)
+    return createSkillDefinition(loadableFiles, options)
   })
 }
 
@@ -36,6 +45,7 @@ export function loadSkill(options: SkillLoadOptions): SkillLoadJob {
 }
 
 export type {
+  ArchiveSkillLoadOptions,
   FsSkillLoadOptions,
   GithubSkillLoadOptions,
   SkillLoadJob,

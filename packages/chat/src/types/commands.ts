@@ -10,6 +10,8 @@ export interface ChatSendPayload {
 export interface ChatRuntimeActionErrorPayload {
   readonly action:
     | 'send'
+    | 'edit-message'
+    | 'regenerate-message'
     | 'abort'
     | 'clear-active-conversation'
     | 'create-conversation'

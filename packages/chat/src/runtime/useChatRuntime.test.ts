@@ -617,6 +617,7 @@ it('sends provider-specific requests and keeps the original message configuratio
             {
               id: 'qwen3.7-flash',
               label: 'Qwen',
+              includeUsage: true,
               features: [reasoning, { key: 'search', label: '联网搜索', type: 'switch' }],
             },
           ],
@@ -635,6 +636,7 @@ it('sends provider-specific requests and keeps the original message configuratio
     const [qwenRequest, deepseekRequest] = fetch.mock.calls.map(([, init]) => JSON.parse(init!.body as string))
     expect(qwenRequest).toMatchObject({
       model: 'qwen3.7-flash',
+      stream_options: { include_usage: true },
       enable_thinking: true,
       thinking_budget: 8192,
       enable_search: true,

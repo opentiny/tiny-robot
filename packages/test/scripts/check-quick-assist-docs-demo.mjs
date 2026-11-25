@@ -91,7 +91,7 @@ try {
     await demo.locator('html[data-quick-assist-ready="true"]').waitFor({ timeout: 5000 })
   } catch (error) {
     const status = await demo.locator('#event-status').textContent()
-    const assets = await page.evaluate(() => window.__tinyRobotVanillaDemoUmdUrl)
+    const assets = await page.evaluate(() => window.__tinyRobotVanillaDemoGlobalUrl)
     const frameState = await paragraph.evaluate(() => ({
       baseURI: document.baseURI,
       readyState: document.readyState,
@@ -105,16 +105,16 @@ try {
       },
     )
   }
-  const umdUrl = standalone
-    ? new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', url).href
-    : await page.evaluate(() => window.__tinyRobotVanillaDemoUmdUrl)
+  const globalUrl = standalone
+    ? new URL('../../../packages/components/dist/vanilla/vanilla.global.js', url).href
+    : await page.evaluate(() => window.__tinyRobotVanillaDemoGlobalUrl)
   await expect
     .poll(() =>
       demo
         .locator('script[src]')
         .evaluateAll(
           (scripts, expected) => scripts.some((script) => script.src === new URL(expected, document.baseURI).href),
-          umdUrl,
+          globalUrl,
         ),
     )
     .toBe(true)
@@ -131,9 +131,13 @@ try {
       await checkThemeContrast(
         page.locator(
           [
+            '.qa-basic-demo',
+            '.qa-basic-demo__hint',
             '.qa-demo__page',
             '.qa-demo__page [data-sensitive]',
             '.qa-demo__open',
+            '.qa-demo__placeholder-title',
+            '.qa-demo__placeholder-desc',
             '.qa-position-demo label',
             '.qa-position-demo select',
             '#qa-position-text',
@@ -158,7 +162,70 @@ try {
       )
     }
     await expect(demo.locator('html')).toHaveAttribute('data-theme', mode)
+    await expect(demo.locator('html')).toHaveAttribute('data-tr-color-mode', mode)
     await checkThemeContrast(demo.locator('body, article, [data-sensitive], button, .status'))
+
+    // Check the real HTML preview with the docs' copied shared styles present.
+    // A dark Vanilla root can still inherit light --tr-* tokens if the iframe's
+    // shared theme selector is not synchronized with its custom data-theme.
+    if (!standalone) await page.locator('iframe').first().scrollIntoViewIfNeeded()
+    await paragraph.scrollIntoViewIfNeeded()
+    await paragraph.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    const trigger = demo.locator('.tr-quick-assist__trigger')
+    await expect(demo.locator('[data-tr-vanilla]')).toHaveAttribute('data-tr-vanilla-color-mode', mode)
+    const outerBorder = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgb(219, 219, 219)'
+    await expect(trigger).toHaveCSS('border-color', outerBorder)
+    await trigger.hover()
+    await expect(trigger).toHaveCSS('color', mode === 'dark' ? 'rgb(179, 179, 179)' : 'rgb(89, 89, 89)')
+    await trigger.click()
+    const popover = demo.locator('.tr-quick-assist__popover')
+    await expect(popover).toHaveCSS('border-color', outerBorder)
+    const composer = demo.locator('.tr-quick-assist__composer')
+    const suggestion = demo.locator('.tr-quick-assist__suggestion').first()
+    const border = mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgb(230, 230, 230)'
+    await expect(composer).toHaveCSS('border-color', border)
+    await expect(suggestion).toHaveCSS('border-color', border)
+    if (mode === 'dark') {
+      for (const surface of [popover, composer, suggestion, demo.locator('.tr-quick-assist__submit')]) {
+        await expect(surface).toHaveCSS('background-color', 'rgb(26, 26, 26)')
+      }
+    }
+    const input = demo.locator('.tr-quick-assist__input')
+    const submit = demo.locator('.tr-quick-assist__submit')
+    await expect(submit).toBeDisabled()
+    await expect(submit.locator('.tr-quick-assist__icon--gray')).toBeVisible()
+    await expect(submit.locator('.tr-quick-assist__icon--gray')).toHaveCSS('opacity', mode === 'dark' ? '0.55' : '1')
+    await input.fill('核对发送图标')
+    await expect(submit).toBeEnabled()
+    const enabledIcon = submit.locator(
+      mode === 'dark' ? '.tr-quick-assist__icon--gray' : '.tr-quick-assist__icon--black',
+    )
+    await expect(enabledIcon).toBeVisible()
+    await expect(enabledIcon).toHaveCSS('opacity', '1')
+    await expect.poll(() => enabledIcon.evaluate((icon) => icon.querySelector('path').getBBox().width > 0)).toBe(true)
+    await input.fill('')
+    const normal = await suggestion.screenshot({ animations: 'disabled' })
+    await suggestion.hover()
+    await expect(suggestion).toHaveCSS('background-color', mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(245, 245, 245)')
+    await expect(suggestion).toHaveCSS('border-color', border)
+    const hovered = await suggestion.screenshot({ animations: 'disabled' })
+    expect(hovered.equals(normal), 'real HTML preview hover must visibly change its recommendation').toBe(false)
+    if (screenshotRoot) {
+      await popover.screenshot({
+        path: `${screenshotRoot}/html-preview-${mode}.png`,
+        animations: 'disabled',
+        caret: 'hide',
+      })
+    }
+    await demo.locator('.tr-quick-assist__input').press('Escape')
+    await paragraph.evaluate(() => window.getSelection().removeAllRanges())
     if (screenshotRoot && !standalone) {
       await page
         .locator('.qa-position-demo')
@@ -206,18 +273,59 @@ try {
     })
   }
   await expect(demo.locator('#event-status')).not.toContainText('失败')
-  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__popover button'))
+  // The send button renders fixed-color inline SVG, not its CSS text color.
+  // Its rendered geometry and disabled opacity are checked above in each mode.
+  await checkThemeContrast(demo.locator('.tr-quick-assist__popover textarea, .tr-quick-assist__suggestion'))
   if (!standalone) {
     for (const selector of [
+      '#qa-basic-text',
       '#qa-delay-text',
       '#qa-position-text',
       '#qa-recommendations-text',
+      '#qa-build-prompt-text',
       '#qa-context-text',
       '#qa-scope-allowed',
       '#qa-lifecycle-text',
     ]) {
       await expect(page.locator(selector)).toBeVisible()
     }
+    const activationDemo = page.locator('#qa-manual-activation')
+    const firstMetric = activationDemo.locator('.qa-activation-demo__metric').first()
+    const secondMetric = activationDemo.locator('.qa-activation-demo__metric').nth(1)
+    const hoverToggle = activationDemo.getByRole('checkbox', { name: '悬停指标时自动显示入口', exact: true })
+    const neutralHeading = activationDemo.locator('h4').first()
+
+    await firstMetric.scrollIntoViewIfNeeded()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+    await firstMetric.click()
+    await expect(page.locator('.tr-quick-assist__popover textarea')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+
+    // Opt-in hover shows the trigger without stealing input focus, and can re-open the same metric after Esc or outside close.
+    await hoverToggle.check()
+    await neutralHeading.hover()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await expect(page.locator('.tr-quick-assist__popover')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await neutralHeading.hover()
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+
+    await neutralHeading.click()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await firstMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+
+    await secondMetric.hover()
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await expect(secondMetric).toHaveAttribute('aria-pressed', 'true')
+    await hoverToggle.uncheck()
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
     const positionDemo = page.locator('.qa-position-demo')
     const selectPositionText = async (backward) => {
       await page.locator('#qa-position-text').scrollIntoViewIfNeeded()
@@ -290,6 +398,49 @@ try {
     await page.locator('.tr-quick-assist__popover').getByText('查看注意事项').click()
     await expect(page.locator('#qa-recommendations-text').locator('..').locator('pre')).toContainText('查看注意事项')
 
+    const promptTerm = page.locator('#qa-build-prompt-term')
+    const promptResult = page.locator('.qa-prompt-result')
+    for (const question of ['如何选择？', '怎样控制成本？', null]) {
+      const viaSuggestion = question === null
+      await promptTerm.scrollIntoViewIfNeeded()
+      await promptTerm.evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        document.dispatchEvent(new Event('selectionchange'))
+      })
+      await page.locator('.tr-quick-assist__trigger').click()
+      await page.locator('.tr-quick-assist__popover textarea').fill(question ?? '推荐项会使用自己的问题')
+      if (viaSuggestion) await page.getByRole('button', { name: '解释 计费模式', exact: true }).click()
+      else await page.locator('.tr-quick-assist__popover textarea').press('Enter')
+      const values = promptResult.locator('.qa-prompt-result__value')
+      await expect(values).toHaveCount(3)
+      await expect(promptResult.locator('dt')).toHaveText([
+        'query · 展示的问题',
+        'prompt · 最终发送内容',
+        'context.text · 选中内容',
+      ])
+      await expect(values.nth(0)).toHaveText(viaSuggestion ? '解释 计费模式' : question)
+      expect(await values.nth(1).textContent()).toBe(
+        [
+          '产品：云服务器',
+          '业务场景：生产环境',
+          '参考内容：计费模式',
+          `用户问题：${viaSuggestion ? '请解释“计费模式”的含义，并比较常见选项。' : question}`,
+        ].join('\n\n'),
+      )
+      await expect(values.nth(2)).toHaveText('计费模式')
+      for (const value of await values.all()) {
+        await expect(value).toHaveCSS('white-space', 'pre-wrap')
+        await expect(value).toHaveCSS('overflow-y', 'visible')
+        await expect(value).toHaveCSS('border-radius', '8px')
+        await expect(value).toHaveCSS('font-size', '14px')
+      }
+      expect(await values.nth(1).evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true)
+    }
+
     const contextText = page.locator('#qa-context-tenant')
     await contextText.scrollIntoViewIfNeeded()
     await contextText.evaluate((element) => {
@@ -302,15 +453,16 @@ try {
     })
     await expect(page.locator('.tr-quick-assist__trigger'), '租户编号划词应显示入口').toBeVisible()
     await page.locator('.tr-quick-assist__trigger').click()
+    await page.locator('.tr-quick-assist__popover textarea').fill('tenant-demo-4812')
     await page.locator('.tr-quick-assist__popover textarea').press('Enter')
     await expect(page.locator('#qa-context-text').locator('..').locator('pre')).toContainText('[已脱敏]')
     const submittedContext = JSON.parse(
       await page.locator('#qa-context-text').locator('..').locator('pre').textContent(),
     )
-    expect(submittedContext.上下文.text).toBe('[已脱敏]')
-    expect(submittedContext.上下文.selection.text).toBe('[已脱敏]')
-    expect(submittedContext.上下文.nearbyText).toContain('[已脱敏]')
-    expect(submittedContext.上下文.businessContext.tenantId).toBe('[已脱敏]')
+    expect(submittedContext.context.text).toBe('[已脱敏]')
+    expect(submittedContext.context.selection.text).toBe('[已脱敏]')
+    expect(submittedContext.context.nearbyText).toContain('[已脱敏]')
+    expect(submittedContext.context.businessContext.tenantId).toBe('[已脱敏]')
     expect(JSON.stringify(submittedContext)).not.toContain('tenant-demo-4812')
     const sensitiveText = page.locator('#qa-context-text [data-sensitive]')
     await sensitiveText.evaluate((element) => {
@@ -341,6 +493,7 @@ try {
         document.dispatchEvent(new Event('selectionchange'))
       })
       await page.locator('.tr-quick-assist__trigger').click()
+      await page.locator('.tr-quick-assist__popover textarea').fill('请解释选中的内容')
       await page.locator('.tr-quick-assist__popover textarea').press('Enter')
       await expect(chatDemo.locator('.tr-bubble')).toHaveCount((index + 1) * 2)
     }
@@ -386,7 +539,9 @@ try {
       selection.addRange(range)
       document.dispatchEvent(new Event('selectionchange'))
     })
-    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointerup')))
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeDisabled()
+    await expect(page.locator('.tr-quick-assist__selection-tooltip')).toBeVisible()
     await page.getByRole('button', { name: '停用划词' }).click()
     await expect(page.locator('.qa-feature-demo__status')).toHaveText('划词已停用，当前界面已关闭')
     await page.getByRole('button', { name: '启用划词' }).click()
@@ -452,7 +607,7 @@ try {
       await themeDemo.locator('.tr-quick-assist__trigger').click()
       await expect(themeDemo.locator('.tr-quick-assist__popover')).toHaveCSS(
         'background-color',
-        mode === 'dark' ? 'rgb(38, 38, 38)' : 'rgb(255, 255, 255)',
+        mode === 'dark' ? 'rgb(26, 26, 26)' : 'rgb(255, 255, 255)',
       )
       await checkThemeContrast(
         themeDemo.locator('body, #theme-text, #theme-status, .tr-quick-assist__input, .tr-quick-assist__suggestion'),

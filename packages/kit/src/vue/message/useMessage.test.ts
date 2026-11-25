@@ -1,23 +1,206 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
 import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { TOOL_RESUME_COMMAND, toolPlugin } from './plugins/toolPlugin'
-import type { ResponseProvider } from './types'
+import type { ResponseProvider, UseMessagePlugin } from './types'
 import { useAskUserRuntime } from './useAskUserRuntime'
 import { useMessage } from './useMessage'
 
 describe('useMessage', () => {
-  it('injects the AskUser prompt into the existing system message', async () => {
-    const responseProvider = vi.fn((requestBody) => {
-      const systemMessage = requestBody.messages.find((message) => message.role === 'system')
-      expect(systemMessage?.content).toContain('请使用 ask_user 工具收集信息。')
-      expect(systemMessage?.content).toContain('Product instructions.')
-      return mockResponseProvider('ok')(requestBody)
+  it('reruns the latest user message in place and starts a fresh turn lifecycle', async () => {
+    const lifecycle: string[] = []
+    const responseProvider = vi.fn(
+      mockSequentialResponseProvider([
+        { content: 'first answer' },
+        { content: 'second answer' },
+        { content: 'new answer' },
+      ]),
+    )
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        {
+          name: 'rerun-lifecycle',
+          onTurnStart({ currentTurn }) {
+            lifecycle.push(`start:${currentTurn[0]?.content}`)
+          },
+          onFinally({ currentTurn, requestState }) {
+            lifecycle.push(`finally:${currentTurn[0]?.content}:${requestState}`)
+          },
+        },
+      ],
     })
+
+    await engine.sendMessage('first question')
+    const originalUser = engine.messages.value[0]!
+    await engine.sendMessage('second question')
+    const before = [...engine.messages.value]
+
+    await expect(engine.rerun({ role: 'user', content: 'stale target' })).resolves.toBe(false)
+    await expect(engine.rerun(originalUser)).resolves.toBe(false)
+    await expect(engine.rerun(before[2]!)).resolves.toBe(true)
+
+    expect(responseProvider).toHaveBeenCalledTimes(3)
+    expect(engine.messages.value[2]).toBe(before[2])
+    expect(engine.messages.value.slice(3).map(({ role, content }) => ({ role, content }))).toEqual([
+      { role: 'assistant', content: 'new answer' },
+    ])
+    expect(lifecycle.slice(-2)).toEqual(['start:second question', 'finally:second question:completed'])
+    expect(engine.requestState.value).toBe('completed')
+  })
+
+  it('reserves replay before synchronous transcript observers can send', async () => {
+    const provider = vi.fn(mockResponseProvider('answer'))
+    const engine = useMessage({ responseProvider: provider })
+    await engine.sendMessage('question')
+    let pending: Promise<void> | undefined
+    const stop = watch(
+      () => engine.messages.value.length,
+      (length) => {
+        if (length === 1) pending = engine.sendMessage('interleaved')
+      },
+      { flush: 'sync' },
+    )
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    await pending
+    stop()
+    expect(provider).toHaveBeenCalledTimes(2)
+    expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'answer'])
+  })
+
+  it('installs the replay abort controller before synchronous request-state observers run', async () => {
+    const engine = useMessage({ responseProvider: mockResponseProvider('answer') })
+    await engine.sendMessage('question')
+    let aborting: Promise<void> | undefined
+    const stop = watch(
+      () => engine.requestState.value,
+      (state) => {
+        if (state === 'processing') aborting = engine.abortRequest()
+      },
+      { flush: 'sync' },
+    )
+
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    await aborting
+    stop()
+
+    expect(engine.requestState.value).toBe('aborted')
+  })
+
+  it('ignores a delayed after-request append after another hook fails', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('answer'),
+      plugins: [
+        {
+          async onAfterRequest() {
+            throw new Error('hook failed')
+          },
+        },
+        {
+          async onAfterRequest({ appendMessage, requestNext }) {
+            await gate
+            appendMessage({ role: 'tool', content: 'stale result' })
+            requestNext()
+          },
+        },
+      ],
+    })
+    await expect(engine.sendMessage('question')).rejects.toThrow('hook failed')
+    const snapshot = JSON.stringify(engine.messages.value)
+    release()
+    await gate
+    await Promise.resolve()
+    expect(JSON.stringify(engine.messages.value)).toBe(snapshot)
+  })
+
+  it('does not publish completion time when end hooks fail', async () => {
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('answer'),
+      plugins: [
+        {
+          onTurnEnd() {
+            throw new Error('end failed')
+          },
+        },
+      ],
+    })
+    await expect(engine.sendMessage('question')).rejects.toThrow('end failed')
+    expect(engine.requestState.value).toBe('error')
+    expect(engine.messages.value.at(-1)?.metadata?.completedAt).toBeUndefined()
+  })
+
+  it.each([true, false])('merges usage and notifies plugins with a choice: %s', async (withChoice) => {
+    const onChunk = vi.fn()
+    const engine = useMessage({
+      responseProvider: async () => ({
+        id: 'usage',
+        object: 'chat.completion',
+        created: 1,
+        model: 'test',
+        system_fingerprint: null,
+        choices: withChoice
+          ? [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'answer' },
+                delta: undefined,
+                logprobs: null,
+                finish_reason: 'stop',
+              },
+            ]
+          : [],
+        usage: { prompt_tokens: 0, completion_tokens: 2, total_tokens: 2 },
+      }),
+      onCompletionChunk({ currentMessage }) {
+        currentMessage.content = 'custom'
+      },
+      plugins: [{ onCompletionChunk: onChunk }],
+    })
+    await engine.sendMessage('question')
+    expect(engine.messages.value.at(-1)?.metadata?.usage).toEqual({
+      prompt_tokens: 0,
+      completion_tokens: 2,
+      total_tokens: 2,
+    })
+    expect(onChunk).toHaveBeenCalledOnce()
+    if (withChoice) expect(engine.messages.value.at(-1)?.content).toBe('custom')
+    else expect(onChunk.mock.calls[0]![0].choice).toBeUndefined()
+  })
+
+  it('replays the real user turn after automatic continuation', async () => {
+    const provider = vi.fn(
+      mockSequentialResponseProvider([
+        { content: 'partial', finish_reason: 'length' },
+        { content: 'continued' },
+        { content: 'regenerated' },
+      ]),
+    )
+    const engine = useMessage({ responseProvider: provider })
+    await engine.sendMessage('question')
+    expect(engine.messages.value).toHaveLength(4)
+    await expect(engine.rerun(engine.messages.value[2]!)).resolves.toBe(false)
+    await expect(engine.rerun(engine.messages.value[0]!)).resolves.toBe(true)
+    expect(provider).toHaveBeenCalledTimes(3)
+    expect(engine.messages.value.map((message) => message.content)).toEqual(['question', 'regenerated'])
+  })
+
+  it('injects the AskUser prompt into the existing system message', async () => {
+    const responseProvider = vi.fn(
+      (requestBody: Parameters<ResponseProvider>[0], abortSignal: Parameters<ResponseProvider>[1]) => {
+        const systemMessage = requestBody.messages.find((message) => message.role === 'system')
+        expect(systemMessage?.content).toContain('请使用 ask_user 工具收集信息。')
+        expect(systemMessage?.content).toContain('Product instructions.')
+        return mockResponseProvider('ok')(requestBody, abortSignal)
+      },
+    )
 
     const engine = useMessage({
       initialMessages: [{ role: 'system', content: 'Product instructions.' }],
@@ -56,6 +239,36 @@ describe('useMessage', () => {
     expect(engine.messages.value).toHaveLength(3)
     expect(engine.messages.value[1]).toMatchObject({ role: 'user', content: 'ping' })
     expect(engine.messages.value[2]).toMatchObject({ role: 'assistant', content: 'foobar', loading: undefined })
+  })
+
+  it('exposes updateCurrentMessage to Vue plugins and notifies message watchers', async () => {
+    const updateSnapshots: unknown[] = []
+    const onChunk = vi.fn<NonNullable<UseMessagePlugin['onCompletionChunk']>>(({ updateCurrentMessage }) => {
+      updateCurrentMessage((message) => {
+        message.metadata = { ...message.metadata, pluginUpdated: true }
+      })
+    })
+    const engine = useMessage({
+      responseProvider: mockResponseProvider('assistant reply'),
+      plugins: [
+        {
+          onCompletionChunk: onChunk,
+        },
+      ],
+    })
+    watch(
+      () => engine.messages.value.at(-1)?.metadata?.pluginUpdated,
+      (value) => updateSnapshots.push(value),
+      { flush: 'sync' },
+    )
+
+    await engine.sendMessage('hello')
+
+    const context = onChunk.mock.calls[0]![0]
+    expect(context.currentTurn[0]).toBe(engine.messages.value[0])
+    expect(context.currentMessage).toBe(engine.messages.value[1])
+    expect(engine.messages.value.at(-1)?.metadata?.pluginUpdated).toBe(true)
+    expect(updateSnapshots).toEqual([true])
   })
 
   it('keeps responseProvider as a writable ref', async () => {
@@ -413,7 +626,10 @@ describe('useMessage', () => {
       {
         finish_reason: 'tool_calls',
         onRequest(requestBody) {
-          expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['ask_user', 'lookup'])
+          expect(requestBody.tools?.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
+            'ask_user',
+            'lookup',
+          ])
         },
         tool_calls: [
           {
@@ -680,7 +896,10 @@ describe('useMessage', () => {
 
     const requestBody = responseProvider.mock.calls[0]?.[0]
     expect(requestBody.messages).toEqual([expect.objectContaining({ role: 'user', content: 'read docs' })])
-    expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
+    expect(requestBody.tools?.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
+      'list_skill_files',
+      'read_skill_file',
+    ])
   })
 
   it('calls vue onInstructionsResolved immediately without a request body', async () => {
@@ -792,13 +1011,15 @@ describe('useMessage', () => {
 
   it('uses reactive preferred skill names in auto mode', async () => {
     const preferredSkillNames = ref(['stale'])
-    const responseProvider = vi.fn((requestBody) => {
-      expect(requestBody.messages[0]).toMatchObject({
-        role: 'system',
-        content: expect.stringContaining('Preferred skill names: docs'),
-      })
-      return mockResponseProvider('ok')(requestBody)
-    })
+    const responseProvider = vi.fn(
+      (requestBody: Parameters<ResponseProvider>[0], abortSignal: Parameters<ResponseProvider>[1]) => {
+        expect(requestBody.messages[0]).toMatchObject({
+          role: 'system',
+          content: expect.stringContaining('Preferred skill names: docs'),
+        })
+        return mockResponseProvider('ok')(requestBody, abortSignal)
+      },
+    )
 
     const engine = useMessage({
       responseProvider,

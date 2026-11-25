@@ -57,7 +57,7 @@ const mergeStrategies: Record<Exclude<Strategy, 'remote-only'>, MergeSuggestions
 }
 
 function configure() {
-  // 重新创建实例，确保“仅远程推荐”模式完全省略 suggestions。
+  // 切换演示策略时重建实例以重置本地演示状态；实际业务也可通过 updateOptions 显式传入 undefined 清除可选字段。
   quickAssist?.destroy()
   submitted.value = ''
   status.value = '配置已更新，请重新选择文字并打开智能帮助。'
@@ -80,7 +80,7 @@ function configure() {
         { id: 'risk', label: '远程：查看中断风险', prompt: `请说明“${context.text}”的中断风险与应对措施` },
       ]
     },
-    maxSuggestions: 3,
+    maxSuggestions: mode === 'remote-first' ? 3 : 2,
     onEvent(event) {
       if (event.type === 'error' && event.stage === 'suggestions') {
         status.value = '远程请求失败，已有静态问题会保留，仍可手动输入提交。'
@@ -90,7 +90,11 @@ function configure() {
     adapter: {
       submit(request) {
         submitted.value = JSON.stringify(
-          { 推荐项: request.suggestion?.label ?? '手动输入', 提交内容: request.prompt },
+          {
+            query: request.query,
+            prompt: request.prompt,
+            suggestion: request.suggestion?.label ?? null,
+          },
           null,
           2,
         )

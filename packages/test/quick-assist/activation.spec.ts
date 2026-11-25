@@ -178,7 +178,8 @@ test('synthetic validation overrides text rules but cannot bypass length or geom
     window.qa.updateOptions({ selection: { maxTextLength: 6, validateActivation: () => true } })
     window.qa.activate(window.makeActivation('1234567'))
   })
-  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeDisabled()
+  await page.evaluate(() => window.qa.close())
   await page.evaluate(() =>
     window.qa.activate({ ...window.makeActivation('123'), getRect: () => new DOMRect(NaN, 20, 0, 20) }),
   )

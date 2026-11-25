@@ -1,35 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { TrSkillExtensionDetail, TrSkillImportForm } from '@opentiny/tiny-robot'
+import { TrSkillExtensionDetail } from '@opentiny/tiny-robot'
 import type { SkillDefinition } from '@opentiny/tiny-robot'
 
-const exampleUrl = 'https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling'
-const formKey = ref(0)
-const imported = ref<SkillDefinition>()
-
-const reset = () => {
-  imported.value = undefined
-  formKey.value += 1
+const definition: SkillDefinition = {
+  name: 'example-skill',
+  description: '一个不依赖网络的最小 Skill 定义。',
+  instructions: '# 使用说明\n\n先阅读输入，再输出三条重点。',
+  resources: [
+    {
+      path: 'references/format.md',
+      kind: 'text',
+      resourceId: 'references/format.md',
+      text: '# 输出格式\n\n先给结论，再列出依据。',
+    },
+  ],
 }
 </script>
 
 <template>
   <section>
-    <div class="demo-aux-controls">
-      <button type="button" class="demo-aux-control" @click="reset">重置示例</button>
-    </div>
-    <p>将这个真实 Skill 的目录地址复制到下方 URL 输入框：</p>
-    <p class="example-url">
-      <a :href="exampleUrl" target="_blank" rel="noopener noreferrer">{{ exampleUrl }}</a>
-    </p>
-    <tr-skill-import-form :key="formKey" source="github" @submit="imported = $event" />
-    <p aria-live="polite">应用收到：{{ imported?.name ?? '尚未导入' }}</p>
-    <tr-skill-extension-detail v-if="imported" :definition="imported" />
+    <p>这个示例直接传入一个内联的 <code>SkillDefinition</code>，不需要网络或导入器。</p>
+    <tr-skill-extension-detail :definition="definition" />
   </section>
 </template>
-
-<style scoped>
-.example-url {
-  overflow-wrap: anywhere;
-}
-</style>

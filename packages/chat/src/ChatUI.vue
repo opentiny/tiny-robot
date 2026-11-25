@@ -641,6 +641,7 @@ function renderEmptyStateComposer() {
             :request="resolvedData.request"
             :anchor-enabled="isAnchorEnabled"
             :messages="resolvedData.bubble.messages"
+            :bubble-actions="resolvedData.bubble.actions"
             :scroll-target="scrollTarget"
             :options="resolvedOptions.bubble"
             :welcome="resolvedOptions.welcome"
@@ -652,6 +653,9 @@ function renderEmptyStateComposer() {
             @prompt-click="handlePromptClick"
             @bubble-state-change="handleBubbleStateChange"
             @bubble-event="handleBubbleEvent"
+            @edit-message="(payload) => emit('edit-message', payload)"
+            @regenerate-message="(payload) => emit('regenerate-message', payload)"
+            @bubble-action-error="(payload) => emit('bubble-action-error', payload)"
           >
             <template v-if="$slots['layout-main']" #default>
               <slot
@@ -724,6 +728,9 @@ function renderEmptyStateComposer() {
             </template>
             <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
               <slot name="bubble-content-footer" v-bind="slotProps" />
+            </template>
+            <template v-if="$slots['bubble-action']" #bubble-action="slotProps">
+              <slot name="bubble-action" v-bind="slotProps" />
             </template>
           </ChatMessages>
         </div>

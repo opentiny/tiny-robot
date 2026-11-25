@@ -16,6 +16,7 @@ import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import { createCompositeMcpAdapter, type ChatMcpAdapter } from './mcp/compositeMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
 import { createDefaultChatTitle } from './defaults'
+import { createChatActionStatePlugin } from './plugins/chatActionStatePlugin'
 
 export type UseChatRuntimeMcpAdapter = ChatMcpAdapter
 
@@ -90,6 +91,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions) {
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [
     errorStatePlugin(),
+    createChatActionStatePlugin(),
     createRunConfigContextPlugin(providerRuntime?.resolveModel),
   ]
 
