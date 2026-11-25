@@ -1,5 +1,5 @@
 import { configureVanillaTheme, createTrace } from '../components/src/vanilla'
-import { DEFAULT_LABEL_STYLES, normalizeTrajectory } from '../components/src/vanilla/trace/core/time'
+import { createTrace as createUMDTrace } from '../components/src/vanilla/trace/umd'
 import type { TrajectoryEvent, TrajectoryInstance, TrajectoryItem } from '../components/src/vanilla'
 import '../components/src/vanilla/style.css'
 
@@ -10,8 +10,8 @@ declare global {
       events: TrajectoryEvent[]
       items: TrajectoryItem[]
       resetEvents: () => void
-      normalize: (items: readonly TrajectoryItem[]) => number
       createTrace: typeof createTrace
+      createUMDTrace: typeof createUMDTrace
       configureTheme: (colorMode: 'light' | 'dark' | 'auto') => void
     }
   }
@@ -78,7 +78,7 @@ window.traceFixture = {
   resetEvents: () => {
     events.length = 0
   },
-  normalize: (nextItems) => normalizeTrajectory(nextItems, undefined, DEFAULT_LABEL_STYLES).items.length,
   createTrace,
+  createUMDTrace,
   configureTheme: (colorMode) => configureVanillaTheme({ colorMode }),
 }

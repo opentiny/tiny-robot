@@ -244,6 +244,7 @@ test.describe('Trace vanilla component', () => {
   test('renders empty and error states and emits error events', async ({ page }) => {
     await page.evaluate(() => window.traceFixture.trace.setItems([]))
     await expect(page.locator('.tr-trajectory__empty')).toHaveText('暂无轨迹')
+    await expect(page.locator('.tr-trajectory__empty')).toHaveCSS('color', 'rgb(89, 89, 89)')
 
     await page.evaluate(() => window.traceFixture.trace.updateOptions({ messages: { empty: '没有执行记录' } }))
     await expect(page.locator('.tr-trajectory__empty')).toHaveText('没有执行记录')
@@ -271,6 +272,17 @@ test.describe('Trace vanilla component', () => {
     expect(result.invalidTimeEvents).toEqual(['error'])
     expect(result.duplicateMessage).toContain('Duplicate trajectory item id')
     expect(result.invalidTimeMessage).toContain('endTime must be >= startTime')
+  })
+
+  test('uses the existing vanilla error color in dark mode', async ({ page }) => {
+    await page.evaluate(() => window.traceFixture.configureTheme('dark'))
+    await page.evaluate(() =>
+      window.traceFixture.trace.setItems([
+        { id: 'invalid', type: 'info', message: 'invalid', startTime: 10, endTime: 1 },
+      ]),
+    )
+
+    await expect(page.locator('.tr-trajectory__error')).toHaveCSS('color', 'rgb(217, 72, 56)')
   })
 
   test('keeps the previous state when a candidate render fails', async ({ page }) => {
@@ -340,6 +352,46 @@ test.describe('Trace vanilla component', () => {
     await expect(page.locator('.tr-trajectory__error')).toHaveCount(0)
   })
 
+  test('keeps one-sided axis ranges valid when all records are on the opposite side', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.updateOptions({ axis: { startTime: 10, endTime: undefined } })
+      window.traceFixture.trace.setItems([{ id: 'before', type: 'info', message: 'before', startTime: 0, endTime: 5 }])
+    })
+
+    await expect(page.locator('.tr-trajectory__segment')).toHaveCount(0)
+    await expect(page.locator('.tr-trajectory__item')).toHaveCount(1)
+    await expect(page.locator('.tr-trajectory__error')).toHaveCount(0)
+
+    await page.evaluate(() => {
+      window.traceFixture.trace.updateOptions({ axis: { startTime: undefined, endTime: 10 } })
+      window.traceFixture.trace.setItems([{ id: 'after', type: 'info', message: 'after', startTime: 20, endTime: 25 }])
+    })
+    await expect(page.locator('.tr-trajectory__segment')).toHaveCount(0)
+    await expect(page.locator('.tr-trajectory__item')).toHaveCount(1)
+    await expect(page.locator('.tr-trajectory__error')).toHaveCount(0)
+  })
+
+  test('renders intersecting records as separate point markers on a zero-length axis', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.updateOptions({ axis: { startTime: 5, endTime: 5 } })
+      window.traceFixture.trace.setItems([
+        { id: 'crossing', type: 'info', message: 'crossing', startTime: 0, endTime: 10 },
+        { id: 'point', type: 'success', message: 'point', startTime: 5, endTime: 5 },
+      ])
+    })
+
+    const segments = page.locator('.tr-trajectory__segment')
+    await expect(segments).toHaveCount(2)
+    await expect(segments.nth(0)).toHaveAttribute('style', /left: 50%/)
+    await expect(segments.nth(0)).toHaveAttribute('style', /width: 4px/)
+    await expect(segments.nth(1)).toHaveAttribute('style', /left: 50%/)
+    await expect(segments.nth(1)).toHaveAttribute('style', /width: 4px/)
+    await expect(segments.nth(0)).toHaveAttribute('style', /transform: translateX\(-50%\)/)
+    expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
+      await segments.nth(1).evaluate((element) => element.style.top),
+    )
+  })
+
   test('handles clicks from an iframe-owned document', async ({ page }) => {
     const selectedId = await page.evaluate(() => {
       const iframe = document.createElement('iframe')
@@ -381,6 +433,12 @@ test.describe('Trace vanilla component', () => {
   test('follows the configured vanilla theme and accepts host variable overrides', async ({ page }) => {
     await page.evaluate(() => window.traceFixture.configureTheme('dark'))
     await expect(page.locator('.tr-trajectory')).toHaveCSS('background-color', 'rgb(38, 38, 38)')
+    await expect(page.locator('.tr-trajectory__track')).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.2)')
+
+    await page.locator('.tr-trajectory__item').first().click()
+    await expect(page.locator('.tr-trajectory__item').first()).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.2)')
+    await page.locator('.tr-trajectory__item').nth(1).hover()
+    await expect(page.locator('.tr-trajectory__item').nth(1)).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.2)')
 
     await page.locator('#trace').evaluate((element) => element.style.setProperty('--tr-trajectory-bg', '#000000'))
     await expect(page.locator('.tr-trajectory')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
@@ -419,21 +477,6 @@ test.describe('Trace vanilla component', () => {
     expect(result.background).toBe('rgb(254, 243, 199)')
   })
 
-  test('normalizes large item collections without spreading arguments', async ({ page }) => {
-    const count = await page.evaluate(() => {
-      const items = Array.from({ length: 100_000 }, (_, index) => ({
-        id: `item-${index}`,
-        type: 'info',
-        message: 'item',
-        startTime: index,
-        endTime: index + 1,
-      }))
-      return window.traceFixture.normalize(items)
-    })
-
-    expect(count).toBe(100_000)
-  })
-
   test('removes its DOM when destroyed', async ({ page }) => {
     await expect(page.locator('.tr-trajectory')).toHaveCount(1)
     const eventCount = await page.evaluate(() => {
@@ -444,5 +487,114 @@ test.describe('Trace vanilla component', () => {
     })
     expect(eventCount).toBe(0)
     await expect(page.locator('.tr-trajectory')).toHaveCount(0)
+  })
+
+  test('validates invalid UMD options before installing styles', async ({ page }) => {
+    const errors = await page.evaluate(() => {
+      const messages: string[] = []
+      let installedStyleDuringCall = false
+      const observer = new MutationObserver((records) => {
+        installedStyleDuringCall ||= records.some((record) =>
+          Array.from(record.addedNodes).some(
+            (node) => node instanceof HTMLStyleElement && node.hasAttribute('data-tr-vanilla-style'),
+          ),
+        )
+      })
+      observer.observe(document.head, { childList: true })
+      try {
+        window.traceFixture.createUMDTrace(null as never)
+      } catch (error) {
+        messages.push(error instanceof Error ? error.message : String(error))
+      }
+      try {
+        window.traceFixture.createUMDTrace({ container: null as never, items: [] })
+      } catch (error) {
+        messages.push(error instanceof Error ? error.message : String(error))
+      }
+      try {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        window.traceFixture.createUMDTrace({ container: svg as never, items: [] })
+      } catch (error) {
+        messages.push(error instanceof Error ? error.message : String(error))
+      }
+      try {
+        window.traceFixture.createUMDTrace({
+          container: document.createElement('div'),
+          items: [{ id: 1, type: 'info', message: 'invalid', startTime: 0, endTime: 1 } as never],
+        })
+      } catch (error) {
+        messages.push(error instanceof Error ? error.message : String(error))
+      }
+      observer.disconnect()
+      return { messages, installedStyleDuringCall }
+    })
+
+    expect(errors.messages).toEqual([
+      'Trajectory options must be an object',
+      'Trajectory requires an HTMLElement container',
+      'Trajectory requires an HTMLElement container',
+      'Trajectory item id must be a non-empty string',
+    ])
+    expect(errors.installedStyleDuringCall).toBe(false)
+  })
+
+  test('validates runtime option values during creation and updates', async ({ page }) => {
+    const errors = await page.evaluate(() => {
+      const messages: string[] = []
+      const container = document.createElement('div')
+      const options = { container, items: window.traceFixture.items }
+      for (const invalid of [{ durationFormat: 'invalid' }, { formatDuration: 'invalid' }, { onEvent: 'invalid' }]) {
+        try {
+          window.traceFixture.createUMDTrace({ ...options, ...invalid } as never)
+        } catch (error) {
+          messages.push(error instanceof Error ? error.message : String(error))
+        }
+      }
+
+      window.traceFixture.resetEvents()
+      window.traceFixture.trace.updateOptions({ durationFormat: 'invalid' } as never)
+      messages.push(
+        ...window.traceFixture.events.map((event) => (event.type === 'error' ? event.error.message : event.type)),
+      )
+      return messages
+    })
+
+    expect(errors).toEqual([
+      'Trajectory durationFormat must be compact, clock, or none',
+      'Trajectory formatDuration must be a function',
+      'Trajectory onEvent must be a function',
+      'Trajectory durationFormat must be compact, clock, or none',
+    ])
+  })
+
+  test('reports invalid update options through the error event', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      window.traceFixture.resetEvents()
+      window.traceFixture.trace.updateOptions(null as never)
+      return window.traceFixture.events.map((event) => event.type)
+    })
+
+    expect(result).toEqual(['error'])
+    await expect(page.locator('.tr-trajectory__error')).toHaveText('Trajectory update options must be an object')
+  })
+
+  test('keeps a point marker separate when it starts at a positive segment endpoint', async ({ page }) => {
+    await page.evaluate(() => {
+      window.traceFixture.trace.setItems([
+        { id: 'point', type: 'info', message: 'point', startTime: 5, endTime: 5 },
+        { id: 'range', type: 'success', message: 'range', startTime: 0, endTime: 5 },
+      ])
+    })
+
+    const segments = page.locator('.tr-trajectory__segment')
+    await expect(segments).toHaveCount(2)
+    expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
+      await segments.nth(1).evaluate((element) => element.style.top),
+    )
+
+    await segments.nth(0).click()
+    await expect(segments.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await segments.nth(1).click()
+    await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
   })
 })

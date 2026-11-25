@@ -45,6 +45,7 @@ function renderSegment(document: Document, item: NormalizedTrajectoryItem, selec
   segment.style.left = `${item.left * 100}%`
   segment.style.height = '18px'
   segment.style.width = item.width > 0 ? `${item.width * 100}%` : '4px'
+  segment.style.transform = item.width > 0 ? '' : 'translateX(-50%)'
   segment.style.background = item.color
   segment.title = `${item.label} · ${item.message}`
   segment.setAttribute('aria-label', `${item.label}: ${item.message}`)

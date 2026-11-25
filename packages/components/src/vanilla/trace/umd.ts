@@ -4,15 +4,15 @@ import type { TrajectoryInstance, TrajectoryOptions } from './types'
 
 /** Browser bundle entry with reference-counted, document-local automatic styles. */
 export function createTrace(options: TrajectoryOptions): TrajectoryInstance {
-  const release = installVanillaStyle(options.container.ownerDocument)
-  let released = false
-  let instance: TrajectoryInstance
+  const instance = create(options)
+  let release: (() => void) | undefined
   try {
-    instance = create(options)
+    release = installVanillaStyle(options.container.ownerDocument)
   } catch (error) {
-    release()
+    instance.destroy()
     throw error
   }
+  let released = false
   const destroy = instance.destroy
   return {
     ...instance,
@@ -22,7 +22,7 @@ export function createTrace(options: TrajectoryOptions): TrajectoryInstance {
       try {
         destroy()
       } finally {
-        release()
+        release?.()
       }
     },
   }

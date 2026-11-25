@@ -30,6 +30,10 @@
   background: var(--tr-trajectory-track, #eef2f7);
 }
 
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__track {
+  background: var(--tr-trajectory-track, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
 .tr-trajectory__segment {
   position: absolute;
   top: 0;
@@ -85,8 +89,16 @@
   background: var(--tr-trajectory-hover, #f8fafc);
 }
 
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item:hover {
+  background: var(--tr-trajectory-hover, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
 .tr-trajectory__item.is-selected {
   background: var(--tr-trajectory-selected, #eff6ff);
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item.is-selected {
+  background: var(--tr-trajectory-selected, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
 }
 
 .tr-trajectory__label {
@@ -130,15 +142,29 @@
   white-space: nowrap;
 }
 
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment:hover,
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment.is-selected {
+  box-shadow: 0 0 0 1px
+    var(--tr-trajectory-selected-border, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment:focus-visible,
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item:focus-visible {
+  outline-color: var(
+    --tr-trajectory-selected-border,
+    var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2))
+  );
+}
+
 .tr-trajectory__empty,
 .tr-trajectory__error {
   padding: 28px 16px;
-  color: var(--tr-trajectory-muted);
+  color: var(--tr-trajectory-muted, var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary, #64748b)));
   text-align: center;
 }
 
 .tr-trajectory__error {
-  color: #dc2626;
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error, #dc2626));
 }
 
 @media (prefers-reduced-motion: reduce) {

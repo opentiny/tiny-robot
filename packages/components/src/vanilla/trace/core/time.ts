@@ -57,6 +57,50 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+interface LaneState {
+  readonly end: number
+  readonly lane: number
+  readonly zeroDuration: boolean
+}
+
+function compareLaneState(left: LaneState, right: LaneState): number {
+  if (left.end !== right.end) return left.end - right.end
+  if (left.zeroDuration !== right.zeroDuration) return left.zeroDuration ? 1 : -1
+  return left.lane - right.lane
+}
+
+function pushLaneState(heap: LaneState[], state: LaneState): void {
+  heap.push(state)
+  let index = heap.length - 1
+  while (index > 0) {
+    const parent = Math.floor((index - 1) / 2)
+    if (compareLaneState(heap[parent], heap[index]) <= 0) break
+    ;[heap[parent], heap[index]] = [heap[index], heap[parent]]
+    index = parent
+  }
+}
+
+function popLaneState(heap: LaneState[]): LaneState | undefined {
+  if (!heap.length) return undefined
+  const first = heap[0]
+  const last = heap.pop()!
+  if (heap.length) {
+    heap[0] = last
+    let index = 0
+    while (true) {
+      const left = index * 2 + 1
+      const right = left + 1
+      let smallest = index
+      if (left < heap.length && compareLaneState(heap[left], heap[smallest]) < 0) smallest = left
+      if (right < heap.length && compareLaneState(heap[right], heap[smallest]) < 0) smallest = right
+      if (smallest === index) break
+      ;[heap[index], heap[smallest]] = [heap[smallest], heap[index]]
+      index = smallest
+    }
+  }
+  return first
+}
+
 function resolveLabelStyle(
   item: TrajectoryItem,
   labels: Readonly<Record<string, TrajectoryLabelStyle>>,
@@ -78,7 +122,10 @@ export function normalizeTrajectory(
   const seenIds = new Set<string>()
   const parsed = items.map((item) => {
     if (!item || typeof item !== 'object') throw new Error('Trajectory items must be objects')
-    if (!item.id) throw new Error('Trajectory item id must not be empty')
+    if (typeof item.id !== 'string' || !item.id) {
+      throw new Error('Trajectory item id must be a non-empty string')
+    }
+    if (typeof item.type !== 'string') throw new Error(`Trajectory item type must be a string: ${item.id}`)
     if (seenIds.has(item.id)) throw new Error(`Duplicate trajectory item id: ${item.id}`)
     seenIds.add(item.id)
     const start = toTimestamp(item.startTime, `startTime for ${item.id}`)
@@ -95,16 +142,18 @@ export function normalizeTrajectory(
   }
   const axisStart = axis?.startTime === undefined ? undefined : toTimestamp(axis.startTime, 'axis startTime')
   const axisEnd = axis?.endTime === undefined ? undefined : toTimestamp(axis.endTime, 'axis endTime')
-  const start = axisStart ?? (parsed.length ? itemStart : (axisEnd ?? 0))
-  const end = axisEnd ?? (parsed.length ? itemEnd : (axisStart ?? 0))
+  const defaultStart = parsed.length ? itemStart : (axisEnd ?? 0)
+  const defaultEnd = parsed.length ? itemEnd : (axisStart ?? 0)
+  const start = axisStart ?? (axisEnd === undefined ? defaultStart : Math.min(defaultStart, axisEnd))
+  const end = axisEnd ?? (axisStart === undefined ? defaultEnd : Math.max(defaultEnd, axisStart))
   if (end < start) throw new Error('Trajectory axis endTime must be >= startTime')
 
   const total = end - start
   const scale = total > 0 ? total : 1
   const normalized = parsed.map(({ item, start: itemStartTime, end: itemEndTime }) => {
     const visible = itemEndTime >= start && itemStartTime <= end
-    const left = clamp((itemStartTime - start) / scale, 0, 1)
-    const right = clamp((itemEndTime - start) / scale, 0, 1)
+    const left = total > 0 ? clamp((itemStartTime - start) / scale, 0, 1) : visible ? 0.5 : 0
+    const right = total > 0 ? clamp((itemEndTime - start) / scale, 0, 1) : left
     const style = resolveLabelStyle(item, labels)
     return {
       item,
@@ -120,8 +169,9 @@ export function normalizeTrajectory(
     }
   })
 
-  const laneEnds: Array<{ end: number; zeroDuration: boolean }> = []
+  const availableLanes: LaneState[] = []
   const laneById = new Map<string, number>()
+  let laneCount = 0
   const layoutOrder = normalized
     .filter((item) => item.visible)
     .slice()
@@ -130,18 +180,20 @@ export function normalizeTrajectory(
   for (const item of layoutOrder) {
     const visibleStart = Math.max(item.start, start)
     const visibleEnd = Math.min(item.end, end)
-    const zeroDuration = item.start === item.end
-    let lane = laneEnds.findIndex(
-      (laneState) => laneState.end <= visibleStart && !(laneState.zeroDuration && laneState.end === visibleStart),
-    )
-    if (lane === -1) lane = laneEnds.length
-    laneEnds[lane] = { end: visibleEnd, zeroDuration }
+    const zeroDuration = visibleStart === visibleEnd
+    const firstAvailable = availableLanes[0]
+    const canReuse =
+      firstAvailable &&
+      (firstAvailable.end < visibleStart ||
+        (firstAvailable.end === visibleStart && !firstAvailable.zeroDuration && !zeroDuration))
+    const lane = canReuse ? popLaneState(availableLanes)!.lane : laneCount++
+    pushLaneState(availableLanes, { end: visibleEnd, lane, zeroDuration })
     laneById.set(item.item.id, lane)
   }
 
   const laidOut = normalized.map((item) => (item.visible ? { ...item, lane: laneById.get(item.item.id) ?? 0 } : item))
 
-  return { start, end, total, laneCount: laneEnds.length, items: laidOut }
+  return { start, end, total, laneCount, items: laidOut }
 }
 
 function compactNumber(value: number): string {

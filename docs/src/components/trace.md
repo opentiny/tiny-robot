@@ -214,16 +214,72 @@ trace.destroy()
 以下类型从 `@opentiny/tiny-robot/vanilla` 导出。
 
 ```ts
+type TrajectoryTime = number | Date | string
+
 interface TrajectoryItem {
-  id: string
-  type: string
-  label?: unknown
-  message: unknown
-  startTime: number | Date | string
-  endTime: number | Date | string
-  color?: string
-  textColor?: string
-  meta?: Record<string, unknown>
+  readonly id: string
+  readonly type: string
+  readonly label?: unknown
+  readonly message: unknown
+  readonly startTime: TrajectoryTime
+  readonly endTime: TrajectoryTime
+  readonly color?: string
+  readonly textColor?: string
+  readonly meta?: Record<string, unknown>
+}
+
+interface TrajectoryLabelStyle {
+  readonly text?: string
+  readonly color: string
+  readonly textColor?: string
+}
+
+interface TrajectoryAxisOptions {
+  readonly startTime?: TrajectoryTime
+  readonly endTime?: TrajectoryTime
+}
+
+type TrajectoryFormatDuration = (durationMs: number, item: TrajectoryItem) => string
+
+type TrajectoryDurationFormat = 'compact' | 'clock' | 'none'
+
+interface TrajectoryMessages {
+  readonly empty: string
+}
+
+interface TrajectoryOptions {
+  readonly container: HTMLElement
+  readonly items: readonly TrajectoryItem[]
+  readonly labels?: Readonly<Record<string, TrajectoryLabelStyle>>
+  readonly axis?: TrajectoryAxisOptions
+  readonly durationFormat?: TrajectoryDurationFormat
+  readonly formatDuration?: TrajectoryFormatDuration
+  readonly messages?: Partial<TrajectoryMessages>
+  readonly selectedId?: string | null
+  readonly onEvent?: (event: TrajectoryEvent) => void
+}
+
+type TrajectoryUpdateOptions = Partial<Omit<TrajectoryOptions, 'container' | 'items'>>
+
+type TrajectorySelectSource = 'timeline' | 'message' | 'api'
+
+type TrajectoryEvent =
+  | {
+      readonly type: 'select'
+      readonly itemId: string | null
+      readonly source: TrajectorySelectSource
+      readonly item?: TrajectoryItem
+    }
+  | { readonly type: 'update' }
+  | { readonly type: 'error'; readonly error: Error }
+
+interface TrajectoryInstance {
+  readonly setItems: (items: readonly TrajectoryItem[]) => void
+  readonly select: (id: string | null) => void
+  readonly clearSelection: () => void
+  readonly getSelectedId: () => string | null
+  readonly updateOptions: (options: TrajectoryUpdateOptions) => void
+  readonly destroy: () => void
 }
 ```
 
@@ -234,11 +290,14 @@ interface TrajectoryItem {
 | 变量名                            | 说明                 | 默认值    |
 | --------------------------------- | -------------------- | --------- |
 | `--tr-trajectory-bg`              | 组件背景颜色。       | `#ffffff` |
-| `--tr-trajectory-text`            | 主文字颜色。         | `#334155` |
-| `--tr-trajectory-muted`           | 次要文字和时长颜色。 | `#64748b` |
+| `--tr-trajectory-text`            | 主文字颜色。         | `#191919` |
+| `--tr-trajectory-muted`           | 次要文字和时长颜色。 | `#595959` |
 | `--tr-trajectory-track`           | 时间轴轨道背景。     | `#eef2f7` |
+| `--tr-trajectory-hover`           | hover 背景颜色。     | `#f8fafc` |
 | `--tr-trajectory-selected`        | 选中消息背景。       | `#eff6ff` |
 | `--tr-trajectory-selected-border` | 选中时间轴边框。     | `#93c5fd` |
+
+文字颜色默认复用项目已有的 Vanilla Theme；暗色主题下轨道、hover 和选中态也会跟随已有主题变量变化。
 
 组件会自动接入 Vanilla Theme。可以通过 `configureVanillaTheme({ colorMode: 'dark' })` 切换主题，也可以在挂载容器上覆盖上述 CSS 变量。
 
@@ -246,6 +305,8 @@ interface TrajectoryItem {
 
 - 当前版本是单轴模型；重叠记录会在同一时间轴内分层显示，不支持独立的多轴时间范围。
 - `endTime` 必须大于等于 `startTime`；相同时间点会使用最小可见宽度显示。
+- `axis` 可以只配置 `startTime` 或 `endTime`；另一侧会根据数据范围计算，数据完全位于边界外时会保留在消息列表中但不显示时间轴片段。
+- 当 `axis.startTime` 和 `axis.endTime` 相同时，相交记录会以居中的点标记显示。
 - 记录按照传入数组顺序渲染，建议开发者按时间顺序传入数据。
 - 时间轴片段颜色来自单条记录或标签类型配置；完全位于显式轴范围之外的记录只保留在消息列表中。
 - `none` 模式只隐藏时长列，不影响时间轴的时间计算。

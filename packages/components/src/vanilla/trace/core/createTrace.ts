@@ -28,10 +28,33 @@ function emitSafely(callback: TrajectoryOptions['onEvent'], event: TrajectoryEve
 
 function validateOptions(input: TrajectoryOptions): void {
   if (!input || typeof input !== 'object') throw new Error('Trajectory options must be an object')
-  if (!input.container || input.container.nodeType !== 1) {
+  if (!isHTMLElement(input.container)) {
     throw new Error('Trajectory requires an HTMLElement container')
   }
   if (!Array.isArray(input.items)) throw new Error('Trajectory items must be an array')
+  if (input.durationFormat !== undefined && !['compact', 'clock', 'none'].includes(input.durationFormat)) {
+    throw new Error('Trajectory durationFormat must be compact, clock, or none')
+  }
+  if (input.formatDuration !== undefined && typeof input.formatDuration !== 'function') {
+    throw new Error('Trajectory formatDuration must be a function')
+  }
+  if (input.onEvent !== undefined && typeof input.onEvent !== 'function') {
+    throw new Error('Trajectory onEvent must be a function')
+  }
+}
+
+export function isHTMLElement(value: unknown): value is HTMLElement {
+  if (!value || typeof value !== 'object') return false
+  const element = value as HTMLElement
+  if (element.nodeType !== 1) return false
+  const view = element.ownerDocument?.defaultView
+  return view?.HTMLElement
+    ? element instanceof view.HTMLElement
+    : element.namespaceURI === 'http://www.w3.org/1999/xhtml'
+}
+
+export function validateTraceOptions(input: TrajectoryOptions): void {
+  validateOptions(input)
 }
 
 function hasItem(items: readonly TrajectoryItem[], id: string | null): boolean {
@@ -59,7 +82,7 @@ function createModel(
 }
 
 export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
-  validateOptions(input)
+  validateTraceOptions(input)
   const document = input.container.ownerDocument
   let options: TrajectoryOptions = { ...input, items: [...input.items] }
   let items: readonly TrajectoryItem[] = [...input.items]
@@ -158,6 +181,12 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
 
     updateOptions(partial: TrajectoryUpdateOptions): void {
       if (destroyed) return
+      if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
+        const error = new Error('Trajectory update options must be an object')
+        ui.renderError(error)
+        emit({ type: 'error', error })
+        return
+      }
       const nextOptions: TrajectoryOptions = {
         ...options,
         ...partial,
@@ -170,6 +199,7 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         requestedSelectedId !== null && !hasItem(items, requestedSelectedId) ? selectedId : requestedSelectedId
       const resolvedOptions: TrajectoryOptions = { ...nextOptions, selectedId: nextSelectedId }
       try {
+        validateOptions(resolvedOptions)
         renderState(items, resolvedOptions, nextSelectedId ?? null)
         options = resolvedOptions
         selectedId = nextSelectedId ?? null
