@@ -61,6 +61,7 @@ export const SENDER_SELECTORS = {
   setTemplateSimpleBtn: '[data-testid="set-template-simple-btn"]',
   setTemplateEmptyBtn: '[data-testid="set-template-empty-btn"]',
   setTemplateMultipleBtn: '[data-testid="set-template-multiple-btn"]',
+  setTemplateMixedBtn: '[data-testid="set-template-mixed-btn"]',
   setTemplateSelectBtn: '[data-testid="set-template-select-btn"]',
   clearTemplateBtn: '[data-testid="clear-template-btn"]',
 
