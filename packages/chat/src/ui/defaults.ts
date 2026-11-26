@@ -83,6 +83,7 @@ export function createDefaultChatLabels(): ChatLabels {
     mcp: 'MCP',
     extensions: '扩展',
     mcpInstallServer: '安装',
+    mcpRetryServer: '重试',
     mcpRemoveServer: '卸载',
     welcomeTitle: 'TinyRobot AI 助手',
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
