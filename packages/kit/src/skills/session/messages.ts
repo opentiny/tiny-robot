@@ -72,11 +72,11 @@ export const projectSkillMessages = (
   sessionId: string | undefined,
   includeRequestedNames: boolean,
 ) =>
-  messages.flatMap((message): ChatMessage[] => {
+  messages.map((message): ChatMessage => {
     const skill = asRecord(message.metadata?.tinyRobotSkill)
     const hasNestedPreload = skill && 'preload' in skill
     if (!message.metadata || (!hasNestedPreload && !(legacySkillPreloadMetadataKey in message.metadata))) {
-      return [includeRequestedNames ? projectRequestedSkills(message) : message]
+      return includeRequestedNames ? projectRequestedSkills(message) : message
     }
 
     // Keep the private persistence record off the wire even when other metadata is forwarded.
@@ -87,8 +87,15 @@ export const projectSkillMessages = (
     }
     const requestMessage = { ...message, metadata }
     const preload = readPreloadedSkillResult(message)
-    if (preload && !isSkillSessionMismatch(sessionId, preload.sessionId)) {
-      return [requestMessage, { role: 'user', content: JSON.stringify(preload.result) }]
+    if (requestMessage.role === 'user' && preload && !isSkillSessionMismatch(sessionId, preload.sessionId)) {
+      const text = `\n\nSkill preload result:\n${JSON.stringify(preload.result)}`
+      return {
+        ...requestMessage,
+        content:
+          typeof requestMessage.content === 'string'
+            ? requestMessage.content + text
+            : [...requestMessage.content, { type: 'text', text }],
+      }
     }
-    return [includeRequestedNames ? projectRequestedSkills(requestMessage) : requestMessage]
+    return includeRequestedNames ? projectRequestedSkills(requestMessage) : requestMessage
   })

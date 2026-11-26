@@ -57,7 +57,10 @@ describe('session skill plugin', () => {
         async (body) => {
           if (first) {
             first = false
-            expect(body.messages.map((message) => message.role)).toEqual(['system', 'user', 'user'])
+            expect(body.messages.map((message) => message.role)).toEqual(['system', 'user'])
+            expect(body.messages.at(-1)?.content).toBe(
+              '@A question\n\nSkill preload result:\n{"skills":[{"name":"A","status":"loaded","instructions":"A instructions"}]}',
+            )
             expect(loadResults(body.messages)).toMatchObject([
               { name: 'A', status: 'loaded', instructions: 'A instructions' },
             ])
@@ -107,6 +110,45 @@ describe('session skill plugin', () => {
     },
   )
 
+  it('appends a single text item for a multipart preload without changing the stored message', async () => {
+    const input = {
+      role: 'user' as const,
+      content: [
+        { type: 'text' as const, text: 'Describe this image' },
+        { type: 'image_url' as const, image_url: { url: 'https://example.com/image.png' } },
+      ],
+      metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } },
+    }
+    const engine = sessionEngine(optionsFor(), async (body) => {
+      expect(body.messages.map(({ role }) => role)).toEqual(['system', 'user'])
+      expect(body.messages.at(-1)?.content).toEqual([
+        ...input.content,
+        {
+          type: 'text',
+          text: '\n\nSkill preload result:\n{"skills":[{"name":"A","status":"loaded","instructions":"A instructions"}]}',
+        },
+      ])
+      return reply()
+    })
+
+    await engine.send(input)
+    expect(engine.getState().messages.filter(({ role }) => role === 'user')).toEqual([
+      {
+        ...input,
+        metadata: {
+          tinyRobotSkill: {
+            requestedSkillNames: ['A'],
+            preload: {
+              version: 1,
+              sessionId: 'chat',
+              result: { skills: [{ name: 'A', status: 'loaded', instructions: 'A instructions' }] },
+            },
+          },
+        },
+      },
+    ])
+  })
+
   it('allows direct answers and reports explicit failures alongside successful requests', async () => {
     const bodies: MessageRequestBody[] = []
     const engine = sessionEngine(optionsFor(), async (body) => {
@@ -128,7 +170,7 @@ describe('session skill plugin', () => {
 
   it('preloads mentions on each user message submitted in one batch', async () => {
     const engine = sessionEngine(optionsFor({ deduplication: 'context' }), async (body) => {
-      expect(body.messages.map(({ role }) => role)).toEqual(['system', 'user', 'user', 'user', 'user'])
+      expect(body.messages.map(({ role }) => role)).toEqual(['system', 'user', 'user'])
       expect(loadResults(body.messages)).toMatchObject([
         { name: 'A', status: 'loaded', instructions: 'A instructions' },
         { name: 'A', status: 'already_loaded' },

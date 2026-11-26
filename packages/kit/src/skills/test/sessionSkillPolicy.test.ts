@@ -157,7 +157,7 @@ describe('session skill execution policy', () => {
       optionsFor(),
       async (body) => {
         expect(body.messages.map((message) => message.role)).toEqual(
-          disabled ? ['user', 'user'] : ['system', 'user', 'user', 'assistant', 'user', 'user'],
+          disabled ? ['user'] : ['system', 'user', 'assistant', 'user'],
         )
         expect(loadResults(body.messages)).toMatchObject(
           disabled ? [{ name: 'A', instructions: 'A instructions' }] : [{ name: 'A' }, { name: 'B' }],

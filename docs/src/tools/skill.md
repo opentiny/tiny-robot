@@ -24,10 +24,10 @@ Kit 提供两条接入路径：新会话使用 `scope: 'session'`，由插件保
 
 每次比较前点「新对话」，选中 `@weather`，再选择对应的「@ 指定方式」并发送。
 
-| 方式                      | 在本轮请求中观察什么                                                                                                                         |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 直接加载正文（`preload`） | Kit 在首次请求前加载正文。展开「查看本轮模型请求」，可以看到追加的加载结果。展开「查看 Kit 消息」，可以看到正文结果存于原 User 的 metadata。 |
-| 交给模型加载（`model`）   | 首次请求只附加 Skill 名称提示。第二次请求带有 `load_skills` 的 Tool 结果。                                                                   |
+| 方式                      | 在本轮请求中观察什么                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 直接加载正文（`preload`） | Kit 在首次请求前加载正文。展开「查看本轮模型请求」，可以看到加载结果附在同一条 User 消息里。展开「查看 Kit 消息」，可以看到正文结果存于原 User 的 metadata。 |
+| 交给模型加载（`model`）   | 首次请求只附加 Skill 名称提示。第二次请求带有 `load_skills` 的 Tool 结果。                                                                                   |
 
 两种方式都只在对话里显示一条用户消息。手动选择 `@weather` 时，演示会把名称一并写入消息 metadata。只在输入框里键入 `@weather` 时，按普通文本发送。
 
@@ -65,9 +65,13 @@ function describeLoadResult(result: SessionSkillLoadResult) {
 
 let loadCallId = 0
 const responseProvider: ResponseProvider = async (body) => {
-  const content = body.messages.at(-1)?.content
-  // 本例把预加载或工具加载结果放在请求的最后一条消息里。
-  const result = content?.startsWith('{"skills":') ? (JSON.parse(content) as SessionSkillLoadResult) : undefined
+  const last = body.messages.at(-1)
+  const text = typeof last?.content === 'string' ? last.content : ''
+  // 本例只有纯文本。预加载结果附在 User 文本末尾，工具结果单独放在 Tool 消息里。
+  const marker = '\n\nSkill preload result:\n'
+  const index = text.lastIndexOf(marker)
+  const json = last?.role === 'tool' ? text : index >= 0 ? text.slice(index + marker.length) : ''
+  const result = json.startsWith('{"skills":') ? (JSON.parse(json) as SessionSkillLoadResult) : undefined
   return {
     id: 'skill-demo',
     object: 'chat.completion',
@@ -141,12 +145,12 @@ await chat.send({
 
 | 值                | 模型接收什么                                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `preload`（默认） | 首次请求前读取正文，结果由 Kit 写入原 User 的 `metadata.tinyRobotSkill.preload`。发给模型时在请求副本里展开为一条独立的 User 上下文消息。  |
+| `preload`（默认） | 首次请求前读取正文，结果由 Kit 写入原 User 的 `metadata.tinyRobotSkill.preload`。发给模型时把加载结果附在同一条 User 消息的请求副本中。    |
 | `model`           | 在原 User 消息的请求副本中附加指定名称，例如 `User-requested Skills: ["weather"].`。模型可以调用 `load_skills`，正文随 Tool 结果进入历史。 |
 
 两种方式都保留原 User 消息内容。用 `send(...messages)` 批量发送时，每条带 `requestedSkillNames` 的 User 消息都会单独处理。模型也可以自动加载其他 Skill。`model` 模式由模型决定是否调用工具，`deduplication` 在实际加载时生效。切换方式时重新创建插件实例。只在普通文本中输入 `@weather` 时，按普通文本发送。
 
-`preload` 在模型请求里会产生相邻的两条 User 消息。选择加载方式前，先确认模型服务接受这种请求结构。`model` 模式在同一条 User 消息中附加名称，工具停用时仍保留名称提示，恢复工具后模型可继续读取正文。
+在 `preload` 的请求副本中，纯文本保持 `string`，加载结果追加在文本末尾。图文消息保留原有内容项和顺序，再追加一项 `text`。结果以 `Skill preload result:` 标记并携带 JSON。`model` 模式在同一条 User 消息中附加名称，工具停用时仍保留名称提示，恢复工具后模型可继续读取正文。
 
 预加载或工具读取时，无法解析的 Skill 会作为失败结果交给模型，其他指定项继续处理。Kit 不提供文本 `@` 解析器，也不新增全局手动/自动选择开关。
 

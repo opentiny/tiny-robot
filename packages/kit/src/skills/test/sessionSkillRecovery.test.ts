@@ -47,7 +47,11 @@ describe('session skill recovery', () => {
   it.each(['none', 'context'] as const)(
     'restores messages and handles repeated loads with %s',
     async (deduplication) => {
-      const original = sessionEngine(optionsFor({ deduplication }), async () => reply())
+      let firstRequest: ChatMessage[] = []
+      const original = sessionEngine(optionsFor({ deduplication }), async (body) => {
+        firstRequest = structuredClone(body.messages)
+        return reply()
+      })
       await original.send({ role: 'user', content: '@A', metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } })
       const saved = JSON.parse(JSON.stringify(original.getState().messages))
       let next = 0
@@ -55,6 +59,7 @@ describe('session skill recovery', () => {
         optionsFor({ deduplication }),
         async (body) => {
           if (next++ === 0) {
+            expect(body.messages.slice(0, firstRequest.length)).toEqual(firstRequest)
             expect(loadResults(body.messages).map((item: { status: string }) => item.status)).toEqual(['loaded'])
             return reply('', [requestTool('load_skills', { skillNames: ['A'] })])
           }
@@ -151,7 +156,10 @@ describe('session skill recovery', () => {
     const restored = sessionEngine(
       optionsFor({ sessionId: undefined, explicitSkillLoading: 'model' }),
       async (body) => {
-        expect(body.messages.find((message) => message.content === '@A')).toBeDefined()
+        expect(body.messages.filter(({ role }) => role === 'user').map(({ content }) => content)).toEqual([
+          expect.stringMatching(/^@A\n\nSkill preload result:\n/),
+          'continue',
+        ])
         expect(loadResults(body.messages)).toMatchObject([{ name: 'A', status: 'loaded' }])
         return reply()
       },

@@ -153,10 +153,22 @@ const completion = (content: string, tool?: { name: MockToolName; arguments: str
 
 const callTool = (name: MockToolName, args: object) => completion('', { name, arguments: JSON.stringify(args) })
 
-const readResult = (content: ChatMessage['content'] | undefined): ToolResult | undefined => {
-  if (typeof content !== 'string') return
+const readResult = (message?: ChatMessage): ToolResult | undefined => {
+  const content = message?.content
+  const item = Array.isArray(content) ? content.at(-1) : undefined
+  const text = typeof content === 'string' ? content : item?.type === 'text' ? item.text : undefined
+  if (!text) return
+  const preloadMarker = '\n\nSkill preload result:\n'
+  const preloadIndex = text.lastIndexOf(preloadMarker)
+  const json =
+    message?.role === 'tool'
+      ? text
+      : message?.role === 'user' && preloadIndex >= 0
+        ? text.slice(preloadIndex + preloadMarker.length)
+        : undefined
+  if (!json) return
   try {
-    const result: unknown = JSON.parse(content)
+    const result: unknown = JSON.parse(json)
     if (result && typeof result === 'object') return result as ToolResult
   } catch {
     // Most messages contain plain text.
@@ -233,7 +245,7 @@ const responseProvider: ResponseProvider = (body, signal) => {
           .findLast((message) => message.tool_calls?.some((call) => call.id === last.tool_call_id))
           ?.tool_calls?.find((call) => call.id === last.tool_call_id)?.function.name
       : undefined
-  const result = readResult(last?.content)
+  const result = readResult(last)
   requests.value = [
     ...requests.value,
     {

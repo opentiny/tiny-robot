@@ -64,7 +64,8 @@ export const loadResults = (messages: ChatMessage[]) =>
   messages.flatMap((message) => {
     if (typeof message.content !== 'string') return []
     try {
-      return JSON.parse(message.content).skills ?? []
+      const result = message.content.split('\n\nSkill preload result:\n').at(-1)!
+      return JSON.parse(result).skills ?? []
     } catch {
       return []
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { skillPlugin, toolPlugin, useMessage } from '../../index'
 import { isSkillContextMessage } from '../../skills/session/protocol'
+import { loadResults } from '../../skills/test/sessionTestUtils'
 import { mockSequentialResponseProvider } from './mockResponseProvider'
 
 describe('vue session skill entrypoint', () => {
@@ -89,8 +90,8 @@ describe('vue session skill entrypoint', () => {
           {
             content: 'done',
             onRequest: (body) => {
-              expect(body.messages.map((message) => message.role)).toEqual(['system', 'user', 'user'])
-              expect(String(body.messages[2].content)).toContain('A instructions')
+              expect(body.messages.map((message) => message.role)).toEqual(['system', 'user'])
+              expect(body.messages[1].content).toEqual(expect.stringContaining('A instructions'))
               expect(body.messages[1].metadata).toEqual({ tinyRobotSkill: { requestedSkillNames: ['A'] } })
             },
           },
@@ -118,8 +119,9 @@ describe('vue session skill entrypoint', () => {
           {
             content: 'restored',
             onRequest: (body) => {
-              const last = JSON.parse(String(body.messages.at(-1)?.content))
-              expect(last.skills[0].status).toBe(deduplication === 'none' ? 'loaded' : 'already_loaded')
+              expect(loadResults(body.messages.slice(-1))).toMatchObject([
+                { status: deduplication === 'none' ? 'loaded' : 'already_loaded' },
+              ])
               expect(body.messages.filter((message) => message.role === 'system')).toHaveLength(1)
             },
           },
