@@ -46,9 +46,10 @@ pnpm run start:mock
 
 ## 初始化与运行
 
-首次使用时，先安装 TinyPro 初始化工具，再运行 `tiny init pro` 创建前端项目。工具已安装则直接执行初始化命令：
+首次使用时，先安装提供 `tiny` 命令的 Tiny CLI；已安装 Tiny CLI 的用户可以跳过此步。然后安装 TinyPro 初始化工具并运行 `tiny init pro` 创建前端项目：
 
 ```bash
+npm install -g @opentiny/cli
 tiny install @opentiny/tiny-toolkit-pro
 tiny init pro
 ```
