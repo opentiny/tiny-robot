@@ -61,6 +61,7 @@
     "lint": "eslint src",
     "pretest": "node scripts/download-skill-fixtures.mjs",
     "test": "vitest run",
+    "test:types": "vitest run -c vitest.types.config.ts",
     "test:watch": "vitest"
   },
   "author": "",
