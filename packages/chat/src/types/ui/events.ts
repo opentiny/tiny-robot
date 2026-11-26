@@ -66,6 +66,7 @@ export interface ChatMcpAddServerPayload {
 export interface ChatMcpCreateServerPayload {
   readonly source: McpExtensionFormMode
   readonly config: McpExtensionFormValue
+  readonly serverId?: string
 }
 
 export interface ChatMcpRemoveServerPayload {

@@ -1,46 +1,58 @@
 import { toolPlugin, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
+import type {
+  McpToolCallTool as ChatToolCallTool,
+  McpToolDefinition as ChatMcpToolDefinition,
+  McpToolListTools as ChatToolListTools,
+} from '@opentiny/tiny-robot'
 import type { ChatRunConfig } from '../../types'
 import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../runConfig'
 
 const TOOL_SNAPSHOT_CONTEXT_KEY = '__chat_tool_snapshot'
 
-export interface ChatMcpToolDefinition {
-  serverId: string
-  id: string
-  name: string
-  originalName: string
-  description?: string
-  inputSchema?: Record<string, unknown>
+export type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools }
+
+interface ToolSnapshot {
+  runConfig?: NonNullable<ChatRunConfig['mcp']>
+  tools: readonly ChatMcpToolDefinition[]
 }
 
-export type ChatToolListTools = (
-  serverIds: readonly string[],
-  toolIds: Readonly<Record<string, readonly string[]>>,
-) => Promise<readonly ChatMcpToolDefinition[]>
+interface CreateMcpToolPluginOptions {
+  refresh?: (serverIds: readonly string[]) => Promise<void> | void
+  resolveRunConfig?: (runConfig: ChatRunConfig | undefined) => ChatRunConfig | undefined
+}
 
-export type ChatToolCallTool = (serverId: string, toolName: string, args: Record<string, unknown>) => Promise<unknown>
-
-function resolveToolCall(name: string, toolRunConfig: NonNullable<ChatRunConfig['mcp']>) {
-  for (const serverId of toolRunConfig.serverIds) {
-    const toolId = toolRunConfig.toolIds[serverId]?.find((candidate) => `${serverId}__${candidate}` === name)
-
-    if (toolId) {
-      return { serverId, toolId }
-    }
+function readToolSnapshot(value: unknown, fallbackRunConfig?: ChatRunConfig): ToolSnapshot | undefined {
+  if (Array.isArray(value)) {
+    return { runConfig: fallbackRunConfig?.mcp, tools: value as ChatMcpToolDefinition[] }
   }
 
-  return null
+  if (value && typeof value === 'object' && 'tools' in value && Array.isArray((value as { tools?: unknown }).tools)) {
+    return value as ToolSnapshot
+  }
+
+  return undefined
 }
 
-export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: ChatToolCallTool): UseMessagePlugin {
+export function createMcpToolPlugin(
+  listTools: ChatToolListTools,
+  callTool: ChatToolCallTool,
+  options: CreateMcpToolPluginOptions = {},
+): UseMessagePlugin {
   return toolPlugin({
     getTools: async ({ customContext, setCustomContext }) => {
-      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
-      const toolRunConfig = runConfig?.mcp
+      const storedRunConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
+      const initialRunConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
+      const requestedServerIds = initialRunConfig?.mcp?.serverIds ?? storedRunConfig?.mcp?.serverIds ?? []
 
-      if (!toolRunConfig) {
+      if (requestedServerIds.length === 0) {
         return []
       }
+
+      await options.refresh?.(requestedServerIds)
+
+      const runConfig = options.resolveRunConfig?.(storedRunConfig) ?? storedRunConfig
+      const toolRunConfig = runConfig?.mcp
+      if (!toolRunConfig) return []
 
       const serverWithoutToolSelection = toolRunConfig.serverIds.find(
         (serverId) => !Object.prototype.hasOwnProperty.call(toolRunConfig.toolIds, serverId),
@@ -50,14 +62,18 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
         throw new Error(`Tool selection is missing for this turn: ${serverWithoutToolSelection}`)
       }
 
-      let tools = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
-
-      if (!Array.isArray(tools)) {
-        tools = (await listTools(toolRunConfig.serverIds, toolRunConfig.toolIds)).map((tool) => ({ ...tool }))
-        setCustomContext({
-          [TOOL_SNAPSHOT_CONTEXT_KEY]: tools,
-        })
-      }
+      const tools = (await listTools(toolRunConfig.serverIds, toolRunConfig.toolIds)).map((tool) => ({ ...tool }))
+      setCustomContext({
+        [TOOL_SNAPSHOT_CONTEXT_KEY]: {
+          runConfig: {
+            serverIds: [...toolRunConfig.serverIds],
+            toolIds: Object.fromEntries(
+              Object.entries(toolRunConfig.toolIds).map(([serverId, toolIds]) => [serverId, [...toolIds]]),
+            ),
+          },
+          tools,
+        } satisfies ToolSnapshot,
+      })
 
       return tools.map((tool) => ({
         type: 'function',
@@ -70,12 +86,17 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
     },
 
     callTool: async (toolCall, { customContext }) => {
-      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
-      const toolRunConfig = runConfig?.mcp
+      const storedRunConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
       const rawName = toolCall.function?.name ?? ''
-      const resolvedTool = toolRunConfig ? resolveToolCall(rawName, toolRunConfig) : null
-      const toolSnapshot = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
-      const exposedTool = Array.isArray(toolSnapshot) ? toolSnapshot.find((tool) => tool.name === rawName) : undefined
+      const snapshot = readToolSnapshot(customContext[TOOL_SNAPSHOT_CONTEXT_KEY], storedRunConfig)
+      const toolRunConfig = snapshot?.runConfig
+      const exposedTool = snapshot?.tools.find((tool) => tool.name === rawName)
+      const resolvedTool =
+        toolRunConfig && exposedTool && toolRunConfig.serverIds.includes(exposedTool.serverId)
+          ? toolRunConfig.toolIds[exposedTool.serverId]?.includes(exposedTool.id)
+            ? { serverId: exposedTool.serverId, toolId: exposedTool.id }
+            : null
+          : null
 
       if (
         !toolRunConfig ||

@@ -40,7 +40,7 @@ export function areEnabledMcpToolsReady(mcp?: ChatMcpRuntime) {
   )
 }
 
-function resolveMcpRunConfig(mcp?: ChatMcpRuntime): ChatMcpRunConfig | undefined {
+export function resolveMcpRunConfig(mcp?: ChatMcpRuntime): ChatMcpRunConfig | undefined {
   if (mcp === undefined) {
     return undefined
   }
