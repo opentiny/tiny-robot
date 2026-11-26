@@ -134,50 +134,107 @@ describe('toolPlugin', () => {
   })
 
   it.each([
-    { availability: 'available', result: 'business result', status: 'success' },
-    { availability: 'disabled', result: 'Tool call disabled.', status: 'denied' },
-    { availability: 'removed', result: 'Tool call disabled.', status: 'denied' },
-  ])('restores anonymous business tool approval when $availability', async ({ availability, result, status }) => {
-    const values = new Map<string, string>()
-    vi.stubGlobal('localStorage', {
-      getItem: (key: string) => values.get(key) ?? null,
-      setItem: (key: string, value: string) => values.set(key, value),
-      removeItem: (key: string) => values.delete(key),
-    })
-    try {
-      const provider = (disabled = false): MessageEnginePlugin & ToolProvider => ({
-        disabled,
-        provideTools: () => [
-          { tool: { type: 'function', function: { name: 'lookup' } }, handler: () => 'business result' },
-        ],
-      })
-      const first = createTestMessageEngine({
+    { appearsAfterPause: false, result: 'original result', status: 'success' },
+    { appearsAfterPause: true, result: 'Tool call disabled.', status: 'denied' },
+  ])(
+    'checks the original anonymous provider in the same engine (replacement: $appearsAfterPause)',
+    async ({ appearsAfterPause, result, status }) => {
+      let replaced = false
+      const replacementHandler = vi.fn(() => 'replacement result')
+      const engine = createTestMessageEngine({
         plugins: [
           ...silentDefaultPlugins,
           toolPlugin({ getTools: () => [], callTool: () => 'fallback', shouldPauseToolCall: () => true }),
-          provider(),
+          {
+            disabled: () => replaced,
+            provideTools: () => [
+              { tool: { type: 'function', function: { name: 'lookup' } }, handler: () => 'original result' },
+            ],
+          } satisfies MessageEnginePlugin & ToolProvider,
+          {
+            disabled: () => !replaced,
+            provideTools: () => [
+              { tool: { type: 'function', function: { name: 'lookup' } }, handler: replacementHandler },
+            ],
+          } satisfies MessageEnginePlugin & ToolProvider,
         ],
-        responseProvider: async () => toolCallCompletion('approval'),
+        responseProvider: async (body) =>
+          body.messages.at(-1)?.role === 'user' ? toolCallCompletion('approval') : assistantCompletion('done'),
       })
-      await first.sendMessage('lookup')
-      const restored = createTestMessageEngine({
-        initialMessages: JSON.parse(JSON.stringify(first.getState().messages)),
-        plugins: [
-          ...silentDefaultPlugins,
-          toolPlugin({ getTools: () => [], callTool: () => 'fallback' }),
-          ...(availability === 'removed' ? [] : [provider(availability === 'disabled')]),
-        ],
-        responseProvider: async () => assistantCompletion('done'),
-      })
-      await restored.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'approval' })
-      expect(restored.getState().messages.find((message) => message.role === 'tool')?.content).toBe(result)
-      expect(restored.getState().messages.find((message) => message.role === 'assistant')?.state).toMatchObject({
+      await engine.sendMessage('lookup')
+      expect(engine.getState().requestState).toBe('paused')
+      replaced = appearsAfterPause
+
+      await engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'approval' })
+
+      expect(engine.getState().messages.find((message) => message.role === 'tool')?.content).toBe(result)
+      expect(engine.getState().messages.find((message) => message.role === 'assistant')?.state).toMatchObject({
         toolCall: { approval: { status } },
       })
-    } finally {
-      vi.unstubAllGlobals()
-    }
-  })
+      expect(replacementHandler).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    { name: undefined, availability: 'replaced', result: 'Tool call disabled.', status: 'denied' },
+    { name: undefined, availability: 'reused', result: 'Tool call disabled.', status: 'denied' },
+    { name: undefined, availability: 'disabled', result: 'Tool call disabled.', status: 'denied' },
+    { name: undefined, availability: 'removed', result: 'Tool call disabled.', status: 'denied' },
+    { name: 'business', availability: 'available', result: 'restored result', status: 'success' },
+  ])(
+    'checks the provider on restoring approval ($name, $availability)',
+    async ({ name, availability, result, status }) => {
+      const values = new Map<string, string>()
+      vi.stubGlobal('localStorage', {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      })
+      try {
+        const provider = (handler: RuntimeTool['handler'], disabled = false): MessageEnginePlugin & ToolProvider => ({
+          name,
+          disabled,
+          provideTools: () => [{ tool: { type: 'function', function: { name: 'lookup' } }, handler }],
+        })
+        const restoredHandler = vi.fn(() => 'restored result')
+        const approvalPlugin = toolPlugin({
+          getTools: () => [],
+          callTool: () => 'fallback',
+          shouldPauseToolCall: () => true,
+        })
+        const originalProvider = provider(availability === 'reused' ? restoredHandler : () => 'original result')
+        const first = createTestMessageEngine({
+          plugins: [...silentDefaultPlugins, approvalPlugin, originalProvider],
+          responseProvider: async () => toolCallCompletion('approval'),
+        })
+        await first.sendMessage('lookup')
+        const restoredProviders =
+          availability === 'removed'
+            ? []
+            : [availability === 'reused' ? originalProvider : provider(restoredHandler, availability === 'disabled')]
+        const restored = createTestMessageEngine({
+          initialMessages: JSON.parse(JSON.stringify(first.getState().messages)),
+          plugins: [
+            ...silentDefaultPlugins,
+            availability === 'reused' ? approvalPlugin : toolPlugin({ getTools: () => [], callTool: () => 'fallback' }),
+            ...restoredProviders,
+          ],
+          responseProvider: async () => assistantCompletion('done'),
+        })
+        expect(restored.getState().requestState).toBe('paused')
+        await restored.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'approval' })
+        expect(restored.getState().messages.find((message) => message.role === 'tool')?.content).toBe(result)
+        expect(restored.getState().messages.find((message) => message.role === 'assistant')?.state).toMatchObject({
+          toolCall: { approval: { status } },
+        })
+        if (status === 'denied') {
+          expect(restoredHandler).not.toHaveBeenCalled()
+        }
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    },
+  )
 
   it('denies a provider disabled during tool preparation instead of executing its cached handler', async () => {
     let disabled = false

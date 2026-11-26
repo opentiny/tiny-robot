@@ -525,7 +525,7 @@ export const toolPlugin = (
     toolSourceMap: Map<string, ToolSource>
   }
 
-  let currentToolResolution: ResolvedTools | undefined
+  let currentToolResolution: (ResolvedTools & Pick<BasePluginContext, 'getState'>) | undefined
   let toolRoundCount = 0
   let toolLoopMode: 'normal' | 'closing' = 'normal'
 
@@ -671,20 +671,20 @@ export const toolPlugin = (
       | undefined
     const source = stored?.source ?? contextWithToolMessage.toolSource
     const currentSource = contextWithToolMessage.toolSource
+    // Only the original in-memory tool resolution can identify an anonymous provider.
+    const originalSource =
+      functionToolCall && currentToolResolution?.getState === contextWithToolMessage.getState
+        ? currentToolResolution.toolSourceMap.get(functionToolCall.function.name)
+        : undefined
     const provider =
       source.type === 'toolProvider'
         ? source.pluginName
           ? contextWithToolMessage.plugins.find((plugin) => plugin.name === source.pluginName)
-          : currentSource.type === 'toolProvider' && !currentSource.pluginName
-            ? sourceOwners.get(currentSource)
-            : undefined
+          : originalSource && sourceOwners.get(originalSource)
         : undefined
     const sourceChanged =
-      stored &&
-      (source.type !== currentSource.type ||
-        (source.type === 'toolProvider' &&
-          currentSource.type === 'toolProvider' &&
-          sourceOwners.get(currentSource) !== provider))
+      source.type !== currentSource.type ||
+      (source.type === 'toolProvider' && sourceOwners.get(currentSource) !== provider)
     const toolDisabled =
       typeof restOptions.disabled === 'function' ? restOptions.disabled(contextWithToolMessage) : restOptions.disabled
     if (
@@ -1131,7 +1131,7 @@ export const toolPlugin = (
           toolSourceMap: new Map(),
         }
       }
-      currentToolResolution = resolvedTools
+      currentToolResolution = { ...resolvedTools, getState: context.getState }
       const { tools } = resolvedTools
       if (tools && tools.length > 0) {
         requestBody.tools = existingTools.length ? [...existingTools, ...tools] : tools
