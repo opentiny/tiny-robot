@@ -58,6 +58,7 @@ tiny init pro
 
 ```bash
 npx @opentiny/tiny-robot-cli add chat
+pnpm add @mcp-b/webmcp-polyfill
 pnpm install
 ```
 
