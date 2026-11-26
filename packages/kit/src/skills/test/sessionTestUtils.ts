@@ -60,7 +60,7 @@ export const sessionEngine = (
     ],
   })
 
-export const loadResults = (messages: ChatMessage[]) =>
+export const loadResults = (messages: readonly { content?: unknown }[]) =>
   messages.flatMap((message) => {
     if (typeof message.content !== 'string') return []
     try {

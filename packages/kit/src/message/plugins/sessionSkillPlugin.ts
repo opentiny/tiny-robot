@@ -1,4 +1,5 @@
-import type { BasePluginContext, MessageEnginePlugin } from '../types'
+import type { BasePluginContext, MessageEnginePlugin, MessageRequestBody } from '../types'
+import { projectRequestWhenDisabled, type RequestProjectionPlugin } from '../core/requestProjection'
 import type { ToolProvider } from './toolPlugin'
 import type { SessionSkillPluginOptions } from './skillPlugin.types'
 import { makeAbortable } from '../utils'
@@ -74,10 +75,14 @@ export const createSessionSkillPlugin = (options: SessionSkillPluginOptions): Me
     !(typeof hooks.disabled === 'function' ? hooks.disabled(context) : hooks.disabled)
   const canDiscover = (context: BasePluginContext) => toolsEnabled(context) && skillEnabled(context)
   const modelLoadsSkills = explicitSkillLoading === 'model'
+  const projectRequest = (requestBody: MessageRequestBody) => {
+    requestBody.messages = projectSkillMessages(requestBody.messages, sessionId, modelLoadsSkills)
+  }
 
-  return {
+  const plugin: RequestProjectionPlugin & ToolProvider = {
     ...hooks,
     name: 'skill',
+    [projectRequestWhenDisabled]: projectRequest,
     onInit(context) {
       readSessionCatalog(context.initialMessages, sessionId)
       return hooks.onInit?.(context)
@@ -111,12 +116,12 @@ export const createSessionSkillPlugin = (options: SessionSkillPluginOptions): Me
     },
     async onBeforeRequest(context) {
       if (modelLoadsSkills) await hooks.onBeforeRequest?.(context)
-      // These hints are part of the request history even when the current model cannot call tools.
-      context.requestBody.messages = projectSkillMessages(context.requestBody.messages, sessionId, modelLoadsSkills)
+      projectRequest(context.requestBody)
       if (!modelLoadsSkills) await hooks.onBeforeRequest?.(context)
     },
     provideTools(context) {
       return toolsEnabled(context) ? tools : []
     },
   }
+  return plugin
 }

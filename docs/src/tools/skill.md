@@ -150,7 +150,7 @@ await chat.send({
 
 两种方式都保留原 User 消息内容。用 `send(...messages)` 批量发送时，每条带 `requestedSkillNames` 的 User 消息都会单独处理。模型也可以自动加载其他 Skill。`model` 模式由模型决定是否调用工具，`deduplication` 在实际加载时生效。切换方式时重新创建插件实例。只在普通文本中输入 `@weather` 时，按普通文本发送。
 
-在 `preload` 的请求副本中，纯文本保持 `string`，加载结果追加在文本末尾。图文消息保留原有内容项和顺序，再追加一项 `text`。结果以 `Skill preload result:` 标记并携带 JSON。`model` 模式在同一条 User 消息中附加名称，工具停用时仍保留名称提示，恢复工具后模型可继续读取正文。
+在 `preload` 的请求副本中，纯文本保持 `string`，加载结果追加在文本末尾。图文消息保留原有内容项和顺序，再追加一项 `text`。结果以 `Skill preload result:` 标记并携带 JSON。`model` 模式在同一条 User 消息中附加名称。工具停用时仍发送名称提示，模型可沿用历史正文，读取新正文需要工具可用。
 
 预加载或工具读取时，无法解析的 Skill 会作为失败结果交给模型，其他指定项继续处理。Kit 不提供文本 `@` 解析器，也不新增全局手动/自动选择开关。
 
@@ -223,7 +223,7 @@ Core 的 `SkillPluginOptions` 和 Vue 的 `UseMessageSkillPluginOptions` 保留�
 
 迁移时删除原有正文投影和 `injectSkillInstructions`。会话配置不能混用 `mode`、`selection`、`skills`、`skillNames`、`preferredSkillNames`、`maxSelectedSkills` 或旧 Skill 专用 hook。新会话可采用新流程；旧会话继续按轮使用，旧应用快照不自动转为新协议。
 
-缺少 `toolPlugin` 时发送前报配置错误。切换到不支持工具调用的模型时，可在 `toolPlugin.disabled` 中禁用本轮工具。Kit 会保留已有目录，跳过新目录的建立与工具执行，`preload` 继续生效。用 Skill 插件自身的 `disabled` 可以停用它的当轮准备和请求投影。
+缺少 `toolPlugin` 时发送前报配置错误。接入不支持工具调用的模型时，可用 `toolPlugin.disabled` 停用工具，并选择 `preload` 加载用户指定的正文。工具停用时，Kit 保留已有目录，跳过新目录的建立与工具执行。Skill 插件自身的 `disabled` 会停止当轮的目录准备、新的预加载、Skill 工具和应用 hook。请求仍沿用历史正文，`model` 模式继续按消息中的显式指定生成名称提示。
 
 ## 按轮接入（兼容旧 API） {#skill-turn}
 

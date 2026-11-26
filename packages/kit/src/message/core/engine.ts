@@ -26,6 +26,7 @@ import {
   createTurnId,
 } from '../utils'
 import { runRequestBodyFinalizers } from './requestFinalizers'
+import { projectRequestWhenDisabled, type RequestProjectionPlugin } from './requestProjection'
 import { isChatTokenUsage } from '../usage'
 
 type ChatCompletionChoice = ChatResponseChoice
@@ -538,8 +539,16 @@ export const createMessageEngine = (
 
     // Allow plugins to modify request body (e.g., add tools)
     const baseContext = getBaseContext(abortSignal)
-    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
-      await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
+    const requestPlugins = plugins.map((plugin: RequestProjectionPlugin) => ({
+      plugin,
+      disabled: isPluginDisabled(plugin, baseContext),
+    }))
+    for (const { plugin, disabled } of requestPlugins) {
+      if (disabled) {
+        plugin[projectRequestWhenDisabled]?.(requestBody)
+      } else {
+        await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
+      }
     }
     runRequestBodyFinalizers(requestBody)
 

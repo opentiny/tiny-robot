@@ -1,10 +1,64 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { skillPlugin, toolPlugin, useMessage } from '../../index'
 import { isSkillContextMessage } from '../../skills/session/protocol'
 import { loadResults } from '../../skills/test/sessionTestUtils'
 import { mockSequentialResponseProvider } from './mockResponseProvider'
+import type { MessageRequestBody } from './types'
 
 describe('vue session skill entrypoint', () => {
+  it.each(['preload', 'model'] as const)(
+    'keeps %s request history stable while the Skill plugin is disabled',
+    async (explicitSkillLoading) => {
+      let disabled = false
+      const onBeforeRequest = vi.fn()
+      const requests: MessageRequestBody[] = []
+      const chat = useMessage({
+        requestMessageFieldsExclude: ['loading', 'state'],
+        plugins: [
+          toolPlugin({ getTools: () => [], callTool: () => 'unknown' }),
+          skillPlugin({
+            scope: 'session',
+            explicitSkillLoading,
+            disabled: () => disabled,
+            getSkillCandidates: () => [{ name: 'A', description: 'A summary' }],
+            getSkillByName: (name) => ({ name, description: `${name} summary`, instructions: `${name} instructions` }),
+            onBeforeRequest,
+          }),
+        ],
+        responseProvider: mockSequentialResponseProvider(
+          ['first answer', 'second answer', 'third answer'].map((content) => ({
+            content,
+            onRequest(body) {
+              requests.push(JSON.parse(JSON.stringify(body)))
+            },
+          })),
+        ),
+      })
+
+      await chat.send({ role: 'user', content: '@A q1', metadata: { tinyRobotSkill: { requestedSkillNames: ['A'] } } })
+      disabled = true
+      await chat.send({ role: 'user', content: '@B q2', metadata: { tinyRobotSkill: { requestedSkillNames: ['B'] } } })
+      disabled = false
+      await chat.sendMessage('q3')
+
+      const [first, second, third] = requests
+      expect(first.messages.at(-1)).toMatchObject({
+        role: 'user',
+        content: expect.stringContaining(
+          explicitSkillLoading === 'preload' ? 'A instructions' : 'User-requested Skills: ["A"].',
+        ),
+      })
+      expect(first.messages.at(-1)?.metadata).toEqual({ tinyRobotSkill: { requestedSkillNames: ['A'] } })
+      expect(second.messages.at(-1)?.content).toBe(
+        explicitSkillLoading === 'preload' ? '@B q2' : '@B q2\n\nUser-requested Skills: ["B"].',
+      )
+      expect(second.tools ?? []).toEqual([])
+      expect(second.messages.slice(0, first.messages.length)).toEqual(first.messages)
+      expect(third.messages.slice(0, second.messages.length)).toEqual(second.messages)
+      expect(onBeforeRequest).toHaveBeenCalledTimes(2)
+    },
+  )
+
   it('supports model-loaded mentions without adding a user bubble', async () => {
     const chat = useMessage({
       plugins: [
