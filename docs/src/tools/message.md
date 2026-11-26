@@ -84,7 +84,7 @@ outline: [1, 4]
 
 #### 修改请求参数
 
-`onBeforeRequest` 在消息清洗和请求发送前运行，可以注入 system 消息、模型参数或工具定义。修改只影响当次 `requestBody`；示例把结果显示在页面内，便于验证。
+`onBeforeRequest` 在消息清洗和请求发送前运行，可以注入 system 消息、模型参数或工具定义。`requestBody.messages` 中的消息、普通对象和数组都是当次请求的副本，改写 `content` 或其中的内容项不会写回历史。示例会显示收到的请求，便于验证。
 
 <demo
   vue="../../demos/tools/message/OnBeforeRequest.vue"

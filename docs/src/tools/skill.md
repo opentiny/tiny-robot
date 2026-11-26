@@ -229,7 +229,7 @@ Core 的 `SkillPluginOptions` 和 Vue 的 `UseMessageSkillPluginOptions` 保留�
 
 ### 修改包含 Skill 上下文的请求 {#session-skill-before-request}
 
-在会话级 `skillPlugin` 上配置 `onBeforeRequest` 时，`explicitSkillLoading` 决定回调看到的消息内容。
+会话级 `skillPlugin` 的 `onBeforeRequest` 可以修改[当次请求副本](./message.md#修改请求参数)。`explicitSkillLoading` 决定回调在哪一步看到消息。
 
 - `preload` 先展开已保存的预加载结果，再调用应用回调。回调可以检查含正文的 User 请求副本。
 - `model` 先调用应用回调，再按请求副本上的 Skill metadata 附加名称提示或展开已有预加载正文。回调改写 `content` 时，只要保留消息的 metadata，Kit 仍能识别显式指定。

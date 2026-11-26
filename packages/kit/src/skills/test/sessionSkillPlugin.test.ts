@@ -263,4 +263,63 @@ describe('session skill plugin', () => {
     )
     await restored.sendMessage('Continue')
   })
+
+  it.each(['preload', 'model'] as const)(
+    'isolates in-place %s request edits from Core message history',
+    async (explicitSkillLoading) => {
+      const requests: MessageRequestBody[] = []
+      const engine = sessionEngine(
+        optionsFor({
+          explicitSkillLoading,
+          onBeforeRequest({ requestBody }) {
+            for (const message of requestBody.messages) {
+              if (message.role !== 'user') continue
+              if (typeof message.content === 'string') {
+                message.content = `[request] ${message.content}`
+              } else {
+                for (const item of message.content) {
+                  if (item.type === 'text') item.text = `[request] ${item.text}`
+                }
+              }
+              const tags = message.metadata?.tags
+              if (Array.isArray(tags)) tags.push('request')
+            }
+          },
+        }),
+        async (body) => {
+          requests.push(structuredClone(body))
+          return reply()
+        },
+      )
+
+      await engine.send({
+        role: 'user',
+        content: '@A question',
+        metadata: { tags: ['history'], tinyRobotSkill: { requestedSkillNames: ['A'] } },
+      })
+      await engine.send({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this image' },
+          { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+        ],
+      })
+
+      const users = engine.getState().messages.filter((message) => message.role === 'user')
+      expect(users.map(({ content }) => content)).toEqual([
+        '@A question',
+        [
+          { type: 'text', text: 'Describe this image' },
+          { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+        ],
+      ])
+      expect(users[0].metadata?.tags).toEqual(['history'])
+      expect(requests[0].messages.at(-1)?.content).toEqual(expect.stringMatching(/^\[request\] @A question/))
+      expect(requests[1].messages.at(-1)?.content).toEqual([
+        { type: 'text', text: '[request] Describe this image' },
+        { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+      ])
+      expect(requests[1].messages.slice(0, requests[0].messages.length)).toEqual(requests[0].messages)
+    },
+  )
 })

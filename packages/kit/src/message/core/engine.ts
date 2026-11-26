@@ -19,6 +19,7 @@ import {
 import {
   AbortError,
   combineDeltaData,
+  copyMessageData,
   makeAbortable,
   normalizeToAsyncGenerator,
   omitFields,
@@ -535,7 +536,7 @@ export const createMessageEngine = (
     // executeRequest 可能递归调用，需要再设置 requesting 状态
     setRequestState('processing', 'requesting')
 
-    const requestBody: MessageRequestBody = { messages: getState().messages }
+    const requestBody: MessageRequestBody = { messages: copyMessageData(getState().messages) }
 
     // Allow plugins to modify request body (e.g., add tools)
     const baseContext = getBaseContext(abortSignal)
