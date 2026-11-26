@@ -33,10 +33,15 @@ pageClass: demo-container-page-bg
 
 ### 配置与体验
 
-此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。查看[完整示例项目][project]，准备 Node.js 22 LTS 和 pnpm 10，然后按以下步骤启动：
+此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。准备 Node.js 22 LTS 和 pnpm 10，克隆[完整示例项目][project]后，在项目根目录运行：
 
-1. 在 GitHub 仓库页选择 **Code → Download ZIP** 下载并解压完整仓库，进入 `docs/examples/genui-sdk-integration` 目录，运行 `pnpm install`。
-2. 复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key：阿里云百炼使用 `VITE_ALIYUN_DASHSCOPE_KEY`，DeepSeek 使用 `VITE_DEEPSEEK_API_KEY`，然后运行 `pnpm dev`。
+```bash
+git clone --branch demo/trchat-genui-sdk-integration --single-branch https://github.com/SonyLeo/tiny-robot.git tiny-robot-genui-sdk-integration
+cd tiny-robot-genui-sdk-integration
+pnpm install
+```
+
+复制 `.env.example` 为 `.env.local`，填写所选模型的 API Key：阿里云百炼使用 `VITE_ALIYUN_DASHSCOPE_KEY`，DeepSeek 使用 `VITE_DEEPSEEK_API_KEY`，再运行 `pnpm dev`。
 
 模型配置位于 [`src/App.vue`][app] 的 `modelProviders`；请选择账号可用且服务端支持的模型名称。修改环境变量后需重启 Vite。
 
@@ -242,10 +247,10 @@ sender: {
 - [GenUI SDK](https://github.com/opentiny/genui-sdk)。
 - [独立 Schema 渲染器](https://github.com/opentiny/tiny-schema-renderer)。
 
-[project]: ../../examples/genui-sdk-integration/README.md
-[app]: ../../examples/genui-sdk-integration/src/App.vue
-[prompt]: ../../examples/genui-sdk-integration/src/genui/prompt.ts
-[schema]: ../../examples/genui-sdk-integration/src/genui/schema.ts
-[schema-content]: ../../examples/genui-sdk-integration/src/components/SchemaContent.vue
-[context]: ../../examples/genui-sdk-integration/src/genui/context.ts
-[renderer-types]: ../../examples/genui-sdk-integration/src/schema-renderer.d.ts
+[project]: https://github.com/SonyLeo/tiny-robot/tree/demo/trchat-genui-sdk-integration
+[app]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/App.vue
+[prompt]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/prompt.ts
+[schema]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/schema.ts
+[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/components/SchemaContent.vue
+[context]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/context.ts
+[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/schema-renderer.d.ts
