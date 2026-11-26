@@ -38,6 +38,8 @@ import {
   DefaultActionButtons,
 } from './sender-actions'
 
+export * from './mcp'
+
 // ============================================
 // 组件类型导出
 // ============================================
