@@ -5,6 +5,7 @@ import { createNativeMessageAdapter } from '../../../kit/src/message/adapters/na
 import { createMessageEngine } from '../../../kit/src/message/core/engine'
 import type {
   ChatConversation,
+  ChatMcpRuntime,
   ChatRequestState,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
@@ -331,6 +332,86 @@ describe('useChatRuntimeAdapter error channels', () => {
     })
     expect(adapter.data.value.request).not.toHaveProperty('error')
     expect(adapter.data.value.bubble?.messages).toEqual(messages)
+  })
+})
+
+describe('useChatRuntimeAdapter MCP registration', () => {
+  it('exposes pending registration and reports duplicate submissions', async () => {
+    let release!: (serverId: string) => void
+    const registration = new Promise<string>((resolve) => {
+      release = resolve
+    })
+    const errors: ChatRuntimeActionErrorPayload[] = []
+    const current = createRuntime('conversation-1')
+    const mcp: ChatMcpRuntime = {
+      servers: ref([]),
+      tools: ref({}),
+      registerMcpServer: () => registration,
+      addServer: () => undefined,
+      removeServer: () => undefined,
+      setServerEnabled: () => undefined,
+      setToolEnabled: () => undefined,
+    }
+    current.runtime.composer.mcp = mcp
+    const adapter = useChatRuntimeAdapter({
+      runtime: current.runtime,
+      onActionError: (payload) => errors.push(payload),
+    })
+    const config = { name: 'Dynamic', type: 'streamableHttp' as const, url: 'https://mcp.example.com' }
+
+    const first = adapter.registerMcpServer(config)
+    await vi.waitFor(() => expect(adapter.data.value.mcp?.registering).toBe(true))
+    await expect(adapter.registerMcpServer(config)).resolves.toBeUndefined()
+    expect(errors).toEqual([expect.objectContaining({ action: 'register-mcp-server', payload: { config } })])
+
+    release('dynamic-server')
+    await expect(first).resolves.toBe('dynamic-server')
+    expect(adapter.data.value.mcp?.registering).toBe(false)
+  })
+
+  it('keeps a newer registration pending when an older runtime registration completes later', async () => {
+    let releaseFirst!: (serverId: string) => void
+    let releaseSecond!: (serverId: string) => void
+    const firstRegistration = new Promise<string>((resolve) => {
+      releaseFirst = resolve
+    })
+    const secondRegistration = new Promise<string>((resolve) => {
+      releaseSecond = resolve
+    })
+    const first = createRuntime('first')
+    const second = createRuntime('second')
+    const mcp: ChatMcpRuntime = {
+      servers: ref([]),
+      tools: ref({}),
+      registerMcpServer: vi.fn().mockReturnValueOnce(firstRegistration).mockReturnValueOnce(secondRegistration),
+      addServer: () => undefined,
+      removeServer: () => undefined,
+      setServerEnabled: () => undefined,
+      setToolEnabled: () => undefined,
+    }
+    first.runtime.composer.mcp = mcp
+    second.runtime.composer.mcp = mcp
+    const runtime = shallowRef(first.runtime)
+    const adapter = useChatRuntimeAdapter({
+      runtime,
+      onActionError: () => undefined,
+    })
+    const config = { name: 'Dynamic', type: 'streamableHttp' as const, url: 'https://mcp.example.com' }
+
+    const firstRequest = adapter.registerMcpServer(config)
+    await vi.waitFor(() => expect(adapter.data.value.mcp?.registering).toBe(true))
+    runtime.value = second.runtime
+    runtime.value = first.runtime
+    const secondRequest = adapter.registerMcpServer(config)
+    await vi.waitFor(() => expect(adapter.data.value.mcp?.registering).toBe(true))
+
+    releaseFirst('first-server')
+    await expect(firstRequest).resolves.toBe('first-server')
+    expect(adapter.data.value.mcp?.registering).toBe(true)
+
+    releaseSecond('second-server')
+    await expect(secondRequest).resolves.toBe('second-server')
+    expect(adapter.data.value.mcp?.registering).toBe(false)
   })
 })
 
