@@ -151,23 +151,23 @@ Trace 是命令式 vanilla 组件，以下 Props 对应 `createTrace(options)` �
 const trace = createTrace(options)
 ```
 
-| 属性名           | 说明                                          | 类型                                   | 默认值       | 必填 |
-| ---------------- | --------------------------------------------- | -------------------------------------- | ------------ | ---- |
-| `container`      | 组件挂载容器。                                | `HTMLElement`                          | -            | 是   |
-| `items`          | 要展示的轨迹记录数组。                        | `readonly TrajectoryItem[]`            | -            | 是   |
-| `labels`         | 自定义标签类型、背景色和文字颜色。            | `Record<string, TrajectoryLabelStyle>` | 内置类型     | 否   |
-| `axis`           | 指定时间轴范围。                              | `TrajectoryAxisOptions`                | 自动计算     | 否   |
-| `durationFormat` | 时长显示格式，`none` 隐藏时长列。             | `'compact' \| 'clock' \| 'none'`       | `'compact'`  | 否   |
-| `formatDuration` | 自定义时长文本，`none` 时不会调用。           | `(durationMs, item) => string`         | 内置格式化   | 否   |
-| `messages`       | 空状态文案。                                  | `{ empty?: string }`                   | `'暂无轨迹'` | 否   |
-| `selectedId`     | 初始选中的记录 ID。                           | `string \| null`                       | `null`       | 否   |
-| `onEvent`        | 监听选中、更新和错误事件。                    | `(event: TrajectoryEvent) => void`     | -            | 否   |
+| 属性名           | 说明                                | 类型                                   | 默认值       | 必填 |
+| ---------------- | ----------------------------------- | -------------------------------------- | ------------ | ---- |
+| `container`      | 组件挂载容器。                      | `HTMLElement`                          | -            | 是   |
+| `items`          | 要展示的轨迹记录数组。              | `readonly TrajectoryItem[]`            | -            | 是   |
+| `labels`         | 自定义标签类型、背景色和文字颜色。  | `Record<string, TrajectoryLabelStyle>` | 内置类型     | 否   |
+| `axis`           | 指定时间轴范围。                    | `TrajectoryAxisOptions`                | 自动计算     | 否   |
+| `durationFormat` | 时长显示格式，`none` 隐藏时长列。   | `'compact' \| 'clock' \| 'none'`       | `'compact'`  | 否   |
+| `formatDuration` | 自定义时长文本，`none` 时不会调用。 | `(durationMs, item) => string`         | 内置格式化   | 否   |
+| `messages`       | 空状态文案。                        | `{ empty?: string }`                   | `'暂无轨迹'` | 否   |
+| `selectedId`     | 初始选中的记录 ID。                 | `string \| null`                       | `null`       | 否   |
+| `onEvent`        | 监听选中、更新和错误事件。          | `(event: TrajectoryEvent) => void`     | -            | 否   |
 
 ### Events
 
 | 事件名   | 触发时机                       | 回调参数                   |
 | -------- | ------------------------------ | -------------------------- |
-| `select` | 用户或 API 改变选中记录时。    | `{ itemId, source, item }` |
+| `select` | 用户激活记录，或 `select()` / `clearSelection()` 改变选中状态时。 | `{ type: 'select', itemId, source, item? }` |
 | `update` | 数据或配置更新完成时。         | `{ type: 'update' }`       |
 | `error`  | 数据校验或渲染配置发生错误时。 | `{ type: 'error', error }` |
 

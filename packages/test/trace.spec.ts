@@ -39,6 +39,51 @@ test.describe('Trace vanilla component', () => {
       .toBe('load')
   })
 
+  test('preserves keyboard focus inside a shadow root after selecting a timeline segment', async ({ page }) => {
+    await page.evaluate(() => {
+      const shadowHost = document.createElement('div')
+      shadowHost.id = 'trace-shadow-focus-test'
+      const shadowRoot = shadowHost.attachShadow({ mode: 'open' })
+      const container = document.createElement('div')
+      container.style.width = '500px'
+      shadowRoot.append(container)
+      document.body.append(shadowHost)
+      window.traceFixture.createTrace({
+        container,
+        items: [
+          { id: 'shadow-first', type: 'info', message: 'first', startTime: 0, endTime: 1 },
+          { id: 'shadow-second', type: 'success', message: 'second', startTime: 1, endTime: 2 },
+        ],
+      })
+      const first = container.querySelector<HTMLElement>('.tr-trajectory__segment')!
+      first.focus()
+    })
+
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          document
+            .querySelector('#trace-shadow-focus-test')
+            ?.shadowRoot?.activeElement?.getAttribute('data-tr-trajectory-id'),
+        ),
+      )
+      .toBe('shadow-first')
+
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          document
+            .querySelector('#trace-shadow-focus-test')
+            ?.shadowRoot?.activeElement?.getAttribute('data-tr-trajectory-id'),
+        ),
+      )
+      .toBe('shadow-second')
+
+    await page.evaluate(() => document.querySelector('#trace-shadow-focus-test')?.remove())
+  })
+
   test('supports compact, clock, none, and custom duration formats', async ({ page }) => {
     const duration = page.locator('.tr-trajectory__duration')
 
@@ -382,9 +427,9 @@ test.describe('Trace vanilla component', () => {
 
     const segments = page.locator('.tr-trajectory__segment')
     await expect(segments).toHaveCount(2)
-    await expect(segments.nth(0)).toHaveAttribute('style', /left: 50%/)
+    const leftPositions = await segments.evaluateAll((elements) => elements.map((element) => element.style.left))
+    expect(leftPositions[0]).toBe(leftPositions[1])
     await expect(segments.nth(0)).toHaveAttribute('style', /width: 4px/)
-    await expect(segments.nth(1)).toHaveAttribute('style', /left: 50%/)
     await expect(segments.nth(1)).toHaveAttribute('style', /width: 4px/)
     await expect(segments.nth(0)).toHaveAttribute('style', /transform: translateX\(-50%\)/)
     expect(await segments.nth(0).evaluate((element) => element.style.top)).not.toBe(
@@ -596,5 +641,65 @@ test.describe('Trace vanilla component', () => {
     await expect(segments.nth(0)).toHaveAttribute('aria-pressed', 'true')
     await segments.nth(1).click()
     await expect(segments.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('keeps short adjacent timeline segments independently clickable in a narrow container', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const container = document.createElement('div')
+      container.style.width = '390px'
+      document.body.append(container)
+      const instance = window.traceFixture.createTrace({
+        container,
+        items: [
+          { id: 'first', type: 'info', message: 'first', startTime: 0, endTime: 1 },
+          { id: 'second', type: 'info', message: 'second', startTime: 1, endTime: 2 },
+          { id: 'rest', type: 'info', message: 'rest', startTime: 2, endTime: 1000 },
+        ],
+      })
+      const hits: Array<{ id: string; hitId: string | null; selectedId: string | null }> = []
+      for (const id of ['first', 'second', 'rest']) {
+        const segment = container.querySelector<HTMLElement>(`[data-tr-trajectory-id="${id}"]`)
+        const rect = segment!.getBoundingClientRect()
+        const target = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        ) as HTMLElement | null
+        target?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+        hits.push({ id, hitId: target?.dataset.trTrajectoryId ?? null, selectedId: instance.getSelectedId() })
+      }
+      instance.destroy()
+      container.remove()
+      return hits
+    })
+
+    expect(result).toEqual([
+      { id: 'first', hitId: 'first', selectedId: 'first' },
+      { id: 'second', hitId: 'second', selectedId: 'second' },
+      { id: 'rest', hitId: 'rest', selectedId: 'rest' },
+    ])
+  })
+
+  test('lays out many overlapping timeline segments without losing their lanes', async ({ page }) => {
+    const count = await page.evaluate(() => {
+      const container = document.createElement('div')
+      container.style.width = '390px'
+      document.body.append(container)
+      const instance = window.traceFixture.createTrace({
+        container,
+        items: Array.from({ length: 2000 }, (_, index) => ({
+          id: `overlap-${index}`,
+          type: 'info',
+          message: 'overlap',
+          startTime: 0,
+          endTime: 1,
+        })),
+      })
+      const result = container.querySelectorAll('.tr-trajectory__segment').length
+      instance.destroy()
+      container.remove()
+      return result
+    })
+
+    expect(count).toBe(2000)
   })
 })

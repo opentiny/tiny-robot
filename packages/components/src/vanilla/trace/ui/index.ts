@@ -54,16 +54,91 @@ function renderSegment(document: Document, item: NormalizedTrajectoryItem, selec
   return segment
 }
 
+interface PixelLaneState {
+  readonly end: number
+  readonly lane: number
+}
+
+function comparePixelLane(left: PixelLaneState, right: PixelLaneState): number {
+  return left.end - right.end || left.lane - right.lane
+}
+
+function pushPixelLane(heap: PixelLaneState[], state: PixelLaneState): void {
+  heap.push(state)
+  let index = heap.length - 1
+  while (index > 0) {
+    const parent = Math.floor((index - 1) / 2)
+    if (comparePixelLane(heap[parent], heap[index]) <= 0) break
+    ;[heap[parent], heap[index]] = [heap[index], heap[parent]]
+    index = parent
+  }
+}
+
+function popPixelLane(heap: PixelLaneState[]): PixelLaneState | undefined {
+  if (!heap.length) return undefined
+  const first = heap[0]
+  const last = heap.pop()!
+  if (heap.length) {
+    heap[0] = last
+    let index = 0
+    while (true) {
+      const left = index * 2 + 1
+      const right = left + 1
+      let smallest = index
+      if (left < heap.length && comparePixelLane(heap[left], heap[smallest]) < 0) smallest = left
+      if (right < heap.length && comparePixelLane(heap[right], heap[smallest]) < 0) smallest = right
+      if (smallest === index) break
+      ;[heap[index], heap[smallest]] = [heap[smallest], heap[index]]
+      index = smallest
+    }
+  }
+  return first
+}
+
+function layoutTimelineSegments(track: HTMLElement, items: readonly NormalizedTrajectoryItem[]): number {
+  const trackWidth = track.clientWidth
+  if (!trackWidth) return Math.max(1, Math.max(...items.map((item) => item.lane + 1), 1))
+
+  const laneEnds: PixelLaneState[] = []
+  let laneCount = 0
+  const segments = new Map(
+    Array.from(track.querySelectorAll<HTMLButtonElement>('[data-tr-trajectory-source="timeline"]')).map((segment) => [
+      segment.dataset.trTrajectoryId,
+      segment,
+    ]),
+  )
+  const layoutItems = items.slice().sort((left, right) => left.start - right.start || left.end - right.end)
+  for (const item of layoutItems) {
+    const start = item.left * trackWidth
+    const width = Math.max(item.width * trackWidth, 4)
+    const visualStart = item.width > 0 ? start : start - width / 2
+    const visualEnd = visualStart + width
+    const firstAvailable = laneEnds[0]
+    const reusableLane = firstAvailable && firstAvailable.end <= visualStart ? popPixelLane(laneEnds) : undefined
+    const lane = reusableLane?.lane ?? laneCount++
+    pushPixelLane(laneEnds, { end: visualEnd, lane })
+
+    const segment = segments.get(item.item.id)
+    if (!segment) continue
+    segment.style.top = `${lane * 22}px`
+    segment.style.left = `${start}px`
+    segment.style.width = `${width}px`
+    segment.style.minWidth = '0'
+    segment.style.transform = item.width > 0 ? '' : 'translateX(-50%)'
+  }
+  return Math.max(1, laneCount)
+}
+
 function renderTimeline(document: Document, model: TrajectoryRenderModel): HTMLElement {
   const section = createElement(document, 'section', 'tr-trajectory__axis')
   section.setAttribute('aria-label', 'Trajectory timeline')
 
   const track = createElement(document, 'div', 'tr-trajectory__track')
-  const laneCount = Math.max(1, model.time.laneCount)
-  track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
   for (const item of model.time.items) {
     if (item.visible) track.append(renderSegment(document, item, item.item.id === model.selectedId))
   }
+  const laneCount = Math.max(1, model.time.laneCount)
+  track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
   section.append(track)
   return section
 }
@@ -117,8 +192,9 @@ function renderList(document: Document, model: TrajectoryRenderModel): HTMLEleme
   return list
 }
 
-function getFocusedTarget(document: Document, host: HTMLElement): { id: string; source: string } | undefined {
-  const active = document.activeElement
+function getFocusedTarget(host: HTMLElement): { id: string; source: string } | undefined {
+  const root = host.getRootNode()
+  const active = root.nodeType === 9 || root.nodeType === 11 ? (root as Document | ShadowRoot).activeElement : null
   if (!active || active.nodeType !== 1 || !host.contains(active)) return undefined
   const element = active as HTMLElement
   const id = element.dataset.trTrajectoryId
@@ -144,6 +220,18 @@ export function createTrajectoryUI(options: {
   let releaseTheme: (() => void) | undefined
   releaseTheme = bindVanillaTheme(host, options.document)
   let destroyed = false
+  let currentModel: TrajectoryRenderModel | undefined
+  let rendering = false
+  let lastTrackWidth = -1
+  const ResizeObserverConstructor = options.document.defaultView?.ResizeObserver
+  const resizeObserver = ResizeObserverConstructor
+    ? new ResizeObserverConstructor((entries) => {
+        const width = Math.round(entries[0]?.contentRect.width ?? 0)
+        if (width === lastTrackWidth) return
+        lastTrackWidth = width
+        if (currentModel && !rendering) renderModel(currentModel)
+      })
+    : undefined
 
   const handleClick = (event: MouseEvent): void => {
     if (destroyed) return
@@ -161,24 +249,45 @@ export function createTrajectoryUI(options: {
 
   host.addEventListener('click', handleClick)
 
-  const controller: TrajectoryUI = {
-    host,
-
-    render(model): void {
-      if (destroyed) return
-      const focusedTarget = getFocusedTarget(options.document, host)
+  const renderModel = (model: TrajectoryRenderModel): void => {
+    if (destroyed) return
+    rendering = true
+    try {
+      currentModel = model
+      const focusedTarget = getFocusedTarget(host)
+      resizeObserver?.disconnect()
       if (!model.time.items.length) {
         const empty = createElement(options.document, 'div', 'tr-trajectory__empty')
         setText(empty, model.messages.empty)
         host.replaceChildren(empty)
         return
       }
-      host.replaceChildren(renderTimeline(options.document, model), renderList(options.document, model))
+      const timeline = renderTimeline(options.document, model)
+      host.replaceChildren(timeline, renderList(options.document, model))
+      const track = timeline.querySelector<HTMLElement>('.tr-trajectory__track')
+      if (track) {
+        const laneCount = layoutTimelineSegments(
+          track,
+          model.time.items.filter((item) => item.visible),
+        )
+        track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
+        lastTrackWidth = Math.round(track.clientWidth)
+        resizeObserver?.observe(track)
+      }
       restoreFocus(host, focusedTarget)
-    },
+    } finally {
+      rendering = false
+    }
+  }
+
+  const controller: TrajectoryUI = {
+    host,
+    render: renderModel,
 
     renderError(error): void {
       if (destroyed) return
+      currentModel = undefined
+      resizeObserver?.disconnect()
       const message = createElement(options.document, 'div', 'tr-trajectory__error')
       setText(message, error.message)
       host.replaceChildren(message)
@@ -187,6 +296,8 @@ export function createTrajectoryUI(options: {
     destroy(): void {
       if (destroyed) return
       destroyed = true
+      currentModel = undefined
+      resizeObserver?.disconnect()
       host.removeEventListener('click', handleClick)
       releaseTheme?.()
       releaseTheme = undefined
