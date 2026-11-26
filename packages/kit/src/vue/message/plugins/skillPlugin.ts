@@ -1,6 +1,8 @@
+import type { SessionSkillPluginOptions, LegacySkillPluginOptions } from '../../../message/plugins/skillPlugin.types'
+import { validateSessionSkillOptions } from '../../../message/plugins/sessionSkillPlugin'
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillPluginOptions, SkillRequestContext, SkillSelection } from '../../../message/plugins'
+import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
 import { getSkillRequestContext, skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
@@ -9,7 +11,11 @@ import type { BasePluginContext, UseMessagePlugin } from '../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
-export type UseMessageSkillPluginOptions = UseMessagePlugin & {
+export type UseMessageLegacySkillPluginOptions = UseMessagePlugin & {
+  scope?: 'turn'
+  sessionId?: never
+  deduplication?: never
+  explicitSkillLoading?: never
   /**
    * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
    */
@@ -127,7 +133,7 @@ const resolveTopLevelSelection = (options: {
   }
 }
 
-export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePlugin => {
+const createLegacyVueSkillPlugin = (options: UseMessageLegacySkillPluginOptions): UseMessagePlugin => {
   const {
     selection,
     mode,
@@ -185,10 +191,57 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
         onSkillSelectionResolved: onSkillSelectionResolved
           ? (event, context) => onSkillSelectionResolved(event, toVueContext(context))
           : undefined,
-      } as SkillPluginOptions)
+      } as LegacySkillPluginOptions)
     },
   } as UseMessagePlugin
 }
 
 export { getSkillRequestContext }
 export type { SkillRequestContext, SkillSelection }
+
+export type UseMessageSessionSkillPluginOptions = UseMessagePlugin &
+  Omit<
+    SessionSkillPluginOptions,
+    keyof import('../../../message/types').MessageEnginePlugin | 'getSkillCandidates' | 'getSkillByName'
+  > & {
+    getSkillCandidates: (context: BasePluginContext) => MaybePromise<SkillCandidate[]>
+    getSkillByName: (name: string, context: BasePluginContext) => MaybePromise<SkillDefinition | undefined>
+  }
+
+// Keep the original object type extendable by existing application interfaces.
+export type UseMessageSkillPluginOptions = UseMessageLegacySkillPluginOptions
+
+export const skillPlugin = (
+  options: UseMessageSkillPluginOptions | UseMessageSessionSkillPluginOptions,
+): UseMessagePlugin => {
+  if (options.scope !== 'session') {
+    if (options.scope !== undefined && options.scope !== 'turn') throw new TypeError('Invalid skill scope')
+    if (
+      options.sessionId !== undefined ||
+      options.deduplication !== undefined ||
+      options.explicitSkillLoading !== undefined
+    )
+      throw new TypeError('Session skill settings require scope: session')
+    return createLegacyVueSkillPlugin(options)
+  }
+  // Validation checks only configuration shape; callbacks are adapted to Core below.
+  const { scope, sessionId, deduplication, explicitSkillLoading, getSkillCandidates, getSkillByName, ...hooks } =
+    options
+  validateSessionSkillOptions(options)
+  if (typeof getSkillCandidates !== 'function' || typeof getSkillByName !== 'function')
+    throw new TypeError('Session skills require source callbacks')
+  return {
+    name: 'skill',
+    __corePluginFactory(runtime: VueMessagePluginRuntime) {
+      return createCoreSkillPlugin({
+        ...runtime.createCorePlugin(hooks),
+        scope,
+        sessionId,
+        deduplication,
+        explicitSkillLoading,
+        getSkillCandidates: (context) => getSkillCandidates(runtime.createVueBaseContext(context)),
+        getSkillByName: (name, context) => getSkillByName(name, runtime.createVueBaseContext(context)),
+      } satisfies SessionSkillPluginOptions)
+    },
+  } as UseMessagePlugin
+}

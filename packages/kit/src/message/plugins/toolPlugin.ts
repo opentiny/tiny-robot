@@ -1,3 +1,4 @@
+import { isSkillContextMessage } from '../../skills/session/protocol'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ChatCompletionFunctionTool,
@@ -120,7 +121,7 @@ const restorePersistedTurnMessages = (messages: ChatMessage[], turnId: string, t
 
   let turnStart = assistantIndex
   for (let index = assistantIndex - 1; index >= 0; index -= 1) {
-    if (messages[index].role === 'user') {
+    if (messages[index].role === 'user' && !isSkillContextMessage(messages[index])) {
       turnStart = index
       break
     }
@@ -514,6 +515,9 @@ export const toolPlugin = (
     return typeof plugin.disabled === 'function' ? plugin.disabled(context) : Boolean(plugin.disabled)
   }
 
+  // Runtime ownership keeps anonymous providers distinct during tool collection.
+  const sourceOwners = new WeakMap<object, MessageEnginePlugin>()
+
   type ResolvedTools = {
     tools: ChatCompletionTool[]
     runtimeToolMap: Map<string, RuntimeTool>
@@ -521,7 +525,7 @@ export const toolPlugin = (
     toolSourceMap: Map<string, ToolSource>
   }
 
-  let currentToolResolution: ResolvedTools | undefined
+  let currentToolResolution: (ResolvedTools & Pick<BasePluginContext, 'getState'>) | undefined
   let toolRoundCount = 0
   let toolLoopMode: 'normal' | 'closing' = 'normal'
 
@@ -661,8 +665,45 @@ export const toolPlugin = (
     const functionToolCall = isFunctionToolCall(toolCall) ? toolCall : undefined
     const runtimeTool = functionToolCall ? runtimeToolMap.get(functionToolCall.function.name) : undefined
 
+    // Persisted approval must not turn a removed runtime tool into an application fallback.
+    const stored = toolMessage.metadata?.__tiny_robot_tool_source as
+      | { source: ToolSource; runtime: boolean }
+      | undefined
+    const source = stored?.source ?? contextWithToolMessage.toolSource
+    const currentSource = contextWithToolMessage.toolSource
+    // Only the original in-memory tool resolution can identify an anonymous provider.
+    const originalSource =
+      functionToolCall && currentToolResolution?.getState === contextWithToolMessage.getState
+        ? currentToolResolution.toolSourceMap.get(functionToolCall.function.name)
+        : undefined
+    const provider =
+      source.type === 'toolProvider'
+        ? source.pluginName
+          ? contextWithToolMessage.plugins.find((plugin) => plugin.name === source.pluginName)
+          : originalSource && sourceOwners.get(originalSource)
+        : undefined
+    const sourceChanged =
+      source.type !== currentSource.type ||
+      (source.type === 'toolProvider' && sourceOwners.get(currentSource) !== provider)
+    const toolDisabled =
+      typeof restOptions.disabled === 'function' ? restOptions.disabled(contextWithToolMessage) : restOptions.disabled
+    if (
+      toolDisabled ||
+      sourceChanged ||
+      (source.type === 'toolProvider' && (!provider || isPluginDisabled(provider, contextWithToolMessage))) ||
+      (stored?.runtime && !runtimeTool)
+    ) {
+      mutate('messages', () => {
+        toolMessage.content = 'Tool call disabled.'
+      })
+      toolCallEnd(toolCall, { ...contextWithToolMessage, toolSource: source, status: 'denied' })
+      return
+    }
+    contextWithToolMessage = { ...contextWithToolMessage, toolSource: source }
+
     toolCallStart(toolCall, contextWithToolMessage)
     try {
+      abortSignal.throwIfAborted()
       const result =
         runtimeTool && functionToolCall
           ? runtimeTool.handler(functionToolCall, contextWithToolMessage)
@@ -671,6 +712,7 @@ export const toolPlugin = (
       const iterator = normalizeToAsyncGenerator(result)
 
       for await (const chunk of iterator) {
+        abortSignal.throwIfAborted()
         mutate('messages', () => {
           if (
             (typeof chunk === 'string' && chunk.length > 0) ||
@@ -699,6 +741,7 @@ export const toolPlugin = (
         })
       }
 
+      abortSignal.throwIfAborted()
       toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'success' })
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
@@ -731,15 +774,9 @@ export const toolPlugin = (
     for (const plugin of context.plugins) {
       const toolProvider = getToolProvider(plugin)
       if (!isPluginDisabled(plugin, context) && toolProvider) {
-        providedToolItems.push(
-          ...(await toolProvider.provideTools(context)).map((item) => ({
-            item,
-            source: {
-              type: 'toolProvider' as const,
-              pluginName: plugin.name,
-            },
-          })),
-        )
+        const source: ToolSource = { type: 'toolProvider', pluginName: plugin.name || undefined }
+        sourceOwners.set(source, plugin)
+        providedToolItems.push(...(await toolProvider.provideTools(context)).map((item) => ({ item, source })))
       }
     }
 
@@ -1094,7 +1131,7 @@ export const toolPlugin = (
           toolSourceMap: new Map(),
         }
       }
-      currentToolResolution = resolvedTools
+      currentToolResolution = { ...resolvedTools, getState: context.getState }
       const { tools } = resolvedTools
       if (tools && tools.length > 0) {
         requestBody.tools = existingTools.length ? [...existingTools, ...tools] : tools
@@ -1199,6 +1236,10 @@ export const toolPlugin = (
           metadata: {
             createdAt: now,
             updatedAt: now,
+            __tiny_robot_tool_source: {
+              source: getToolSource(toolCall, toolSourceMap),
+              runtime: isFunctionToolCall(toolCall) && runtimeToolMap.has(toolCall.function.name),
+            },
           },
         })
 
