@@ -117,9 +117,7 @@ const asideClass = computed(() => [
     pointer-events: none;
     box-shadow: var(--tr-layout-panel-shadow);
     will-change: transform;
-    transition:
-      transform var(--transition-duration) var(--transition-easing),
-      visibility var(--transition-duration) var(--transition-easing);
+    transition: var(--tr-layout-aside-transition);
 
     &.tr-layout__aside--left {
       left: 0;

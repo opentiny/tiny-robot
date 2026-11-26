@@ -282,6 +282,9 @@ defineExpose({
   --tr-layout-aside-body-transition:
     width var(--transition-duration) var(--transition-easing),
     transform var(--transition-duration) var(--transition-easing);
+  --tr-layout-aside-transition:
+    transform var(--transition-duration) var(--transition-easing),
+    visibility var(--transition-duration) var(--transition-easing);
 
   position: relative;
   box-sizing: border-box;
@@ -309,6 +312,12 @@ defineExpose({
 
     cursor: col-resize;
     transition: none;
+  }
+
+  &--mode-changing {
+    --tr-layout-body-transition: none;
+    --tr-layout-aside-body-transition: none;
+    --tr-layout-aside-transition: none;
   }
 
   &--left-dock&--left-expanded {

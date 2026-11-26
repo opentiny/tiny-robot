@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useElementSize } from '@vueuse/core'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
 import { provideLayoutContext } from './composables/useLayoutContext'
@@ -172,6 +172,30 @@ watch(isLeftDrawerCovered, (covered) => {
   if (covered) setDrawerOpen(rightPanel, leftPanel, true, hasLeftAside.value)
 })
 
+const isAsideModeChanging = ref(false)
+let modeChangeFrame = 0
+
+watch(
+  [leftPanel.isDrawer, rightPanel.isDrawer],
+  ([leftIsDrawer, rightIsDrawer], [previousLeftIsDrawer, previousRightIsDrawer]) => {
+    if (leftIsDrawer === previousLeftIsDrawer && rightIsDrawer === previousRightIsDrawer) return
+
+    isAsideModeChanging.value = true
+    if (modeChangeFrame) window.cancelAnimationFrame(modeChangeFrame)
+    modeChangeFrame = window.requestAnimationFrame(() => {
+      modeChangeFrame = window.requestAnimationFrame(() => {
+        modeChangeFrame = 0
+        isAsideModeChanging.value = false
+      })
+    })
+  },
+  { flush: 'sync' },
+)
+
+onBeforeUnmount(() => {
+  if (modeChangeFrame) window.cancelAnimationFrame(modeChangeFrame)
+})
+
 const surfaceClass = computed(() => ({
   'tr-layout--left-dock': hasLeftAside.value && leftPanel.isDock.value,
   'tr-layout--left-drawer': hasLeftAside.value && leftPanel.isDrawer.value,
@@ -181,6 +205,7 @@ const surfaceClass = computed(() => ({
   'tr-layout--right-drawer': hasRightAside.value && rightPanel.isDrawer.value,
   'tr-layout--right-expanded': hasRightAside.value && rightPanel.isOpen.value,
   'tr-layout--right-rail': hasRightAside.value && rightPanel.isRail.value,
+  'tr-layout--mode-changing': isAsideModeChanging.value,
   'tr-layout--resizing': isAsideResizing.value,
 }))
 
