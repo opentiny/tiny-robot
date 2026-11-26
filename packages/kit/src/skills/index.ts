@@ -23,3 +23,11 @@ export type {
 } from './storage'
 export type { SkillCandidate, SkillDefinition, SkillResourceDescriptor } from './types'
 export { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
+
+export { hasSkillInstructions, isSkillContextMessage } from './session/protocol'
+export type {
+  SkillDeduplication,
+  SessionSkillLoadResult,
+  SessionSkillLoadItem,
+  SkillRequestMetadata,
+} from './session/types'
