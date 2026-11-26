@@ -6,6 +6,8 @@ outline: [1, 3]
 
 `McpExtensionForm` 收集一条 MCP 连接配置，支持表单和 JSON 两种输入方式；`McpExtensionDetail` 展示已加载的 MCP 信息与工具开关。两者都是可嵌入页面或弹窗的内容组件，适合在应用处理扩展管理操作后分别呈现添加和详情界面。
 
+MCP Extension 组件主要服务于基于 URL、Transport 和请求头配置的外部 MCP Server 管理。WebMCP 是 MCP 的另一种工具来源，但不使用这套连接表单；它通过 MCP Adapter 接入公共工具管理契约。公共接口和生命周期说明见本文的 [MCP Adapter 公共 API](#mcp-adapter-公共-api)，完整接入示例见 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
+
 ## 概览
 
 ### 适用场景
@@ -272,3 +274,146 @@ interface McpExtensionStorageOptions<TBusiness = never> {
 ```
 
 `version` 是非负整数，用于比较同一身份的定义。`options` 中的 `toolPolicy` 是组件提供的基础字段；`business` 由应用定义，读取时必须提供 `parseBusinessOptions` 校验。`storage` 与 `adapter` 只能二选一。异步适配器以完整文档读写；同一实例会串行执行修改，跨客户端并发控制由实际后端负责。Web Storage 会把请求头以普通 JSON 文本保存；有凭据时应选择合适的应用存储。
+
+## MCP Adapter 公共 API
+
+MCP Adapter 是 `@opentiny/tiny-robot` 提供的公共工具接入契约。WebMCP、外部 MCP 和业务自定义工具源都可以通过 Adapter 接入统一的 Server/Tool 状态、发现、调用和生命周期管理。
+
+完整接入示例见 [MCP Adapter 与 WebMCP](/best-practices/webmcp-chat-integration)。
+
+### 最小用法
+
+```ts
+import { createWebMcpAdapter } from '@opentiny/tiny-robot'
+
+const adapter = createWebMcpAdapter({
+  server: {
+    id: 'page-webmcp',
+    name: '页面工具',
+  },
+})
+
+const server = adapter.runtime.servers.value[0]
+const tools = adapter.runtime.tools.value['page-webmcp'] ?? []
+
+if (server?.enabled) {
+  const definitions = await adapter.listTools(['page-webmcp'], {
+    'page-webmcp': tools.filter((tool) => tool.enabled).map((tool) => tool.id),
+  })
+  const definition = definitions[0]
+  if (definition) await adapter.callTool(definition.serverId, definition.originalName, {})
+}
+
+await adapter.runtime.setToolEnabled('page-webmcp', 'get-page-info', false)
+await adapter.close?.()
+```
+
+状态操作统一使用 `await`，这样可以同时兼容同步完成和异步返回的 Adapter 实现。
+
+### `createWebMcpAdapter`
+
+```ts
+interface CreateWebMcpAdapterOptions {
+  server?: WebMcpServerOptions
+  source?: WebMcpToolSource
+  getContext?: () => WebMcpContext | undefined
+}
+```
+
+`source` 和 `getContext` 只能选择一个：
+
+- 未传 `source` 时，Adapter 通过 `getContext` 读取 WebMCP Context；省略 `getContext` 时读取 `document.modelContext`；
+- 传入 `source` 时，业务负责实现工具发现、调用和变化订阅；
+- 同时传入 `source` 和 `getContext` 会抛出配置错误；
+- Adapter 不负责初始化 WebMCP Polyfill，也不负责注册页面工具。
+
+### `McpAdapter`
+
+```ts
+interface McpAdapter {
+  runtime: McpRuntime
+  listTools: (
+    serverIds: readonly string[],
+    toolIds: Readonly<Record<string, readonly string[]>>,
+  ) => Promise<readonly McpToolDefinition[]>
+  callTool: (serverId: string, toolName: string, args: Record<string, unknown>) => Promise<unknown>
+  /** @deprecated Use `runtime.registerMcpServer` instead. */
+  registerMcpServer?: (config: McpServerRegistrationConfig) => Promise<string>
+  refreshServer?: (serverId: string) => void | Promise<void>
+  refresh?: () => void | Promise<void>
+  close?: () => void | Promise<void>
+}
+```
+
+`listTools` 返回的 `name` 是提供给模型的名称，`originalName` 是工具源中的原始名称。工具名称过长或包含模型 API 不支持的字符时，Adapter 会生成稳定别名，调用时仍使用 `originalName`。
+
+`refreshServer` 用于请求范围内的单 Server 刷新。一个 Adapter 管理多个 Server 时应实现它；没有该方法时，组合 Adapter 会退回调用该 Adapter 的整体 `refresh`。
+
+### `McpRuntime`
+
+```ts
+interface McpRuntime {
+  servers: { readonly value: readonly McpServerInfo[] }
+  tools: { readonly value: McpToolState }
+  registerMcpServer?: (config: McpServerRegistrationConfig) => Promise<string>
+  addServer(id: string): void | Promise<void>
+  removeServer(id: string): void | Promise<void>
+  setServerEnabled(id: string, enabled: boolean): void | Promise<void>
+  setToolEnabled(serverId: string, toolId: string, enabled: boolean): void | Promise<void>
+}
+```
+
+动态 URL Server 的注册参数如下：
+
+```ts
+interface McpServerRegistrationConfig {
+  name: string
+  description?: string
+  type: 'sse' | 'streamableHttp'
+  url: string
+  headers?: Record<string, string>
+  thumbnail?: string | null
+}
+```
+
+`runtime.registerMcpServer` 是动态注册 URL 型 MCP Server 的正式入口。Adapter 顶层的 `registerMcpServer` 仅为旧代码保留，已标记为弃用。
+
+#### Server 和 Tool 状态
+
+- `servers.value` 是当前 Adapter 管理的 Server；`installed: false` 表示已卸载但仍可通过 `addServer(id)` 重新安装；
+- `enabled: false` 时，Server 不参与模型工具发现和调用；
+- `loading` 表示正在发现或连接工具；`error` 表示最近一次发现失败；
+- `tools.value[serverId]` 是该 Server 当前已发现的工具及其启用状态。
+
+#### 生命周期操作
+
+- `removeServer(id)` 卸载 Server、清空工具并停止相关监听；它不会注销应用侧已注册的 WebMCP 工具；
+- `addServer(id)` 重新安装并发现工具；
+- `setServerEnabled` 和 `setToolEnabled` 的返回值可能是同步 `void`，也可能是 Promise，调用方应使用 `await`；
+- `close()` 释放连接和监听。页面卸载时，应用还应注销 SDK 工具，例如调用对应 `AbortController.abort()`。
+
+### `createCompositeMcpAdapter`
+
+```ts
+const composite = createCompositeMcpAdapter({
+  adapters: [webmcpAdapter, businessAdapter],
+})
+
+await composite.addAdapter(otherAdapter)
+await composite.removeAdapter(otherAdapter)
+await composite.close()
+```
+
+组合 Adapter 会按 Server ID 路由工具发现、调用和状态操作。`removeAdapter(adapter)` 按 Adapter 实例移除，并调用该实例的 `close()`；它不依赖当前 Server 列表，因此也适用于暂时没有 Server 的 Adapter。
+
+组合 Adapter 的 `registrationAdapter` 用于指定动态 URL Server 的注册归属；如果未指定，Chat Runtime 会选择提供 `runtime.registerMcpServer` 的 Adapter。注册归属 Adapter 被移除或组合关闭后，注册请求会被拒绝。
+
+### 组件、Kit 与 Chat 的接入方式
+
+| 场景              | 接入方式                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| 组件 + Kit        | 读取 `adapter.runtime`，用 `toolPlugin` 提供 `getTools/callTool`，组件负责展示和触发状态操作。           |
+| Chat              | 将 Adapter 放入 `useChatRuntime({ mcp: { adapters: [adapter] } })`，Chat 负责会话、模型请求和 MCP 面板。 |
+| WebMCP + 外部 MCP | 使用 `mcp: { servers: externalServers, adapters: [webmcpAdapter] }`。                                    |
+
+页面工具注册、权限确认、认证、业务副作用和持久化始终由应用负责。

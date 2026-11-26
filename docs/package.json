@@ -17,6 +17,7 @@
     "monaco-editor": "^0.57.0"
   },
   "dependencies": {
+    "@opentiny/next-sdk": "0.4.11",
     "@opentiny/tiny-robot": "workspace:^",
     "@opentiny/tiny-robot-chat": "workspace:^",
     "@opentiny/tiny-robot-kit": "workspace:^",

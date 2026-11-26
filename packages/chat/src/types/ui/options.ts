@@ -99,6 +99,7 @@ export interface ChatLabels {
   mcp: string
   extensions: string
   mcpInstallServer: string
+  mcpRetryServer: string
   mcpRemoveServer: string
   welcomeTitle: string
   welcomeDescription: string

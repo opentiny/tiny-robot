@@ -69,6 +69,7 @@ export interface ChatModelOptionView {
 }
 
 export interface ChatMcpView {
+  readonly registering?: boolean
   readonly servers?: readonly ChatMcpServerView[]
   readonly tools?: ChatMcpToolMap
 }

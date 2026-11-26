@@ -19,6 +19,7 @@
     "test:report": "playwright show-report"
   },
   "dependencies": {
+    "@opentiny/next-sdk": "0.4.11",
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@opentiny/vue": "^3.20.0",

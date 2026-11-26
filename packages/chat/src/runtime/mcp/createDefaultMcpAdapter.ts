@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { Client } from '@modelcontextprotocol/sdk/client'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import type { McpServerRegistrationConfig } from '@opentiny/tiny-robot'
 import type { ChatMcpRuntime, ChatMcpServerInfo, ChatMcpToolInfo, ChatMcpToolState } from '../../types'
 import type { ChatMcpServerConfig, ChatMcpServers } from './types'
 import type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools } from '../plugins/mcpToolPlugin'
@@ -14,6 +16,7 @@ interface ToolSnapshot extends ChatMcpToolDefinition {
 
 interface ServerState extends ChatMcpServerInfo {
   config: ChatMcpServerConfig
+  dynamic?: boolean
 }
 
 interface DiscoveryTask {
@@ -41,7 +44,7 @@ function normalizeTool(
   return {
     serverId,
     id: originalName,
-    name: `${serverId}__${originalName}`,
+    name: createToolName(serverId, originalName),
     originalName,
     description: tool.description,
     inputSchema:
@@ -49,6 +52,22 @@ function normalizeTool(
         ? (tool.inputSchema as Record<string, unknown>)
         : { type: 'object', properties: {} },
   }
+}
+
+function createToolName(serverId: string, originalName: string) {
+  const directName = `${serverId}__${originalName}`
+  if (directName.length <= 64 && /^[A-Za-z0-9_-]+$/.test(directName)) return directName
+
+  let hash = 2166136261
+  for (const character of `${serverId}\0${originalName}`) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  const digest = (hash >>> 0).toString(36)
+  const prefix = `mcp_${digest}_`
+  const readableName = originalName.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64 - prefix.length)
+  return `${prefix}${readableName}`
 }
 
 function resolveServerUrl(serverId: string, baseUrl: string): URL {
@@ -63,14 +82,85 @@ function resolveServerUrl(serverId: string, baseUrl: string): URL {
   }
 }
 
+function normalizeHeaders(headers?: Record<string, string>) {
+  return Object.entries(headers ?? {})
+    .map(([name, value]) => [name.trim().toLowerCase(), value] as const)
+    .sort(([left], [right]) => left.localeCompare(right))
+}
+
+function normalizeConfigUrl(baseUrl: string) {
+  const value = baseUrl.trim()
+  try {
+    const origin = globalThis.location?.origin
+    return (origin ? new URL(value, origin) : new URL(value)).href
+  } catch {
+    return value.replace(/\/+$/, '') || '/'
+  }
+}
+
+function getConfigKey(config: ChatMcpServerConfig) {
+  return JSON.stringify([
+    config.type ?? 'streamableHttp',
+    normalizeConfigUrl(config.baseUrl),
+    normalizeHeaders(config.headers),
+  ])
+}
+
+function normalizeServerConfig(config: ChatMcpServerConfig): ChatMcpServerConfig {
+  return {
+    ...config,
+    type: config.type ?? 'streamableHttp',
+  }
+}
+
+function createServerId(configById: Map<string, ChatMcpServerConfig>) {
+  const randomId = globalThis.crypto?.randomUUID?.()
+  const base = randomId ? `mcp-${randomId}` : `mcp-${Date.now().toString(36)}`
+  let id = base
+  let suffix = 1
+
+  while (configById.has(id)) {
+    id = `${base}-${suffix++}`
+  }
+
+  return id
+}
+
+function toServerConfig(id: string, value: McpServerRegistrationConfig): ChatMcpServerConfig {
+  const name = value.name.trim()
+  const baseUrl = value.url.trim()
+
+  if (!name) throw new Error('MCP server name is required.')
+  if (!baseUrl) throw new Error('MCP server URL is required.')
+  if (value.type !== 'sse' && value.type !== 'streamableHttp')
+    throw new Error(`Unsupported MCP transport: ${value.type}`)
+  if (value.headers && Object.keys(value.headers).some((name) => !name.trim())) {
+    throw new Error('MCP request header names cannot be empty.')
+  }
+
+  resolveServerUrl(id, baseUrl)
+
+  return normalizeServerConfig({
+    id,
+    name,
+    baseUrl,
+    type: value.type,
+    installed: true,
+    description: value.description?.trim() || undefined,
+    icon: value.thumbnail ?? undefined,
+    headers: value.headers ? { ...value.headers } : undefined,
+  })
+}
+
 export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   const configById = new Map<string, ChatMcpServerConfig>()
-  for (const config of serverConfigs) {
+  const normalizedConfigs = serverConfigs.map(normalizeServerConfig)
+  for (const config of normalizedConfigs) {
     if (configById.has(config.id)) throw new Error(`Duplicate MCP server id: ${config.id}`)
     configById.set(config.id, config)
   }
   const serverStates = ref<ServerState[]>(
-    serverConfigs.map((config) => ({
+    normalizedConfigs.map((config) => ({
       id: config.id,
       name: config.name,
       description: config.description,
@@ -112,14 +202,21 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     }
   }
 
+  function createTransport(serverId: string, config: ChatMcpServerConfig) {
+    const url = resolveServerUrl(serverId, config.baseUrl)
+    const options = { requestInit: { headers: config.headers } }
+
+    return (config.type ?? 'streamableHttp') === 'sse'
+      ? new SSEClientTransport(url, options)
+      : new StreamableHTTPClientTransport(url, options)
+  }
+
   async function withClient<T>(serverId: string, task: (client: Client) => Promise<T>) {
     const config = configById.get(serverId)
     if (!config) throw new Error(`Unknown MCP server: ${serverId}`)
     config.validate?.(serverId)
     const client = new Client({ name: `tiny-robot-chat-${serverId}`, version: '1.0.0' })
-    const transport = new StreamableHTTPClientTransport(resolveServerUrl(serverId, config.baseUrl), {
-      requestInit: { headers: config.headers },
-    })
+    const transport = createTransport(serverId, config)
     const timeout = config.timeout ?? DEFAULT_TIMEOUT
 
     try {
@@ -203,11 +300,46 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     }
   }
 
+  async function registerMcpServer(value: McpServerRegistrationConfig) {
+    const id = createServerId(configById)
+    const config = toServerConfig(id, value)
+
+    if ([...configById.values()].some((item) => getConfigKey(item) === getConfigKey(config))) {
+      throw new Error('An MCP server with the same transport, URL, and headers is already registered.')
+    }
+
+    const server: ServerState = {
+      id,
+      name: config.name,
+      description: config.description,
+      installed: true,
+      enabled: true,
+      loading: true,
+      metadata: config.icon ? { icon: config.icon } : undefined,
+      config,
+      dynamic: true,
+    }
+
+    configById.set(id, config)
+    serverStates.value = [...serverStates.value, server]
+
+    try {
+      await loadTools(id, true)
+    } catch {
+      // Keep the registered server in the runtime so the user can retry it.
+    }
+
+    return id
+  }
+
   const runtime: ChatMcpRuntime = {
-    servers: computed(() => serverStates.value.map(({ config: _config, ...server }) => ({ ...server }))),
+    servers: computed(() =>
+      serverStates.value.map(({ config: _config, dynamic: _dynamic, ...server }) => ({ ...server })),
+    ),
     tools: computed<ChatMcpToolState>(() =>
       Object.fromEntries(Object.entries(tools.value).map(([id, items]) => [id, items.map((item) => ({ ...item }))])),
     ),
+    registerMcpServer,
     async addServer(serverId) {
       const server = getServer(serverId)
       server.installed = true
@@ -226,6 +358,10 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
       server.loading = undefined
       server.error = undefined
       clearServer(serverId)
+      if (server.dynamic) {
+        configById.delete(serverId)
+        serverStates.value = serverStates.value.filter((item) => item !== server)
+      }
     },
     async setServerEnabled(serverId, enabled) {
       const server = getServer(serverId)
@@ -271,9 +407,11 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   const listTools: ChatToolListTools = async (serverIds, selectedToolIds) => {
     const result: ToolSnapshot[] = []
     for (const serverId of serverIds) {
+      const server = getServer(serverId)
       if (!Object.prototype.hasOwnProperty.call(selectedToolIds, serverId)) {
         throw new Error(`MCP tool selection is missing for this turn: ${serverId}`)
       }
+      if (!server.installed || !server.enabled) continue
       const serverDefinitions = definitions.get(serverId) ?? (await discover(serverId))
       const selectedIds = selectedToolIds[serverId]
       if (selectedIds.length === 0) continue
@@ -285,8 +423,19 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     return result
   }
 
-  const callTool: ChatToolCallTool = (serverId, originalName, args) =>
-    withClient(serverId, (client) => client.callTool({ name: originalName, arguments: args }))
+  const callTool: ChatToolCallTool = async (serverId, originalName, args) => {
+    const server = getServer(serverId)
+    if (!server.installed || !server.enabled) throw new Error(`MCP server is not enabled: ${serverId}`)
+    return withClient(serverId, (client) => client.callTool({ name: originalName, arguments: args }))
+  }
 
-  return { runtime, listTools, callTool }
+  return {
+    runtime,
+    listTools,
+    callTool,
+    registerMcpServer,
+    async refreshServer(serverId: string) {
+      await loadTools(serverId, true)
+    },
+  }
 }

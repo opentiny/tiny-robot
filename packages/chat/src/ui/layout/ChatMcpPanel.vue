@@ -14,7 +14,7 @@ import {
 } from '@opentiny/tiny-robot'
 import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
 import type { ChatExtensionSlotProps, ChatLabels, ChatMcpView } from '../../types'
-import { createChatMcpManagerTab } from './chatMcpManager'
+import { createChatMcpManagerTab, getChatMcpServerDescription } from './chatMcpManager'
 
 const props = defineProps<{
   mcp?: ChatMcpView
@@ -84,6 +84,7 @@ watch(
 )
 
 function openAddForm() {
+  if (props.mcp?.registering) return
   formValue.value = { name: '', type: 'sse', url: '' }
   view.value = 'add'
 }
@@ -121,6 +122,9 @@ function handleAction(event: ExtensionManagerActionEvent) {
         emit('updateServerEnabled', { id: server.id, enabled: event.action.checked })
       }
       break
+    case 'retry':
+      if (server.installed && server.error) emit('updateServerEnabled', { id: server.id, enabled: true })
+      break
   }
 }
 
@@ -145,6 +149,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
   <div class="chat-mcp-panel">
     <slot v-if="extensionOverlayOpen" name="extension-overlay" :active-tab-id="activeTabId" />
     <template v-else-if="view === 'list'">
+      <p v-if="props.mcp?.registering" class="chat-mcp-panel__status" role="status">正在添加 MCP 服务…</p>
       <div class="chat-mcp-panel__manager">
         <TrExtensionManager
           v-model:active-tab="activeTabId"
@@ -161,6 +166,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
               v-if="activeTabId === CHAT_MCP_TAB_ID"
               type="button"
               class="chat-mcp-panel__action chat-mcp-panel__add"
+              :disabled="Boolean(props.mcp?.registering)"
               @click="openAddForm"
             >
               <IconPlus class="chat-mcp-panel__action-icon" aria-hidden="true" />
@@ -214,7 +220,7 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
           v-else-if="selectedServer"
           :id="selectedServer.id"
           :name="selectedServer.name"
-          :description="selectedServer.description"
+          :description="getChatMcpServerDescription(selectedServer)"
           :tools="selectedTools"
           @tool-toggle="handleToolToggle"
         />
@@ -250,6 +256,12 @@ function handleToolToggle(event: { toolId: string; enabled: boolean }) {
   --tr-extension-card-grid-card-min-width: 240px;
 
   width: 100%;
+}
+
+.chat-mcp-panel__status {
+  margin: 0;
+  color: var(--tr-text-secondary);
+  font-size: 13px;
 }
 
 .chat-mcp-panel__manager :deep(.extension-manager__header-actions) {

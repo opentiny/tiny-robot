@@ -60,7 +60,10 @@ const sharedSidebarItems = [
   {
     text: '最佳实践',
     base: '/best-practices/',
-    items: [{ text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' }],
+    items: [
+      { text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' },
+      { text: 'MCP Adapter 与 WebMCP', link: 'webmcp-chat-integration' },
+    ],
   },
   {
     text: '图标',
