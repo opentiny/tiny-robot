@@ -5,6 +5,39 @@ export const createTurnId = (): string => {
   return `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
+/** Copy mutable message data while retaining opaque values supplied by applications. */
+export function copyMessageData<T>(value: T, unwrap?: (value: unknown) => unknown): T {
+  const copies = new WeakMap<object, object>()
+
+  const copy = (item: unknown): unknown => {
+    const source = unwrap ? unwrap(item) : item
+    if (source === null || typeof source !== 'object') return source
+
+    const cached = copies.get(source)
+    if (cached) return cached
+
+    if (Array.isArray(source)) {
+      const items = source.slice()
+      copies.set(source, items)
+      items.forEach((entry, index) => {
+        items[index] = copy(entry)
+      })
+      return items
+    }
+
+    const prototype = Object.getPrototypeOf(source)
+    if (prototype !== Object.prototype && prototype !== null) return source
+
+    const record: Record<PropertyKey, unknown> = { ...source }
+    if (prototype === null) Object.setPrototypeOf(record, null)
+    copies.set(source, record)
+    for (const key of Reflect.ownKeys(record)) record[key] = copy(record[key])
+    return record
+  }
+
+  return copy(value) as T
+}
+
 export class AbortError extends Error {
   constructor(message: string) {
     super(message)

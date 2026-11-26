@@ -1,166 +1,29 @@
 import { createSkillResourceInstructions, createSkillResourceRuntimeTools } from '../../skills/capabilities/resources'
 import { createSkillSelectionInstructions, createSkillSelectionRuntimeTools } from '../../skills/capabilities/selection'
 import type { SkillCandidate, SkillDefinition } from '../../skills/types'
-import type { MaybePromise } from '../../types'
 import { getUniqueStringArray } from '../../utils'
 import type { BasePluginContext, MessageEnginePlugin } from '../types'
 import type { RuntimeTool, ToolProvider } from './toolPlugin'
 
-type ManualSkillSelection =
-  | {
-      mode: 'manual'
-      /**
-       * Inline skill definitions.
-       */
-      skills: SkillDefinition[]
-      skillNames?: never
-    }
-  | {
-      mode: 'manual'
-      /**
-       * Final skill names to resolve via getSkillByName.
-       */
-      skillNames: string[]
-      skills?: never
-    }
-
-interface AutoSkillSelection {
-  mode: 'auto'
-  /**
-   * User-preferred skill names as an automatic selection preference.
-   * These are not final selected skills; the selector still decides the final skill set.
-   */
-  preferredSkillNames?: string[]
-  /**
-   * Maximum number of skills the selector may enable.
-   */
-  maxSelectedSkills?: number
-}
-
-interface NoSkillSelection {
-  mode: 'none'
-}
-
-export type SkillSelection = ManualSkillSelection | AutoSkillSelection | NoSkillSelection
-
-type SkillSelectionStatus =
-  | {
-      mode: 'manual' | 'none'
-      phase: 'ready'
-    }
-  | {
-      mode: 'auto'
-      phase: 'selecting'
-      candidates: SkillCandidate[]
-      preferredSkillNames?: string[]
-      maxSelectedSkills?: number
-    }
-  | {
-      mode: 'auto'
-      phase: 'ready'
-      candidates: SkillCandidate[]
-      preferredSkillNames?: string[]
-      maxSelectedSkills?: number
-    }
-
-/**
- * Current request skill context.
- *
- * This context is written to customContext.__tiny_robot_skill so hooks and callbacks
- * can read the same request-level skill state.
- */
-export interface SkillRequestContext {
-  /**
-   * Successfully enabled full skill definitions.
-   */
-  skills: SkillDefinition[]
-  /**
-   * Successfully enabled skill names.
-   */
-  skillNames: string[]
-  /**
-   * Skill names requested by manual selection or auto select_skills.
-   */
-  requestedSkillNames: string[]
-  /**
-   * Requested skill names that could not be resolved into enabled skills.
-   */
-  unresolvedSkillNames: string[]
-  /**
-   * Instructions generated for the current skill selection state.
-   */
-  instructions: string[]
-  selection: SkillSelectionStatus
-}
-
-interface SkillResolver {
-  /**
-   * Resolve full definition by name.
-   */
-  getSkillByName(name: string, context: BasePluginContext): MaybePromise<SkillDefinition | undefined>
-}
-
-interface SkillCandidateProvider {
-  /**
-   * Returns candidate summaries for automatic selection.
-   */
-  getSkillCandidates(context: BasePluginContext): MaybePromise<SkillCandidate[]>
-}
-
-type ResolverRequiredSelection =
-  | AutoSkillSelection
-  | Extract<
-      ManualSkillSelection,
-      {
-        skillNames: string[]
-      }
-    >
-
-type RequireResolver<T extends SkillSelection> =
-  Extract<T, ResolverRequiredSelection> extends never ? Partial<SkillResolver> : SkillResolver
-
-type RequireCandidateProvider<T extends SkillSelection> =
-  Extract<T, AutoSkillSelection> extends never ? Partial<SkillCandidateProvider> : SkillCandidateProvider
-
-interface SkillPluginHooks extends MessageEnginePlugin {
-  /**
-   * Called immediately after new skill instructions are resolved and stored in the skill context.
-   */
-  onInstructionsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
-  /**
-   * Called after skills are resolved into their full definitions.
-   */
-  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
-  /**
-   * Called when the automatic selector chooses skill names.
-   */
-  onSkillSelectionResolved?: (
-    event: {
-      mode: 'auto'
-      candidates: SkillCandidate[]
-      preferredSkillNames?: string[]
-      requestedSkillNames: string[]
-    },
-    context: BasePluginContext,
-  ) => MaybePromise<void>
-}
-
-type StaticSkillPluginOptions<S extends SkillSelection> = S extends SkillSelection
-  ? SkillPluginHooks &
-      RequireResolver<S> &
-      RequireCandidateProvider<S> & {
-        selection: S
-      }
-  : never
-
-type DynamicSkillPluginOptions<S extends SkillSelection> = SkillPluginHooks &
-  RequireResolver<S> &
-  RequireCandidateProvider<S> & {
-    selection: (context: BasePluginContext) => MaybePromise<S>
-  }
-
-export type SkillPluginOptions<S extends SkillSelection = SkillSelection> =
-  StaticSkillPluginOptions<S> | DynamicSkillPluginOptions<S>
+import { createSessionSkillPlugin } from './sessionSkillPlugin'
+import type {
+  LegacySkillPluginOptions,
+  SessionSkillPluginOptions,
+  SkillPluginOptions,
+  SkillPluginHooks,
+  SkillRequestContext,
+  SkillSelection,
+  SkillSelectionStatus,
+  SkillResolver,
+  AutoSkillSelection,
+} from './skillPlugin.types'
+export type {
+  LegacySkillPluginOptions,
+  SkillPluginOptions,
+  SessionSkillPluginOptions,
+  SkillRequestContext,
+  SkillSelection,
+} from './skillPlugin.types'
 
 const skillPluginContextKey = '__tiny_robot_skill'
 
@@ -422,8 +285,8 @@ const createAutoSelectionRuntimeTools = ({
   })
 }
 
-export const skillPlugin = <S extends SkillSelection = SkillSelection>(
-  options: SkillPluginOptions<S>,
+const createLegacySkillPlugin = <S extends SkillSelection = SkillSelection>(
+  options: LegacySkillPluginOptions<S>,
 ): MessageEnginePlugin & ToolProvider => {
   const {
     selection,
@@ -742,4 +605,18 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       return restOptions.onTurnResume?.(context)
     },
   } satisfies MessageEnginePlugin & ToolProvider
+}
+
+export const skillPlugin = <S extends SkillSelection = SkillSelection>(
+  options: SkillPluginOptions<S> | SessionSkillPluginOptions,
+): MessageEnginePlugin & ToolProvider => {
+  if (options.scope === 'session') return createSessionSkillPlugin(options)
+  if (options.scope !== undefined && options.scope !== 'turn') throw new TypeError('Invalid skill scope')
+  if (
+    options.sessionId !== undefined ||
+    options.deduplication !== undefined ||
+    options.explicitSkillLoading !== undefined
+  )
+    throw new TypeError('Session skill settings require scope: session')
+  return createLegacySkillPlugin(options)
 }

@@ -1,6 +1,8 @@
+import { makeAbortable } from '../../message/utils'
 import type { RuntimeTool } from '../../message/plugins/toolPlugin'
 import type { SkillDefinition, SkillResourceDescriptor } from '../types'
 import { parseToolArguments } from './utils'
+import type { SessionSkillPluginOptions } from '../../message/plugins/skillPlugin.types'
 
 const skillResourceToolNames = {
   listSkillFiles: 'list_skill_files',
@@ -162,3 +164,50 @@ export const createSkillResourceRuntimeTools = (skills: SkillDefinition[]): Runt
     },
   ]
 }
+
+/** Session resources resolve their source at execution time, including after approval. */
+export const createSessionSkillResourceRuntimeTools = (
+  getSkillByName: SessionSkillPluginOptions['getSkillByName'],
+): RuntimeTool[] =>
+  skillResourceTools.map((tool) => ({
+    tool: {
+      ...tool,
+      function: {
+        ...tool.function,
+        parameters: {
+          ...tool.function.parameters,
+          properties: {
+            ...(tool.function.parameters?.properties as Record<string, unknown>),
+            skillName: { type: 'string', description: 'Required skill name that owns the resource files.' },
+          },
+          required:
+            tool.function.name === skillResourceToolNames.listSkillFiles ? ['skillName'] : ['skillName', 'path'],
+        },
+      },
+    },
+    handler: async (call, context) => {
+      try {
+        context.abortSignal.throwIfAborted()
+        const args = parseToolArguments(call)
+        if (typeof args.skillName !== 'string' || !args.skillName) return { error: 'skill_name_required' }
+        const skill = await makeAbortable(Promise.resolve(getSkillByName(args.skillName, context)), context.abortSignal)
+        context.abortSignal.throwIfAborted()
+        if (!skill) return { error: 'skill_unavailable', skillName: args.skillName }
+        if (skill.name !== args.skillName) return { error: 'skill_load_failed', skillName: args.skillName }
+        if (tool.function.name === skillResourceToolNames.listSkillFiles) {
+          return { files: (skill.resources ?? []).map((file) => getSkillFileSummary(skill.name, file)) }
+        }
+        if (typeof args.path !== 'string' || !args.path) return { error: 'file_path_required', skillName: skill.name }
+        const resource = skill.resources?.find((file) => file.path === args.path)
+        if (!resource) return { error: 'file_not_found', skillName: skill.name, path: args.path }
+        const file = getSkillFileSummary(skill.name, resource)
+        if (resource.kind === 'binary') return { error: 'binary_file_not_readable', file }
+        const content = await makeAbortable(Promise.resolve(readSkillResourceText(resource)), context.abortSignal)
+        context.abortSignal.throwIfAborted()
+        return content === undefined ? { error: 'text_file_not_readable', file } : { file, content }
+      } catch (error) {
+        if (context.abortSignal.aborted) throw error
+        return { error: 'skill_load_failed', message: error instanceof Error ? error.message : String(error) }
+      }
+    },
+  }))

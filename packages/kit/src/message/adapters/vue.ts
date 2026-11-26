@@ -1,4 +1,4 @@
-import { ComputedRef, Ref, computed, isProxy, reactive, ref, toRaw } from 'vue'
+import { ComputedRef, Ref, computed, reactive, ref, toRaw } from 'vue'
 import {
   ChatMessage,
   InternalMessageState,
@@ -9,6 +9,7 @@ import {
   RequestState,
 } from '../types'
 import { createStateSubscriptionController } from './shared'
+import { copyMessageData } from '../utils'
 
 export interface VueMessageStateAdapter extends MessageStateAdapter {
   requestState: Ref<RequestState>
@@ -20,30 +21,6 @@ export interface VueMessageStateAdapter extends MessageStateAdapter {
 }
 
 const toReactiveMessage = (message: ChatMessage) => reactive(message) as ChatMessage
-
-const toPlainValue = <T>(value: T): T => {
-  const rawValue = isProxy(value) ? toRaw(value) : value
-
-  if (Array.isArray(rawValue)) {
-    return rawValue.map((item) => toPlainValue(item)) as T
-  }
-
-  if (
-    rawValue &&
-    typeof rawValue === 'object' &&
-    (Object.getPrototypeOf(rawValue) === Object.prototype || Object.getPrototypeOf(rawValue) === null)
-  ) {
-    const result: Record<string, unknown> = {}
-
-    for (const [key, item] of Object.entries(rawValue)) {
-      result[key] = toPlainValue(item)
-    }
-
-    return result as T
-  }
-
-  return rawValue
-}
 
 export const createVueMessageAdapter = (): VueMessageStateAdapter => {
   let initialized = false
@@ -83,7 +60,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     return {
       requestState: requestState.value,
       processingState: processingState.value,
-      messages: toPlainValue(messages.value),
+      messages: copyMessageData(messages.value, toRaw),
       isProcessing: isProcessing.value,
       isPaused: isPaused.value,
       canStartTurn: canStartTurn.value,

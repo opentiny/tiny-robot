@@ -19,6 +19,7 @@ import {
 import {
   AbortError,
   combineDeltaData,
+  copyMessageData,
   makeAbortable,
   normalizeToAsyncGenerator,
   omitFields,
@@ -26,6 +27,7 @@ import {
   createTurnId,
 } from '../utils'
 import { runRequestBodyFinalizers } from './requestFinalizers'
+import { projectRequestWhenDisabled, type RequestProjectionPlugin } from './requestProjection'
 import { isChatTokenUsage } from '../usage'
 
 type ChatCompletionChoice = ChatResponseChoice
@@ -348,6 +350,11 @@ export const createMessageEngine = (
         }
       }
     } catch (error) {
+      // A turn may be cancelled while asynchronous plugins prepare its first request.
+      if (ac.signal.aborted) {
+        setRequestState('aborted')
+        return
+      }
       setRequestState('error')
 
       const context = getBaseContext(ac.signal)
@@ -529,12 +536,20 @@ export const createMessageEngine = (
     // executeRequest 可能递归调用，需要再设置 requesting 状态
     setRequestState('processing', 'requesting')
 
-    const requestBody: MessageRequestBody = { messages: getState().messages }
+    const requestBody: MessageRequestBody = { messages: copyMessageData(getState().messages) }
 
     // Allow plugins to modify request body (e.g., add tools)
     const baseContext = getBaseContext(abortSignal)
-    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
-      await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
+    const requestPlugins = plugins.map((plugin: RequestProjectionPlugin) => ({
+      plugin,
+      disabled: isPluginDisabled(plugin, baseContext),
+    }))
+    for (const { plugin, disabled } of requestPlugins) {
+      if (disabled) {
+        plugin[projectRequestWhenDisabled]?.(requestBody)
+      } else {
+        await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
+      }
     }
     runRequestBodyFinalizers(requestBody)
 
