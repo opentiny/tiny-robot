@@ -225,6 +225,17 @@ Core 的 `SkillPluginOptions` 和 Vue 的 `UseMessageSkillPluginOptions` 保留�
 
 缺少 `toolPlugin` 时发送前报配置错误。接入不支持工具调用的模型时，可用 `toolPlugin.disabled` 停用工具，并选择 `preload` 加载用户指定的正文。工具停用时，Kit 保留已有目录，跳过新目录的建立与工具执行。Skill 插件自身的 `disabled` 会停止当轮的目录准备、新的预加载、Skill 工具和应用 hook。请求仍沿用历史正文，`model` 模式继续按消息中的显式指定生成名称提示。
 
+应用停用 **Skill 插件本身** 时，应同步停用输入框里的 `@` Skill 选择。发送新消息时，即使草稿已经选中了 Skill，也应省略 `requestedSkillNames`，避免界面显示一次当轮无法加载正文的指定。
+
+### 修改包含 Skill 上下文的请求 {#session-skill-before-request}
+
+在会话级 `skillPlugin` 上配置 `onBeforeRequest` 时，`explicitSkillLoading` 决定回调看到的消息内容。
+
+- `preload` 先展开已保存的预加载结果，再调用应用回调。回调可以检查含正文的 User 请求副本。
+- `model` 先调用应用回调，再按请求副本上的 Skill metadata 附加名称提示或展开已有预加载正文。回调改写 `content` 时，只要保留消息的 metadata，Kit 仍能识别显式指定。
+
+如果要在两种模式下统一估算 token 或裁剪已附加 Skill 上下文的消息，将独立的 `onBeforeRequest` 插件放在 `plugins` 数组中的 `skillPlugin` 之后。`responseProvider` 收到的是全部请求回调执行完毕并清理字段后的请求体。
+
 ## 按轮接入（兼容旧 API） {#skill-turn}
 
 下面是一个可独立运行的 Vue 侧最小示例。它使用 `manual` 模式启用一个内联 skill，通过 `onBeforeRequest` 临时修改本次请求，并由 mock provider 显示最终收到的 instructions。
@@ -930,7 +941,7 @@ interface SkillRequestContext {
 | `onInstructionsResolved`   | manual/auto       | 可选                                   | instructions 更新后触发，用于同步 UI、应用状态或持久消息逻辑             |
 | `onSkillsResolved`         | manual/auto ready | 可选                                   | 完整 skill 解析后触发                                                    |
 | `onSkillSelectionResolved` | auto              | 可选                                   | 模型完成名称选择后触发                                                   |
-| `onBeforeRequest`          | 全部              | 需要临时修改本次请求时使用             | 继承自 message plugin，用于修改最终 request body，不会自动写回消息历史   |
+| `onBeforeRequest`          | 全部              | 需要临时修改本次请求时使用             | 继承自 message plugin，用于修改本次请求副本，不会自动写回消息历史        |
 
 选择配置的说明性结构如下：
 

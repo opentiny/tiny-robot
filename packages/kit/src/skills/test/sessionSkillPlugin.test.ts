@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createNativeMessageAdapter } from '../../message/adapters/native'
 import { createVueMessageAdapter } from '../../message/adapters/vue'
-import type { MessageRequestBody } from '../../message/types'
+import type { ChatMessage, MessageRequestBody } from '../../message/types'
 import { isSkillContextMessage } from '../session/protocol'
 import { loadResults, optionsFor, reply, requestTool, sessionEngine } from './sessionTestUtils'
 
@@ -52,8 +52,13 @@ describe('session skill plugin', () => {
     'stores a preload on the original user message and projects it only into model requests',
     async (createAdapter) => {
       let first = true
+      let firstHookContent: ChatMessage['content'] | undefined
       const engine = sessionEngine(
-        optionsFor(),
+        optionsFor({
+          onBeforeRequest({ requestBody }) {
+            firstHookContent ??= requestBody.messages.find(({ role }) => role === 'user')?.content
+          },
+        }),
         async (body) => {
           if (first) {
             first = false
@@ -82,6 +87,7 @@ describe('session skill plugin', () => {
         metadata: { business: 'keep', tinyRobotSkill: { requestedSkillNames: ['A'] } },
       }
       await engine.send(input)
+      expect(firstHookContent).toEqual(expect.stringContaining('A instructions'))
       expect(engine.getState().messages.filter((message) => message.role === 'user')).toEqual([
         {
           role: 'user',
