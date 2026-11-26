@@ -28,12 +28,11 @@ outline: [1, 3]
 
 ### 运行完整示例
 
-完整 TinyPro 案例位于 [demo/tinypro-trchat-webmcp 分支](https://github.com/opentiny/tiny-robot/tree/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp)。准备 Node.js `^20.19.0 || >=22.12.0` 和 pnpm，获取该分支后执行：
+完整 TinyPro 案例位于 [demo/tinypro-trchat-webmcp 分支][demo-project]。准备 Node.js `^20.19.0 || >=22.12.0` 和 pnpm，获取该分支后执行：
 
 ```bash
 git clone --branch demo/tinypro-trchat-webmcp https://github.com/opentiny/tiny-robot.git
 cd tiny-robot
-cd docs/examples/tinypro-trchat-webmcp
 pnpm install
 ```
 
@@ -65,7 +64,7 @@ CLI 会识别 pnpm workspace 并向对应的 `web` package 添加 Chat 代码和
 
 ## 接入步骤
 
-以下代码展示关键接线。完整实现见 demo 分支中的 [`main.ts`](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/main.ts)、[`App.vue`](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/App.vue)、[`TinyRobotChat.vue`](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/TinyRobotChat.vue) 和 [`webmcp-tools.ts`](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/webmcp-tools.ts)。
+以下代码展示关键接线。完整实现见 demo 分支中的 [`main.ts`][main-entry]、[`App.vue`][app-entry]、[`TinyRobotChat.vue`][chat-entry] 和 [`webmcp-tools.ts`][tools-entry]。
 
 ### 1. 初始化 WebMCP
 
@@ -142,7 +141,7 @@ const runtime = useChatRuntime({
 4. 对没有 MCP 工具的页面立即返回空列表，不等待超时。
 5. 设置有限超时，超时信息指出哪些工具尚未注册。
 
-不要使用固定延时替代注册信号。延时无法保证目标工具已就绪，也会无故拖慢没有工具的页面。当前路由与工具名映射见 demo 分支的 [`webmcp-tools.ts`](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/webmcp-tools.ts)。添加新的演示页面时同步维护映射，并覆盖已注册、并发注册、超时和无工具路由等情况。
+不要使用固定延时替代注册信号。延时无法保证目标工具已就绪，也会无故拖慢没有工具的页面。当前路由与工具名映射见 demo 分支的 [`webmcp-tools.ts`][tools-entry]。添加新的演示页面时同步维护映射，并覆盖已注册、并发注册、超时和无工具路由等情况。
 
 ## 模型配置与安全
 
@@ -154,10 +153,10 @@ WebMCP 工具可能触发真实业务操作。工具本身必须校验输入、�
 
 ### 自动检查
 
-在 demo 分支的示例 `web` package 目录执行：
+在 demo 分支根目录执行：
 
 ```bash
-cd docs/examples/tinypro-trchat-webmcp/web
+cd web
 pnpm exec eslint src/tiny-robot-chat/TinyRobotChat.vue src/tiny-robot-chat/webmcp-tools.ts
 pnpm run test:webmcp
 pnpm run build
@@ -177,7 +176,14 @@ pnpm run build
 
 ## 参考
 
-- [完整 TinyPro 示例](https://github.com/opentiny/tiny-robot/tree/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp)。
-- [Chat Adapter 实现](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/TinyRobotChat.vue)。
-- [导航工具等待实现](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/webmcp-tools.ts)。
-- [CLI 生成的 Chat 接入说明](https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/docs/examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/README.md)。
+- [完整 TinyPro 示例][demo-project]
+- [Chat Adapter 实现][chat-entry]
+- [导航工具等待实现][tools-entry]
+- [CLI 生成的 Chat 接入说明][chat-readme]
+
+[demo-project]: https://github.com/opentiny/tiny-robot/tree/demo/tinypro-trchat-webmcp
+[main-entry]: https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/web/src/main.ts
+[app-entry]: https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/web/src/App.vue
+[chat-entry]: https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/web/src/tiny-robot-chat/TinyRobotChat.vue
+[tools-entry]: https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/web/src/tiny-robot-chat/webmcp-tools.ts
+[chat-readme]: https://github.com/opentiny/tiny-robot/blob/demo/tinypro-trchat-webmcp/web/src/tiny-robot-chat/README.md
