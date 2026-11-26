@@ -1,0 +1,13 @@
+{
+  "name": "tinypro-trchat-webmcp",
+  "description": "TinyPro and TrChat WebMCP integration best practice",
+  "scripts": {
+    "build": "npm run --prefix web build",
+    "start:mock": "npm run --prefix web start:mock"
+  },
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "web"
+  ]
+}

@@ -1,0 +1,8 @@
+<svg viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="14.000000" height="14.000000" fill="none" customFrame="#000000">
+	<g id="看板 ">
+		<rect id="矩形" width="14.000000" height="14.000000" x="0.000000" y="0.000000" fill="rgb(255,255,255)" fill-opacity="0" />
+		<rect id="矩形" width="13.000000" height="13.000000" x="0.500000" y="0.500000" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="1" />
+		<path id="形状" d="M0 14L0 9L5 9L5 14L0 14ZM1 10L4 10L4 13L1 13L1 10ZM9 2.498e-16L14 0L14 5L9 5L9 2.498e-16ZM13 4L10 4L10 1L13 1L13 4ZM13 7L13 7C13.5523 7 14 7.44772 14 8L14 13C14 13.5523 13.5523 14 13 14L8 14C7.44772 14 7 13.5523 7 13L7 7L13 7ZM12 12L9 12L9 9L12 9L12 12ZM1 0L6 0C6.55228 0 7 0.447715 7 1L7 7L1 7C0.447715 7 0 6.55228 0 6L0 1C0 0.447715 0.447715 0 1 0ZM5 5L2 5L2 2L5 2L5 5Z" opacity="0" fill="rgb(47,91,234)" fill-rule="evenodd" />
+		<path id="形状" d="M6 0L1 0C0.447715 0 0 0.447715 0 1L0 6C0 6.55228 0.447715 7 1 7L7 7L7 13C7 13.5523 7.44772 14 8 14L13 14C13.5523 14 14 13.5523 14 13L14 8C14 7.44772 13.5523 7 13 7L7 7L7 1C7 0.447715 6.55228 0 6 0ZM9 5L9 0L14 0L14 5L9 5ZM2 5L5 5L5 2L2 2L2 5ZM5 14L0 14L0 9L5 9L5 14ZM9 12L12 12L12 9L9 9L9 12Z" fill="rgb(25,25,25)" fill-rule="evenodd" />
+	</g>
+</svg>
