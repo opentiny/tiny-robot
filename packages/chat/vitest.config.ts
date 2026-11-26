@@ -8,7 +8,7 @@ export default defineConfig({
     alias: [
       {
         find: /^@opentiny\/tiny-robot$/,
-        replacement: fileURLToPath(new URL('../components/src/model-selector/featureFields.ts', import.meta.url)),
+        replacement: fileURLToPath(new URL('./src/test/tinyRobotTestExports.ts', import.meta.url)),
       },
       {
         find: /^@opentiny\/tiny-robot-svgs$/,
