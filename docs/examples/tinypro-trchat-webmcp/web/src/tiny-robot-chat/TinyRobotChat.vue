@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { HistoryMenuItem, PromptProps, TemplateItem } from '@opentiny/tiny-robot'
 import type { ChatHistoryItem } from '@opentiny/tiny-robot-chat'
-import { TrSender, TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
-import { createWebMcpAdapter, TrChat, useChatHistoryItems, useChatRuntime } from '@opentiny/tiny-robot-chat'
+import { createWebMcpAdapter, TrSender, TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
+import { TrChat, useChatHistoryItems, useChatRuntime } from '@opentiny/tiny-robot-chat'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { computed, onUnmounted, reactive, ref } from 'vue'
 import ComposerTools from './components/ComposerTools.vue'
@@ -10,30 +10,14 @@ import WindowHeader from './components/WindowHeader.vue'
 import { useWindow } from './composables/useWindow'
 import { mcpExamples, mcpServers, modelProviders } from './config/chat-runtime'
 import { composerMenus, createChatUi, templateCategories } from './config/chat-ui'
-import { listPageTools } from './webmcp-tools'
 import '@opentiny/tiny-robot/dist/style.css'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 import './index.css'
 
-const context = document.modelContext
 const webmcpAdapter = createWebMcpAdapter({
   server: {
     id: 'tiny-pro-webmcp',
     name: 'TinyPro 页面工具',
-  },
-  source: {
-    listTools: () => listPageTools(context),
-    async callTool(name, args = {}) {
-      const tool = (await context.getTools()).find(item => item.name === name)
-      if (!tool)
-        throw new Error(`工具不可用：${name}`)
-
-      return context.executeTool(tool, JSON.stringify(args))
-    },
-    subscribe(listener) {
-      context.addEventListener('toolchange', listener)
-      return () => context.removeEventListener('toolchange', listener)
-    },
   },
 })
 const runtime = useChatRuntime({
