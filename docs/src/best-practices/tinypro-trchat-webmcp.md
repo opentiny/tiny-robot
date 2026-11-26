@@ -26,19 +26,6 @@ outline: [1, 3]
 
 基础单页接入只需要初始化 Polyfill、挂载 Chat、配置 Adapter 和页面工具。只有演示跨页面调用时，才需要实现导航等待及路由到工具名的映射。
 
-### 版本基线
-
-本次实践基于以下组合：
-
-| 依赖 | 基线 |
-| --- | --- |
-| TinyPro 初始化工具 | `@opentiny/tiny-toolkit-pro@1.5.0-alpha.7` |
-| Tiny Robot 预览包 | `2f1aa59`，相关 Tiny Robot 包保持同一提交 |
-| `@mcp-b/webmcp-polyfill` | `3.0.0` |
-| Node.js | 满足项目声明的 `^20.19.0 || >=22.12.0` |
-
-预览包用于接入验证。正式集成时应切换到已发布版本，并检查 Adapter API 和 Polyfill 参数协议是否已变化；完成验证前不要只替换单个 Tiny Robot 包。
-
 ### 运行完整示例
 
 完整 TinyPro 案例位于 [`docs/examples/tinypro-trchat-webmcp`](../../examples/tinypro-trchat-webmcp/README.md)。准备 Node.js `^20.19.0 || >=22.12.0` 和 pnpm，在仓库根目录执行：
@@ -48,7 +35,7 @@ cd docs/examples/tinypro-trchat-webmcp
 pnpm install
 ```
 
-复制示例中的 `web/.env.example` 为 `web/.env.local`，按需填写模型凭证，然后启动 Mock 和开发服务：
+示例已包含 TinyPro 本地运行配置 `web/dev.env`，Vite 启动时会自动加载。只有接入真实模型时，才需要将 `web/.env.example` 复制为 `web/.env.local` 并填写模型凭证。然后启动 Mock 和开发服务：
 
 ```bash
 pnpm run start:mock
@@ -58,9 +45,10 @@ pnpm run start:mock
 
 ## 初始化与运行
 
-本机已安装 TinyPro 初始化工具时，无需重复安装。按指定版本运行：
+首次使用时，先安装 TinyPro 初始化工具，再运行 `tiny init pro` 创建前端项目。工具已安装则直接执行初始化命令：
 
 ```bash
+tiny install @opentiny/tiny-toolkit-pro
 tiny init pro
 ```
 
@@ -103,35 +91,28 @@ onUnmounted(() => {
 })
 ```
 
-### 3. 显式连接 WebMCP Adapter
+### 3. 连接 WebMCP Adapter
 
-不要仅依赖默认 Adapter source 隐含的参数协议。显式接入工具查询、执行和变化订阅：
+使用 Tiny Robot 提供的 WebMCP Adapter 默认连接，它会读取 `document.modelContext` 中的工具、转发调用并监听 `toolchange`：
 
 ```ts
-const context = document.modelContext
 const webmcpAdapter = createWebMcpAdapter({
   server: {
     id: 'tiny-pro-webmcp',
     name: 'TinyPro 页面工具',
   },
-  source: {
-    listTools: () => context.getTools(),
-    async callTool(name, args = {}) {
-      const tool = (await context.getTools()).find(item => item.name === name)
-      if (!tool)
-        throw new Error(`工具不可用：${name}`)
+})
 
-      return context.executeTool(tool, JSON.stringify(args))
-    },
-    subscribe(listener) {
-      context.addEventListener('toolchange', listener)
-      return () => context.removeEventListener('toolchange', listener)
-    },
+const runtime = useChatRuntime({
+  modelProviders,
+  mcp: {
+    servers: mcpServers,
+    adapters: [webmcpAdapter],
   },
 })
 ```
 
-`listTools` 每次读取当前上下文；`callTool` 按名称重新查找当前工具描述再执行；`subscribe` 将页面的 `toolchange` 传递给 Adapter。不要在应用启动时缓存静态工具列表，否则导航或工具注册后可能仍向模型提供旧定义。
+`createWebMcpAdapter` 从 `@opentiny/tiny-robot` 导入。默认 source 管理工具发现、调用、变化订阅和结果转换；只有需要接入非默认工具源时才传入自定义 `source`。不要在业务侧另行缓存静态工具列表，否则页面工具变化后模型可能仍拿到旧定义。
 
 ### 4. 注册页面工具和全局工具
 
@@ -139,24 +120,12 @@ const webmcpAdapter = createWebMcpAdapter({
 
 `system-overview`、`navigate_url` 等跨页面通用工具在应用级注册，不应依赖具体业务页面先挂载。用 `AbortController.signal` 管理其注册生命周期，并确保卸载或热更新时取消注册，避免重复注册。
 
-## Polyfill 参数兼容与故障定位
-
-本次实践观察到：工具名称和 schema 已出现在 Chat 中，但调用均失败，界面显示 `Tool call failed`。这表示工具发现链路已工作，问题发生在执行链路。
-
-根因是预览 Adapter 默认 source 将参数对象直接传给 `executeTool`，而实践使用的 `@mcp-b/webmcp-polyfill@3.0.0` 要求第二个参数是 JSON 字符串，并在内部执行 `JSON.parse`。Polyfill 参数解析失败时抛出 `UnknownError`；预览 Adapter 的兜底分支只识别特定 `TypeError`，因此没有触发字符串重试。
-
-即使模型传入空参数 `{}`，对象也不是 JSON 字符串，仍会在工具函数执行前失败。自定义 Adapter 中的：
-
-```ts
-context.executeTool(tool, JSON.stringify(args))
-```
-
-修复了这组版本的参数协议不兼容。升级 Polyfill 或 Adapter 后，应根据新版本接口验证后再决定是否保留该转换。
+## 故障定位
 
 | 现象 | 优先检查 |
 | --- | --- |
 | 当前页面工具不在模型请求中 | Polyfill 是否先初始化；Adapter 是否连接同一个 `document.modelContext`；`toolchange` 是否订阅；是否缓存了旧工具列表 |
-| 工具显示但调用失败 | 参数格式是否符合 Polyfill 版本；工具 schema 是否匹配；展开错误详情并查看浏览器控制台 |
+| 工具显示但调用失败 | 工具 schema 和执行参数是否匹配；展开错误详情并查看浏览器控制台 |
 | 导航完成但目标页工具不可用 | 目标路由是否正确；页面是否注册工具；是否确实需要并实现导航等待 |
 | 无工具页面仍然等待 | 等待逻辑是否对无预期工具的路由立即返回 |
 | HMR 后重复注册或工具冲突 | 全局工具注册是否由 `AbortController` 清理；Chat 是否重复挂载 |
@@ -185,11 +154,12 @@ WebMCP 工具可能触发真实业务操作。工具本身必须校验输入、�
 
 ### 自动检查
 
-在 `web` package 目录执行：
+在示例的 `web` package 目录执行：
 
 ```bash
+cd docs/examples/tinypro-trchat-webmcp/web
 pnpm exec eslint src/tiny-robot-chat/TinyRobotChat.vue src/tiny-robot-chat/webmcp-tools.ts
-pnpm --dir web run test:webmcp
+pnpm run test:webmcp
 pnpm run build
 ```
 
@@ -205,11 +175,8 @@ pnpm run build
 6. 导航到没有工具的页面，确认流程立即结束且不报工具等待超时。
 7. 触发 HMR，确认无重复工具注册或旧页面工具残留。
 
-本次实践中，使用预览包和 Polyfill 3.0 时曾出现工具可见但执行失败；加入参数 JSON 序列化后，用户手动确认工具可正常调用。相关文件 ESLint 和生产构建均通过。
-
 ## 参考
 
-- [TinyRobot PR 503](https://github.com/opentiny/tiny-robot/pull/503)：WebMCP Adapter 预览实现。
 - [完整 TinyPro 示例](../../examples/tinypro-trchat-webmcp/README.md)。
 - [Chat Adapter 实现](../../examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/TinyRobotChat.vue)。
 - [导航工具等待实现](../../examples/tinypro-trchat-webmcp/web/src/tiny-robot-chat/webmcp-tools.ts)。

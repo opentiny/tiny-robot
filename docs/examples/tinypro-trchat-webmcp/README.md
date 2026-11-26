@@ -10,7 +10,7 @@
 pnpm install
 ```
 
-如需使用真实模型，将 `web/.env.example` 复制为 `web/.env.local` 并填写对应模型凭证，然后启动 Mock 和开发服务器：
+示例已包含 TinyPro 本地运行所需的 `web/dev.env`，启动时会由 Vite 自动加载；无需为默认启动额外复制环境文件。如需使用真实模型，将 `web/.env.example` 复制为 `web/.env.local` 并填写对应模型凭证。然后启动 Mock 和开发服务器：
 
 ```bash
 pnpm run start:mock
