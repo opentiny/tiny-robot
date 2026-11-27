@@ -113,12 +113,12 @@ export interface MentionSuggestionState {
   active: boolean
 
   /**
-   * 触发范围
+   * 触发字符及查询的替换范围
    */
   range: { from: number; to: number } | null
 
   /**
-   * 查询文本
+   * 光标前用于筛选的查询文本
    */
   query: string
 
