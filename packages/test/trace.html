@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trace Vanilla Demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #f8fafc;
+        color: #1f2937;
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+      }
+
+      main {
+        width: min(760px, 100%);
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+
+      p {
+        margin: 0 0 18px;
+        color: #64748b;
+      }
+
+      #trace {
+        min-height: 180px;
+      }
+
+      #event {
+        min-height: 20px;
+        margin-top: 12px;
+        color: #64748b;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>单轴轨迹示例</h1>
+      <p>点击上方时间轴片段或下方消息，可以查看双向选中效果。</p>
+      <div id="trace"></div>
+      <div id="event" aria-live="polite"></div>
+    </main>
+    <script type="module" src="/trace-main.ts"></script>
+  </body>
+</html>

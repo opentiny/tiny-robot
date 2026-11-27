@@ -44,6 +44,7 @@ const sharedSidebarItems = [
       { text: 'Container 容器', link: 'container' },
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'QuickAssist 智能帮助', link: 'quick-assist' },
+      { text: 'Trace 轨迹', link: 'trace' },
     ],
   },
   {

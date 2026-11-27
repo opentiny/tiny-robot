@@ -46,6 +46,17 @@ body,
   }
 }
 
+/* Trace Vue Demo 使用自然高度，隐藏不必要的源码/复制操作栏。 */
+.trace-duration-demo .vitepress-demo-plugin__container,
+.trace-label-demo .vitepress-demo-plugin__container {
+  background: transparent;
+}
+
+.trace-duration-demo .vitepress-demo-plugin-description__split-line,
+.trace-duration-demo .vitepress-demo-plugin-description__handle-btn {
+  display: none;
+}
+
 /* 主题示例内容较短；预览区随 iframe 高度布局，避免溢出并遮住下方边框。 */
 .qa-theme-demo .vitepress-demo-plugin__container > .vitepress-demo-plugin-preview {
   height: auto !important;

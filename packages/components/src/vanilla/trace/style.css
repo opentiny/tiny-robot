@@ -1,0 +1,174 @@
+.tr-trajectory {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(
+    --tr-trajectory-bg,
+    var(--tr-container-bg-default, var(--tr-vanilla-default-container-bg-default, #ffffff))
+  );
+  color: var(--tr-trajectory-text, var(--tr-text-primary, var(--tr-vanilla-default-text-primary, #334155)));
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tr-trajectory,
+.tr-trajectory * {
+  box-sizing: border-box;
+}
+
+.tr-trajectory__axis {
+  padding: 10px 14px 16px;
+}
+
+.tr-trajectory__track {
+  position: relative;
+  overflow: visible;
+  border-radius: 6px;
+  background: var(--tr-trajectory-track, #eef2f7);
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__track {
+  background: var(--tr-trajectory-track, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
+.tr-trajectory__segment {
+  position: absolute;
+  top: 0;
+  bottom: auto;
+  min-width: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.92;
+  transition:
+    opacity 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.tr-trajectory__segment:hover,
+.tr-trajectory__segment.is-selected {
+  opacity: 1;
+  box-shadow: 0 0 0 1px var(--tr-trajectory-selected-border, #93c5fd);
+}
+
+.tr-trajectory__segment:focus-visible,
+.tr-trajectory__item:focus-visible {
+  outline: 2px solid var(--tr-trajectory-selected-border, #93c5fd);
+  outline-offset: -2px;
+}
+
+.tr-trajectory__list {
+  width: 100%;
+}
+
+.tr-trajectory__list.is-no-duration .tr-trajectory__item {
+  grid-template-columns: fit-content(160px) minmax(0, 1fr);
+}
+
+.tr-trajectory__item {
+  display: grid;
+  grid-template-columns: fit-content(160px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.tr-trajectory__item:hover {
+  background: var(--tr-trajectory-hover, #f8fafc);
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item:hover {
+  background: var(--tr-trajectory-hover, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
+.tr-trajectory__item.is-selected {
+  background: var(--tr-trajectory-selected, #eff6ff);
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item.is-selected {
+  background: var(--tr-trajectory-selected, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
+.tr-trajectory__label {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: start;
+}
+
+.tr-trajectory__label-text {
+  display: inline-block;
+}
+
+.tr-trajectory__message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-trajectory__item.is-selected .tr-trajectory__message {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.tr-trajectory__duration {
+  min-width: 48px;
+  color: var(--tr-trajectory-muted, var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary, #64748b)));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment:hover,
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment.is-selected {
+  box-shadow: 0 0 0 1px
+    var(--tr-trajectory-selected-border, var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2)));
+}
+
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__segment:focus-visible,
+.tr-trajectory[data-tr-vanilla-color-mode='dark'] .tr-trajectory__item:focus-visible {
+  outline-color: var(
+    --tr-trajectory-selected-border,
+    var(--tr-vanilla-default-assist-border-color, rgba(255, 255, 255, 0.2))
+  );
+}
+
+.tr-trajectory__empty,
+.tr-trajectory__error {
+  padding: 28px 16px;
+  color: var(--tr-trajectory-muted, var(--tr-text-secondary, var(--tr-vanilla-default-text-secondary, #64748b)));
+  text-align: center;
+}
+
+.tr-trajectory__error {
+  color: var(--tr-color-error, var(--tr-vanilla-default-color-error, #dc2626));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-trajectory__segment {
+    transition: none;
+  }
+}

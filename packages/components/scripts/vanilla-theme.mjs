@@ -51,7 +51,12 @@ export function generateThemeCSS() {
   const componentAST = postcss.parse(componentCSS())
   componentAST.walkDecls(({ value }) => {
     for (const token of references(value)) {
-      if (token.startsWith('--tr-') && !token.startsWith('--tr-quick-assist-') && !token.startsWith('--tr-vanilla-')) {
+      if (
+        token.startsWith('--tr-') &&
+        !token.startsWith('--tr-quick-assist-') &&
+        !token.startsWith('--tr-trajectory-') &&
+        !token.startsWith('--tr-vanilla-')
+      ) {
         required.add(token)
       }
     }
