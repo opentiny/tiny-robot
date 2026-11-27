@@ -318,6 +318,7 @@ defineExpose({
     --tr-layout-body-transition: none;
     --tr-layout-aside-body-transition: none;
     --tr-layout-aside-transition: none;
+    --tr-layout-aside-content-transition: none;
   }
 
   &--left-dock&--left-expanded {

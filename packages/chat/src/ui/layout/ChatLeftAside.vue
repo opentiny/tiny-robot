@@ -297,7 +297,7 @@ function toggleAside() {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
-  transition: opacity var(--transition-duration) var(--transition-easing);
+  transition: var(--tr-layout-aside-content-transition, opacity var(--transition-duration) var(--transition-easing));
 }
 
 .chat-left-aside-rail.is-hidden,

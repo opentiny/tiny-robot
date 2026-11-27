@@ -49,7 +49,9 @@ test('skips aside transitions when viewport resizing changes ChatUI responsive m
         const target = event.target
         if (
           !(target instanceof Element) ||
-          !target.matches('.tr-layout__body, .tr-layout__aside, .tr-layout__aside-body')
+          !target.matches(
+            '.tr-layout__body, .tr-layout__aside, .tr-layout__aside-body, .chat-left-aside-rail, .chat-left-aside-panel',
+          )
         ) {
           return
         }
