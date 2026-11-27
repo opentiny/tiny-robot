@@ -24,7 +24,7 @@ outline: [1, 3]
 | `plugin-create`                                           | 应用实现的 MCP 表单；完成后更新 `tabs`                        | `ExtensionManager` 不包含 MCP 创建表单。`McpAddForm` 仍是独立的公共入口，未标记弃用。                                                               |
 | `tools`、`tool-toggle`                                    | 应用提供的详情界面或 `item` 插槽                              | 通用 Card 不推断 MCP 工具层级；自定义内容需要自行承担事件、键盘和 ARIA 语义。                                                                                 |
 
-`McpServerPicker` 的“已安装”和“市场”是两个固定标签页；`ExtensionManager.tabs` 表示 Extension 类型或应用定义的分类，每个标签页内部再根据 `installed` 自动生成“已安装”和“可安装”分区。迁移时不要直接把两组旧列表分别当成两个 `ExtensionManagerTab`，否则每个标签页仍会额外生成两个分区。
+`McpServerPicker` 的“已安装”和“市场”是两个固定标签页；`ExtensionManager.tabs` 表示 Extension 类型或应用定义的分类，应将同类扩展的已安装和市场条目合并到同一个标签页，再根据 `installed` 自动分区。“已安装”始终显示；原始数据中没有未安装条目时，“可安装”分区会隐藏，详见 [分区显示条件](/components/extension-manager#筛选与自动分区)。迁移时不要把两组旧列表分别当成两个 `ExtensionManagerTab`，否则会按这两组数据生成各自的分区。
 
 ### 最小迁移示例
 
