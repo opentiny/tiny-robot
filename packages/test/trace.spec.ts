@@ -146,10 +146,21 @@ test.describe('Trace vanilla component', () => {
     await expect(page.locator('.tr-trajectory__label')).toHaveCSS('background-color', 'rgb(100, 116, 139)')
   })
 
-  test('preserves built-in text color when only a label background is overridden', async ({ page }) => {
+  test('preserves built-in text color when a label background is overridden', async ({ page }) => {
     await page.evaluate(() =>
       window.traceFixture.trace.updateOptions({
         labels: { info: { color: '#ffffff' } },
+      }),
+    )
+
+    await expect(page.locator('[data-tr-trajectory-id="prepare"] .tr-trajectory__label-text')).toHaveCSS(
+      'color',
+      'rgb(37, 99, 235)',
+    )
+
+    await page.evaluate(() =>
+      window.traceFixture.trace.updateOptions({
+        labels: { info: { color: '#ffffff', textColor: undefined } },
       }),
     )
 

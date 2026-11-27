@@ -52,7 +52,9 @@ const trace = createTrace({
   ],
 })
 
-window.addEventListener('pagehide', () => trace.destroy(), { once: true })
+window.addEventListener('pagehide', (event) => {
+  if (!event.persisted) trace.destroy()
+})
 ```
 
 如果初始数据或配置校验失败，`createTrace` 会同步抛出异常，不会触发 `onEvent`；请使用 `try/catch` 处理创建失败。实例创建成功后，`setItems` 和 `updateOptions` 的运行期错误会通过 `error` 事件通知。
@@ -195,7 +197,7 @@ const trace = createTrace(options)
 | -------- | ----------------------------------------------------------------- | ------------------------------------------- |
 | `select` | 用户激活记录，或 `select()` / `clearSelection()` 改变选中状态时。 | `{ type: 'select', itemId, source, item? }` |
 | `update` | 数据或配置更新完成时。                                            | `{ type: 'update' }`                        |
-| `error`  | 数据校验或渲染配置发生错误时。                                    | `{ type: 'error', error }`                  |
+| `error`  | 实例创建成功后，更新数据、配置或重新渲染发生错误时。              | `{ type: 'error', error }`                  |
 
 `select.source` 的值为：
 

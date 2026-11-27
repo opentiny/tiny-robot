@@ -114,12 +114,12 @@ function resolveLabelStyle(
   item: TrajectoryItem,
   labels: Readonly<Record<string, TrajectoryLabelStyle>>,
 ): { label: string; color: string; textColor: string } {
-  const style = { ...(DEFAULT_LABEL_STYLES[item.type] ?? {}), ...(labels[item.type] ?? {}) }
-  const label = item.label !== undefined ? displayValue(item.label) : (style.text ?? item.type)
+  const defaultStyle = DEFAULT_LABEL_STYLES[item.type]
+  const customStyle = labels[item.type]
   return {
-    label,
-    color: item.color ?? style.color ?? '#64748b',
-    textColor: item.textColor ?? style.textColor ?? '#ffffff',
+    label: item.label !== undefined ? displayValue(item.label) : (customStyle?.text ?? defaultStyle?.text ?? item.type),
+    color: item.color ?? customStyle?.color ?? defaultStyle?.color ?? '#64748b',
+    textColor: item.textColor ?? customStyle?.textColor ?? defaultStyle?.textColor ?? '#ffffff',
   }
 }
 
