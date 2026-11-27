@@ -1,6 +1,147 @@
 import { expect, test } from '../helpers'
 
+type LayoutTransitionRecord = { target: string; property: string }
+
 test.describe('Layout 组件测试 - Aside', () => {
+  test('Mode changes suppress transitions, with user toggles animated outside the suppression window', async ({
+    layout,
+  }) => {
+    const readTransitions = () =>
+      layout.page.evaluate(() => {
+        const state = window as typeof window & { __trLayoutTransitions?: LayoutTransitionRecord[] }
+        return state.__trLayoutTransitions ?? []
+      })
+    const clearTransitions = () =>
+      layout.page.evaluate(() => {
+        const state = window as typeof window & { __trLayoutTransitions?: LayoutTransitionRecord[] }
+        state.__trLayoutTransitions = []
+      })
+    const waitForLayoutAnimations = () =>
+      expect
+        .poll(() =>
+          layout.page
+            .locator('.tr-layout__body, .tr-layout__aside, .tr-layout__aside-body')
+            .evaluateAll((elements) => elements.reduce((count, element) => count + element.getAnimations().length, 0)),
+        )
+        .toBe(0)
+    const waitForModeChange = async () => {
+      await layout.page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+          }),
+      )
+      expect(await readTransitions()).toEqual([])
+    }
+    const expectToggleTransition = async (side: 'left' | 'right') => {
+      await expect
+        .poll(async () =>
+          (await readTransitions()).some(
+            ({ target, property }) => target.includes(`tr-layout__aside--${side}`) && property === 'transform',
+          ),
+        )
+        .toBe(true)
+    }
+
+    await layout.collapseAside('left')
+    await waitForLayoutAnimations()
+
+    await layout.page.evaluate(() => {
+      const state = window as typeof window & { __trLayoutTransitions?: LayoutTransitionRecord[] }
+      state.__trLayoutTransitions = []
+      document.addEventListener(
+        'transitionrun',
+        (event) => {
+          const target = event.target
+          if (!(target instanceof Element) || !target.closest('.tr-layout')) return
+          state.__trLayoutTransitions?.push({
+            target: String(target.className),
+            property: (event as TransitionEvent).propertyName,
+          })
+        },
+        true,
+      )
+    })
+
+    await layout.setAsideMode('left', 'drawer')
+    await expect(layout.getAside('left')).toHaveClass(/tr-layout__aside--drawer/)
+    await waitForModeChange()
+
+    await clearTransitions()
+    const modeChangeFrames = await layout.page.evaluate(async () => {
+      const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      const frames: Array<{ mode: 'dock' | 'drawer'; isModeChanging: boolean }> = []
+
+      for (const mode of ['dock', 'drawer', 'dock', 'drawer'] as const) {
+        document.querySelector<HTMLElement>(`[data-testid="left-mode-${mode}-btn"]`)?.click()
+        await nextFrame()
+
+        const aside = document.querySelector('.tr-layout__aside--left')
+        frames.push({
+          mode: aside?.classList.contains('tr-layout__aside--drawer') ? 'drawer' : 'dock',
+          isModeChanging: document.querySelector('.tr-layout')?.classList.contains('tr-layout--mode-changing') ?? false,
+        })
+      }
+
+      return frames
+    })
+    expect(modeChangeFrames).toEqual([
+      { mode: 'dock', isModeChanging: true },
+      { mode: 'drawer', isModeChanging: true },
+      { mode: 'dock', isModeChanging: true },
+      { mode: 'drawer', isModeChanging: true },
+    ])
+    await expect(layout.getAside('left')).toHaveClass(/tr-layout__aside--drawer/)
+    await waitForModeChange()
+
+    await clearTransitions()
+    await layout.toggleAside('left')
+    await expectToggleTransition('left')
+
+    await waitForLayoutAnimations()
+    await clearTransitions()
+    await layout.toggleAside('left')
+    await expectToggleTransition('left')
+
+    await waitForLayoutAnimations()
+    await clearTransitions()
+    await layout.setAsideMode('right', 'dock')
+    await waitForModeChange()
+    await clearTransitions()
+    await layout.toggleAside('right')
+    await expect.poll(async () => (await readTransitions()).length).toBeGreaterThan(0)
+    await waitForLayoutAnimations()
+
+    await clearTransitions()
+    await layout.setAsideMode('right', 'drawer')
+    await expect(layout.getAside('right')).toHaveClass(/tr-layout__aside--drawer/)
+    await waitForModeChange()
+
+    await clearTransitions()
+    await layout.toggleAside('right')
+    await expectToggleTransition('right')
+    await waitForLayoutAnimations()
+
+    await layout.collapseAside('right')
+    await waitForLayoutAnimations()
+    await clearTransitions()
+    const concurrentToggle = await layout.page.evaluate(async () => {
+      document.querySelector<HTMLElement>('[data-testid="left-mode-dock-btn"]')?.click()
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      document.querySelector<HTMLElement>('[data-testid="right-toggle-btn"]')?.click()
+      await Promise.resolve()
+
+      return {
+        isModeChanging: document.querySelector('.tr-layout')?.classList.contains('tr-layout--mode-changing') ?? false,
+        isRightExpanded:
+          document.querySelector('.tr-layout__aside--right')?.classList.contains('tr-layout__aside--expanded') ?? false,
+      }
+    })
+    expect(concurrentToggle).toEqual({ isModeChanging: true, isRightExpanded: true })
+    await waitForModeChange()
+    expect(await readTransitions()).toEqual([])
+  })
+
   test('Props: leftAside / rightAside mode - 应支持 dock 与 drawer 切换', async ({ layout }) => {
     await layout.setAsideMode('left', 'drawer')
     await layout.expectAsideMode('left', 'drawer')

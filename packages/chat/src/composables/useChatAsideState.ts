@@ -1,4 +1,4 @@
-import { computed, shallowRef, toValue, watch } from 'vue'
+import { computed, onBeforeUnmount, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 import type {
@@ -43,6 +43,8 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const viewportWidth = computed(() => toValue(options.viewportWidth))
   const leftAside = computed(() => toValue(options.leftAside))
   const rightAside = computed(() => toValue(options.rightAside))
+  const isResponsiveAsideChanging = shallowRef(false)
+  let responsiveAsideChangeFrame = 0
   watch(
     () => (leftAside.value !== false ? leftAside.value?.width : undefined),
     (width) => {
@@ -177,10 +179,23 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   }
 
   watch(isMobileViewport, (isMobile) => {
+    isResponsiveAsideChanging.value = true
+    if (responsiveAsideChangeFrame) window.cancelAnimationFrame(responsiveAsideChangeFrame)
+    responsiveAsideChangeFrame = window.requestAnimationFrame(() => {
+      responsiveAsideChangeFrame = window.requestAnimationFrame(() => {
+        responsiveAsideChangeFrame = 0
+        isResponsiveAsideChanging.value = false
+      })
+    })
+
     if (isMobile) {
       requestLeftAsideOpen(false, 'viewport')
       requestRightAsideOpen(false, 'viewport')
     }
+  })
+
+  onBeforeUnmount(() => {
+    if (responsiveAsideChangeFrame) window.cancelAnimationFrame(responsiveAsideChangeFrame)
   })
 
   watch(
@@ -209,6 +224,7 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     resolvedLeftAsideOpen,
     resolvedRightAsideOpen,
     resolvedRightAsidePanel,
+    isResponsiveAsideChanging,
     isLeftAsideDock: computed(() => leftAsideMode.value === 'dock'),
     isLeftAsideDrawer: computed(() => leftAsideMode.value === 'drawer'),
     openLeftAside: () => requestLeftAsideOpen(true),
