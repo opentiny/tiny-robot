@@ -36,7 +36,16 @@ export interface TrajectoryTimeModel {
 }
 
 export function toTimestamp(value: TrajectoryTime, fieldName: string): number {
-  const timestamp = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : Date.parse(value)
+  let timestamp: number
+  if (typeof value === 'number') timestamp = value
+  else if (typeof value === 'string') timestamp = Date.parse(value)
+  else {
+    try {
+      timestamp = Date.prototype.getTime.call(value)
+    } catch {
+      timestamp = Number.NaN
+    }
+  }
   if (!Number.isFinite(timestamp)) throw new Error(`Invalid trajectory ${fieldName}`)
   return timestamp
 }
@@ -105,11 +114,11 @@ function resolveLabelStyle(
   item: TrajectoryItem,
   labels: Readonly<Record<string, TrajectoryLabelStyle>>,
 ): { label: string; color: string; textColor: string } {
-  const style = labels[item.type] ?? DEFAULT_LABEL_STYLES[item.type] ?? { color: '#64748b' }
+  const style = { ...(DEFAULT_LABEL_STYLES[item.type] ?? {}), ...(labels[item.type] ?? {}) }
   const label = item.label !== undefined ? displayValue(item.label) : (style.text ?? item.type)
   return {
     label,
-    color: item.color ?? style.color,
+    color: item.color ?? style.color ?? '#64748b',
     textColor: item.textColor ?? style.textColor ?? '#ffffff',
   }
 }

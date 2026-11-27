@@ -31,6 +31,32 @@ import '@opentiny/tiny-robot/vanilla/style.css'
 
 Trace 的运行时不依赖 Vue、React 或其他框架。
 
+下面是一个原生 DOM 初始化示例，在线 Demo 使用 Vue 作为宿主，仅用于文档展示：
+
+```html
+<div id="trace"></div>
+```
+
+```ts
+const container = document.querySelector<HTMLElement>('#trace')!
+const trace = createTrace({
+  container,
+  items: [
+    {
+      id: 'prepare',
+      type: 'info',
+      message: 'Prepare the execution environment',
+      startTime: 0,
+      endTime: 420,
+    },
+  ],
+})
+
+window.addEventListener('pagehide', () => trace.destroy(), { once: true })
+```
+
+如果初始数据或配置校验失败，`createTrace` 会同步抛出异常，不会触发 `onEvent`；请使用 `try/catch` 处理创建失败。实例创建成功后，`setItems` 和 `updateOptions` 的运行期错误会通过 `error` 事件通知。
+
 ### CDN
 
 ```html
@@ -165,11 +191,11 @@ const trace = createTrace(options)
 
 ### Events
 
-| 事件名   | 触发时机                       | 回调参数                   |
-| -------- | ------------------------------ | -------------------------- |
+| 事件名   | 触发时机                                                          | 回调参数                                    |
+| -------- | ----------------------------------------------------------------- | ------------------------------------------- |
 | `select` | 用户激活记录，或 `select()` / `clearSelection()` 改变选中状态时。 | `{ type: 'select', itemId, source, item? }` |
-| `update` | 数据或配置更新完成时。         | `{ type: 'update' }`       |
-| `error`  | 数据校验或渲染配置发生错误时。 | `{ type: 'error', error }` |
+| `update` | 数据或配置更新完成时。                                            | `{ type: 'update' }`                        |
+| `error`  | 数据校验或渲染配置发生错误时。                                    | `{ type: 'error', error }`                  |
 
 `select.source` 的值为：
 
@@ -192,14 +218,14 @@ Trace 是原生 DOM 组件，不提供 Vue Slots。需要扩展内容时，请�
 
 ### Methods / Expose
 
-| 方法名           | 说明                                             | 签名                                         |
-| ---------------- | ------------------------------------------------ | -------------------------------------------- |
-| `setItems`       | 替换记录，并重新计算时间轴范围和每条记录的时长。 | `(items: readonly TrajectoryItem[]) => void` |
-| `select`         | 选中指定记录，传入 `null` 清除选中。             | `(id: string \| null) => void`               |
-| `clearSelection` | 清除当前选中记录。                               | `() => void`                                 |
-| `getSelectedId`  | 获取当前选中的记录 ID。                          | `() => string \| null`                       |
-| `updateOptions`  | 更新配置并重新渲染。                             | `(options: TrajectoryUpdateOptions) => void` |
-| `destroy`        | 移除组件创建的 DOM 和事件监听。                  | `() => void`                                 |
+| 方法名           | 说明                                                                                           | 签名                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `setItems`       | 替换记录，并重新计算时间轴范围和每条记录的时长；如果当前选中 ID 不在新记录中，会清除选中状态。 | `(items: readonly TrajectoryItem[]) => void` |
+| `select`         | 选中指定记录，传入 `null` 清除选中。                                                           | `(id: string \| null) => void`               |
+| `clearSelection` | 清除当前选中记录。                                                                             | `() => void`                                 |
+| `getSelectedId`  | 获取当前选中的记录 ID。                                                                        | `() => string \| null`                       |
+| `updateOptions`  | 更新配置并重新渲染。                                                                           | `(options: TrajectoryUpdateOptions) => void` |
+| `destroy`        | 移除组件创建的 DOM 和事件监听。                                                                | `() => void`                                 |
 
 ```ts
 trace.select('complete')
@@ -208,6 +234,10 @@ trace.setItems(nextItems)
 trace.updateOptions({ durationFormat: 'clock' })
 trace.destroy()
 ```
+
+`setItems` 成功后会触发 `update`。宿主如果维护了选中记录详情，应在 `update` 回调中通过 `getSelectedId()` 重新读取选中 ID，并在返回 `null` 时清除详情。
+
+`updateOptions` 中未传入的 `labels`、`axis` 和 `messages` 分组会保留原配置；传入分组会整体替换，传入空对象即可恢复该分组的默认行为。
 
 ### Types
 

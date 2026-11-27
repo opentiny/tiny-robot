@@ -95,9 +95,13 @@ function popPixelLane(heap: PixelLaneState[]): PixelLaneState | undefined {
   return first
 }
 
-function layoutTimelineSegments(track: HTMLElement, items: readonly NormalizedTrajectoryItem[]): number {
+function layoutTimelineSegments(
+  track: HTMLElement,
+  items: readonly NormalizedTrajectoryItem[],
+  fallbackLaneCount: number,
+): number {
   const trackWidth = track.clientWidth
-  if (!trackWidth) return Math.max(1, Math.max(...items.map((item) => item.lane + 1), 1))
+  if (!trackWidth) return Math.max(1, fallbackLaneCount)
 
   const laneEnds: PixelLaneState[] = []
   let laneCount = 0
@@ -141,6 +145,15 @@ function renderTimeline(document: Document, model: TrajectoryRenderModel): HTMLE
   track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
   section.append(track)
   return section
+}
+
+function applyTimelineLayout(track: HTMLElement, model: TrajectoryRenderModel): void {
+  const laneCount = layoutTimelineSegments(
+    track,
+    model.time.items.filter((item) => item.visible),
+    model.time.laneCount,
+  )
+  track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
 }
 
 function renderItem(
@@ -229,7 +242,8 @@ export function createTrajectoryUI(options: {
         const width = Math.round(entries[0]?.contentRect.width ?? 0)
         if (width === lastTrackWidth) return
         lastTrackWidth = width
-        if (currentModel && !rendering) renderModel(currentModel)
+        const track = entries[0]?.target as HTMLElement | undefined
+        if (currentModel && track && !rendering) applyTimelineLayout(track, currentModel)
       })
     : undefined
 
@@ -266,11 +280,7 @@ export function createTrajectoryUI(options: {
       host.replaceChildren(timeline, renderList(options.document, model))
       const track = timeline.querySelector<HTMLElement>('.tr-trajectory__track')
       if (track) {
-        const laneCount = layoutTimelineSegments(
-          track,
-          model.time.items.filter((item) => item.visible),
-        )
-        track.style.height = `${laneCount * 18 + Math.max(0, laneCount - 1) * 4}px`
+        applyTimelineLayout(track, model)
         lastTrackWidth = Math.round(track.clientWidth)
         resizeObserver?.observe(track)
       }

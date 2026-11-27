@@ -84,8 +84,8 @@ function createModel(
 export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
   validateTraceOptions(input)
   const document = input.container.ownerDocument
-  let options: TrajectoryOptions = { ...input, items: [...input.items] }
   let items: readonly TrajectoryItem[] = [...input.items]
+  let options: TrajectoryOptions = { ...input, items }
   let selectedId = hasItem(items, input.selectedId ?? null) ? (input.selectedId ?? null) : null
   let destroyed = false
 
@@ -158,6 +158,7 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         const candidateSelectedId = hasItem(candidateItems, selectedId) ? selectedId : null
         renderState(candidateItems, options, candidateSelectedId)
         items = candidateItems
+        options = { ...options, items: candidateItems }
         selectedId = candidateSelectedId
         emit({ type: 'update' })
       } catch (error) {
@@ -187,12 +188,15 @@ export function createTrace(input: TrajectoryOptions): TrajectoryInstance {
         emit({ type: 'error', error })
         return
       }
+      const hasOwn = (key: keyof TrajectoryUpdateOptions): boolean => Object.prototype.hasOwnProperty.call(partial, key)
       const nextOptions: TrajectoryOptions = {
         ...options,
         ...partial,
-        labels: partial.labels ? { ...(options.labels ?? {}), ...partial.labels } : options.labels,
-        axis: partial.axis ? { ...(options.axis ?? {}), ...partial.axis } : options.axis,
-        messages: partial.messages ? { ...(options.messages ?? {}), ...partial.messages } : options.messages,
+        container: options.container,
+        items,
+        labels: hasOwn('labels') ? partial.labels : options.labels,
+        axis: hasOwn('axis') ? partial.axis : options.axis,
+        messages: hasOwn('messages') ? partial.messages : options.messages,
       }
       const requestedSelectedId = partial.selectedId === undefined ? selectedId : partial.selectedId
       const nextSelectedId =

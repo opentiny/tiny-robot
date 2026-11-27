@@ -146,6 +146,19 @@ test.describe('Trace vanilla component', () => {
     await expect(page.locator('.tr-trajectory__label')).toHaveCSS('background-color', 'rgb(100, 116, 139)')
   })
 
+  test('preserves built-in text color when only a label background is overridden', async ({ page }) => {
+    await page.evaluate(() =>
+      window.traceFixture.trace.updateOptions({
+        labels: { info: { color: '#ffffff' } },
+      }),
+    )
+
+    await expect(page.locator('[data-tr-trajectory-id="prepare"] .tr-trajectory__label-text')).toHaveCSS(
+      'color',
+      'rgb(37, 99, 235)',
+    )
+  })
+
   test('supports programmatic selection and dynamic item updates', async ({ page }) => {
     const result = await page.evaluate(() => {
       window.traceFixture.resetEvents()
@@ -202,6 +215,9 @@ test.describe('Trace vanilla component', () => {
     expect(result.events).toEqual(['update'])
     expect(result.width).not.toBe(initialWidth)
     expect(result.background).toBe('rgb(254, 243, 199)')
+
+    await page.evaluate(() => window.traceFixture.trace.updateOptions({ axis: {} }))
+    await expect(page.locator('.tr-trajectory__segment')).toHaveCount(4)
   })
 
   test('renders overlapping timeline items on separate clickable lanes', async ({ page }) => {
@@ -456,6 +472,91 @@ test.describe('Trace vanilla component', () => {
     })
 
     expect(selectedId).toBe('iframe-item')
+  })
+
+  test('preserves milliseconds for Date values created by an iframe window', async ({ page }) => {
+    const duration = await page.evaluate(() => {
+      const iframe = document.createElement('iframe')
+      document.body.append(iframe)
+      const iframeDocument = iframe.contentDocument!
+      const DateConstructor = iframe.contentWindow!.Date
+      const container = iframeDocument.createElement('div')
+      iframeDocument.body.append(container)
+      const instance = window.traceFixture.createTrace({
+        container,
+        items: [
+          {
+            id: 'cross-window-date',
+            type: 'info',
+            message: 'cross-window-date',
+            startTime: new DateConstructor('2026-11-26T10:00:00.100Z'),
+            endTime: new DateConstructor('2026-11-26T10:00:00.420Z'),
+          },
+        ],
+      })
+      const text = container.querySelector('.tr-trajectory__duration')?.textContent ?? ''
+      instance.destroy()
+      iframe.remove()
+      return text
+    })
+
+    expect(duration).toBe('320ms')
+  })
+
+  test('reflows timeline without reformatting durations when the container resizes', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => pageErrors.push(error))
+
+    await page.evaluate(() => {
+      const container = document.createElement('div')
+      container.style.width = '900px'
+      document.body.append(container)
+      const state = { calls: 0, width: 0, fail: false, container, observer: undefined as ResizeObserver | undefined }
+      const instance = window.traceFixture.createTrace({
+        container,
+        items: [{ id: 'resize', type: 'info', message: 'resize', startTime: 0, endTime: 1 }],
+        formatDuration: () => {
+          state.calls += 1
+          if (state.fail) throw new Error('formatter unavailable')
+          return '1ms'
+        },
+      })
+      state.observer = new ResizeObserver(([entry]) => {
+        state.width = Math.round(entry.contentRect.width)
+      })
+      state.observer.observe(container)
+      Reflect.set(state, 'instance', instance)
+      Reflect.set(window, '__traceResizeTest', state)
+    })
+
+    await page.waitForFunction(() => (Reflect.get(window, '__traceResizeTest') as { width: number }).width > 0)
+    const initialCalls = await page.evaluate(
+      () => (Reflect.get(window, '__traceResizeTest') as { calls: number }).calls,
+    )
+
+    await page.evaluate(() => {
+      const state = Reflect.get(window, '__traceResizeTest') as { container: HTMLElement; fail: boolean }
+      state.fail = true
+      state.container.style.width = '390px'
+    })
+    await page.waitForFunction(() => (Reflect.get(window, '__traceResizeTest') as { width: number }).width === 390)
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())))
+
+    expect(pageErrors).toEqual([])
+    await expect
+      .poll(() => page.evaluate(() => (Reflect.get(window, '__traceResizeTest') as { calls: number }).calls))
+      .toBe(initialCalls)
+    await page.evaluate(() => {
+      const state = Reflect.get(window, '__traceResizeTest') as {
+        observer: ResizeObserver
+        instance: { destroy(): void }
+        container: HTMLElement
+      }
+      state.observer.disconnect()
+      state.instance.destroy()
+      state.container.remove()
+      Reflect.deleteProperty(window, '__traceResizeTest')
+    })
   })
 
   test('expands the selected message for touch and keyboard users', async ({ page }) => {
