@@ -134,6 +134,43 @@ test.describe('Sender Mention extension', () => {
     await expect(editor).toHaveText('Hello @数据分析')
   })
 
+  test('replaces a pasted query when the caret moves inside it before selection', async ({ mount, page }) => {
+    const component = await mount(SenderExtensionsFixture, { props: { kind: 'mention' } })
+    const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+    await editor.click()
+    await editor.evaluate((element) => {
+      const clipboardData = new DataTransfer()
+      clipboardData.setData('text/plain', 'Hello @analytics')
+      element.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }))
+    })
+    await expect(items(page)).toHaveCount(1)
+    for (let i = 0; i < 'ytics'.length; i++) {
+      await editor.press('ArrowLeft')
+    }
+    await items(page).filter({ hasText: '数据分析' }).click()
+
+    await expect(editor).toHaveText('Hello @数据分析')
+  })
+
+  test('replaces a spaced query while preserving existing text to its right', async ({ mount, page }) => {
+    const component = await mount(SenderExtensionsFixture, {
+      props: { kind: 'mention', allowSpaces: true, mentionItemsWithSpaces: true },
+    })
+    const editor = component.getByTestId('sender-root').locator('.ProseMirror')
+
+    await editor.pressSequentially('Hello after')
+    for (let i = 0; i < ' after'.length; i++) {
+      await editor.press('ArrowLeft')
+    }
+    await editor.pressSequentially(' @小小 画')
+    await expect(items(page)).toHaveText(['小小 画家'])
+    await editor.press('ArrowLeft')
+    await editor.press('Enter')
+
+    await expect(editor).toHaveText('Hello @小小 画家 after')
+  })
+
   test('MENTION-15 selects with Tab without submitting the Sender', async ({ mount }) => {
     const component = await mount(SenderExtensionsFixture, { props: { kind: 'mention' } })
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

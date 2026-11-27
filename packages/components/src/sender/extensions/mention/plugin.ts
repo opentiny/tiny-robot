@@ -136,14 +136,27 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           }
         }
 
+        const { range, query } = suggestion
+        // 光标移到查询中间时，保留同一触发字符已匹配的范围，筛选仍使用光标前缀。
+        if (state.active && state.range) {
+          const start = tr.mapping.mapResult(state.range.from, 1)
+          const end = tr.mapping.map(state.range.to, -1)
+          if (!start.deleted && start.pos === range.from && end > range.to && end <= tr.selection.$from.end()) {
+            const suffix = tr.doc.textBetween(range.to, end, undefined, '\ufffc')
+            if (!suffix.includes(char) && !suffix.includes('\ufffc') && (allowSpaces || !suffix.includes(' '))) {
+              range.to = end
+            }
+          }
+        }
+
         // 过滤提及项
         const currentItems = isRef(items) ? items.value : items
-        const filteredItems = filterItems(currentItems, suggestion.query)
+        const filteredItems = filterItems(currentItems, query)
 
         return {
           active: filteredItems.length > 0,
-          range: suggestion.range,
-          query: suggestion.query,
+          range,
+          query,
           filteredItems,
         }
       },
