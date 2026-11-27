@@ -178,25 +178,21 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     requestRightAsideOpen(!resolvedRightAsideOpen.value)
   }
 
-  watch(
-    isMobileViewport,
-    (isMobile) => {
-      isResponsiveAsideChanging.value = true
-      if (responsiveAsideChangeFrame) window.cancelAnimationFrame(responsiveAsideChangeFrame)
+  watch(isMobileViewport, (isMobile) => {
+    isResponsiveAsideChanging.value = true
+    if (responsiveAsideChangeFrame) window.cancelAnimationFrame(responsiveAsideChangeFrame)
+    responsiveAsideChangeFrame = window.requestAnimationFrame(() => {
       responsiveAsideChangeFrame = window.requestAnimationFrame(() => {
-        responsiveAsideChangeFrame = window.requestAnimationFrame(() => {
-          responsiveAsideChangeFrame = 0
-          isResponsiveAsideChanging.value = false
-        })
+        responsiveAsideChangeFrame = 0
+        isResponsiveAsideChanging.value = false
       })
+    })
 
-      if (isMobile) {
-        requestLeftAsideOpen(false, 'viewport')
-        requestRightAsideOpen(false, 'viewport')
-      }
-    },
-    { flush: 'sync' },
-  )
+    if (isMobile) {
+      requestLeftAsideOpen(false, 'viewport')
+      requestRightAsideOpen(false, 'viewport')
+    }
+  })
 
   onBeforeUnmount(() => {
     if (responsiveAsideChangeFrame) window.cancelAnimationFrame(responsiveAsideChangeFrame)

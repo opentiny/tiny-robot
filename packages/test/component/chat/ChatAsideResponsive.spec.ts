@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
+import ChatAsideControlledResponsiveFixture from './ChatAsideControlledResponsive.fixture.vue'
 import ChatAsideDrawerResponsiveFixture from './ChatAsideDrawerResponsive.fixture.vue'
 import ChatAsideResponsiveFixture from './ChatAsideResponsive.fixture.vue'
+
+test('does not emit a duplicate viewport close when controlled state closes in the same update', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 700, height: 900 })
+  await mount(ChatAsideControlledResponsiveFixture)
+
+  const rightAside = page.locator('.tr-layout__aside--right')
+  await expect(rightAside).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(rightAside).toHaveClass(/tr-layout__aside--expanded/)
+  await expect(page.getByTestId('right-aside-open-change-count')).toHaveText('0')
+
+  await page.getByTestId('update-breakpoint-and-close-aside').click()
+
+  await expect(rightAside).toHaveClass(/tr-layout__aside--hidden/)
+  await expect(page.getByTestId('right-aside-open-change-count')).toHaveText('0')
+})
 
 test('suppresses auto-close transition when responsive breakpoint changes while both asides stay drawers', async ({
   mount,
