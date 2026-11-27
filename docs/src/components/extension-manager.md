@@ -33,7 +33,7 @@ pageClass: demo-container-page-bg
 
 搜索会忽略首尾空白，并匹配 `name` 和 `description`。同时设置标签和关键词时，条目需要同时满足两个条件。每个标签页保存自己的筛选条件。已选择的标签不再存在时，组件会清除该标签条件。
 
-`installed: true` 的条目归入“已安装”；`installed: false` 或省略 `installed` 的条目归入“可安装”。两段始终显示，即使筛选后没有条目；原始数据的顺序会保留。
+`installed: true` 的条目归入“已安装”；`installed: false` 或省略 `installed` 的条目归入“可安装”。“已安装”始终显示；原始数据中没有可安装条目时隐藏“可安装”分区。筛选后没有匹配项时仍显示对应分区的空状态；原始数据的顺序会保留。
 
 <demo vue="../../demos/extension-manager/browse-and-filter.vue" title="浏览、筛选与自动分区" description="切换标签页、选择标签或输入关键词，观察筛选后的已安装和可安装分区。" />
 
@@ -45,7 +45,7 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 ### 空状态
 
-每个当前标签页都有“已安装”和“可安装”两个可折叠分区。没有匹配项时，`ExtensionManager` 的 `empty` 插槽接收分区标题；没有可显示的标签页时显示 `empty-text`。
+当前标签页会显示“已安装”分区；原始数据中存在未安装条目时也显示“可安装”分区。筛选导致分区没有匹配项时，`ExtensionManager` 的 `empty` 插槽接收分区标题；没有可显示的标签页时显示 `empty-text`。
 
 <demo vue="../../demos/extension-manager/empty-states.vue" title="分区与管理器空状态" description="分别定制空分区内容，并为没有标签页的管理器提供提示文字。" />
 

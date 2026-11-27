@@ -27,7 +27,7 @@ test.describe('ExtensionManager section model', () => {
     expect(availableIds).toEqual(['beta', 'gamma'])
   })
 
-  test('keeps both sections visible and renders the empty slot for an empty derived section', async ({ mount }) => {
+  test('hides the available section when the active tab has no available items', async ({ mount }) => {
     const component = await mount(ExtensionManagerFixture)
 
     await component.getByTestId('set-active-market').click()
@@ -36,10 +36,8 @@ test.describe('ExtensionManager section model', () => {
     await expect(
       manager.locator('section[data-section-key="installed"]').getByRole('button', { name: '已安装', exact: true }),
     ).toHaveCount(1)
-    await expect(
-      manager.locator('section[data-section-key="available"]').getByRole('button', { name: '可安装', exact: true }),
-    ).toHaveCount(1)
-    await expect(manager.getByTestId('empty-slot-market-available')).toHaveText('Empty available')
+    await expect(manager.locator('section[data-section-key="available"]')).toHaveCount(0)
+    await expect(manager.getByTestId('empty-slot-market-available')).toHaveCount(0)
   })
 
   test('defaults derived Cards to one primary action', async ({ mount }) => {
@@ -97,8 +95,8 @@ test.describe('ExtensionManager section model', () => {
       manager.locator('section[data-section-key="available"]').getByRole('button', { name: '可安装', exact: true }),
     ).toHaveText('可安装')
 
-    await component.getByTestId('set-active-market').click()
-    await expect(manager.getByTestId('empty-slot-context-market-available')).toHaveText('market/available/可安装')
+    await manager.getByTestId('filter-search').fill('no matching extension')
+    await expect(manager.getByTestId('empty-slot-context-library-available')).toHaveText('library/available/可安装')
   })
 
   test('keeps Manager-only metadata out of the Card/Grid item boundary', async ({ mount }) => {

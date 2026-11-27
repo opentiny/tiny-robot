@@ -100,12 +100,13 @@ const toCardGridItem = (item: ExtensionManagerItem): ExtensionCardGridItem => {
 
 const activeSections = computed<ExtensionManagerSectionState[]>(() => {
   const items = filter.filteredItems.value
+  const hasAvailableItems = activeTab.value?.items.some((item) => item.installed !== true) ?? false
 
   return SECTION_DEFINITIONS.map(({ key, title }) => ({
     key,
     title,
     items: items.filter((item) => (item.installed === true ? 'installed' : 'available') === key).map(toCardGridItem),
-  }))
+  })).filter((section) => section.key !== 'available' || hasAvailableItems)
 })
 
 const getSectionExpanded = (tabId: string, sectionKey: ExtensionManagerSectionKey) =>
