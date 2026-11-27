@@ -1,5 +1,59 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
+import ChatAsideDrawerResponsiveFixture from './ChatAsideDrawerResponsive.fixture.vue'
 import ChatAsideResponsiveFixture from './ChatAsideResponsive.fixture.vue'
+
+test('suppresses auto-close transition when responsive breakpoint changes while both asides stay drawers', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 700, height: 900 })
+  await mount(ChatAsideDrawerResponsiveFixture)
+
+  const surface = page.locator('.tr-layout')
+  const chat = page.locator('.tr-chat-ui')
+  const leftAside = page.locator('.tr-layout__aside--left')
+  const rightAside = page.locator('.tr-layout__aside--right')
+  const readTransitions = () =>
+    page.evaluate(() => {
+      const state = window as typeof window & {
+        __responsiveAsideTransitions?: Array<{ target: string; property: string }>
+      }
+      return state.__responsiveAsideTransitions ?? []
+    })
+
+  await expect(leftAside).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(rightAside).toHaveClass(/tr-layout__aside--drawer/)
+  await expect(rightAside).toHaveClass(/tr-layout__aside--expanded/)
+
+  await page.evaluate(() => {
+    const state = window as typeof window & {
+      __responsiveAsideTransitions?: Array<{ target: string; property: string }>
+    }
+    state.__responsiveAsideTransitions = []
+    document.addEventListener(
+      'transitionrun',
+      (event) => {
+        const target = event.target
+        if (!(target instanceof Element) || !target.matches('.tr-layout__aside--right')) return
+        state.__responsiveAsideTransitions?.push({
+          target: String(target.className),
+          property: (event as TransitionEvent).propertyName,
+        })
+      },
+      true,
+    )
+  })
+
+  await page.setViewportSize({ width: 590, height: 900 })
+  await expect(rightAside).toHaveClass(/tr-layout__aside--hidden/)
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  )
+
+  expect(await readTransitions()).toEqual([])
+  await expect(surface).not.toHaveClass(/tr-layout--mode-changing/)
+  await expect(chat).not.toHaveClass(/tr-chat-ui--responsive-changing/)
+})
 
 test('skips aside transitions when viewport resizing changes ChatUI responsive modes', async ({ mount, page }) => {
   await page.setViewportSize({ width: 1200, height: 900 })

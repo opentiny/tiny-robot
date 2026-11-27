@@ -198,6 +198,14 @@ const isWelcomeComposerCentered = computed(
 const isFooterComposerVisible = computed(() => isDefaultComposerVisible.value && !isWelcomeComposerCentered.value)
 const layoutStyle = computed(() => ({
   containerType: 'inline-size',
+  ...(asideState.isResponsiveAsideChanging.value
+    ? {
+        '--tr-layout-body-transition': 'none',
+        '--tr-layout-aside-body-transition': 'none',
+        '--tr-layout-aside-transition': 'none',
+        '--tr-layout-aside-content-transition': 'none',
+      }
+    : {}),
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-page-bg-default))',
   '--tr-layout-right-aside-bg': 'var(--tr-chat-ui-right-aside-bg, var(--tr-container-bg-default))',
   '--tr-layout-header-bg': 'var(--tr-chat-ui-header-bg, var(--tr-container-bg-default))',
@@ -519,7 +527,13 @@ function renderEmptyStateComposer() {
 <template>
   <TrLayout
     v-bind="layoutProps"
-    :class="['tr-chat-ui', { 'tr-chat-ui--mobile': isMobileViewport }]"
+    :class="[
+      'tr-chat-ui',
+      {
+        'tr-chat-ui--mobile': isMobileViewport,
+        'tr-chat-ui--responsive-changing': asideState.isResponsiveAsideChanging.value,
+      },
+    ]"
     :style="layoutStyle"
     @left-aside-open-change="asideState.handleLeftAsideOpenChange"
     @right-aside-open-change="asideState.handleRightAsideOpenChange"
