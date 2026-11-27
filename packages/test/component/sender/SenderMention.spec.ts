@@ -118,6 +118,22 @@ test.describe('Sender Mention extension', () => {
     await expect(component.getByTestId('submit-count')).toHaveText('0')
   })
 
+  test('replaces the entire filtered query when clicking a mention', async ({ mount, page }) => {
+    const component = await mount(SenderExtensionsFixture, { props: { kind: 'mention' } })
+    const sender = component.getByTestId('sender-root')
+    const editor = sender.locator('.ProseMirror')
+    const result = items(page).filter({ hasText: '数据分析' })
+
+    await editor.pressSequentially('Hello @')
+    await expect(items(page)).toHaveCount(4)
+    await editor.pressSequentially('analytics')
+    await expect(items(page)).toHaveCount(1)
+    await result.click()
+
+    await expect(sender.locator('.mention')).toHaveText('@数据分析')
+    await expect(editor).toHaveText('Hello @数据分析')
+  })
+
   test('MENTION-15 selects with Tab without submitting the Sender', async ({ mount }) => {
     const component = await mount(SenderExtensionsFixture, { props: { kind: 'mention' } })
     const editor = component.getByTestId('sender-root').locator('.ProseMirror')

@@ -277,8 +277,9 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
                       label: props.label,
                       value: props.value || '',
                     }
-                    if (state.range) {
-                      insertMention(view, state.range, item)
+                    const range = MentionPluginKey.getState(view.state)?.range
+                    if (range) {
+                      insertMention(view, range, item)
                     }
                   },
                 },
