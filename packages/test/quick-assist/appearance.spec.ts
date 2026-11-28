@@ -18,7 +18,7 @@ for (const entry of ['index', 'umd']) {
         const border = mode === 'light' ? 'rgb(219, 219, 219)' : 'rgba(255, 255, 255, 0.2)'
         const background = mode === 'light' ? 'rgb(255, 255, 255)' : 'rgb(38, 38, 38)'
         await expect(trigger).toHaveCSS('width', '88px')
-        await expect(trigger).toHaveCSS('height', '24px')
+        await expect(trigger).toHaveCSS('height', '28px')
         expect(
           await trigger.evaluate((element) => {
             const rect = element.getBoundingClientRect()
@@ -58,6 +58,9 @@ for (const entry of ['index', 'umd']) {
         }
         await expect(composer).toHaveCSS('border-color', suggestionBorder)
         await expect(suggestion).toHaveCSS('border-color', suggestionBorder)
+        await expect(suggestion).toHaveCSS('height', '28px')
+        await expect(submit).toHaveCSS('width', '28px')
+        await expect(submit).toHaveCSS('height', '28px')
         await expect(composer.locator('.tr-quick-assist__sparkle')).toHaveCSS('width', '16px')
         await expect(composer.locator('.tr-quick-assist__sparkle')).toHaveCSS('height', '16px')
         await popover.hover({ position: { x: 4, y: 4 } })
