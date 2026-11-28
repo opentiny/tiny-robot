@@ -46,23 +46,22 @@ pnpm run start:mock
 
 ## 初始化与运行
 
-首次使用时，先安装提供 `tiny` 命令的 Tiny CLI；已安装 Tiny CLI 的用户可以跳过此步。然后安装 TinyPro 初始化工具并运行 `tiny init pro` 创建前端项目：
+首次使用时，先安装提供 `tiny` 命令的 Tiny CLI；已安装 Tiny CLI 的用户可以跳过此步。然后固定安装 TinyPro 初始化套件 `1.5.0-alpha.7`，并运行 `tiny init pro` 创建前端项目：
 
 ```bash
 npm install -g @opentiny/cli
-tiny install @opentiny/tiny-toolkit-pro
+tiny install @opentiny/tiny-toolkit-pro@1.5.0-alpha.7
 tiny init pro
 ```
 
-初始化器可能在当前目录下额外创建同名项目子目录。确认生成后的真实项目根目录，再进入该目录执行 Chat CLI：
+初始化器可能在当前目录下额外创建同名项目子目录。确认生成后的真实项目根目录，再从项目根目录执行 Chat CLI；出现多包 workspace 选择时选 `web` 包，添加完成后仍在项目根目录安装依赖：
 
 ```bash
 npx @opentiny/tiny-robot-cli add chat
-pnpm add @mcp-b/webmcp-polyfill
 pnpm install
 ```
 
-CLI 会识别 pnpm workspace 并向对应的 `web` package 添加 Chat 代码和依赖，但不会替宿主项目修改 `main.ts`、`App.vue` 或布局。添加完成后核对文件落点和依赖所在的 package，再按下面步骤手动接线。
+此版本的 TinyPro 模板已在 `web` 包中声明并初始化 `@mcp-b/webmcp-polyfill`，无需单独安装。Chat CLI 会向选中的 `web` 包添加 Chat 代码和 TinyRobot 依赖，但不会替宿主项目修改 `main.ts`、`App.vue` 或布局。添加完成后核对文件落点和依赖所在的 package，再按下面步骤手动接线。
 
 ## 接入步骤
 
