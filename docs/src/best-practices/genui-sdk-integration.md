@@ -33,10 +33,10 @@ pageClass: demo-container-page-bg
 
 ### 配置与体验
 
-此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。准备 Node.js 22 LTS 和 pnpm 10，克隆[完整示例项目][project]后，在项目根目录运行：
+此路径用于直接运行配套项目；若要将 GenUI 接入已有项目，请跳到[接入步骤](#接入步骤)。准备 Node.js 22.12.0 或更高版本和 pnpm 10，克隆[完整示例项目][project]后，在项目根目录运行：
 
 ```bash
-git clone --branch demo/trchat-genui-sdk-integration --single-branch https://github.com/SonyLeo/tiny-robot.git tiny-robot-genui-sdk-integration
+git clone --branch demo/trchat-genui-sdk-integration --single-branch https://github.com/opentiny/tiny-robot.git tiny-robot-genui-sdk-integration
 cd tiny-robot-genui-sdk-integration
 pnpm install
 ```
@@ -247,10 +247,10 @@ sender: {
 - [GenUI SDK](https://github.com/opentiny/genui-sdk)。
 - [独立 Schema 渲染器](https://github.com/opentiny/tiny-schema-renderer)。
 
-[project]: https://github.com/SonyLeo/tiny-robot/tree/demo/trchat-genui-sdk-integration
-[app]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/App.vue
-[prompt]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/prompt.ts
-[schema]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/schema.ts
-[schema-content]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/components/SchemaContent.vue
-[context]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/context.ts
-[renderer-types]: https://github.com/SonyLeo/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/schema-renderer.d.ts
+[project]: https://github.com/opentiny/tiny-robot/tree/demo/trchat-genui-sdk-integration
+[app]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/App.vue
+[prompt]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/prompt.ts
+[schema]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/schema.ts
+[schema-content]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/components/SchemaContent.vue
+[context]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/genui/context.ts
+[renderer-types]: https://github.com/opentiny/tiny-robot/blob/demo/trchat-genui-sdk-integration/src/schema-renderer.d.ts
