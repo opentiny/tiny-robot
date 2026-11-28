@@ -58,10 +58,10 @@
   gap: 4px;
   width: 88px;
   min-width: 0;
-  height: 24px;
+  height: 28px;
   max-width: min(220px, calc(100vw - 16px));
   /* The 1px border completes the 12px inset from the outer edge. */
-  padding: 2px 11px;
+  padding: 4px 11px;
   border: 1px solid var(--tr-quick-assist-trigger-border);
   border-radius: var(--tr-quick-assist-pill-radius);
   background: var(--tr-quick-assist-bg);
@@ -445,6 +445,10 @@
   font-weight: 400;
   /* Keep the immediately visible tooltip aligned with this entry. */
   animation: none;
+}
+
+.tr-quick-assist__trigger--invalid > .tr-quick-assist__sparkle {
+  opacity: 0.5;
 }
 
 .tr-quick-assist__selection-tooltip {

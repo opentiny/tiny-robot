@@ -63,6 +63,34 @@ for (const entry of ['index', 'umd']) {
       await expect(page.locator(tooltip)).toHaveCount(0)
     })
 
+    test('over-limit selection dims the trigger icon in light and dark modes', async ({ page }) => {
+      await page.evaluate(() => {
+        document.documentElement.setAttribute('data-tr-color-mode', 'light')
+        window.qa.updateOptions({ selection: { maxTextLength: 3 } })
+      })
+      const button = page.locator(trigger)
+      const icon = button.locator('.tr-quick-assist__sparkle')
+
+      await selectText(page, '三个字')
+      await expect(button).toBeEnabled()
+      await expect(icon).toHaveCSS('opacity', '1')
+
+      await selectText(page, '四个文字')
+      await expect(button).toBeDisabled()
+      await expect(icon.locator('.tr-quick-assist__icon--light')).toBeVisible()
+      await expect(icon).toHaveCSS('opacity', '0.5')
+      await expect(button).toHaveCSS('height', '28px')
+      await expect(button).toHaveCSS('opacity', '1')
+
+      await page.evaluate(() => document.documentElement.setAttribute('data-tr-color-mode', 'dark'))
+      await expect(icon.locator('.tr-quick-assist__icon--dark')).toBeVisible()
+      await expect(icon).toHaveCSS('opacity', '0.5')
+
+      await selectText(page, '三个字')
+      await expect(button).toBeEnabled()
+      await expect(icon).toHaveCSS('opacity', '1')
+    })
+
     test('Unicode counts trim outer whitespace and retain internal spaces and newlines', async ({ page }) => {
       await page.evaluate(() => window.qa.updateOptions({ selection: { maxTextLength: 6 } }))
       await selectText(page, ' \n字😀 空\n文\t ')
